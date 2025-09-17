@@ -93,6 +93,60 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setPiezas((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleDescargarLevantamiento = async () => {
+    if (!prospectoId) {
+      setErrorLocal('No se encontró el identificador del prospecto.');
+      return;
+    }
+
+    if (piezas.length === 0) {
+      setErrorLocal('Debes agregar al menos una pieza para descargar el levantamiento.');
+      return;
+    }
+
+    setDescargandoLevantamiento(true);
+    setErrorLocal('');
+
+    try {
+      const payload = {
+        prospectoId,
+        piezas: piezas.map((pieza) => ({
+          ubicacion: pieza.ubicacion,
+          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+          alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+          producto: pieza.producto,
+          color: pieza.color,
+          observaciones: pieza.observaciones
+        })),
+        precioGeneral: Number(precioGeneral),
+        totalM2: calcularTotalM2,
+        unidadMedida: unidad
+      };
+
+      const response = await axiosConfig.post('/etapas/levantamiento-pdf', payload, {
+        responseType: 'blob'
+      });
+
+      // Crear enlace de descarga
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Levantamiento-Medidas-${Date.now()}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      console.log('✅ Levantamiento descargado exitosamente');
+    } catch (error) {
+      console.error('Error descargando levantamiento:', error);
+      const mensaje = error.response?.data?.message || 'No se pudo descargar el levantamiento.';
+      setErrorLocal(mensaje);
+    } finally {
+      setDescargandoLevantamiento(false);
+    }
+  };
+
   const handleGenerarCotizacion = async () => {
     if (!prospectoId) {
       setErrorLocal('No se encontró el identificador del prospecto.');
@@ -283,10 +337,11 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     + Agregar Pieza
                   </button>
                   <button 
-                    onClick={() => alert('Descargar Levantamiento')}
-                    className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm"
+                    onClick={handleDescargarLevantamiento}
+                    disabled={descargandoLevantamiento || piezas.length === 0}
+                    className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm disabled:opacity-50"
                   >
-                    📄 Descargar Levantamiento
+                    {descargandoLevantamiento ? '⏳ Generando...' : '📄 Descargar Levantamiento'}
                   </button>
                 </div>
               </div>

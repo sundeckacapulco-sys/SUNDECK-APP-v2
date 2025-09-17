@@ -6,25 +6,8 @@ mongoose.connect('mongodb://localhost:27017/sundeck-crm')
   .then(async () => {
     console.log('✅ Conectado a MongoDB');
     
-    // Modelo Usuario
-    const Usuario = mongoose.model('Usuario', new mongoose.Schema({
-      nombre: String,
-      apellido: String,
-      email: { type: String, unique: true },
-      password: String,
-      rol: { type: String, default: 'admin' },
-      activo: { type: Boolean, default: true },
-      permisos: {
-        prospectos: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-        cotizaciones: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-        pedidos: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-        fabricacion: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-        instalaciones: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-        postventa: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-        usuarios: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-        reportes: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean }
-      }
-    }, { timestamps: true }));
+    // Usar el modelo Usuario existente
+    const Usuario = require('./server/models/Usuario');
 
     // Eliminar admin existente
     await Usuario.deleteOne({ email: 'admin@sundeck.com' });
@@ -39,16 +22,17 @@ mongoose.connect('mongodb://localhost:27017/sundeck-crm')
       password: hashedPassword,
       rol: 'admin',
       activo: true,
-      permisos: {
-        prospectos: { leer: true, crear: true, actualizar: true, eliminar: true },
-        cotizaciones: { leer: true, crear: true, actualizar: true, eliminar: true },
-        pedidos: { leer: true, crear: true, actualizar: true, eliminar: true },
-        fabricacion: { leer: true, crear: true, actualizar: true, eliminar: true },
-        instalaciones: { leer: true, crear: true, actualizar: true, eliminar: true },
-        postventa: { leer: true, crear: true, actualizar: true, eliminar: true },
-        usuarios: { leer: true, crear: true, actualizar: true, eliminar: true },
-        reportes: { leer: true, crear: true, actualizar: true, eliminar: true }
-      }
+      permisos: [
+        { modulo: 'prospectos', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'cotizaciones', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'pedidos', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'fabricacion', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'instalaciones', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'postventa', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'usuarios', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'reportes', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'configuracion', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] }
+      ]
     });
 
     await admin.save();

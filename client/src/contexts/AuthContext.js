@@ -28,10 +28,15 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
+          // Configurar el token en axios antes de hacer la petición
+          axiosConfig.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
           const response = await axiosConfig.get('/auth/verificar');
           setUser(response.data.usuario);
+          setToken(token);
         } catch (error) {
           localStorage.removeItem('token');
+          delete axiosConfig.defaults.headers.common['Authorization'];
           // Token inválido, se eliminó del localStorage
         }
       }
@@ -48,13 +53,16 @@ export const AuthProvider = ({ children }) => {
         password,
       });
 
-      const { token, user } = response.data;
+      const { token, usuario } = response.data;
       
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify(usuario));
       
-      setUser(user);
+      setUser(usuario);
       setToken(token);
+      
+      // Configurar el token en axios para futuras peticiones
+      axiosConfig.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       return { success: true };
     } catch (error) {
@@ -70,6 +78,10 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setToken(null);
+    
+    // Limpiar el token de axios
+    delete axiosConfig.defaults.headers.common['Authorization'];
   };
 
   const updateProfile = async (profileData) => {
