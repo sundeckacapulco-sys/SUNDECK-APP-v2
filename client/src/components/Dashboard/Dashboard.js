@@ -25,11 +25,42 @@ import {
   CheckCircle,
   Warning
 } from '@mui/icons-material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300'];
+const RADIAN = Math.PI / 180;
+
+const renderCustomizedLabel = ({
+  cx,
+  cy,
+  midAngle,
+  outerRadius,
+  percent,
+  name
+}) => {
+  if (!percent) {
+    return null;
+  }
+
+  const radius = outerRadius + 16;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="#424242"
+      textAnchor={x >= cx ? 'start' : 'end'}
+      dominantBaseline="central"
+      style={{ fontSize: 12 }}
+    >
+      {`${name} ${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -188,8 +219,9 @@ const Dashboard = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
+                    label={renderCustomizedLabel}
+                    paddingAngle={2}
+                    outerRadius={90}
                     fill="#8884d8"
                     dataKey="value"
                   >
@@ -197,6 +229,7 @@ const Dashboard = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
+                  <Legend verticalAlign="bottom" height={36} />
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
