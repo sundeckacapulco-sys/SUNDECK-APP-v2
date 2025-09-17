@@ -7,7 +7,7 @@ import Login from './components/Auth/Login';
 import Dashboard from './components/Dashboard/Dashboard';
 import ProspectosList from './components/Prospectos/ProspectosList';
 import ProspectoForm from './components/Prospectos/ProspectoForm';
-import ProspectoDetail from './components/Prospectos/ProspectoDetail';
+import ProspectoDetalle from './components/Prospectos/ProspectoDetalle';
 import KanbanBoard from './components/Kanban/KanbanBoard';
 import CotizacionesList from './components/Cotizaciones/CotizacionesList';
 import CotizacionForm from './components/Cotizaciones/CotizacionForm';
@@ -34,7 +34,7 @@ function App() {
           {/* Prospectos */}
           <Route path="/prospectos" element={<ProspectosList />} />
           <Route path="/prospectos/nuevo" element={<ProspectoForm />} />
-          <Route path="/prospectos/:id" element={<ProspectoDetail />} />
+          <Route path="/prospectos/:id" element={<ProspectoDetalle />} />
           <Route path="/prospectos/:id/editar" element={<ProspectoForm />} />
           
           {/* Kanban */}
