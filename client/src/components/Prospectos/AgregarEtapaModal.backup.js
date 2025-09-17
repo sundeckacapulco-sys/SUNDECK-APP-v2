@@ -69,6 +69,14 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     onClose();
   };
 
+  const handleArchivoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Aquí podrías implementar la subida a Cloudinary
+      console.log('Archivo seleccionado:', file.name);
+    }
+  };
+
   const handleAgregarPieza = () => {
     if (!piezaForm.ubicacion || !piezaForm.ancho || !piezaForm.alto) {
       setErrorLocal('Completa ubicación, ancho y alto para agregar la pieza.');
@@ -91,6 +99,61 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
 
   const handleEliminarPieza = (index) => {
     setPiezas((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDescargarLevantamiento = async () => {
+    if (!prospectoId) {
+      setErrorLocal('No se encontró el identificador del prospecto.');
+      return;
+    }
+
+    if (piezas.length === 0) {
+      setErrorLocal('Debes agregar al menos una pieza para descargar el levantamiento.');
+      return;
+    }
+
+    setDescargandoLevantamiento(true);
+    setErrorLocal('');
+
+    try {
+      const payload = {
+        prospectoId,
+        piezas: piezas.map((pieza) => ({
+          ubicacion: pieza.ubicacion,
+          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+          alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+          producto: pieza.producto,
+          color: pieza.color,
+          observaciones: pieza.observaciones
+        })),
+        precioGeneral: Number(precioGeneral),
+        totalM2: calcularTotalM2,
+        unidadMedida: unidad
+      };
+
+      const response = await axiosConfig.post('/etapas/levantamiento-pdf', payload, {
+        responseType: 'blob'
+      });
+
+      // Crear enlace de descarga
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Levantamiento-Medidas-${Date.now()}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      onSaved?.('Levantamiento de medidas descargado exitosamente', null);
+    } catch (error) {
+      console.error('Error descargando levantamiento:', error);
+      const mensaje = error.response?.data?.message || 'No se pudo descargar el levantamiento.';
+      setErrorLocal(mensaje);
+      onError?.(mensaje);
+    } finally {
+      setDescargandoLevantamiento(false);
+    }
   };
 
   const handleGenerarCotizacion = async () => {
@@ -128,6 +191,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
 
       const { data } = await axiosConfig.post('/cotizaciones/desde-visita', payload);
       
+      // Primero guardar la etapa
+      await handleGuardarEtapa(false); // false = no cerrar modal aún
+      
       onSaved?.(
         `¡Cotización ${data.cotizacion.numero} generada exitosamente! El prospecto se movió a "Cotizaciones Activas".`,
         data.cotizacion
@@ -143,7 +209,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     }
   };
 
-  const handleGuardarEtapa = async () => {
+  const handleGuardarEtapa = async (cerrarAlFinal = true) => {
     if (!prospectoId) {
       setErrorLocal('No se encontró el identificador del prospecto.');
       return;
@@ -179,9 +245,12 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
 
       const { data } = await axiosConfig.post('/etapas', payload);
       onSaved?.(data.message || 'Etapa agregada exitosamente', data.etapa);
-      cerrarModal();
+      if (cerrarAlFinal) {
+        cerrarModal();
+      }
     } catch (error) {
-      console.error('Error guardando etapa:', error);
+      console.log('Modal renderizado con etapa:', nombreEtapa);
+      console.log('¿Es Visita Inicial?', nombreEtapa === 'Visita Inicial / Medición');
       const mensaje = error.response?.data?.message || 'No se pudo guardar la etapa.';
       setErrorLocal(mensaje);
       onError?.(mensaje);
@@ -192,12 +261,12 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
 
   if (!open) return null;
 
-  // Debug
-  console.log('🔍 MODAL ACTIVO - Etapa:', nombreEtapa);
-  console.log('🔍 Es Visita Inicial?', nombreEtapa === 'Visita Inicial / Medición');
+  // Debug para verificar el estado
+  console.log('🔍 Modal renderizado - Etapa actual:', nombreEtapa);
+  console.log('🔍 ¿Es Visita Inicial?', nombreEtapa === 'Visita Inicial / Medición');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
       <div className="w-full max-w-4xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
@@ -220,10 +289,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             </label>
             <select
               value={nombreEtapa}
-              onChange={(e) => {
-                console.log('🔄 Cambiando etapa a:', e.target.value);
-                setNombreEtapa(e.target.value);
-              }}
+              onChange={(e) => setNombreEtapa(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
             >
               {etapaOptions.map((etapa) => (
@@ -234,14 +300,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             </select>
           </div>
 
-          {/* MENSAJE DE DEBUG VISIBLE */}
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-700">
-              🔍 DEBUG: Etapa actual = "{nombreEtapa}" | Es Visita Inicial = {nombreEtapa === 'Visita Inicial / Medición' ? 'SÍ' : 'NO'}
-            </p>
-          </div>
-
-          {/* Fecha y Hora - Solo para etapas que NO sean Visita Inicial */}
+          {/* Fecha y Hora - Solo para etapas que no sean Visita Inicial */}
           {nombreEtapa !== 'Visita Inicial / Medición' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
@@ -265,15 +324,15 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             </div>
           )}
 
-          {/* ===== LEVANTAMIENTO DE MEDIDAS - SOLO PARA VISITA INICIAL ===== */}
+          {/* Levantamiento de Medidas - Solo para Visita Inicial */}
           {nombreEtapa === 'Visita Inicial / Medición' && (
-            <div className="mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+            <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
-                  📏 Levantamiento de Medidas
+                  Levantamiento de Medidas
                 </h3>
                 <div className="flex gap-2">
                   <button
@@ -283,26 +342,13 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     + Agregar Pieza
                   </button>
                   <button 
-                    onClick={() => alert('Descargar Levantamiento')}
-                    className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm"
+                    onClick={handleDescargarLevantamiento}
+                    disabled={descargandoLevantamiento || piezas.length === 0}
+                    className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm disabled:opacity-50"
                   >
-                    📄 Descargar Levantamiento
+                    {descargandoLevantamiento ? 'Generando...' : 'Descargar Levantamiento'}
                   </button>
                 </div>
-              </div>
-
-              {/* Precio General */}
-              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  💰 Precio General por m² (MXN)
-                </label>
-                <input
-                  type="number"
-                  value={precioGeneral}
-                  onChange={(e) => setPrecioGeneral(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  placeholder="750"
-                />
               </div>
 
               {/* Unidad */}
@@ -322,10 +368,24 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                 </button>
               </div>
 
+              {/* Precio General */}
+              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Precio General por m² (MXN)
+                </label>
+                <input
+                  type="number"
+                  value={precioGeneral}
+                  onChange={(e) => setPrecioGeneral(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  placeholder="Precio base aproximado o mínimo (opcional)"
+                />
+              </div>
+
               {/* Formulario Agregar Pieza */}
               {agregandoPieza && (
-                <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-white">
-                  <h4 className="font-medium text-gray-900 mb-3">🔧 Agregar Pieza #{piezas.length + 1}</h4>
+                <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h4 className="font-medium text-gray-900 mb-3">Pieza #{piezas.length + 1}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
@@ -372,19 +432,53 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                         placeholder="0.00"
                       />
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                      <select
+                        value={piezaForm.color}
+                        onChange={(e) => setPiezaForm(prev => ({ ...prev, color: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="Natural">Natural</option>
+                        <option value="Blanco">Blanco</option>
+                        <option value="Negro">Negro</option>
+                        <option value="Bronce">Bronce</option>
+                        <option value="Champagne">Champagne</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Precio/m² (opcional)</label>
+                      <input
+                        type="number"
+                        value={piezaForm.precioM2}
+                        onChange={(e) => setPiezaForm(prev => ({ ...prev, precioM2: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={`${precioGeneral} (precio general)`}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                    <textarea
+                      value={piezaForm.observaciones}
+                      onChange={(e) => setPiezaForm(prev => ({ ...prev, observaciones: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows="2"
+                      placeholder="Notas adicionales sobre esta pieza..."
+                    />
                   </div>
                   <div className="flex gap-2 mt-4">
                     <button
                       onClick={handleAgregarPieza}
                       className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
                     >
-                      ✅ Agregar Pieza
+                      Agregar Pieza
                     </button>
                     <button
                       onClick={() => setAgregandoPieza(false)}
                       className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
                     >
-                      ❌ Cancelar
+                      Cancelar
                     </button>
                   </div>
                 </div>
@@ -393,7 +487,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
               {/* Lista de Piezas */}
               {piezas.length > 0 && (
                 <div className="mb-4">
-                  <h4 className="font-medium text-gray-900 mb-3">📋 Piezas Agregadas ({piezas.length})</h4>
+                  <h4 className="font-medium text-gray-900 mb-3">Piezas Agregadas ({piezas.length})</h4>
                   <div className="space-y-2">
                     {piezas.map((pieza, index) => {
                       const area = unidad === 'cm' ? (pieza.ancho * pieza.alto) / 10000 : pieza.ancho * pieza.alto;
@@ -402,18 +496,23 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                         <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
                           <div className="flex-1">
                             <div className="flex items-center gap-4">
-                              <span className="font-medium text-gray-900">📍 {pieza.ubicacion}</span>
+                              <span className="font-medium text-gray-900">{pieza.ubicacion}</span>
                               <span className="text-sm text-gray-600">{pieza.producto}</span>
                               <span className="text-sm text-gray-600">{pieza.ancho} × {pieza.alto} {unidad}</span>
-                              <span className="text-sm font-medium text-blue-600">📐 {area.toFixed(2)} m²</span>
-                              <span className="text-sm text-green-600">💰 ${(area * precio).toFixed(2)}</span>
+                              <span className="text-sm font-medium text-blue-600">{area.toFixed(2)} m²</span>
+                              <span className="text-sm text-green-600">${(area * precio).toFixed(2)}</span>
                             </div>
+                            {pieza.observaciones && (
+                              <p className="text-xs text-gray-500 mt-1">{pieza.observaciones}</p>
+                            )}
                           </div>
                           <button
                             onClick={() => handleEliminarPieza(index)}
                             className="text-red-500 hover:text-red-700 ml-2"
                           >
-                            🗑️
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                           </button>
                         </div>
                       );
@@ -422,26 +521,26 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                 </div>
               )}
 
-              {/* Resumen */}
+              {/* Resumen de Medición */}
               {piezas.length > 0 && (
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-2">📊 Resumen de Medición</h4>
+                  <h4 className="font-medium text-gray-900 mb-2">Resumen de Medición</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <span className="text-gray-600">Total piezas:</span>
-                      <p className="font-medium">🔢 {piezas.length}</p>
+                      <p className="font-medium">{piezas.length}</p>
                     </div>
                     <div>
                       <span className="text-gray-600">Área total:</span>
-                      <p className="font-medium text-blue-600">📐 {calcularTotalM2.toFixed(2)} m²</p>
+                      <p className="font-medium text-blue-600">{calcularTotalM2.toFixed(2)} m²</p>
                     </div>
                     <div>
                       <span className="text-gray-600">Precio promedio:</span>
-                      <p className="font-medium">💰 ${precioGeneral}/m²</p>
+                      <p className="font-medium">${precioGeneral}/m²</p>
                     </div>
                     <div>
                       <span className="text-gray-600">Estimado:</span>
-                      <p className="font-medium text-green-600">💵 ${(calcularTotalM2 * precioGeneral).toFixed(2)}</p>
+                      <p className="font-medium text-green-600">${(calcularTotalM2 * precioGeneral).toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
@@ -449,7 +548,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             </div>
           )}
 
-          {/* Comentarios */}
+          {/* Comentarios - Para todas las etapas */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Observaciones
@@ -465,7 +564,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
 
           {errorLocal && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-700">❌ {errorLocal}</p>
+              <p className="text-sm text-red-700">{errorLocal}</p>
             </div>
           )}
         </div>
@@ -480,7 +579,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           </button>
           
           <div className="flex gap-3">
-            {/* Botón Generar Cotización - Solo para Visita Inicial con piezas */}
+            {/* Mostrar botón Generar Cotización solo si es Visita Inicial/Medición y hay piezas */}
             {nombreEtapa === 'Visita Inicial / Medición' && piezas.length > 0 && (
               <button
                 onClick={handleGenerarCotizacion}
@@ -493,7 +592,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             )}
             
             <button
-              onClick={handleGuardarEtapa}
+              onClick={() => handleGuardarEtapa(true)}
               disabled={guardando || generandoCotizacion}
               className="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50"
             >
