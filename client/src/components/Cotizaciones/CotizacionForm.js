@@ -199,9 +199,13 @@ const CotizacionForm = () => {
       const totales = calcularTotales();
       const cotizacionData = {
         ...data,
+        prospectoId: data.prospecto, // Renombrar el campo para que coincida con la API
         ...totales,
         fechaEntregaEstimada: new Date(Date.now() + data.tiempoFabricacion * 24 * 60 * 60 * 1000)
       };
+      
+      // Eliminar el campo 'prospecto' ya que ahora usamos 'prospectoId'
+      delete cotizacionData.prospecto;
 
       if (isEdit) {
         await axiosConfig.put(`/cotizaciones/${id}`, cotizacionData);

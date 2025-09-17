@@ -64,7 +64,26 @@ const prospectoSchema = new mongoose.Schema({
       type: String,
       enum: ['llamada', 'whatsapp', 'email', 'visita', 'nota', 'reagendamiento'],
       default: 'nota'
+    },
+    categoria: {
+      type: String,
+      enum: ['General', 'Puntualidad', 'Calidad', 'Cliente'],
+      default: 'General'
     }
+  }],
+  
+  // Timeline de instalación / etapas
+  etapas: [{
+    nombre: { type: String, required: true },
+    fechaHora: { type: Date, default: Date.now },
+    observaciones: String,
+    archivos: [{
+      nombre: String,
+      url: String,
+      tipo: String,
+      fechaSubida: { type: Date, default: Date.now }
+    }],
+    usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' }
   }],
   
   // Asignación y responsabilidad

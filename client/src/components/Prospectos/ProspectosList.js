@@ -267,7 +267,12 @@ const ProspectosList = () => {
                 const prioridadInfo = getPrioridadInfo(prospecto.prioridad);
                 
                 return (
-                  <TableRow key={prospecto._id} hover>
+                  <TableRow
+                    key={prospecto._id}
+                    hover
+                    onClick={() => navigate(`/prospectos/${prospecto._id}`)}
+                    sx={{ cursor: 'pointer' }}
+                  >
                     <TableCell>
                       <Box>
                         <Link

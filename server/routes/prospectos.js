@@ -71,7 +71,8 @@ router.get('/:id', auth, verificarPermiso('prospectos', 'leer'), async (req, res
   try {
     const prospecto = await Prospecto.findById(req.params.id)
       .populate('vendedorAsignado', 'nombre apellido email telefono')
-      .populate('notas.usuario', 'nombre apellido');
+      .populate('notas.usuario', 'nombre apellido')
+      .populate('etapas.usuario', 'nombre apellido');
 
     if (!prospecto) {
       return res.status(404).json({ message: 'Prospecto no encontrado' });
@@ -86,6 +87,102 @@ router.get('/:id', auth, verificarPermiso('prospectos', 'leer'), async (req, res
     res.json(prospecto);
   } catch (error) {
     console.error('Error obteniendo prospecto:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Listar comentarios (notas con posible categoría)
+router.get('/:id/comentarios', auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
+  try {
+    const prospecto = await Prospecto.findById(req.params.id)
+      .populate('notas.usuario', 'nombre apellido');
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+    // Ordenar por fecha descendente
+    const comentarios = (prospecto.notas || []).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    res.json(comentarios);
+  } catch (error) {
+    console.error('Error listando comentarios:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Agregar comentario
+router.post('/:id/comentarios', auth, verificarPermiso('prospectos', 'actualizar'), async (req, res) => {
+  try {
+    const { contenido, categoria } = req.body;
+
+    const prospecto = await Prospecto.findById(req.params.id);
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+
+    prospecto.notas.push({
+      usuario: req.usuario._id,
+      contenido,
+      tipo: 'nota',
+      categoria: categoria || 'General'
+    });
+
+    prospecto.fechaUltimoContacto = new Date();
+    await prospecto.save();
+    await prospecto.populate('notas.usuario', 'nombre apellido');
+
+    res.status(201).json({
+      message: 'Comentario agregado exitosamente',
+      comentario: prospecto.notas[prospecto.notas.length - 1]
+    });
+  } catch (error) {
+    console.error('Error agregando comentario:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Listar etapas (timeline)
+router.get('/:id/etapas', auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
+  try {
+    const prospecto = await Prospecto.findById(req.params.id)
+      .populate('etapas.usuario', 'nombre apellido');
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+    const etapas = (prospecto.etapas || []).sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
+    res.json(etapas);
+  } catch (error) {
+    console.error('Error listando etapas:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Agregar etapa
+router.post('/:id/etapas', auth, verificarPermiso('prospectos', 'actualizar'), async (req, res) => {
+  try {
+    const { nombre, fechaHora, observaciones, archivos } = req.body;
+
+    const prospecto = await Prospecto.findById(req.params.id);
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+
+    const etapa = {
+      nombre,
+      fechaHora: fechaHora ? new Date(fechaHora) : new Date(),
+      observaciones,
+      archivos: Array.isArray(archivos) ? archivos : [],
+      usuario: req.usuario._id
+    };
+
+    prospecto.etapas.push(etapa);
+    await prospecto.save();
+    await prospecto.populate('etapas.usuario', 'nombre apellido');
+
+    res.status(201).json({
+      message: 'Etapa agregada exitosamente',
+      etapa: prospecto.etapas[prospecto.etapas.length - 1]
+    });
+  } catch (error) {
+    console.error('Error agregando etapa:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });

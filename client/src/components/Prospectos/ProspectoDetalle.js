@@ -118,6 +118,7 @@ const ProspectoDetalle = () => {
   const [openComentario, setOpenComentario] = useState(false);
   const [openReagendar, setOpenReagendar] = useState(false);
   const [comentario, setComentario] = useState('');
+  const [comentarioCategoria, setComentarioCategoria] = useState('General');
   const [savingComentario, setSavingComentario] = useState(false);
   const [reagendarFecha, setReagendarFecha] = useState('');
   const [reagendarHora, setReagendarHora] = useState('');
@@ -125,6 +126,12 @@ const ProspectoDetalle = () => {
   const [openAgregarEtapa, setOpenAgregarEtapa] = useState(false);
   const [mensajeEtapa, setMensajeEtapa] = useState('');
   const [errorEtapa, setErrorEtapa] = useState('');
+
+  // Comentarios y etapas (timeline)
+  const [comentarios, setComentarios] = useState([]);
+  const [etapas, setEtapas] = useState([]);
+  const [openEtapa, setOpenEtapa] = useState(false);
+  const [nuevaEtapa, setNuevaEtapa] = useState({ nombre: '', fecha: '', hora: '', observaciones: '' });
 
   const fetchProspecto = async () => {
     try {
@@ -138,6 +145,24 @@ const ProspectoDetalle = () => {
       setError(err.response?.data?.message || 'Error al cargar el prospecto');
     } finally {
       setLoadingProspecto(false);
+    }
+  };
+
+  const fetchComentarios = async () => {
+    try {
+      const { data } = await axiosConfig.get(`/prospectos/${id}/comentarios`);
+      setComentarios(data || []);
+    } catch (err) {
+      console.error('Error cargando comentarios:', err);
+    }
+  };
+
+  const fetchEtapas = async () => {
+    try {
+      const { data } = await axiosConfig.get(`/prospectos/${id}/etapas`);
+      setEtapas(data || []);
+    } catch (err) {
+      console.error('Error cargando etapas:', err);
     }
   };
 
@@ -156,6 +181,8 @@ const ProspectoDetalle = () => {
   useEffect(() => {
     fetchProspecto();
     fetchCotizaciones();
+    fetchComentarios();
+    fetchEtapas();
   }, [id]);
 
   const direccionTexto = useMemo(() => {
@@ -250,13 +277,14 @@ const ProspectoDetalle = () => {
     try {
       setSavingComentario(true);
       setError('');
-      await axiosConfig.post(`/prospectos/${id}/notas`, {
+      await axiosConfig.post(`/prospectos/${id}/comentarios`, {
         contenido: comentario,
-        tipo: 'nota'
+        categoria: comentarioCategoria
       });
       setComentario('');
+      setComentarioCategoria('General');
       setOpenComentario(false);
-      fetchProspecto();
+      fetchComentarios();
     } catch (err) {
       setError(err.response?.data?.message || 'Error al agregar el comentario');
     } finally {
@@ -315,9 +343,27 @@ const ProspectoDetalle = () => {
             {prospecto.nombre}
           </Typography>
         </Box>
-        <Button variant="contained" onClick={() => navigate(`/prospectos/${id}/editar`)}>
-          Editar
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="contained"
+            startIcon={<WhatsApp />}
+            onClick={abrirWhatsApp}
+            sx={{ backgroundColor: '#22c55e', '&:hover': { backgroundColor: '#16a34a' } }}
+          >
+            WhatsApp
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Event />}
+            onClick={() => setOpenReagendar(true)}
+            sx={{ backgroundColor: '#0F172A', '&:hover': { backgroundColor: '#0b1220' } }}
+          >
+            Reagendar
+          </Button>
+          <Button variant="outlined" onClick={() => navigate(`/prospectos/${id}/editar`)}>
+            Editar
+          </Button>
+        </Box>
       </Box>
 
       {(error || errorEtapa) && (
@@ -493,17 +539,53 @@ const ProspectoDetalle = () => {
               <Typography variant="h6" gutterBottom>
                 Comentarios de supervisión
               </Typography>
-              {comentariosSupervision.length > 0 ? (
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <TextField
+                  select
+                  label="Categoría"
+                  size="small"
+                  value={comentarioCategoria}
+                  onChange={(e) => setComentarioCategoria(e.target.value)}
+                  SelectProps={{ native: true }}
+                  sx={{ width: 220 }}
+                >
+                  <option value="General">General</option>
+                  <option value="Puntualidad">Puntualidad</option>
+                  <option value="Calidad">Calidad</option>
+                  <option value="Cliente">Cliente</option>
+                </TextField>
+                <TextField
+                  fullWidth
+                  label="Escribe un comentario"
+                  multiline
+                  minRows={2}
+                  value={comentario}
+                  onChange={(e) => setComentario(e.target.value)}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleAgregarComentario}
+                  disabled={savingComentario || !comentario.trim()}
+                  sx={{ backgroundColor: '#D4AF37', color: '#0F172A', '&:hover': { backgroundColor: '#c39c2f' } }}
+                >
+                  {savingComentario ? 'Guardando...' : 'Agregar'}
+                </Button>
+              </Box>
+              {comentarios.length > 0 ? (
                 <List>
-                  {comentariosSupervision.map((nota, index) => (
+                  {comentarios.map((nota, index) => (
                     <ListItem key={nota._id || index} divider>
                       <ListItemText
                         primary={nota.contenido}
                         secondary={
-                          <Typography variant="caption" color="text.secondary">
-                            {nota.usuario?.nombre ? `${nota.usuario.nombre} ${nota.usuario.apellido || ''} - ` : ''}
-                            {new Date(nota.fecha).toLocaleString()}
-                          </Typography>
+                          <>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {nota.usuario?.nombre ? `${nota.usuario.nombre} ${nota.usuario.apellido || ''}` : 'Sistema'} · {new Date(nota.fecha).toLocaleString()}
+                            </Typography>
+                            {nota.categoria && (
+                              <Chip label={nota.categoria} size="small" sx={{ mt: 0.5 }} />
+                            )}
+                          </>
                         }
                       />
                     </ListItem>
@@ -576,17 +658,41 @@ const ProspectoDetalle = () => {
               <Typography variant="h6" gutterBottom>
                 Timeline de etapas
               </Typography>
-              <Stepper activeStep={activeTimelineStep} alternativeLabel>
-                {timelineSteps.map((step) => {
-                  const stepIndex = pipelineOrder.indexOf(step.etapaClave);
-                  const completed = etapaActualIndex !== -1 && stepIndex !== -1 && etapaActualIndex >= stepIndex;
-                  return (
-                    <Step key={step.id} completed={completed}>
-                      <StepLabel>{step.label}</StepLabel>
-                    </Step>
-                  );
-                })}
-              </Stepper>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                <Button
+                  variant="contained"
+                  onClick={() => setOpenEtapa(true)}
+                  sx={{ backgroundColor: '#D4AF37', color: '#0F172A', '&:hover': { backgroundColor: '#c39c2f' } }}
+                >
+                  + Agregar etapa
+                </Button>
+              </Box>
+              {etapas.length > 0 ? (
+                <List>
+                  {etapas.map((e, idx) => (
+                    <ListItem key={e._id || idx} alignItems="flex-start" divider>
+                      <ListItemText
+                        primary={e.nombre}
+                        secondary={
+                          <>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {new Date(e.fechaHora).toLocaleString()}
+                              {e.usuario?.nombre ? ` · ${e.usuario.nombre} ${e.usuario.apellido || ''}` : ''}
+                            </Typography>
+                            {e.observaciones && (
+                              <Typography variant="body2">{e.observaciones}</Typography>
+                            )}
+                          </>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Aún no hay etapas registradas.
+                </Typography>
+              )}
             </CardContent>
           </Card>
 
@@ -645,11 +751,106 @@ const ProspectoDetalle = () => {
             value={comentario}
             onChange={(event) => setComentario(event.target.value)}
           />
+          <TextField
+            select
+            margin="dense"
+            label="Categoría"
+            fullWidth
+            value={comentarioCategoria}
+            onChange={(e) => setComentarioCategoria(e.target.value)}
+            SelectProps={{ native: true }}
+            sx={{ mt: 2 }}
+          >
+            <option value="General">General</option>
+            <option value="Puntualidad">Puntualidad</option>
+            <option value="Calidad">Calidad</option>
+            <option value="Cliente">Cliente</option>
+          </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenComentario(false)}>Cancelar</Button>
           <Button onClick={handleAgregarComentario} disabled={savingComentario || !comentario.trim()}>
             {savingComentario ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openEtapa} onClose={() => setOpenEtapa(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Agregar etapa</DialogTitle>
+        <DialogContent>
+          <TextField
+            select
+            label="Etapa"
+            fullWidth
+            value={nuevaEtapa.nombre}
+            onChange={(e) => setNuevaEtapa(prev => ({ ...prev, nombre: e.target.value }))}
+            SelectProps={{ native: true }}
+            sx={{ mt: 1, mb: 2 }}
+          >
+            <option value=""></option>
+            <option value="Visita Inicial / Medición">Visita Inicial / Medición</option>
+            <option value="Cotización enviada">Cotización enviada</option>
+            <option value="Pedido generado">Pedido generado</option>
+            <option value="Fabricación">Fabricación</option>
+            <option value="Instalación programada">Instalación programada</option>
+            <option value="Instalación realizada">Instalación realizada</option>
+            <option value="Entrega y conformidad">Entrega y conformidad</option>
+            <option value="Postventa">Postventa</option>
+          </TextField>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Fecha"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={nuevaEtapa.fecha}
+                onChange={(e) => setNuevaEtapa(prev => ({ ...prev, fecha: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Hora"
+                type="time"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={nuevaEtapa.hora}
+                onChange={(e) => setNuevaEtapa(prev => ({ ...prev, hora: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Observaciones"
+                fullWidth
+                multiline
+                minRows={2}
+                value={nuevaEtapa.observaciones}
+                onChange={(e) => setNuevaEtapa(prev => ({ ...prev, observaciones: e.target.value }))}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEtapa(false)}>Cancelar</Button>
+          <Button
+            onClick={async () => {
+              try {
+                const fechaHora = nuevaEtapa.fecha ? new Date(`${nuevaEtapa.fecha}T${(nuevaEtapa.hora || '00:00')}:00`) : new Date();
+                await axiosConfig.post(`/prospectos/${id}/etapas`, {
+                  nombre: nuevaEtapa.nombre,
+                  fechaHora,
+                  observaciones: nuevaEtapa.observaciones
+                });
+                setOpenEtapa(false);
+                setNuevaEtapa({ nombre: '', fecha: '', hora: '', observaciones: '' });
+                fetchEtapas();
+              } catch (err) {
+                setError(err.response?.data?.message || 'Error al agregar la etapa');
+              }
+            }}
+            disabled={!nuevaEtapa.nombre}
+          >
+            Guardar
           </Button>
         </DialogActions>
       </Dialog>
