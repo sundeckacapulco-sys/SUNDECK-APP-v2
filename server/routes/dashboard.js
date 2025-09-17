@@ -26,20 +26,46 @@ router.get('/', auth, async (req, res) => {
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'nuevo', activo: true }),
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'contactado', activo: true }),
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'cita_agendada', activo: true }),
-      Cotizacion.countDocuments({ 
-        elaboradaPor: req.usuario.rol === 'admin' || req.usuario.rol === 'gerente' ? 
-          { $exists: true } : req.usuario._id,
-        estado: { $in: ['enviada', 'vista'] }
-      }),
-      Pedido.countDocuments({ 
-        vendedor: req.usuario.rol === 'admin' || req.usuario.rol === 'gerente' ? 
-          { $exists: true } : req.usuario._id,
-        estado: { $in: ['confirmado', 'en_fabricacion'] }
-      }),
+      Prospecto.countDocuments({ ...filtroUsuario, etapa: 'cotizacion', activo: true }),
+      Prospecto.countDocuments({ ...filtroUsuario, etapa: 'pedido', activo: true }),
       Fabricacion.countDocuments({ estado: { $in: ['pendiente', 'en_proceso'] } }),
       Instalacion.countDocuments({ estado: { $in: ['programada', 'en_proceso'] } }),
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'entregado', activo: true }),
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'postventa', activo: true })
+    ]);
+
+    // Métricas adicionales de cotizaciones y pedidos
+    const metricas = await Promise.all([
+      // Total cotizaciones generadas
+      Cotizacion.countDocuments({ 
+        elaboradaPor: req.usuario.rol === 'admin' || req.usuario.rol === 'gerente' ? 
+          { $exists: true } : req.usuario._id,
+        createdAt: { $gte: fechaInicio }
+      }),
+      // Cotizaciones aprobadas
+      Cotizacion.countDocuments({ 
+        elaboradaPor: req.usuario.rol === 'admin' || req.usuario.rol === 'gerente' ? 
+          { $exists: true } : req.usuario._id,
+        estado: 'aprobada',
+        createdAt: { $gte: fechaInicio }
+      }),
+      // Total pedidos
+      Pedido.countDocuments({ 
+        vendedor: req.usuario.rol === 'admin' || req.usuario.rol === 'gerente' ? 
+          { $exists: true } : req.usuario._id,
+        createdAt: { $gte: fechaInicio }
+      }),
+      // Valor total de pedidos
+      Pedido.aggregate([
+        { 
+          $match: { 
+            vendedor: req.usuario.rol === 'admin' || req.usuario.rol === 'gerente' ? 
+              { $exists: true } : req.usuario._id,
+            createdAt: { $gte: fechaInicio }
+          } 
+        },
+        { $group: { _id: null, total: { $sum: '$montoTotal' } } }
+      ])
     ]);
 
     const pipeline = {
@@ -53,6 +79,18 @@ router.get('/', auth, async (req, res) => {
       entregados: contadoresPipeline[7],
       postventa: contadoresPipeline[8]
     };
+
+    // Calcular tasas de conversión
+    const totalCotizaciones = metricas[0];
+    const cotizacionesAprobadas = metricas[1];
+    const totalPedidos = metricas[2];
+    const valorTotalPedidos = metricas[3][0]?.total || 0;
+
+    const tasaConversionCotizacion = totalCotizaciones > 0 ? 
+      ((cotizacionesAprobadas / totalCotizaciones) * 100).toFixed(1) : 0;
+    
+    const tasaConversionPedido = cotizacionesAprobadas > 0 ? 
+      ((totalPedidos / cotizacionesAprobadas) * 100).toFixed(1) : 0;
 
     // Métricas del período
     const [
@@ -147,7 +185,14 @@ router.get('/', auth, async (req, res) => {
         cotizacionesEnviadas,
         ventasCerradas,
         montoVentas: montoVentas[0]?.total || 0,
-        tasaConversion
+        tasaConversion,
+        // Nuevas métricas de cotizaciones y pedidos
+        totalCotizaciones,
+        cotizacionesAprobadas,
+        totalPedidos,
+        valorTotalPedidos,
+        tasaConversionCotizacion: parseFloat(tasaConversionCotizacion),
+        tasaConversionPedido: parseFloat(tasaConversionPedido)
       },
       seguimientosPendientes,
       actividadReciente,

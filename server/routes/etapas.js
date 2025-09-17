@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const Etapa = require('../models/Etapa');
 const Prospecto = require('../models/Prospecto');
+const pdfService = require('../services/pdfService');
 
 const router = express.Router();
 
@@ -80,6 +81,50 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
   } catch (error) {
     console.error('Error creando etapa:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Generar PDF de levantamiento de medidas
+router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
+  try {
+    const {
+      prospectoId,
+      piezas = [],
+      precioGeneral = 750,
+      totalM2 = 0,
+      unidadMedida = 'm'
+    } = req.body;
+
+    if (!prospectoId || !mongoose.Types.ObjectId.isValid(prospectoId)) {
+      return res.status(400).json({ message: 'prospectoId inválido' });
+    }
+
+    const prospecto = await Prospecto.findById(prospectoId);
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+
+    // Crear objeto etapa temporal para el PDF
+    const etapaTemp = {
+      prospecto: {
+        nombre: prospecto.nombre,
+        telefono: prospecto.telefono,
+        email: prospecto.email,
+        direccion: prospecto.direccion
+      },
+      unidadMedida,
+      piezas
+    };
+
+    const pdf = await pdfService.generarLevantamientoPDF(etapaTemp, piezas, totalM2, precioGeneral);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Levantamiento-${prospecto.nombre.replace(/\s+/g, '-')}.pdf"`);
+    res.send(pdf);
+
+  } catch (error) {
+    console.error('Error generando PDF de levantamiento:', error);
+    res.status(500).json({ message: 'Error generando PDF del levantamiento' });
   }
 });
 
