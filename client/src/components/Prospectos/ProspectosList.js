@@ -21,7 +21,8 @@ import {
   FormControl,
   InputLabel,
   Select,
-  Pagination
+  Pagination,
+  Link
 } from '@mui/material';
 import {
   Add,
@@ -34,7 +35,7 @@ import {
   Phone,
   Email
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
 
 const ProspectosList = () => {
@@ -269,10 +270,15 @@ const ProspectosList = () => {
                   <TableRow key={prospecto._id} hover>
                     <TableCell>
                       <Box>
-                        <Typography variant="subtitle2">
+                        <Link
+                          component={RouterLink}
+                          to={`/prospectos/${prospecto._id}`}
+                          underline="hover"
+                          sx={{ fontWeight: 600, display: 'inline-flex' }}
+                        >
                           {prospecto.nombre}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        </Link>
+                        <Typography variant="caption" color="text.secondary" display="block">
                           {prospecto.direccion?.ciudad}
                         </Typography>
                       </Box>
