@@ -2,6 +2,7 @@ const express = require('express');
 const Cotizacion = require('../models/Cotizacion');
 const Prospecto = require('../models/Prospecto');
 const { auth, verificarPermiso } = require('../middleware/auth');
+const pdfService = require('../services/pdfService');
 
 const router = express.Router();
 
@@ -46,6 +47,105 @@ router.get('/', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res)
     res.json(cotizaciones);
   } catch (error) {
     console.error('Error obteniendo cotizaciones:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Generar cotización desde visita inicial
+router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), async (req, res) => {
+  try {
+    const {
+      prospectoId,
+      piezas,
+      precioGeneral,
+      totalM2,
+      unidadMedida,
+      comentarios
+    } = req.body;
+
+    // Verificar que el prospecto existe
+    const prospecto = await Prospecto.findById(prospectoId);
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+
+    // Convertir piezas a productos de cotización
+    const productos = piezas.map(pieza => {
+      const area = (pieza.ancho || 0) * (pieza.alto || 0);
+      const areaM2 = unidadMedida === 'cm' ? area / 10000 : area;
+      const precioUnitario = pieza.precioM2 || precioGeneral || 750;
+      
+      return {
+        nombre: pieza.producto || 'Producto personalizado',
+        descripcion: `${pieza.ubicacion} - ${pieza.color || 'Sin especificar'}`,
+        categoria: 'ventana',
+        material: 'Aluminio',
+        color: pieza.color || 'Natural',
+        medidas: {
+          ancho: pieza.ancho || 0,
+          alto: pieza.alto || 0,
+          area: areaM2
+        },
+        cantidad: 1,
+        precioUnitario: precioUnitario,
+        subtotal: areaM2 * precioUnitario,
+        requiereR24: (pieza.ancho > 2.5 || pieza.alto > 2.5),
+        tiempoFabricacion: (pieza.ancho > 2.5 || pieza.alto > 2.5) ? 15 : 10
+      };
+    });
+
+    // Crear mediciones desde las piezas
+    const mediciones = piezas.map(pieza => ({
+      ambiente: pieza.ubicacion,
+      ancho: pieza.ancho || 0,
+      alto: pieza.alto || 0,
+      area: unidadMedida === 'cm' ? ((pieza.ancho || 0) * (pieza.alto || 0)) / 10000 : (pieza.ancho || 0) * (pieza.alto || 0),
+      cantidad: 1,
+      notas: pieza.observaciones || '',
+      fotos: pieza.fotoUrl ? [{
+        url: pieza.fotoUrl,
+        descripcion: `Foto de ${pieza.ubicacion}`,
+        fechaToma: new Date()
+      }] : []
+    }));
+
+    const nuevaCotizacion = new Cotizacion({
+      prospecto: prospectoId,
+      validoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
+      mediciones,
+      productos,
+      formaPago: {
+        anticipo: { porcentaje: 50 },
+        saldo: { porcentaje: 50, condiciones: 'contra entrega' }
+      },
+      tiempoFabricacion: Math.max(...productos.map(p => p.tiempoFabricacion)),
+      tiempoInstalacion: 1,
+      requiereInstalacion: true,
+      costoInstalacion: totalM2 * 100, // $100 por m²
+      garantia: {
+        fabricacion: 12,
+        instalacion: 6,
+        descripcion: 'Garantía completa en fabricación e instalación'
+      },
+      elaboradaPor: req.usuario._id
+    });
+
+    await nuevaCotizacion.save();
+    await nuevaCotizacion.populate([
+      { path: 'prospecto', select: 'nombre telefono email' },
+      { path: 'elaboradaPor', select: 'nombre apellido' }
+    ]);
+
+    // Actualizar etapa del prospecto a cotización
+    prospecto.etapa = 'cotizacion';
+    await prospecto.save();
+
+    res.status(201).json({
+      message: 'Cotización generada exitosamente desde visita inicial',
+      cotizacion: nuevaCotizacion
+    });
+  } catch (error) {
+    console.error('Error generando cotización desde visita:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -222,6 +322,35 @@ router.put('/:id/aprobar', auth, verificarPermiso('cotizaciones', 'actualizar'),
   } catch (error) {
     console.error('Error aprobando cotización:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Generar PDF de cotización
+router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res) => {
+  try {
+    const cotizacion = await Cotizacion.findById(req.params.id)
+      .populate('prospecto')
+      .populate('elaboradaPor', 'nombre apellido');
+
+    if (!cotizacion) {
+      return res.status(404).json({ message: 'Cotización no encontrada' });
+    }
+
+    // Verificar permisos
+    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' && 
+        cotizacion.elaboradaPor._id.toString() !== req.usuario._id.toString()) {
+      return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
+    }
+
+    const pdf = await pdfService.generarCotizacionPDF(cotizacion);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Cotizacion-${cotizacion.numero}.pdf"`);
+    res.send(pdf);
+
+  } catch (error) {
+    console.error('Error generando PDF:', error);
+    res.status(500).json({ message: 'Error generando PDF' });
   }
 });
 

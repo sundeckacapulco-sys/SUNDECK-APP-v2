@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate-v2');
 
 const cotizacionSchema = new mongoose.Schema({
   // Referencia al prospecto
@@ -217,5 +218,8 @@ cotizacionSchema.index({ prospecto: 1 });
 cotizacionSchema.index({ estado: 1 });
 cotizacionSchema.index({ fechaEntregaEstimada: 1 });
 cotizacionSchema.index({ elaboradaPor: 1 });
+
+// Agregar plugin de paginación
+cotizacionSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('Cotizacion', cotizacionSchema);

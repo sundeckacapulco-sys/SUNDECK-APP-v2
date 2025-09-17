@@ -40,7 +40,6 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const [comentarios, setComentarios] = useState('');
   const [precioGeneral, setPrecioGeneral] = useState(750);
   const [guardando, setGuardando] = useState(false);
-  const [generandoCotizacion, setGenerandoCotizacion] = useState(false);
   const [errorLocal, setErrorLocal] = useState('');
 
   const resetFormulario = () => {
@@ -51,7 +50,6 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setPrecioGeneral(750);
     setErrorLocal('');
     setGuardando(false);
-    setGenerandoCotizacion(false);
     setAgregandoPieza(false);
     setPiezaForm(emptyPieza);
   };
@@ -129,60 +127,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setPiezas((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleGenerarCotizacion = async () => {
-    if (!prospectoId) {
-      setErrorLocal('No se encontró el identificador del prospecto.');
-      return;
-    }
-
-    if (piezas.length === 0) {
-      setErrorLocal('Debes agregar al menos una pieza para generar la cotización.');
-      return;
-    }
-
-    setGenerandoCotizacion(true);
-    setErrorLocal('');
-
-    try {
-      const payload = {
-        prospectoId,
-        piezas: piezas.map((pieza) => ({
-          ubicacion: pieza.ubicacion,
-          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
-          alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
-          producto: pieza.producto,
-          color: pieza.color,
-          precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : precioGeneral,
-          observaciones: pieza.observaciones,
-          fotoUrl: pieza.fotoUrl
-        })),
-        precioGeneral: Number(precioGeneral),
-        totalM2: calcularTotalM2,
-        unidadMedida: unidad,
-        comentarios
-      };
-
-      const { data } = await axiosConfig.post('/cotizaciones/desde-visita', payload);
-      
-      // Primero guardar la etapa
-      await handleGuardarEtapa(false); // false = no cerrar modal aún
-      
-      onSaved?.(
-        `¡Cotización ${data.cotizacion.numero} generada exitosamente! El prospecto se movió a "Cotizaciones Activas".`,
-        data.cotizacion
-      );
-      cerrarModal();
-    } catch (error) {
-      console.error('Error generando cotización:', error);
-      const mensaje = error.response?.data?.message || 'No se pudo generar la cotización.';
-      setErrorLocal(mensaje);
-      onError?.(mensaje);
-    } finally {
-      setGenerandoCotizacion(false);
-    }
-  };
-
-  const handleGuardarEtapa = async (cerrarAlFinal = true) => {
+  const handleGuardarEtapa = async () => {
     if (!prospectoId) {
       setErrorLocal('No se encontró el identificador del prospecto.');
       return;
@@ -218,9 +163,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
 
       const { data } = await axiosConfig.post('/etapas', payload);
       onSaved?.(data.message || 'Etapa agregada exitosamente', data.etapa);
-      if (cerrarAlFinal) {
-        cerrarModal();
-      }
+      cerrarModal();
     } catch (error) {
       console.error('Error guardando etapa:', error);
       const mensaje = error.response?.data?.message || 'No se pudo guardar la etapa.';
@@ -522,35 +465,20 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between items-center gap-3 p-6 border-t bg-gray-50">
+        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
           <button
             onClick={cerrarModal}
             className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
           >
             Cancelar
           </button>
-          
-          <div className="flex gap-3">
-            {/* Mostrar botón Generar Cotización solo si es Visita Inicial/Medición y hay piezas */}
-            {nombreEtapa === 'Visita Inicial / Medición' && piezas.length > 0 && (
-              <button
-                onClick={handleGenerarCotizacion}
-                disabled={generandoCotizacion || guardando}
-                className="inline-flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-              >
-                <span>💰</span>
-                {generandoCotizacion ? 'Generando...' : 'Generar Cotización'}
-              </button>
-            )}
-            
-            <button
-              onClick={() => handleGuardarEtapa(true)}
-              disabled={guardando || generandoCotizacion}
-              className="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50"
-            >
-              {guardando ? 'Guardando...' : 'Agregar Etapa'}
-            </button>
-          </div>
+          <button
+            onClick={handleGuardarEtapa}
+            disabled={guardando}
+            className="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50"
+          >
+            {guardando ? 'Guardando...' : 'Agregar Etapa'}
+          </button>
         </div>
       </div>
     </div>

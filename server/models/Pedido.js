@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate-v2');
 
 const pedidoSchema = new mongoose.Schema({
   // Referencia a cotización y prospecto
@@ -210,5 +211,8 @@ pedidoSchema.index({ cotizacion: 1 });
 pedidoSchema.index({ estado: 1 });
 pedidoSchema.index({ fechaEntrega: 1 });
 pedidoSchema.index({ vendedor: 1 });
+
+// Agregar plugin de paginación
+pedidoSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('Pedido', pedidoSchema);
