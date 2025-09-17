@@ -54,6 +54,10 @@ app.use('/api/reportes', require('./routes/reportes'));
 app.use('/api/plantillas', require('./routes/plantillas'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/etapas', require('./routes/etapas'));
+app.use('/api/storage', require('./routes/storage'));
+
+// Servir archivos estáticos desde uploads
+app.use('/uploads', express.static('uploads'));
 
 // Health check
 app.get('/api/health', (req, res) => {
