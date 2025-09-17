@@ -157,10 +157,11 @@ const ProspectoDetalle = () => {
 
   const fetchEtapas = async () => {
     try {
-      const { data } = await axiosConfig.get(`/prospectos/${id}/etapas`);
-      setEtapas(data || []);
-    } catch (err) {
-      console.error('Error cargando etapas:', err);
+      const { data } = await axiosConfig.get(`/etapas?prospectoId=${id}`);
+      setEtapas(data.etapas || []);
+    } catch (error) {
+      console.error('Error cargando etapas:', error);
+      setEtapas([]);
     }
   };
 
@@ -671,18 +672,64 @@ const ProspectoDetalle = () => {
               </Box>
               {etapas.length > 0 ? (
                 <List>
-                  {etapas.map((e, idx) => (
-                    <ListItem key={e._id || idx} alignItems="flex-start" divider>
+                  {etapas.map((etapa, idx) => (
+                    <ListItem key={etapa._id || idx} alignItems="flex-start" divider>
                       <ListItemText
-                        primary={e.nombre}
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                              {etapa.nombreEtapa}
+                            </Typography>
+                            {etapa.piezas && etapa.piezas.length > 0 && (
+                              <Chip 
+                                label={`${etapa.piezas.length} pieza${etapa.piezas.length > 1 ? 's' : ''}`} 
+                                size="small" 
+                                color="primary" 
+                              />
+                            )}
+                            {etapa.totalM2 && (
+                              <Chip 
+                                label={`${etapa.totalM2.toFixed(2)} m²`} 
+                                size="small" 
+                                color="info" 
+                              />
+                            )}
+                          </Box>
+                        }
                         secondary={
                           <>
                             <Typography variant="caption" color="text.secondary" display="block">
-                              {new Date(e.fechaHora).toLocaleString()}
-                              {e.usuario?.nombre ? ` · ${e.usuario.nombre} ${e.usuario.apellido || ''}` : ''}
+                              {new Date(etapa.creadoEn).toLocaleString()}
+                              {etapa.creadoPor?.nombre ? ` · ${etapa.creadoPor.nombre}` : ''}
                             </Typography>
-                            {e.observaciones && (
-                              <Typography variant="body2">{e.observaciones}</Typography>
+                            {etapa.comentarios && (
+                              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                💬 {etapa.comentarios}
+                              </Typography>
+                            )}
+                            {etapa.piezas && etapa.piezas.length > 0 && (
+                              <Box sx={{ mt: 1 }}>
+                                <Typography variant="caption" color="text.secondary">
+                                  Piezas registradas:
+                                </Typography>
+                                {etapa.piezas.slice(0, 3).map((pieza, pIdx) => (
+                                  <Chip
+                                    key={pIdx}
+                                    label={`📍 ${pieza.ubicacion} - ${pieza.productoLabel || pieza.producto}`}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ ml: 0.5, mt: 0.5 }}
+                                  />
+                                ))}
+                                {etapa.piezas.length > 3 && (
+                                  <Chip
+                                    label={`+${etapa.piezas.length - 3} más`}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ ml: 0.5, mt: 0.5 }}
+                                  />
+                                )}
+                              </Box>
                             )}
                           </>
                         }

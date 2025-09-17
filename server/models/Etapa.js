@@ -5,13 +5,13 @@ const piezaSchema = new mongoose.Schema({
   ancho: { type: Number },
   alto: { type: Number },
   producto: { type: String, trim: true },
+  productoLabel: { type: String, trim: true },
   color: { type: String, trim: true },
-  control: {
-    type: String,
-    enum: ['manual', 'motorizado'],
-    default: 'manual'
-  },
+  precioM2: { type: Number },
   observaciones: { type: String, trim: true },
+  fotoUrls: { type: [String], default: [] },
+  videoUrl: { type: String, trim: true },
+  // Mantener fotoUrl para compatibilidad hacia atrás
   fotoUrl: { type: String }
 }, { _id: false });
 
@@ -39,6 +39,8 @@ const etapaSchema = new mongoose.Schema({
     default: []
   },
   comentarios: { type: String, trim: true },
+  precioGeneral: { type: Number },
+  totalM2: { type: Number },
   creadoPor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Usuario',

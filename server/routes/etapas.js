@@ -7,6 +7,38 @@ const pdfService = require('../services/pdfService');
 
 const router = express.Router();
 
+// Obtener etapas de un prospecto
+router.get('/', auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
+  try {
+    const { prospectoId } = req.query;
+
+    if (!prospectoId || !mongoose.Types.ObjectId.isValid(prospectoId)) {
+      return res.status(400).json({ message: 'prospectoId inválido o requerido' });
+    }
+
+    // Verificar que el prospecto existe
+    const prospecto = await Prospecto.findById(prospectoId);
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+
+    // Obtener etapas ordenadas por fecha de creación (más reciente primero)
+    const etapas = await Etapa.find({ prospectoId })
+      .sort({ creadoEn: -1 })
+      .populate('creadoPor', 'nombre email')
+      .lean();
+
+    res.json({
+      etapas,
+      total: etapas.length
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo etapas:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
 router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req, res) => {
   try {
     const {
@@ -16,7 +48,9 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
       hora,
       piezas = [],
       comentarios,
-      unidadMedida = 'm'
+      unidadMedida = 'm',
+      precioGeneral,
+      totalM2
     } = req.body;
 
     if (!prospectoId || !mongoose.Types.ObjectId.isValid(prospectoId)) {
@@ -49,10 +83,12 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
             ancho: Number.isFinite(ancho) ? ancho : undefined,
             alto: Number.isFinite(alto) ? alto : undefined,
             producto: pieza.producto || '',
+            productoLabel: pieza.productoLabel || '',
             color: pieza.color || '',
-            control: pieza.control === 'motorizado' ? 'motorizado' : 'manual',
+            precioM2: pieza.precioM2 ? Number(pieza.precioM2) : undefined,
             observaciones: pieza.observaciones || '',
-            fotoUrl: pieza.fotoUrl || pieza.foto || ''
+            fotoUrls: Array.isArray(pieza.fotoUrls) ? pieza.fotoUrls : (pieza.fotoUrl ? [pieza.fotoUrl] : []),
+            videoUrl: pieza.videoUrl || ''
           };
         })
         .filter(Boolean)
@@ -66,6 +102,8 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
       unidadMedida: unidadMedida === 'cm' ? 'cm' : 'm',
       piezas: piezasNormalizadas,
       comentarios,
+      precioGeneral: precioGeneral ? Number(precioGeneral) : undefined,
+      totalM2: totalM2 ? Number(totalM2) : undefined,
       creadoPor: req.usuario._id
     });
 
