@@ -130,8 +130,6 @@ const ProspectoDetalle = () => {
   // Comentarios y etapas (timeline)
   const [comentarios, setComentarios] = useState([]);
   const [etapas, setEtapas] = useState([]);
-  const [openEtapa, setOpenEtapa] = useState(false);
-  const [nuevaEtapa, setNuevaEtapa] = useState({ nombre: '', fecha: '', hora: '', observaciones: '' });
 
   const fetchProspecto = async () => {
     try {
@@ -661,8 +659,12 @@ const ProspectoDetalle = () => {
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
                 <Button
                   variant="contained"
-                  onClick={() => setOpenEtapa(true)}
+                  onClick={() => {
+                    setErrorEtapa('');
+                    setOpenAgregarEtapa(true);
+                  }}
                   sx={{ backgroundColor: '#D4AF37', color: '#0F172A', '&:hover': { backgroundColor: '#c39c2f' } }}
+                  disabled={!prospecto}
                 >
                   + Agregar etapa
                 </Button>
@@ -775,85 +777,6 @@ const ProspectoDetalle = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={openEtapa} onClose={() => setOpenEtapa(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Agregar etapa</DialogTitle>
-        <DialogContent>
-          <TextField
-            select
-            label="Etapa"
-            fullWidth
-            value={nuevaEtapa.nombre}
-            onChange={(e) => setNuevaEtapa(prev => ({ ...prev, nombre: e.target.value }))}
-            SelectProps={{ native: true }}
-            sx={{ mt: 1, mb: 2 }}
-          >
-            <option value=""></option>
-            <option value="Visita Inicial / Medición">Visita Inicial / Medición</option>
-            <option value="Cotización enviada">Cotización enviada</option>
-            <option value="Pedido generado">Pedido generado</option>
-            <option value="Fabricación">Fabricación</option>
-            <option value="Instalación programada">Instalación programada</option>
-            <option value="Instalación realizada">Instalación realizada</option>
-            <option value="Entrega y conformidad">Entrega y conformidad</option>
-            <option value="Postventa">Postventa</option>
-          </TextField>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Fecha"
-                type="date"
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                value={nuevaEtapa.fecha}
-                onChange={(e) => setNuevaEtapa(prev => ({ ...prev, fecha: e.target.value }))}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Hora"
-                type="time"
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                value={nuevaEtapa.hora}
-                onChange={(e) => setNuevaEtapa(prev => ({ ...prev, hora: e.target.value }))}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Observaciones"
-                fullWidth
-                multiline
-                minRows={2}
-                value={nuevaEtapa.observaciones}
-                onChange={(e) => setNuevaEtapa(prev => ({ ...prev, observaciones: e.target.value }))}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEtapa(false)}>Cancelar</Button>
-          <Button
-            onClick={async () => {
-              try {
-                const fechaHora = nuevaEtapa.fecha ? new Date(`${nuevaEtapa.fecha}T${(nuevaEtapa.hora || '00:00')}:00`) : new Date();
-                await axiosConfig.post(`/prospectos/${id}/etapas`, {
-                  nombre: nuevaEtapa.nombre,
-                  fechaHora,
-                  observaciones: nuevaEtapa.observaciones
-                });
-                setOpenEtapa(false);
-                setNuevaEtapa({ nombre: '', fecha: '', hora: '', observaciones: '' });
-                fetchEtapas();
-              } catch (err) {
-                setError(err.response?.data?.message || 'Error al agregar la etapa');
-              }
-            }}
-            disabled={!nuevaEtapa.nombre}
-          >
-            Guardar
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       <Dialog open={openReagendar} onClose={() => setOpenReagendar(false)} fullWidth maxWidth="xs">
         <DialogTitle>Reagendar cita</DialogTitle>
@@ -893,6 +816,8 @@ const ProspectoDetalle = () => {
         onSaved={(mensaje) => {
           setMensajeEtapa(mensaje);
           setErrorEtapa('');
+          fetchEtapas(); // Actualizar la lista de etapas
+          fetchProspecto(); // Actualizar el prospecto por si cambió de etapa
         }}
         onError={(mensaje) => {
           setMensajeEtapa('');

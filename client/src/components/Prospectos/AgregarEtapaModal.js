@@ -1,4 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Grid,
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  IconButton,
+  Chip
+} from '@mui/material';
+import { Close, Add, Delete } from '@mui/icons-material';
 import axiosConfig from '../../config/axios';
 
 const etapaOptions = [
@@ -244,320 +265,313 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     }
   };
 
-  if (!open) return null;
-
-  // Debug
-  console.log('🔍 MODAL ACTIVO - Etapa:', nombreEtapa);
-  console.log('🔍 Es Visita Inicial?', nombreEtapa === 'Visita Inicial / Medición');
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-4xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Agregar Nueva Etapa</h2>
-          <button
-            onClick={cerrarModal}
-            className="text-gray-400 hover:text-gray-600"
+    <Dialog 
+      open={open} 
+      onClose={cerrarModal} 
+      maxWidth="lg" 
+      fullWidth
+      PaperProps={{
+        sx: { maxHeight: '90vh' }
+      }}
+    >
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h6">Agregar Nueva Etapa</Typography>
+        <IconButton onClick={cerrarModal} size="small">
+          <Close />
+        </IconButton>
+      </DialogTitle>
+      
+      <DialogContent sx={{ p: 3 }}>
+        {/* Selector de Etapa */}
+        <FormControl fullWidth sx={{ mb: 3 }}>
+          <InputLabel>Etapa</InputLabel>
+          <Select
+            value={nombreEtapa}
+            label="Etapa"
+            onChange={(e) => setNombreEtapa(e.target.value)}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+            {etapaOptions.map((etapa) => (
+              <MenuItem key={etapa} value={etapa}>
+                {etapa}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-          {/* Selector de Etapa */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Etapa
-            </label>
-            <select
-              value={nombreEtapa}
-              onChange={(e) => {
-                console.log('🔄 Cambiando etapa a:', e.target.value);
-                setNombreEtapa(e.target.value);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            >
-              {etapaOptions.map((etapa) => (
-                <option key={etapa} value={etapa}>
-                  {etapa}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Debug Info */}
+        <Alert severity="info" sx={{ mb: 2 }}>
+          DEBUG: Etapa actual = "{nombreEtapa}" | Es Visita Inicial = {nombreEtapa === 'Visita Inicial / Medición' ? 'SÍ' : 'NO'}
+        </Alert>
 
-          {/* MENSAJE DE DEBUG VISIBLE */}
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-700">
-              🔍 DEBUG: Etapa actual = "{nombreEtapa}" | Es Visita Inicial = {nombreEtapa === 'Visita Inicial / Medición' ? 'SÍ' : 'NO'}
-            </p>
-          </div>
+        {/* Fecha y Hora - Solo para etapas que NO sean Visita Inicial */}
+        {nombreEtapa !== 'Visita Inicial / Medición' && (
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Fecha"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Hora"
+                type="time"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+          </Grid>
+        )}
 
-          {/* Fecha y Hora - Solo para etapas que NO sean Visita Inicial */}
-          {nombreEtapa !== 'Visita Inicial / Medición' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fecha
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Hora
-                </label>
-                <input
-                  type="time"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* ===== LEVANTAMIENTO DE MEDIDAS - SOLO PARA VISITA INICIAL ===== */}
-          {nombreEtapa === 'Visita Inicial / Medición' && (
-            <div className="mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-lg">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
+        {/* LEVANTAMIENTO DE MEDIDAS - SOLO PARA VISITA INICIAL */}
+        {nombreEtapa === 'Visita Inicial / Medición' && (
+          <Card sx={{ mb: 3, bgcolor: 'success.50', border: 2, borderColor: 'success.200' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
                   📏 Levantamiento de Medidas
-                </h3>
-                <div className="flex gap-2">
-                  <button
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="contained"
+                    size="small"
                     onClick={() => setAgregandoPieza(true)}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
+                    startIcon={<Add />}
                   >
-                    + Agregar Pieza
-                  </button>
-                  <button 
+                    Agregar Pieza
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    color="info"
                     onClick={handleDescargarLevantamiento}
                     disabled={descargandoLevantamiento || piezas.length === 0}
-                    className="px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 text-sm disabled:opacity-50"
                   >
-                    {descargandoLevantamiento ? '⏳ Generando...' : '📄 Descargar Levantamiento'}
-                  </button>
-                </div>
-              </div>
+                    {descargandoLevantamiento ? 'Generando...' : 'Descargar PDF'}
+                  </Button>
+                </Box>
+              </Box>
 
               {/* Precio General */}
-              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  💰 Precio General por m² (MXN)
-                </label>
-                <input
-                  type="number"
-                  value={precioGeneral}
-                  onChange={(e) => setPrecioGeneral(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  placeholder="750"
-                />
-              </div>
+              <Card sx={{ mb: 2, bgcolor: 'warning.50' }}>
+                <CardContent>
+                  <TextField
+                    label="💰 Precio General por m² (MXN)"
+                    type="number"
+                    fullWidth
+                    value={precioGeneral}
+                    onChange={(e) => setPrecioGeneral(e.target.value)}
+                    placeholder="750"
+                  />
+                </CardContent>
+              </Card>
 
               {/* Unidad */}
-              <div className="flex gap-2 mb-4">
-                <span className="text-sm text-gray-600">Unidad:</span>
-                <button
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
+                <Typography variant="body2">Unidad:</Typography>
+                <Button
+                  variant={unidad === 'm' ? 'contained' : 'outlined'}
+                  size="small"
                   onClick={() => setUnidad('m')}
-                  className={`px-3 py-1 text-sm rounded ${unidad === 'm' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                 >
                   m
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant={unidad === 'cm' ? 'contained' : 'outlined'}
+                  size="small"
                   onClick={() => setUnidad('cm')}
-                  className={`px-3 py-1 text-sm rounded ${unidad === 'cm' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                 >
                   cm
-                </button>
-              </div>
+                </Button>
+              </Box>
 
               {/* Formulario Agregar Pieza */}
               {agregandoPieza && (
-                <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-white">
-                  <h4 className="font-medium text-gray-900 mb-3">🔧 Agregar Pieza #{piezas.length + 1}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
-                      <input
-                        type="text"
-                        value={piezaForm.ubicacion}
-                        onChange={(e) => setPiezaForm(prev => ({ ...prev, ubicacion: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Ej. Sala, Recámara, Terraza"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Producto</label>
-                      <select
-                        value={piezaForm.producto}
-                        onChange={(e) => setPiezaForm(prev => ({ ...prev, producto: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <Card sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ mb: 2 }}>
+                      🔧 Agregar Pieza #{piezas.length + 1}
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Ubicación"
+                          fullWidth
+                          value={piezaForm.ubicacion}
+                          onChange={(e) => setPiezaForm(prev => ({ ...prev, ubicacion: e.target.value }))}
+                          placeholder="Ej. Sala, Recámara, Terraza"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <FormControl fullWidth>
+                          <InputLabel>Producto</InputLabel>
+                          <Select
+                            value={piezaForm.producto}
+                            label="Producto"
+                            onChange={(e) => setPiezaForm(prev => ({ ...prev, producto: e.target.value }))}
+                          >
+                            <MenuItem value="Ventana">Ventana</MenuItem>
+                            <MenuItem value="Puerta">Puerta</MenuItem>
+                            <MenuItem value="Ventanal">Ventanal</MenuItem>
+                            <MenuItem value="Puerta Corrediza">Puerta Corrediza</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label={`Ancho (${unidad})`}
+                          type="number"
+                          fullWidth
+                          value={piezaForm.ancho}
+                          onChange={(e) => setPiezaForm(prev => ({ ...prev, ancho: e.target.value }))}
+                          inputProps={{ step: 0.01 }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label={`Alto (${unidad})`}
+                          type="number"
+                          fullWidth
+                          value={piezaForm.alto}
+                          onChange={(e) => setPiezaForm(prev => ({ ...prev, alto: e.target.value }))}
+                          inputProps={{ step: 0.01 }}
+                        />
+                      </Grid>
+                    </Grid>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        onClick={handleAgregarPieza}
                       >
-                        <option value="Ventana">Ventana</option>
-                        <option value="Puerta">Puerta</option>
-                        <option value="Ventanal">Ventanal</option>
-                        <option value="Puerta Corrediza">Puerta Corrediza</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Ancho ({unidad})</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={piezaForm.ancho}
-                        onChange={(e) => setPiezaForm(prev => ({ ...prev, ancho: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Alto ({unidad})</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={piezaForm.alto}
-                        onChange={(e) => setPiezaForm(prev => ({ ...prev, alto: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="0.00"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <button
-                      onClick={handleAgregarPieza}
-                      className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-                    >
-                      ✅ Agregar Pieza
-                    </button>
-                    <button
-                      onClick={() => setAgregandoPieza(false)}
-                      className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-                    >
-                      ❌ Cancelar
-                    </button>
-                  </div>
-                </div>
+                        ✅ Agregar Pieza
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        onClick={() => setAgregandoPieza(false)}
+                      >
+                        Cancelar
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Lista de Piezas */}
               {piezas.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="font-medium text-gray-900 mb-3">📋 Piezas Agregadas ({piezas.length})</h4>
-                  <div className="space-y-2">
-                    {piezas.map((pieza, index) => {
-                      const area = unidad === 'cm' ? (pieza.ancho * pieza.alto) / 10000 : pieza.ancho * pieza.alto;
-                      const precio = pieza.precioM2 || precioGeneral;
-                      return (
-                        <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-4">
-                              <span className="font-medium text-gray-900">📍 {pieza.ubicacion}</span>
-                              <span className="text-sm text-gray-600">{pieza.producto}</span>
-                              <span className="text-sm text-gray-600">{pieza.ancho} × {pieza.alto} {unidad}</span>
-                              <span className="text-sm font-medium text-blue-600">📐 {area.toFixed(2)} m²</span>
-                              <span className="text-sm text-green-600">💰 ${(area * precio).toFixed(2)}</span>
-                            </div>
-                          </div>
-                          <button
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="h6" sx={{ mb: 1 }}>
+                    📋 Piezas Agregadas ({piezas.length})
+                  </Typography>
+                  {piezas.map((pieza, index) => {
+                    const area = unidad === 'cm' ? (pieza.ancho * pieza.alto) / 10000 : pieza.ancho * pieza.alto;
+                    const precio = pieza.precioM2 || precioGeneral;
+                    return (
+                      <Card key={index} sx={{ mb: 1 }}>
+                        <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+                          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                            <Chip label={`📍 ${pieza.ubicacion}`} />
+                            <Typography variant="body2">{pieza.producto}</Typography>
+                            <Typography variant="body2">{pieza.ancho} × {pieza.alto} {unidad}</Typography>
+                            <Chip label={`📐 ${area.toFixed(2)} m²`} color="primary" />
+                            <Chip label={`💰 $${(area * precio).toFixed(2)}`} color="success" />
+                          </Box>
+                          <IconButton
                             onClick={() => handleEliminarPieza(index)}
-                            className="text-red-500 hover:text-red-700 ml-2"
+                            color="error"
+                            size="small"
                           >
-                            🗑️
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                            <Delete />
+                          </IconButton>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </Box>
               )}
 
               {/* Resumen */}
               {piezas.length > 0 && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-2">📊 Resumen de Medición</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Total piezas:</span>
-                      <p className="font-medium">🔢 {piezas.length}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Área total:</span>
-                      <p className="font-medium text-blue-600">📐 {calcularTotalM2.toFixed(2)} m²</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Precio promedio:</span>
-                      <p className="font-medium">💰 ${precioGeneral}/m²</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Estimado:</span>
-                      <p className="font-medium text-green-600">💵 ${(calcularTotalM2 * precioGeneral).toFixed(2)}</p>
-                    </div>
-                  </div>
-                </div>
+                <Card sx={{ bgcolor: 'info.50' }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ mb: 1 }}>📊 Resumen de Medición</Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">Total piezas:</Typography>
+                        <Typography variant="body1" fontWeight="bold">🔢 {piezas.length}</Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">Área total:</Typography>
+                        <Typography variant="body1" fontWeight="bold" color="primary">📐 {calcularTotalM2.toFixed(2)} m²</Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">Precio promedio:</Typography>
+                        <Typography variant="body1" fontWeight="bold">💰 ${precioGeneral}/m²</Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">Estimado:</Typography>
+                        <Typography variant="body1" fontWeight="bold" color="success.main">💵 ${(calcularTotalM2 * precioGeneral).toFixed(2)}</Typography>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
               )}
-            </div>
-          )}
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Comentarios */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Observaciones
-            </label>
-            <textarea
-              value={comentarios}
-              onChange={(e) => setComentarios(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
-              rows="3"
-              placeholder="Comentarios adicionales sobre esta etapa..."
-            />
-          </div>
+        {/* Comentarios */}
+        <TextField
+          label="Observaciones"
+          multiline
+          rows={3}
+          fullWidth
+          value={comentarios}
+          onChange={(e) => setComentarios(e.target.value)}
+          placeholder="Comentarios adicionales sobre esta etapa..."
+          sx={{ mb: 2 }}
+        />
 
-          {errorLocal && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-700">❌ {errorLocal}</p>
-            </div>
-          )}
-        </div>
+        {errorLocal && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {errorLocal}
+          </Alert>
+        )}
+      </DialogContent>
 
-        {/* Footer */}
-        <div className="flex justify-between items-center gap-3 p-6 border-t bg-gray-50">
-          <button
-            onClick={cerrarModal}
-            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          
-          <div className="flex gap-3">
-            {/* Botón Generar Cotización - Solo para Visita Inicial con piezas */}
-            {nombreEtapa === 'Visita Inicial / Medición' && piezas.length > 0 && (
-              <button
-                onClick={handleGenerarCotizacion}
-                disabled={generandoCotizacion || guardando}
-                className="inline-flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-              >
-                <span>💰</span>
-                {generandoCotizacion ? 'Generando...' : 'Generar Cotización'}
-              </button>
-            )}
-            
-            <button
-              onClick={handleGuardarEtapa}
-              disabled={guardando || generandoCotizacion}
-              className="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50"
+      <DialogActions sx={{ p: 3, justifyContent: 'space-between' }}>
+        <Button onClick={cerrarModal} variant="outlined">
+          Cancelar
+        </Button>
+        
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {/* Botón Generar Cotización - Solo para Visita Inicial con piezas */}
+          {nombreEtapa === 'Visita Inicial / Medición' && piezas.length > 0 && (
+            <Button
+              onClick={handleGenerarCotizacion}
+              disabled={generandoCotizacion || guardando}
+              variant="contained"
+              color="success"
+              startIcon={<span>💰</span>}
             >
-              {guardando ? 'Guardando...' : 'Agregar Etapa'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+              {generandoCotizacion ? 'Generando...' : 'Generar Cotización'}
+            </Button>
+          )}
+          
+          <Button
+            onClick={handleGuardarEtapa}
+            disabled={guardando || generandoCotizacion}
+            variant="contained"
+            sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#b8962d' } }}
+          >
+            {guardando ? 'Guardando...' : 'Agregar Etapa'}
+          </Button>
+        </Box>
+      </DialogActions>
+    </Dialog>
   );
 };
 
