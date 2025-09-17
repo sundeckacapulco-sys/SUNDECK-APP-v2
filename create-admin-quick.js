@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
 // Conectar a MongoDB
 mongoose.connect('mongodb://localhost:27017/sundeck-crm')
@@ -12,14 +11,12 @@ mongoose.connect('mongodb://localhost:27017/sundeck-crm')
     // Eliminar admin existente
     await Usuario.deleteOne({ email: 'admin@sundeck.com' });
     
-    // Crear nuevo admin
-    const hashedPassword = await bcrypt.hash('password', 12);
-    
+    // Crear nuevo admin (el modelo se encarga del hasheo automáticamente)
     const admin = new Usuario({
       nombre: 'Admin',
       apellido: 'Sundeck',
       email: 'admin@sundeck.com',
-      password: hashedPassword,
+      password: 'password', // Texto plano - el hook pre('save') lo hasheará
       rol: 'admin',
       activo: true,
       permisos: [
