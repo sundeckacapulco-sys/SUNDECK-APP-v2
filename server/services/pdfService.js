@@ -507,19 +507,33 @@ class PDFService {
           <h3>Piezas Medidas</h3>
           {{#each piezas}}
           <div class="pieza">
-            <h4>{{ubicacion}}</h4>
+            <h4>📍 {{ubicacion}} {{#if etapa}}<span style="color: #666; font-size: 14px;">({{etapa}})</span>{{/if}}</h4>
             <div class="info-grid">
               <div>
                 <strong>Dimensiones:</strong> {{ancho}} × {{alto}} {{../unidadMedida}}<br>
-                <strong>Área:</strong> {{area}} m²
+                <strong>Área:</strong> {{area}} m²<br>
+                {{#if precioM2}}
+                <strong>Precio específico:</strong> {{precioM2}}/m²
+                {{/if}}
               </div>
               <div>
-                <strong>Producto:</strong> {{producto}}<br>
-                <strong>Color:</strong> {{color}}
+                <strong>Producto:</strong> {{productoLabel}}{{#unless productoLabel}}{{producto}}{{/unless}}<br>
+                <strong>Color/Acabado:</strong> {{color}}<br>
+                {{#if fotoUrls.length}}
+                <strong>Fotos:</strong> {{fotoUrls.length}} archivo{{#if (gt fotoUrls.length 1)}}s{{/if}}<br>
+                {{/if}}
+                {{#if videoUrl}}
+                <strong>Video:</strong> Disponible<br>
+                {{/if}}
               </div>
             </div>
             {{#if observaciones}}
             <p><strong>Observaciones:</strong> {{observaciones}}</p>
+            {{/if}}
+            {{#if fechaEtapa}}
+            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+              <strong>Registrado:</strong> {{formatDate fechaEtapa}}
+            </p>
             {{/if}}
           </div>
           {{/each}}
@@ -541,6 +555,21 @@ class PDFService {
         </html>
       `;
 
+      // Registrar helpers de Handlebars
+      handlebars.registerHelper('gt', function(a, b) {
+        return a > b;
+      });
+
+      handlebars.registerHelper('formatDate', function(date) {
+        return new Date(date).toLocaleDateString('es-MX', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      });
+
       const templateData = {
         fecha: this.formatDate(new Date()),
         prospecto: etapa.prospecto || { nombre: 'Cliente', telefono: '' },
@@ -552,7 +581,10 @@ class PDFService {
         totalAproximado: this.formatCurrency(totalM2 * precioGeneral),
         piezas: piezas.map(pieza => ({
           ...pieza,
-          area: ((pieza.ancho || 0) * (pieza.alto || 0)).toFixed(2)
+          area: ((pieza.ancho || 0) * (pieza.alto || 0)).toFixed(2),
+          precioM2: pieza.precioM2 ? this.formatCurrency(pieza.precioM2) : null,
+          fotoUrls: pieza.fotoUrls || [],
+          productoLabel: pieza.productoLabel || pieza.producto
         }))
       };
 

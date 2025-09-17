@@ -310,6 +310,65 @@ const ProspectoDetalle = () => {
     }
   };
 
+  const handleDescargarPDFCompleto = async () => {
+    if (!etapas.length) return;
+
+    try {
+      // Recopilar todas las piezas de todas las etapas
+      const todasLasPiezas = etapas.reduce((acc, etapa) => {
+        if (etapa.piezas && etapa.piezas.length > 0) {
+          const piezasConEtapa = etapa.piezas.map(pieza => ({
+            ...pieza,
+            etapa: etapa.nombreEtapa,
+            fechaEtapa: etapa.creadoEn
+          }));
+          return [...acc, ...piezasConEtapa];
+        }
+        return acc;
+      }, []);
+
+      if (todasLasPiezas.length === 0) {
+        setError('No hay piezas registradas para generar el PDF');
+        return;
+      }
+
+      // Calcular totales
+      const totalM2 = todasLasPiezas.reduce((total, pieza) => {
+        const area = (pieza.ancho || 0) * (pieza.alto || 0);
+        return total + area;
+      }, 0);
+
+      const precioPromedio = etapas.find(e => e.precioGeneral)?.precioGeneral || 750;
+
+      const payload = {
+        prospectoId: id,
+        piezas: todasLasPiezas,
+        precioGeneral: precioPromedio,
+        totalM2,
+        unidadMedida: 'm'
+      };
+
+      const response = await axiosConfig.post('/etapas/levantamiento-pdf', payload, {
+        responseType: 'blob'
+      });
+
+      // Crear y descargar el archivo
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Levantamiento-Completo-${prospecto.nombre.replace(/\s+/g, '-')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error('Error descargando PDF completo:', error);
+      setError('Error al generar el PDF completo');
+    }
+  };
+
   if (loadingProspecto) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
@@ -657,7 +716,17 @@ const ProspectoDetalle = () => {
               <Typography variant="h6" gutterBottom>
                 Timeline de etapas
               </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 1 }}>
+                {etapas.length > 0 && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => handleDescargarPDFCompleto()}
+                    sx={{ color: '#2563EB', borderColor: '#2563EB' }}
+                  >
+                    📄 PDF Completo
+                  </Button>
+                )}
                 <Button
                   variant="contained"
                   onClick={() => {
@@ -708,28 +777,10 @@ const ProspectoDetalle = () => {
                               </Typography>
                             )}
                             {etapa.piezas && etapa.piezas.length > 0 && (
-                              <Box sx={{ mt: 1 }}>
-                                <Typography variant="caption" color="text.secondary">
-                                  Piezas registradas:
-                                </Typography>
-                                {etapa.piezas.slice(0, 3).map((pieza, pIdx) => (
-                                  <Chip
-                                    key={pIdx}
-                                    label={`📍 ${pieza.ubicacion} - ${pieza.productoLabel || pieza.producto}`}
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{ ml: 0.5, mt: 0.5 }}
-                                  />
-                                ))}
-                                {etapa.piezas.length > 3 && (
-                                  <Chip
-                                    label={`+${etapa.piezas.length - 3} más`}
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{ ml: 0.5, mt: 0.5 }}
-                                  />
-                                )}
-                              </Box>
+                              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                📋 Se agregaron {etapa.piezas.length} pieza{etapa.piezas.length > 1 ? 's' : ''}
+                                {etapa.totalM2 && ` • Total: ${etapa.totalM2.toFixed(2)} m²`}
+                              </Typography>
                             )}
                           </>
                         }
