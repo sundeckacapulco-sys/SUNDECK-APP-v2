@@ -33,6 +33,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
+import AgregarEtapaModal from './AgregarEtapaModal';
 
 const etapaLabels = {
   nuevo: 'Nuevo',
@@ -121,6 +122,9 @@ const ProspectoDetalle = () => {
   const [reagendarFecha, setReagendarFecha] = useState('');
   const [reagendarHora, setReagendarHora] = useState('');
   const [savingReagendar, setSavingReagendar] = useState(false);
+  const [openAgregarEtapa, setOpenAgregarEtapa] = useState(false);
+  const [mensajeEtapa, setMensajeEtapa] = useState('');
+  const [errorEtapa, setErrorEtapa] = useState('');
 
   const fetchProspecto = async () => {
     try {
@@ -316,9 +320,14 @@ const ProspectoDetalle = () => {
         </Button>
       </Box>
 
-      {error && (
+      {(error || errorEtapa) && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
+          {errorEtapa || error}
+        </Alert>
+      )}
+      {mensajeEtapa && (
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setMensajeEtapa('')}>
+          {mensajeEtapa}
         </Alert>
       )}
 
@@ -592,6 +601,22 @@ const ProspectoDetalle = () => {
                 </Button>
                 <Button
                   variant="contained"
+                  onClick={() => {
+                    setErrorEtapa('');
+                    setOpenAgregarEtapa(true);
+                  }}
+                  sx={{
+                    backgroundColor: '#D4AF37',
+                    color: '#111827',
+                    fontWeight: 600,
+                    '&:hover': { backgroundColor: '#b8962d' }
+                  }}
+                  disabled={!prospecto}
+                >
+                  Agregar etapa
+                </Button>
+                <Button
+                  variant="contained"
                   color="success"
                   startIcon={<WhatsApp />}
                   onClick={abrirWhatsApp}
@@ -659,6 +684,20 @@ const ProspectoDetalle = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <AgregarEtapaModal
+        open={openAgregarEtapa}
+        onClose={() => setOpenAgregarEtapa(false)}
+        prospectoId={prospecto?._id}
+        onSaved={(mensaje) => {
+          setMensajeEtapa(mensaje);
+          setErrorEtapa('');
+        }}
+        onError={(mensaje) => {
+          setMensajeEtapa('');
+          setErrorEtapa(mensaje);
+        }}
+      />
     </Box>
   );
 };
