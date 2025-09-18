@@ -45,7 +45,7 @@ const ProspectoForm = () => {
         referencias: ''
       },
       producto: '',
-      tipoProducto: 'ventana',
+      tipoProducto: 'visita_servicio',
       descripcionNecesidad: '',
       presupuestoEstimado: '',
       fechaCita: '',
@@ -59,11 +59,14 @@ const ProspectoForm = () => {
   });
 
   const tiposProducto = [
-    { value: 'ventana', label: 'Ventana' },
-    { value: 'puerta', label: 'Puerta' },
-    { value: 'cancel', label: 'Cancel' },
-    { value: 'domo', label: 'Domo' },
-    { value: 'toldo', label: 'Toldo' },
+    { value: 'visita_servicio', label: 'Visita de Servicio' },
+    { value: 'toma_medidas', label: 'Toma de Medidas' },
+    { value: 'cotizacion', label: 'Cotización' },
+    { value: 'instalacion', label: 'Instalación' },
+    { value: 'mantenimiento', label: 'Mantenimiento' },
+    { value: 'reparacion', label: 'Reparación' },
+    { value: 'garantia', label: 'Garantía' },
+    { value: 'asesoria', label: 'Asesoría' },
     { value: 'otro', label: 'Otro' }
   ];
 
