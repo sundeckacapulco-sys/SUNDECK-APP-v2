@@ -12,17 +12,35 @@ class PDFService {
 
   async initBrowser() {
     try {
-      // Carga lazy de puppeteer con manejo de errores
-      puppeteerLib ??= require('puppeteer');
-    } catch (error) {
-      throw new Error('Puppeteer no está disponible. Para generar PDFs, instala puppeteer: npm install puppeteer');
-    }
-
-    if (!this.browser) {
-      this.browser = await puppeteerLib.launch({
+      // Intentar con puppeteer primero
+      if (!puppeteerLib) {
+        try {
+          puppeteerLib = require('puppeteer');
+        } catch (e) {
+          // Si puppeteer no está disponible, intentar con html-pdf-node
+          try {
+            const htmlPdf = require('html-pdf-node');
+            return { htmlPdf, isAlternative: true };
+          } catch (e2) {
+            throw new Error('Ni puppeteer ni html-pdf-node están disponibles. Instala una de estas dependencias: npm install puppeteer o npm install html-pdf-node');
+          }
+        }
+      }
+      
+      const browser = await puppeteerLib.launch({
         headless: 'new',
         args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
+      
+      return { browser, isAlternative: false };
+    } catch (error) {
+      // Fallback a html-pdf-node si puppeteer falla
+      try {
+        const htmlPdf = require('html-pdf-node');
+        return { htmlPdf, isAlternative: true };
+      } catch (e) {
+        throw new Error('Error inicializando generador de PDF. Instala puppeteer o html-pdf-node: npm install puppeteer');
+      }
     }
     return this.browser;
   }
@@ -476,7 +494,15 @@ class PDFService {
 
   async generarLevantamientoPDF(etapa, piezas, totalM2, precioGeneral) {
     try {
-      const browser = await this.initBrowser();
+      const browserResult = await this.initBrowser();
+      
+      // Si es alternativa (html-pdf-node)
+      if (browserResult.isAlternative) {
+        return await this.generarPDFConHtmlPdfNode(browserResult.htmlPdf, etapa, piezas, totalM2, precioGeneral);
+      }
+      
+      // Si es puppeteer
+      const browser = browserResult.browser;
       const page = await browser.newPage();
 
       const htmlTemplate = `
@@ -1003,10 +1029,171 @@ class PDFService {
       });
 
       await page.close();
+      await browser.close();
       return pdf;
 
     } catch (error) {
       console.error('Error generando PDF de levantamiento:', error);
+      throw new Error('No se pudo generar el PDF del levantamiento');
+    }
+  }
+
+  // Función alternativa usando html-pdf-node
+  async generarPDFConHtmlPdfNode(htmlPdf, etapa, piezas, totalM2, precioGeneral) {
+    try {
+      // Procesar datos igual que en la función principal
+      let totalPiezasReales = 0;
+      let totalAreaReal = 0;
+      let totalGeneralReal = 0;
+      const piezasExpandidas = [];
+
+      piezas.forEach((pieza) => {
+        if (pieza.medidas && Array.isArray(pieza.medidas) && pieza.medidas.length > 0) {
+          pieza.medidas.forEach((medida, medidaIndex) => {
+            const ancho = Number(medida.ancho) || 0;
+            const alto = Number(medida.alto) || 0;
+            const area = ancho * alto;
+            const precio = Number(medida.precioM2) || Number(pieza.precioM2) || precioGeneral;
+            const subtotal = area * precio;
+            
+            totalPiezasReales += 1;
+            totalAreaReal += area;
+            totalGeneralReal += subtotal;
+
+            const esProductoToldo = pieza.esToldo || (pieza.producto && pieza.producto.toLowerCase().includes('toldo'));
+            const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) : 0;
+            const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) : 0;
+            const controlPrecio = (pieza.motorizado && pieza.controlPrecio) ? Number(pieza.controlPrecio) : 0;
+            
+            const subtotalCompleto = subtotal + kitPrecio + motorPrecio + controlPrecio;
+            totalGeneralReal = totalGeneralReal - subtotal + subtotalCompleto;
+
+            piezasExpandidas.push({
+              ...pieza,
+              ubicacion: pieza.medidas.length > 1 ? 
+                `${pieza.ubicacion || ''} (${medidaIndex + 1}/${pieza.medidas.length})` : 
+                (pieza.ubicacion || ''),
+              ancho: ancho,
+              alto: alto,
+              area: area.toFixed(2),
+              precioM2: this.formatCurrency(precio),
+              subtotalBase: this.formatCurrency(subtotal),
+              esProductoToldo: esProductoToldo,
+              kitModelo: esProductoToldo ? (pieza.kitModeloManual || pieza.kitModelo || 'Kit incluido') : null,
+              kitPrecio: kitPrecio > 0 ? this.formatCurrency(kitPrecio) : null,
+              motorizado: pieza.motorizado,
+              motorModelo: pieza.motorizado ? (pieza.motorModeloManual || pieza.motorModelo || 'Motor incluido') : null,
+              motorPrecio: motorPrecio > 0 ? this.formatCurrency(motorPrecio) : null,
+              controlModelo: pieza.motorizado ? (pieza.controlModeloManual || pieza.controlModelo || 'Control incluido') : null,
+              controlPrecio: controlPrecio > 0 ? this.formatCurrency(controlPrecio) : null,
+              subtotal: this.formatCurrency(subtotalCompleto),
+              productoLabel: medida.productoLabel || medida.producto || pieza.productoLabel || pieza.producto,
+              color: medida.color || pieza.color || '',
+              fotoUrls: pieza.fotoUrls || [],
+              videoUrl: pieza.videoUrl
+            });
+          });
+        } else {
+          // Formato anterior
+          const ancho = Number(pieza.ancho) || 0;
+          const alto = Number(pieza.alto) || 0;
+          const cantidad = Number(pieza.cantidad) || 1;
+          const area = ancho * alto * cantidad;
+          const precio = Number(pieza.precioM2) || precioGeneral;
+          const subtotal = area * precio;
+          
+          totalPiezasReales += cantidad;
+          totalAreaReal += area;
+          totalGeneralReal += subtotal;
+
+          const esProductoToldo = pieza.esToldo || (pieza.producto && pieza.producto.toLowerCase().includes('toldo'));
+          const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) * cantidad : 0;
+          const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) * cantidad : 0;
+          const controlPrecio = (pieza.motorizado && pieza.controlPrecio) ? Number(pieza.controlPrecio) : 0;
+          
+          const subtotalCompleto = subtotal + kitPrecio + motorPrecio + controlPrecio;
+          totalGeneralReal = totalGeneralReal - subtotal + subtotalCompleto;
+
+          piezasExpandidas.push({
+            ...pieza,
+            ubicacion: cantidad > 1 ? 
+              `${pieza.ubicacion || ''} (${cantidad} piezas)` : 
+              (pieza.ubicacion || ''),
+            ancho: ancho,
+            alto: alto,
+            area: area.toFixed(2),
+            precioM2: this.formatCurrency(precio),
+            subtotalBase: this.formatCurrency(subtotal),
+            esProductoToldo: esProductoToldo,
+            kitModelo: esProductoToldo ? (pieza.kitModeloManual || pieza.kitModelo || 'Kit incluido') : null,
+            kitPrecio: kitPrecio > 0 ? this.formatCurrency(kitPrecio) : null,
+            motorizado: pieza.motorizado,
+            motorModelo: pieza.motorizado ? (pieza.motorModeloManual || pieza.motorModelo || 'Motor incluido') : null,
+            motorPrecio: motorPrecio > 0 ? this.formatCurrency(motorPrecio) : null,
+            controlModelo: pieza.motorizado ? (pieza.controlModeloManual || pieza.controlModelo || 'Control incluido') : null,
+            controlPrecio: controlPrecio > 0 ? this.formatCurrency(controlPrecio) : null,
+            subtotal: this.formatCurrency(subtotalCompleto),
+            productoLabel: pieza.productoLabel || pieza.producto,
+            fotoUrls: pieza.fotoUrls || [],
+            videoUrl: pieza.videoUrl
+          });
+        }
+      });
+
+      const templateData = {
+        fecha: this.formatDate(new Date()),
+        prospecto: etapa.prospecto || { nombre: 'Cliente', telefono: '' },
+        precioGeneral: this.formatCurrency(precioGeneral),
+        unidadMedida: etapa.unidadMedida || 'm',
+        piezas: piezasExpandidas,
+        totalPiezas: totalPiezasReales,
+        totalM2: totalAreaReal.toFixed(2),
+        precioEstimado: this.formatCurrency(precioGeneral),
+        totalAproximado: this.formatCurrency(totalGeneralReal)
+      };
+
+      // Registrar helpers de Handlebars
+      handlebars.registerHelper('gt', function(a, b) {
+        return a > b;
+      });
+
+      handlebars.registerHelper('or', function(a, b) {
+        return a || b;
+      });
+
+      handlebars.registerHelper('formatDate', function(date) {
+        return new Date(date).toLocaleDateString('es-MX', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      });
+
+      // Usar el mismo template HTML
+      const htmlTemplate = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Recibo de Visita - Medición</title><style>* { margin: 0; padding: 0; box-sizing: border-box; }body { font-family: 'Arial', sans-serif; line-height: 1.4; color: #333; background: #fff; padding: 20px; }.recibo-container { max-width: 800px; margin: 0 auto; background: #fff; border: 2px solid #D4AF37; border-radius: 10px; overflow: hidden; }.header { background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%); color: white; padding: 25px; text-align: center; }.logo { font-size: 28px; font-weight: bold; margin-bottom: 5px; }.subtitulo { font-size: 16px; opacity: 0.9; }.info-cliente { background: #f8f9fa; padding: 20px; border-bottom: 1px solid #dee2e6; }.cliente-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }.fecha-recibo { text-align: right; font-size: 14px; color: #666; margin-bottom: 10px; }.contenido { padding: 25px; }.partida { background: #fff; border: 1px solid #e9ecef; border-radius: 8px; margin-bottom: 20px; overflow: hidden; }.partida-header { background: #f8f9fa; padding: 15px; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #495057; }.partida-body { padding: 20px; }.medidas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }.campo { margin-bottom: 8px; }.campo-label { font-weight: bold; color: #495057; font-size: 14px; }.campo-valor { color: #212529; font-size: 15px; }.incluidos { background: #e8f4fd; border: 1px solid #bee5eb; border-radius: 6px; padding: 15px; margin-top: 15px; }.incluidos-titulo { font-weight: bold; color: #0c5460; margin-bottom: 10px; font-size: 14px; }.incluido-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #bee5eb; }.incluido-item:last-child { border-bottom: none; }.precio-unitario { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 12px; margin-top: 15px; text-align: center; }.precio-unitario .monto { font-size: 18px; font-weight: bold; color: #856404; }.resumen-final { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 2px solid #D4AF37; border-radius: 10px; padding: 25px; margin-top: 30px; text-align: center; }.resumen-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }.resumen-item { text-align: center; }.resumen-numero { font-size: 24px; font-weight: bold; color: #D4AF37; display: block; }.resumen-label { font-size: 14px; color: #666; margin-top: 5px; }.total-final { font-size: 28px; font-weight: bold; color: #D4AF37; margin-top: 15px; padding-top: 15px; border-top: 2px solid #D4AF37; }.footer { background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #dee2e6; font-size: 12px; color: #666; }.nota-importante { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin: 20px 0; font-size: 14px; color: #856404; }@media print { body { margin: 0; padding: 10px; }.recibo-container { border: 1px solid #ccc; }}</style></head><body><div class="recibo-container"><div class="header"><div class="logo">🏠 SUNDECK</div><div class="subtitulo">Recibo de Visita - Medición de Productos</div></div><div class="info-cliente"><div class="fecha-recibo">Fecha de visita: {{fecha}}</div><div class="cliente-grid"><div><div class="campo"><span class="campo-label">Cliente:</span><br><span class="campo-valor">{{prospecto.nombre}}</span></div><div class="campo"><span class="campo-label">Teléfono:</span><br><span class="campo-valor">{{prospecto.telefono}}</span></div></div><div>{{#if prospecto.email}}<div class="campo"><span class="campo-label">Email:</span><br><span class="campo-valor">{{prospecto.email}}</span></div>{{/if}}{{#if prospecto.direccion}}<div class="campo"><span class="campo-label">Dirección:</span><br><span class="campo-valor">{{prospecto.direccion}}</span></div>{{/if}}</div></div></div><div class="contenido"><h3 style="color: #D4AF37; margin-bottom: 20px; text-align: center;">📋 Productos Medidos y Cotizados</h3>{{#each piezas}}<div class="partida"><div class="partida-header">📍 {{ubicacion}} - {{productoLabel}}{{#unless productoLabel}}{{producto}}{{/unless}}</div><div class="partida-body"><div class="medidas-grid"><div><div class="campo"><span class="campo-label">Dimensiones:</span><br><span class="campo-valor">{{ancho}} × {{alto}} {{../unidadMedida}}</span></div><div class="campo"><span class="campo-label">Área:</span><br><span class="campo-valor">{{area}} m²</span></div></div><div><div class="campo"><span class="campo-label">Color/Acabado:</span><br><span class="campo-valor">{{color}}</span></div><div class="campo"><span class="campo-label">Precio por m²:</span><br><span class="campo-valor">{{precioM2}}</span></div></div></div>{{#if (or esProductoToldo motorizado)}}<div class="incluidos"><div class="incluidos-titulo">📦 Incluye en el precio:</div>{{#if esProductoToldo}}<div class="incluido-item"><span>🏗️ Kit de Toldo ({{kitModelo}})</span><span>{{kitPrecio}}</span></div>{{/if}}{{#if motorizado}}<div class="incluido-item"><span>⚡ Motor ({{motorModelo}})</span><span>{{motorPrecio}}</span></div><div class="incluido-item"><span>🎛️ Control ({{controlModelo}})</span><span>{{controlPrecio}}</span></div>{{/if}}</div>{{/if}}<div class="precio-unitario"><div>💰 <strong>Precio total de esta partida:</strong></div><div class="monto">{{subtotal}}</div></div>{{#if observaciones}}<div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; font-size: 14px;"><strong>📝 Observaciones:</strong> {{observaciones}}</div>{{/if}}</div></div>{{/each}}<div class="resumen-final"><h3 style="color: #D4AF37; margin-bottom: 20px;">📊 Resumen de la Visita</h3><div class="resumen-grid"><div class="resumen-item"><span class="resumen-numero">{{totalPiezas}}</span><div class="resumen-label">Partidas medidas</div></div><div class="resumen-item"><span class="resumen-numero">{{totalM2}}</span><div class="resumen-label">Metros cuadrados</div></div><div class="resumen-item"><span class="resumen-numero">{{precioEstimado}}</span><div class="resumen-label">Precio promedio/m²</div></div></div><div class="total-final">💰 TOTAL ESTIMADO: {{totalAproximado}}</div></div><div class="nota-importante"><strong>📋 Importante:</strong> Este recibo confirma la visita realizada y las medidas tomadas. El precio mostrado es una cotización preliminar. La cotización final será enviada por separado con términos y condiciones completos.</div></div><div class="footer"><p><strong>🏠 SUNDECK - Especialistas en Ventanas y Puertas</strong></p><p>Acapulco, Guerrero • Tel: (744) 123-4567 • info@sundeckacapulco.com</p><p>Gracias por confiar en nosotros para su proyecto</p></div></div></body></html>`;
+
+      const template = handlebars.compile(htmlTemplate);
+      const html = template(templateData);
+
+      const options = { 
+        format: 'A4',
+        border: {
+          top: "20px",
+          right: "20px", 
+          bottom: "20px",
+          left: "20px"
+        }
+      };
+
+      const file = { content: html };
+      const pdf = await htmlPdf.generatePdf(file, options);
+      
+      return pdf;
+
+    } catch (error) {
+      console.error('Error generando PDF con html-pdf-node:', error);
       throw new Error('No se pudo generar el PDF del levantamiento');
     }
   }
