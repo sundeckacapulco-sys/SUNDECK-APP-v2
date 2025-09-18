@@ -845,10 +845,111 @@ const ProspectoDetalle = () => {
                               </Typography>
                             )}
                             {etapa.piezas && etapa.piezas.length > 0 && (
-                              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                                📋 Se agregaron {etapa.piezas.length} pieza{etapa.piezas.length > 1 ? 's' : ''}
-                                {etapa.totalM2 && ` • Total: ${etapa.totalM2.toFixed(2)} m²`}
-                              </Typography>
+                              <Box sx={{ mt: 1 }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                  📋 {etapa.piezas.length} pieza{etapa.piezas.length > 1 ? 's' : ''} registrada{etapa.piezas.length > 1 ? 's' : ''}
+                                  {etapa.totalM2 && ` • Total: ${etapa.totalM2.toFixed(2)} m²`}
+                                </Typography>
+                                
+                                {/* Detalles de cada pieza */}
+                                <Box sx={{ ml: 2, borderLeft: '2px solid #e5e7eb', pl: 2 }}>
+                                  {etapa.piezas.map((pieza, piezaIdx) => {
+                                    const area = (pieza.ancho || 0) * (pieza.alto || 0);
+                                    const precio = pieza.precioM2 || etapa.precioGeneral || 750;
+                                    const subtotal = area * precio;
+                                    
+                                    return (
+                                      <Box key={piezaIdx} sx={{ mb: 1.5, p: 1, bgcolor: '#f9fafb', borderRadius: 1 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                          <Typography variant="body2" fontWeight="medium" color="primary">
+                                            📍 {pieza.ubicacion}
+                                          </Typography>
+                                          <Chip 
+                                            label={`${pieza.ancho || 0} × ${pieza.alto || 0} ${etapa.unidadMedida || 'm'}`} 
+                                            size="small" 
+                                            variant="outlined"
+                                          />
+                                          <Chip 
+                                            label={`${area.toFixed(2)} m²`} 
+                                            size="small" 
+                                            color="info"
+                                          />
+                                          <Chip 
+                                            label={`$${subtotal.toLocaleString()}`} 
+                                            size="small" 
+                                            color="success"
+                                          />
+                                        </Box>
+                                        
+                                        <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                          <strong>Producto:</strong> {pieza.productoLabel || pieza.producto || 'No especificado'}
+                                        </Typography>
+                                        
+                                        {pieza.color && (
+                                          <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                            <strong>Color:</strong> {pieza.color}
+                                          </Typography>
+                                        )}
+                                        
+                                        {pieza.precioM2 && pieza.precioM2 !== etapa.precioGeneral && (
+                                          <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                            <strong>Precio especial:</strong> ${pieza.precioM2}/m²
+                                          </Typography>
+                                        )}
+                                        
+                                        {pieza.observaciones && (
+                                          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                            💬 {pieza.observaciones}
+                                          </Typography>
+                                        )}
+                                        
+                                        {pieza.fotoUrls && pieza.fotoUrls.length > 0 && (
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                                            <Typography variant="caption" color="text.secondary">
+                                              📷 {pieza.fotoUrls.length} foto{pieza.fotoUrls.length > 1 ? 's' : ''}
+                                            </Typography>
+                                            {pieza.fotoUrls.slice(0, 3).map((url, idx) => (
+                                              <img 
+                                                key={idx}
+                                                src={url} 
+                                                alt={`Foto ${idx + 1}`}
+                                                style={{ 
+                                                  width: '30px', 
+                                                  height: '24px', 
+                                                  objectFit: 'cover', 
+                                                  borderRadius: '3px',
+                                                  cursor: 'pointer',
+                                                  border: '1px solid #e5e7eb'
+                                                }}
+                                                onClick={() => window.open(url, '_blank')}
+                                              />
+                                            ))}
+                                            {pieza.fotoUrls.length > 3 && (
+                                              <Typography variant="caption" color="text.secondary">
+                                                +{pieza.fotoUrls.length - 3} más
+                                              </Typography>
+                                            )}
+                                          </Box>
+                                        )}
+                                      </Box>
+                                    );
+                                  })}
+                                </Box>
+                                
+                                {/* Resumen de precios si hay más de una pieza */}
+                                {etapa.piezas.length > 1 && (
+                                  <Box sx={{ mt: 1, p: 1, bgcolor: '#f0f9ff', borderRadius: 1, borderLeft: '3px solid #0ea5e9' }}>
+                                    <Typography variant="body2" fontWeight="medium" color="primary">
+                                      💰 Resumen: {etapa.piezas.length} piezas • {etapa.totalM2?.toFixed(2) || 0} m² • 
+                                      ${etapa.piezas.reduce((total, pieza) => {
+                                        const area = (pieza.ancho || 0) * (pieza.alto || 0);
+                                        const precio = pieza.precioM2 || etapa.precioGeneral || 750;
+                                        return total + (area * precio);
+                                      }, 0).toLocaleString()} estimado
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Box>
                             )}
                           </>
                         }

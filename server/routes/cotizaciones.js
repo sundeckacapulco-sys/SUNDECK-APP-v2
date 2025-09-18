@@ -76,8 +76,8 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       const precioUnitario = pieza.precioM2 || precioGeneral || 750;
       
       return {
-        nombre: pieza.producto || 'Producto personalizado',
-        descripcion: `${pieza.ubicacion} - ${pieza.color || 'Sin especificar'}`,
+        nombre: pieza.productoLabel || pieza.producto || 'Producto personalizado',
+        descripcion: `Ubicación: ${pieza.ubicacion}${pieza.observaciones ? ` - ${pieza.observaciones}` : ''}`,
         categoria: 'ventana',
         material: 'Aluminio',
         color: pieza.color || 'Natural',
@@ -102,15 +102,17 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       area: unidadMedida === 'cm' ? ((pieza.ancho || 0) * (pieza.alto || 0)) / 10000 : (pieza.ancho || 0) * (pieza.alto || 0),
       cantidad: 1,
       notas: pieza.observaciones || '',
-      fotos: pieza.fotoUrl ? [{
-        url: pieza.fotoUrl,
-        descripcion: `Foto de ${pieza.ubicacion}`,
-        fechaToma: new Date()
-      }] : []
+      fotos: (pieza.fotoUrls && pieza.fotoUrls.length > 0) ? 
+        pieza.fotoUrls.map((url, index) => ({
+          url: url,
+          descripcion: `Foto ${index + 1} de ${pieza.ubicacion}`,
+          fechaToma: new Date()
+        })) : []
     }));
 
     const nuevaCotizacion = new Cotizacion({
       prospecto: prospectoId,
+      // El número se genera automáticamente por el middleware del modelo
       validoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
       mediciones,
       productos,
@@ -119,9 +121,9 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
         saldo: { porcentaje: 50, condiciones: 'contra entrega' }
       },
       tiempoFabricacion: Math.max(...productos.map(p => p.tiempoFabricacion)),
-      tiempoInstalacion: 1,
+      tiempoInstalacion: Math.ceil(totalM2 / 10) || 1, // 1 día por cada 10m²
       requiereInstalacion: true,
-      costoInstalacion: totalM2 * 100, // $100 por m²
+      costoInstalacion: Math.round(totalM2 * 150), // $150 por m²
       garantia: {
         fabricacion: 12,
         instalacion: 6,
@@ -138,6 +140,12 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
 
     // Actualizar etapa del prospecto a cotización
     prospecto.etapa = 'cotizacion';
+    
+    // Asegurar que el prospecto tenga un producto (requerido por el modelo)
+    if (!prospecto.producto || prospecto.producto.trim() === '') {
+      prospecto.producto = productos[0]?.nombre || 'Producto personalizado';
+    }
+    
     await prospecto.save();
 
     res.status(201).json({

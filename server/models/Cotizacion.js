@@ -183,8 +183,9 @@ cotizacionSchema.pre('save', function(next) {
   }
   
   const subtotalConDescuento = this.subtotal - (this.descuento?.monto || 0);
-  this.iva = subtotalConDescuento * 0.16; // IVA 16%
-  this.total = subtotalConDescuento + this.iva;
+  const subtotalConInstalacion = subtotalConDescuento + (this.costoInstalacion || 0);
+  this.iva = subtotalConInstalacion * 0.16; // IVA 16%
+  this.total = subtotalConInstalacion + this.iva;
   
   // Calcular montos de anticipo y saldo
   if (this.formaPago?.anticipo?.porcentaje) {

@@ -19,7 +19,11 @@ import {
   IconButton,
   Chip
 } from '@mui/material';
-import { Close, Add, Delete } from '@mui/icons-material';
+import { 
+  Add,
+  CloudUpload,
+  Delete
+} from '@mui/icons-material';
 import axiosConfig from '../../config/axios';
 
 const etapaOptions = [
@@ -44,17 +48,29 @@ const productosOptions = [
   { label: "Cortinas Manuales", value: "manuales" },
   { label: "Sistemas Antihuracán (paneles, rollos, reforzados)", value: "antihuracan" },
   { label: "Pérgolas y Sombras", value: "pergolas" },
-  { label: "+ Agregar nuevo producto", value: "nuevo" }
+  // Opciones comunes para casos especiales
+  { label: "Doble Cortina (2 en 1 ventana)", value: "doble_cortina" },
+  { label: "Cortina + Screen (combinado)", value: "cortina_screen" },
+  { label: "Sistema Día/Noche", value: "dia_noche" },
+  { label: "Cortina con Cenefa", value: "cortina_cenefa" },
+  { label: "+ Agregar producto personalizado", value: "nuevo" }
 ];
 
 const emptyPieza = {
   ubicacion: '',
-  ancho: '',
-  alto: '',
-  producto: productosOptions[0].value, // screen_3
-  productoLabel: productosOptions[0].label, // Persianas Screen 3%
-  color: 'Blanco',
-  precioM2: '',
+  cantidad: 1, // Nueva propiedad para cantidad de piezas
+  medidas: [{ 
+    ancho: '', 
+    alto: '',
+    producto: productosOptions[0].value, // Producto específico por pieza
+    productoLabel: productosOptions[0].label, // Label específico por pieza
+    color: 'Blanco', // Color específico por pieza
+    precioM2: '' // Precio específico por pieza
+  }], // Array de medidas individuales con productos específicos
+  producto: productosOptions[0].value, // Producto base (para compatibilidad)
+  productoLabel: productosOptions[0].label, // Label base (para compatibilidad)
+  color: 'Blanco', // Color base (para compatibilidad)
+  precioM2: '', // Precio base (para compatibilidad)
   observaciones: '',
   fotoUrls: [], // Cambio a array para múltiples fotos
   videoUrl: ''
@@ -80,6 +96,20 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   
   // Estados para subida de archivos
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+  
+  // Estados para instalación manual
+  const [cobraInstalacion, setCobraInstalacion] = useState(false);
+  const [precioInstalacion, setPrecioInstalacion] = useState('');
+  const [tipoInstalacion, setTipoInstalacion] = useState('estandar');
+  
+  // Estados para edición de partidas
+  const [editandoPieza, setEditandoPieza] = useState(false);
+  const [indiceEditando, setIndiceEditando] = useState(-1);
+  
+  // Estados para descuentos
+  const [aplicaDescuento, setAplicaDescuento] = useState(false);
+  const [tipoDescuento, setTipoDescuento] = useState('porcentaje'); // 'porcentaje' o 'monto'
+  const [valorDescuento, setValorDescuento] = useState('');
 
   const resetFormulario = () => {
     setNombreEtapa(etapaOptions[0]);
@@ -97,6 +127,12 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setMostrarNuevoProducto(false);
     setNuevoProductoNombre('');
     setSubiendoFoto(false);
+    setCobraInstalacion(false);
+    setPrecioInstalacion('');
+    setTipoInstalacion('estandar');
+    setAplicaDescuento(false);
+    setTipoDescuento('porcentaje');
+    setValorDescuento('');
   };
 
   useEffect(() => {
@@ -107,49 +143,219 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
 
   const calcularTotalM2 = useMemo(() => {
     return piezas.reduce((total, pieza) => {
-      const ancho = parseFloat(pieza.ancho) || 0;
-      const alto = parseFloat(pieza.alto) || 0;
-      const area = unidad === 'cm' ? (ancho * alto) / 10000 : ancho * alto;
-      return total + area;
+      // Si tiene medidas individuales, usar esas
+      if (pieza.medidas && Array.isArray(pieza.medidas)) {
+        const areaPieza = pieza.medidas.reduce((subtotal, medida) => {
+          return subtotal + (medida.area || 0);
+        }, 0);
+        return total + areaPieza;
+      } else {
+        // Fallback para compatibilidad con formato anterior
+        const ancho = parseFloat(pieza.ancho) || 0;
+        const alto = parseFloat(pieza.alto) || 0;
+        const cantidad = parseInt(pieza.cantidad) || 1;
+        const area = unidad === 'cm' ? (ancho * alto) / 10000 : ancho * alto;
+        return total + (area * cantidad);
+      }
     }, 0);
   }, [piezas, unidad]);
+
+  // Calcular subtotal de productos con precios específicos
+  const calcularSubtotalProductos = useMemo(() => {
+    return piezas.reduce((total, pieza) => {
+      if (pieza.medidas && Array.isArray(pieza.medidas)) {
+        // Formato nuevo: cada pieza puede tener su propio producto y precio
+        const subtotalPieza = pieza.medidas.reduce((subtotal, medida) => {
+          const area = medida.area || 0;
+          const precioEspecifico = parseFloat(medida.precioM2) || parseFloat(pieza.precioM2) || precioGeneral;
+          return subtotal + (area * precioEspecifico);
+        }, 0);
+        return total + subtotalPieza;
+      } else {
+        // Formato anterior para compatibilidad
+        const ancho = parseFloat(pieza.ancho) || 0;
+        const alto = parseFloat(pieza.alto) || 0;
+        const cantidad = parseInt(pieza.cantidad) || 1;
+        const area = unidad === 'cm' ? (ancho * alto) / 10000 : ancho * alto;
+        const areaPieza = area * cantidad;
+        const precio = parseFloat(pieza.precioM2) || precioGeneral;
+        return total + (areaPieza * precio);
+      }
+    }, 0);
+  }, [piezas, unidad, precioGeneral]);
+
+  // Calcular descuento
+  const calcularDescuento = useMemo(() => {
+    if (!aplicaDescuento || !valorDescuento) return 0;
+    
+    const subtotalConInstalacion = calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0);
+    
+    if (tipoDescuento === 'porcentaje') {
+      const porcentaje = parseFloat(valorDescuento) || 0;
+      return (subtotalConInstalacion * porcentaje) / 100;
+    } else {
+      return parseFloat(valorDescuento) || 0;
+    }
+  }, [aplicaDescuento, valorDescuento, tipoDescuento, calcularSubtotalProductos, cobraInstalacion, precioInstalacion]);
 
   const cerrarModal = () => {
     resetFormulario();
     onClose();
   };
 
+  // Función para actualizar las medidas cuando cambie la cantidad
+  const actualizarMedidas = (nuevaCantidad) => {
+    const cantidad = parseInt(nuevaCantidad) || 1;
+    const medidasActuales = piezaForm.medidas || [];
+    
+    // Crear array de medidas según la nueva cantidad
+    const nuevasMedidas = [];
+    for (let i = 0; i < cantidad; i++) {
+      // Mantener medidas existentes o crear nuevas con valores base
+      nuevasMedidas.push(medidasActuales[i] || { 
+        ancho: '', 
+        alto: '',
+        producto: piezaForm.producto || productosOptions[0].value,
+        productoLabel: piezaForm.productoLabel || productosOptions[0].label,
+        color: piezaForm.color || 'Blanco',
+        precioM2: piezaForm.precioM2 || ''
+      });
+    }
+    
+    setPiezaForm(prev => ({
+      ...prev,
+      cantidad: cantidad,
+      medidas: nuevasMedidas
+    }));
+  };
+
   const handleAgregarPieza = () => {
-    if (!piezaForm.ubicacion || !piezaForm.ancho || !piezaForm.alto) {
-      setErrorLocal('Completa ubicación, ancho y alto para agregar la pieza.');
+    if (!piezaForm.ubicacion) {
+      setErrorLocal('Completa la ubicación para agregar la partida.');
       return;
+    }
+
+    const cantidad = parseInt(piezaForm.cantidad) || 1;
+    if (cantidad < 1 || cantidad > 20) {
+      setErrorLocal('La cantidad de piezas debe ser entre 1 y 20.');
+      return;
+    }
+
+    // Validar que todas las medidas estén completas
+    const medidas = piezaForm.medidas || [];
+    for (let i = 0; i < cantidad; i++) {
+      const medida = medidas[i];
+      if (!medida || !medida.ancho || !medida.alto) {
+        setErrorLocal(`Completa las medidas de la pieza ${i + 1}.`);
+        return;
+      }
     }
 
     // Encontrar el label del producto seleccionado
     const productoSeleccionado = productosOptions.find(p => p.value === piezaForm.producto);
+    const productoLabel = productoSeleccionado ? productoSeleccionado.label : piezaForm.productoLabel || piezaForm.producto;
     
-    setPiezas((prev) => [
-      ...prev,
-      {
-        ...piezaForm,
-        ancho: parseFloat(piezaForm.ancho) || 0,
-        alto: parseFloat(piezaForm.alto) || 0,
-        precioM2: parseFloat(piezaForm.precioM2) || precioGeneral,
-        productoLabel: productoSeleccionado ? productoSeleccionado.label : piezaForm.producto
-      }
-    ]);
+    // Procesar medidas individuales con productos específicos
+    const medidasProcesadas = medidas.slice(0, cantidad).map((medida, index) => ({
+      ancho: parseFloat(medida.ancho) || 0,
+      alto: parseFloat(medida.alto) || 0,
+      area: unidad === 'cm' ? 
+        (parseFloat(medida.ancho) * parseFloat(medida.alto)) / 10000 : 
+        parseFloat(medida.ancho) * parseFloat(medida.alto),
+      producto: medida.producto || piezaForm.producto,
+      productoLabel: medida.productoLabel || piezaForm.productoLabel,
+      color: medida.color || piezaForm.color,
+      precioM2: medida.precioM2 || piezaForm.precioM2 || ''
+    }));
+
+    // Crear la partida (una sola entrada que representa múltiples piezas)
+    const nuevaPartida = {
+      ...piezaForm,
+      cantidad: cantidad,
+      medidas: medidasProcesadas, // Array de medidas individuales
+      precioM2: parseFloat(piezaForm.precioM2) || precioGeneral,
+      productoLabel: productoLabel,
+      // Agregar descripción de la partida
+      observaciones: `${piezaForm.observaciones ? piezaForm.observaciones + ' - ' : ''}Partida de ${cantidad} pieza${cantidad > 1 ? 's' : ''}`
+    };
+
+    if (editandoPieza && indiceEditando >= 0) {
+      // Actualizar partida existente
+      setPiezas((prev) => {
+        const nuevasPiezas = [...prev];
+        nuevasPiezas[indiceEditando] = nuevaPartida;
+        return nuevasPiezas;
+      });
+      
+      const mensaje = `✅ Se actualizó partida con ${cantidad} pieza${cantidad > 1 ? 's' : ''} en ${piezaForm.ubicacion}`;
+      setErrorLocal('');
+      setTimeout(() => {
+        setErrorLocal(mensaje);
+        setTimeout(() => setErrorLocal(''), 4000);
+      }, 100);
+      
+      // Limpiar estado de edición
+      setEditandoPieza(false);
+      setIndiceEditando(-1);
+    } else {
+      // Agregar nueva partida
+      setPiezas((prev) => [...prev, nuevaPartida]);
+      
+      const mensaje = `✅ Se agregó partida con ${cantidad} pieza${cantidad > 1 ? 's' : ''} en ${piezaForm.ubicacion}`;
+      setErrorLocal('');
+      setTimeout(() => {
+        setErrorLocal(mensaje);
+        setTimeout(() => setErrorLocal(''), 4000);
+      }, 100);
+    }
+    
     setPiezaForm(emptyPieza);
     setAgregandoPieza(false);
-    setErrorLocal('');
   };
 
   const handleEliminarPieza = (index) => {
     setPiezas((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleEditarPieza = (index) => {
+    const piezaAEditar = piezas[index];
+    
+    // Cargar datos de la pieza en el formulario
+    setPiezaForm({
+      ubicacion: piezaAEditar.ubicacion,
+      cantidad: piezaAEditar.cantidad || (piezaAEditar.medidas ? piezaAEditar.medidas.length : 1),
+      medidas: piezaAEditar.medidas || [{ ancho: piezaAEditar.ancho || '', alto: piezaAEditar.alto || '' }],
+      producto: piezaAEditar.producto,
+      productoLabel: piezaAEditar.productoLabel,
+      color: piezaAEditar.color,
+      precioM2: piezaAEditar.precioM2 || '',
+      observaciones: piezaAEditar.observaciones || '',
+      fotoUrls: piezaAEditar.fotoUrls || [],
+      videoUrl: piezaAEditar.videoUrl || ''
+    });
+    
+    setIndiceEditando(index);
+    setEditandoPieza(true);
+    setAgregandoPieza(true);
+  };
+
+  const handleCancelarEdicion = () => {
+    setEditandoPieza(false);
+    setIndiceEditando(-1);
+    setPiezaForm(emptyPieza);
+    setAgregandoPieza(false);
+  };
+
   const handleCrearNuevoProducto = () => {
-    if (!nuevoProductoNombre.trim()) {
+    const nombreLimpio = nuevoProductoNombre.trim();
+    
+    if (!nombreLimpio) {
       setErrorLocal('El nombre del producto es requerido');
+      return;
+    }
+
+    if (nombreLimpio.length < 3) {
+      setErrorLocal('El nombre debe tener al menos 3 caracteres');
       return;
     }
 
@@ -160,13 +366,18 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setPiezaForm(prev => ({ 
       ...prev, 
       producto: customValue,
-      productoLabel: nuevoProductoNombre.trim()
+      productoLabel: nombreLimpio
     }));
     
-    // Cerrar el formulario de nuevo producto
+    // Cerrar el formulario de nuevo producto y limpiar
     setMostrarNuevoProducto(false);
     setNuevoProductoNombre('');
     setErrorLocal('');
+    
+    console.log('✅ Producto personalizado creado:', {
+      value: customValue,
+      label: nombreLimpio
+    });
   };
 
   const handleFileUpload = async (event) => {
@@ -223,7 +434,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     }
 
     if (piezas.length === 0) {
-      setErrorLocal('Debes agregar al menos una pieza para descargar el levantamiento.');
+      setErrorLocal('Debes agregar al menos una partida para descargar el levantamiento.');
       return;
     }
 
@@ -277,7 +488,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     }
 
     if (piezas.length === 0) {
-      setErrorLocal('Debes agregar al menos una pieza para descargar el Excel.');
+      setErrorLocal('Debes agregar al menos una partida para descargar el Excel.');
       return;
     }
 
@@ -335,7 +546,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     }
 
     if (piezas.length === 0) {
-      setErrorLocal('Debes agregar al menos una pieza para generar la cotización.');
+      setErrorLocal('Debes agregar al menos una partida para generar la cotización.');
       return;
     }
 
@@ -360,7 +571,13 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         precioGeneral: Number(precioGeneral),
         totalM2: calcularTotalM2,
         unidadMedida: unidad,
-        comentarios
+        comentarios,
+        // Información de instalación especial
+        instalacionEspecial: cobraInstalacion ? {
+          activa: true,
+          tipo: tipoInstalacion,
+          precio: Number(precioInstalacion) || 0
+        } : { activa: false }
       };
 
       const { data } = await axiosConfig.post('/cotizaciones/desde-visita', payload);
@@ -413,7 +630,13 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           observaciones: pieza.observaciones,
           fotoUrls: pieza.fotoUrls || [],
           videoUrl: pieza.videoUrl || ''
-        }))
+        })),
+        // Información de instalación especial
+        instalacionEspecial: cobraInstalacion ? {
+          activa: true,
+          tipo: tipoInstalacion,
+          precio: Number(precioInstalacion) || 0
+        } : { activa: false }
       };
 
       const { data } = await axiosConfig.post('/etapas', payload);
@@ -512,7 +735,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     onClick={() => setAgregandoPieza(true)}
                     startIcon={<Add />}
                   >
-                    Agregar Pieza
+                    Agregar Partida
                   </Button>
                   <Button
                     variant="contained"
@@ -549,6 +772,146 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                 </CardContent>
               </Card>
 
+              {/* Instalación Manual */}
+              <Card sx={{ mb: 2, bgcolor: 'info.50', border: 2, borderColor: 'info.200' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      🔧 Instalación Especial
+                    </Typography>
+                    <Button
+                      variant={cobraInstalacion ? 'contained' : 'outlined'}
+                      size="small"
+                      onClick={() => setCobraInstalacion(!cobraInstalacion)}
+                      sx={{ 
+                        bgcolor: cobraInstalacion ? '#0ea5e9' : 'transparent',
+                        color: cobraInstalacion ? 'white' : '#0ea5e9',
+                        borderColor: '#0ea5e9',
+                        '&:hover': { 
+                          bgcolor: cobraInstalacion ? '#0284c7' : '#f0f9ff',
+                          borderColor: '#0284c7'
+                        }
+                      }}
+                    >
+                      {cobraInstalacion ? '✅ Activado' : '➕ Activar'}
+                    </Button>
+                  </Box>
+                  
+                  {cobraInstalacion && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Para casos especiales como instalación eléctrica, estructural, o trabajos adicionales
+                      </Typography>
+                      
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            select
+                            label="Tipo de instalación"
+                            fullWidth
+                            value={tipoInstalacion}
+                            onChange={(e) => setTipoInstalacion(e.target.value)}
+                            SelectProps={{ native: true }}
+                          >
+                            <option value="estandar">Estándar</option>
+                            <option value="electrica">Eléctrica (motorizada)</option>
+                            <option value="estructural">Estructural (refuerzos)</option>
+                            <option value="altura">Altura especial</option>
+                            <option value="acceso">Acceso difícil</option>
+                            <option value="personalizada">Personalizada</option>
+                          </TextField>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="💰 Precio instalación (MXN)"
+                            type="number"
+                            fullWidth
+                            value={precioInstalacion}
+                            onChange={(e) => setPrecioInstalacion(e.target.value)}
+                            placeholder="Ej. 2500, 5000, 8000..."
+                            helperText="Precio fijo total por instalación"
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Descuentos */}
+              <Card sx={{ mb: 2, bgcolor: 'success.50', border: 2, borderColor: 'success.200' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      💰 Descuentos para Cerrar Venta
+                    </Typography>
+                    <Button
+                      variant={aplicaDescuento ? 'contained' : 'outlined'}
+                      size="small"
+                      onClick={() => setAplicaDescuento(!aplicaDescuento)}
+                      sx={{ 
+                        bgcolor: aplicaDescuento ? '#16a34a' : 'transparent',
+                        color: aplicaDescuento ? 'white' : '#16a34a',
+                        borderColor: '#16a34a',
+                        '&:hover': { 
+                          bgcolor: aplicaDescuento ? '#15803d' : '#f0fdf4',
+                          borderColor: '#15803d'
+                        }
+                      }}
+                    >
+                      {aplicaDescuento ? '✅ Activado' : '➕ Activar'}
+                    </Button>
+                  </Box>
+                  
+                  {aplicaDescuento && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Aplica descuentos por porcentaje o monto fijo para cerrar la venta
+                      </Typography>
+                      
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            select
+                            label="Tipo de descuento"
+                            fullWidth
+                            value={tipoDescuento}
+                            onChange={(e) => setTipoDescuento(e.target.value)}
+                            SelectProps={{ native: true }}
+                          >
+                            <option value="porcentaje">Porcentaje (%)</option>
+                            <option value="monto">Monto fijo ($)</option>
+                          </TextField>
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            label={tipoDescuento === 'porcentaje' ? '📊 Porcentaje (%)' : '💵 Monto (MXN)'}
+                            type="number"
+                            fullWidth
+                            value={valorDescuento}
+                            onChange={(e) => setValorDescuento(e.target.value)}
+                            placeholder={tipoDescuento === 'porcentaje' ? 'Ej. 5, 10, 15...' : 'Ej. 1000, 2500, 5000...'}
+                            helperText={tipoDescuento === 'porcentaje' ? 'Porcentaje de descuento' : 'Monto fijo a descontar'}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          {valorDescuento && (
+                            <Box sx={{ p: 2, bgcolor: 'success.100', borderRadius: 1, border: '1px solid', borderColor: 'success.300' }}>
+                              <Typography variant="body2" color="success.dark" fontWeight="bold">
+                                💸 Descuento: ${calcularDescuento.toLocaleString()}
+                              </Typography>
+                              <Typography variant="caption" color="success.dark">
+                                {tipoDescuento === 'porcentaje' ? `${valorDescuento}% de descuento` : 'Descuento fijo'}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Unidad */}
               <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
                 <Typography variant="body2">Unidad:</Typography>
@@ -572,17 +935,47 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
               {agregandoPieza && (
                 <Card sx={{ mb: 2 }}>
                   <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2 }}>
-                      🔧 Agregar Pieza #{piezas.length + 1}
-                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h6">
+                        {editandoPieza ? 
+                          `✏️ Editar Partida #${indiceEditando + 1}` : 
+                          `🔧 Agregar Partida #${piezas.length + 1}`
+                        }
+                      </Typography>
+                      {piezaForm.cantidad > 1 && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: 'success.50', borderRadius: 1, border: '1px solid', borderColor: 'success.200' }}>
+                          <Typography variant="body2" color="success.dark" fontWeight="bold">
+                            📦 Partida con {parseInt(piezaForm.cantidad) || 1} pieza{(parseInt(piezaForm.cantidad) || 1) > 1 ? 's' : ''}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
                     <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
+                      <Grid item xs={12} sm={4}>
                         <TextField
                           label="Ubicación"
                           fullWidth
                           value={piezaForm.ubicacion}
                           onChange={(e) => setPiezaForm(prev => ({ ...prev, ubicacion: e.target.value }))}
                           placeholder="Ej. Sala, Recámara, Terraza"
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={2}>
+                        <TextField
+                          label="🔢 Piezas"
+                          type="number"
+                          fullWidth
+                          value={piezaForm.cantidad}
+                          onChange={(e) => actualizarMedidas(e.target.value)}
+                          inputProps={{ min: 1, max: 20, step: 1 }}
+                          helperText="Piezas en partida"
+                          sx={{ 
+                            '& .MuiInputBase-input': { 
+                              textAlign: 'center',
+                              fontSize: '1.1rem',
+                              fontWeight: 'bold'
+                            }
+                          }}
                         />
                       </Grid>
                       <Grid item xs={12} sm={6}>
@@ -615,27 +1008,114 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                             ))}
                           </Select>
                         </FormControl>
+                        
+                        {/* Indicador de producto personalizado */}
+                        {piezaForm.producto.startsWith('custom_') && (
+                          <Box sx={{ mt: 1, p: 1, bgcolor: 'success.50', borderRadius: 1, border: '1px solid', borderColor: 'success.200' }}>
+                            <Typography variant="caption" color="success.dark" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              ✨ <strong>Producto personalizado:</strong> {piezaForm.productoLabel}
+                            </Typography>
+                          </Box>
+                        )}
                       </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          label={`Ancho (${unidad})`}
-                          type="number"
-                          fullWidth
-                          value={piezaForm.ancho}
-                          onChange={(e) => setPiezaForm(prev => ({ ...prev, ancho: e.target.value }))}
-                          inputProps={{ step: 0.01 }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          label={`Alto (${unidad})`}
-                          type="number"
-                          fullWidth
-                          value={piezaForm.alto}
-                          onChange={(e) => setPiezaForm(prev => ({ ...prev, alto: e.target.value }))}
-                          inputProps={{ step: 0.01 }}
-                        />
-                      </Grid>
+                      {/* Campos dinámicos de medidas para cada pieza */}
+                      {(piezaForm.medidas || []).map((medida, index) => (
+                        <React.Fragment key={index}>
+                          <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 'bold', mb: 1 }}>
+                              📏 Pieza {index + 1} de {piezaForm.cantidad}
+                            </Typography>
+                          </Grid>
+                          
+                          {/* Producto específico para esta pieza */}
+                          <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth>
+                              <InputLabel>Producto pieza {index + 1}</InputLabel>
+                              <Select
+                                value={medida.producto || piezaForm.producto}
+                                label={`Producto pieza ${index + 1}`}
+                                onChange={(e) => {
+                                  const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                  const productoSeleccionado = productosOptions.find(p => p.value === e.target.value);
+                                  nuevasMedidas[index] = { 
+                                    ...nuevasMedidas[index], 
+                                    producto: e.target.value,
+                                    productoLabel: productoSeleccionado ? productoSeleccionado.label : e.target.value
+                                  };
+                                  setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                }}
+                              >
+                                {productosOptions.filter(p => p.value !== 'nuevo').map((producto) => (
+                                  <MenuItem key={producto.value} value={producto.value}>
+                                    {producto.label}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </Grid>
+                          
+                          {/* Color específico para esta pieza */}
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              label={`Color pieza ${index + 1}`}
+                              fullWidth
+                              value={medida.color || piezaForm.color}
+                              onChange={(e) => {
+                                const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                nuevasMedidas[index] = { ...nuevasMedidas[index], color: e.target.value };
+                                setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                              }}
+                              placeholder="Ej. Blanco, Negro, Gris"
+                            />
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={4}>
+                            <TextField
+                              label={`Ancho pieza ${index + 1} (${unidad})`}
+                              type="number"
+                              fullWidth
+                              value={medida.ancho}
+                              onChange={(e) => {
+                                const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                nuevasMedidas[index] = { ...nuevasMedidas[index], ancho: e.target.value };
+                                setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                              }}
+                              inputProps={{ step: 0.01 }}
+                              placeholder="Ej. 2.50"
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <TextField
+                              label={`Alto pieza ${index + 1} (${unidad})`}
+                              type="number"
+                              fullWidth
+                              value={medida.alto}
+                              onChange={(e) => {
+                                const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                nuevasMedidas[index] = { ...nuevasMedidas[index], alto: e.target.value };
+                                setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                              }}
+                              inputProps={{ step: 0.01 }}
+                              placeholder="Ej. 3.00"
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <TextField
+                              label={`Precio pieza ${index + 1} ($/m²)`}
+                              type="number"
+                              fullWidth
+                              value={medida.precioM2 || ''}
+                              onChange={(e) => {
+                                const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                nuevasMedidas[index] = { ...nuevasMedidas[index], precioM2: e.target.value };
+                                setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                              }}
+                              placeholder={`Precio base: $${precioGeneral}`}
+                              helperText="Opcional, usa precio base si vacío"
+                            />
+                          </Grid>
+                        </React.Fragment>
+                      ))}
                       <Grid item xs={12} sm={6}>
                         <TextField
                           label="Color / Acabado"
@@ -762,11 +1242,11 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                         onClick={handleAgregarPieza}
                         sx={{ bgcolor: '#16A34A', '&:hover': { bgcolor: '#15803D' } }}
                       >
-                        ✅ Guardar Pieza
+                        {editandoPieza ? '✅ Actualizar Partida' : '✅ Guardar Partida'}
                       </Button>
                       <Button
                         variant="outlined"
-                        onClick={() => setAgregandoPieza(false)}
+                        onClick={editandoPieza ? handleCancelarEdicion : () => setAgregandoPieza(false)}
                         sx={{ color: '#6B7280', borderColor: '#6B7280' }}
                       >
                         Cancelar
@@ -780,28 +1260,74 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
               {mostrarNuevoProducto && (
                 <Card sx={{ mb: 2, bgcolor: 'warning.50', border: 2, borderColor: 'warning.200' }}>
                   <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2 }}>
+                    <Typography variant="h6" sx={{ mb: 1 }}>
                       ➕ Agregar Producto Personalizado
                     </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Útil para casos especiales como: dos cortinas en una ventana, combinaciones únicas, productos especiales, etc.
+                    </Typography>
+                    
                     <TextField
                       label="Nombre del producto personalizado"
                       fullWidth
                       value={nuevoProductoNombre}
                       onChange={(e) => setNuevoProductoNombre(e.target.value)}
-                      placeholder="Ej. Persiana Screen Especial, Toldo Personalizado, etc."
+                      placeholder="Ej. Doble Screen 3% + Blackout, Cortina Triple, Sistema Especial..."
                       sx={{ mb: 2 }}
+                      helperText="Sé específico para identificar fácilmente el producto"
                     />
+                    
+                    {/* Sugerencias rápidas */}
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                        💡 Sugerencias rápidas:
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                        {[
+                          'Doble Screen + Blackout',
+                          'Cortina Día/Noche Especial',
+                          'Sistema Triple',
+                          'Cortina con Cenefa Decorativa'
+                        ].map((sugerencia) => (
+                          <Button
+                            key={sugerencia}
+                            size="small"
+                            variant="outlined"
+                            onClick={() => setNuevoProductoNombre(sugerencia)}
+                            sx={{ 
+                              fontSize: '0.75rem', 
+                              py: 0.25, 
+                              px: 1,
+                              color: '#f59e0b',
+                              borderColor: '#f59e0b',
+                              '&:hover': {
+                                bgcolor: '#fef3c7',
+                                borderColor: '#f59e0b'
+                              }
+                            }}
+                          >
+                            {sugerencia}
+                          </Button>
+                        ))}
+                      </Box>
+                    </Box>
+                    
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <Button
                         variant="contained"
                         color="warning"
                         onClick={handleCrearNuevoProducto}
+                        disabled={!nuevoProductoNombre.trim()}
                       >
-                        ✅ Agregar Producto
+                        ✅ Crear Producto
                       </Button>
                       <Button
                         variant="outlined"
-                        onClick={() => setMostrarNuevoProducto(false)}
+                        onClick={() => {
+                          setMostrarNuevoProducto(false);
+                          setNuevoProductoNombre('');
+                          setErrorLocal('');
+                        }}
                       >
                         Cancelar
                       </Button>
@@ -814,11 +1340,27 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
               {piezas.length > 0 && (
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="h6" sx={{ mb: 1 }}>
-                    📋 Piezas Agregadas ({piezas.length})
+                    📋 Partidas Agregadas ({piezas.length})
                   </Typography>
                   {piezas.map((pieza, index) => {
-                    const area = unidad === 'cm' ? (pieza.ancho * pieza.alto) / 10000 : pieza.ancho * pieza.alto;
+                    // Calcular área total de la partida
+                    let areaTotal = 0;
+                    let cantidadPiezas = 0;
+                    
+                    if (pieza.medidas && Array.isArray(pieza.medidas)) {
+                      // Formato nuevo con medidas individuales
+                      areaTotal = pieza.medidas.reduce((total, medida) => total + (medida.area || 0), 0);
+                      cantidadPiezas = pieza.medidas.length;
+                    } else {
+                      // Formato anterior para compatibilidad
+                      const area = unidad === 'cm' ? (pieza.ancho * pieza.alto) / 10000 : pieza.ancho * pieza.alto;
+                      areaTotal = area * (pieza.cantidad || 1);
+                      cantidadPiezas = pieza.cantidad || 1;
+                    }
+                    
                     const precio = pieza.precioM2 || precioGeneral;
+                    const subtotal = areaTotal * precio;
+                    
                     return (
                       <Card key={index} sx={{ mb: 2, border: 1, borderColor: 'grey.200' }}>
                         <CardContent sx={{ p: 2 }}>
@@ -829,17 +1371,28 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                               <Typography variant="body2" fontWeight="bold">
                                 {pieza.productoLabel || pieza.producto}
                               </Typography>
-                              <Chip label={`${pieza.ancho} × ${pieza.alto} ${unidad}`} size="small" />
-                              <Chip label={`📐 ${area.toFixed(2)} m²`} color="info" size="small" />
-                              <Chip label={`💰 $${(area * precio).toFixed(2)}`} color="success" size="small" />
+                              <Chip label={`${cantidadPiezas} pieza${cantidadPiezas > 1 ? 's' : ''}`} size="small" />
+                              <Chip label={`📐 ${areaTotal.toFixed(2)} m²`} color="info" size="small" />
+                              <Chip label={`💰 $${subtotal.toLocaleString()}`} color="success" size="small" />
                             </Box>
-                            <IconButton
-                              onClick={() => handleEliminarPieza(index)}
-                              color="error"
-                              size="small"
-                            >
-                              <Delete />
-                            </IconButton>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <IconButton
+                                onClick={() => handleEditarPieza(index)}
+                                color="primary"
+                                size="small"
+                                title="Editar partida"
+                              >
+                                <span style={{ fontSize: '16px' }}>✏️</span>
+                              </IconButton>
+                              <IconButton
+                                onClick={() => handleEliminarPieza(index)}
+                                color="error"
+                                size="small"
+                                title="Eliminar partida"
+                              >
+                                <Delete />
+                              </IconButton>
+                            </Box>
                           </Box>
 
                           {/* Fila secundaria con detalles */}
@@ -890,7 +1443,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     <Typography variant="h6" sx={{ mb: 1 }}>📊 Resumen de Medición</Typography>
                     <Grid container spacing={2}>
                       <Grid item xs={6} sm={3}>
-                        <Typography variant="body2" color="text.secondary">Total piezas:</Typography>
+                        <Typography variant="body2" color="text.secondary">Total partidas:</Typography>
                         <Typography variant="body1" fontWeight="bold">🔢 {piezas.length}</Typography>
                       </Grid>
                       <Grid item xs={6} sm={3}>
@@ -898,14 +1451,36 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                         <Typography variant="body1" fontWeight="bold" color="primary">📐 {calcularTotalM2.toFixed(2)} m²</Typography>
                       </Grid>
                       <Grid item xs={6} sm={3}>
-                        <Typography variant="body2" color="text.secondary">Precio promedio:</Typography>
-                        <Typography variant="body1" fontWeight="bold">💰 ${precioGeneral}/m²</Typography>
+                        <Typography variant="body2" color="text.secondary">Subtotal productos:</Typography>
+                        <Typography variant="body1" fontWeight="bold">💰 ${calcularSubtotalProductos.toLocaleString()}</Typography>
                       </Grid>
                       <Grid item xs={6} sm={3}>
-                        <Typography variant="body2" color="text.secondary">Estimado:</Typography>
-                        <Typography variant="body1" fontWeight="bold" color="success.main">💵 ${(calcularTotalM2 * precioGeneral).toFixed(2)}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {aplicaDescuento ? 'Total final:' : (cobraInstalacion ? 'Total con instalación:' : 'Total estimado:')}
+                        </Typography>
+                        <Typography variant="body1" fontWeight="bold" color="success.main">
+                          💵 ${(calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0) - calcularDescuento).toLocaleString()}
+                        </Typography>
                       </Grid>
                     </Grid>
+                    
+                    {/* Desglose de instalación si está activada */}
+                    {cobraInstalacion && precioInstalacion && (
+                      <Box sx={{ mt: 2, p: 2, bgcolor: 'warning.50', borderRadius: 1, border: '1px solid', borderColor: 'warning.200' }}>
+                        <Typography variant="body2" fontWeight="medium" color="warning.dark">
+                          🔧 Instalación {tipoInstalacion}: +${parseFloat(precioInstalacion).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {/* Desglose de descuento si está activado */}
+                    {aplicaDescuento && valorDescuento && (
+                      <Box sx={{ mt: 2, p: 2, bgcolor: 'success.50', borderRadius: 1, border: '1px solid', borderColor: 'success.200' }}>
+                        <Typography variant="body2" fontWeight="medium" color="success.dark">
+                          💸 Descuento {tipoDescuento === 'porcentaje' ? `(${valorDescuento}%)` : 'fijo'}: -${calcularDescuento.toLocaleString()}
+                        </Typography>
+                      </Box>
+                    )}
                   </CardContent>
                 </Card>
               )}
