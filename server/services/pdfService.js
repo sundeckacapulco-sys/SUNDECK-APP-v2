@@ -484,104 +484,368 @@ class PDFService {
         <html lang="es">
         <head>
           <meta charset="UTF-8">
-          <title>Levantamiento de Medidas</title>
+          <title>Recibo de Visita - Medición</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #D4AF37; padding-bottom: 20px; }
-            .logo { font-size: 24px; font-weight: bold; color: #D4AF37; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-            .pieza { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
-            .pieza h4 { color: #D4AF37; margin-bottom: 10px; }
-            .resumen { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 30px; }
-            .total { font-size: 18px; font-weight: bold; color: #D4AF37; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Arial', sans-serif; 
+              line-height: 1.4; 
+              color: #333; 
+              background: #fff;
+              padding: 20px;
+            }
+            
+            .recibo-container {
+              max-width: 800px;
+              margin: 0 auto;
+              background: #fff;
+              border: 2px solid #D4AF37;
+              border-radius: 10px;
+              overflow: hidden;
+            }
+            
+            .header {
+              background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
+              color: white;
+              padding: 25px;
+              text-align: center;
+            }
+            
+            .logo {
+              font-size: 28px;
+              font-weight: bold;
+              margin-bottom: 5px;
+            }
+            
+            .subtitulo {
+              font-size: 16px;
+              opacity: 0.9;
+            }
+            
+            .info-cliente {
+              background: #f8f9fa;
+              padding: 20px;
+              border-bottom: 1px solid #dee2e6;
+            }
+            
+            .cliente-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+            }
+            
+            .fecha-recibo {
+              text-align: right;
+              font-size: 14px;
+              color: #666;
+              margin-bottom: 10px;
+            }
+            
+            .contenido {
+              padding: 25px;
+            }
+            
+            .partida {
+              background: #fff;
+              border: 1px solid #e9ecef;
+              border-radius: 8px;
+              margin-bottom: 20px;
+              overflow: hidden;
+            }
+            
+            .partida-header {
+              background: #f8f9fa;
+              padding: 15px;
+              border-bottom: 1px solid #e9ecef;
+              font-weight: bold;
+              color: #495057;
+            }
+            
+            .partida-body {
+              padding: 20px;
+            }
+            
+            .medidas-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 15px;
+              margin-bottom: 15px;
+            }
+            
+            .campo {
+              margin-bottom: 8px;
+            }
+            
+            .campo-label {
+              font-weight: bold;
+              color: #495057;
+              font-size: 14px;
+            }
+            
+            .campo-valor {
+              color: #212529;
+              font-size: 15px;
+            }
+            
+            .incluidos {
+              background: #e8f4fd;
+              border: 1px solid #bee5eb;
+              border-radius: 6px;
+              padding: 15px;
+              margin-top: 15px;
+            }
+            
+            .incluidos-titulo {
+              font-weight: bold;
+              color: #0c5460;
+              margin-bottom: 10px;
+              font-size: 14px;
+            }
+            
+            .incluido-item {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 5px 0;
+              border-bottom: 1px solid #bee5eb;
+            }
+            
+            .incluido-item:last-child {
+              border-bottom: none;
+            }
+            
+            .precio-unitario {
+              background: #fff3cd;
+              border: 1px solid #ffeaa7;
+              border-radius: 6px;
+              padding: 12px;
+              margin-top: 15px;
+              text-align: center;
+            }
+            
+            .precio-unitario .monto {
+              font-size: 18px;
+              font-weight: bold;
+              color: #856404;
+            }
+            
+            .resumen-final {
+              background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+              border: 2px solid #D4AF37;
+              border-radius: 10px;
+              padding: 25px;
+              margin-top: 30px;
+              text-align: center;
+            }
+            
+            .resumen-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 20px;
+              margin-bottom: 20px;
+            }
+            
+            .resumen-item {
+              text-align: center;
+            }
+            
+            .resumen-numero {
+              font-size: 24px;
+              font-weight: bold;
+              color: #D4AF37;
+              display: block;
+            }
+            
+            .resumen-label {
+              font-size: 14px;
+              color: #666;
+              margin-top: 5px;
+            }
+            
+            .total-final {
+              font-size: 28px;
+              font-weight: bold;
+              color: #D4AF37;
+              margin-top: 15px;
+              padding-top: 15px;
+              border-top: 2px solid #D4AF37;
+            }
+            
+            .footer {
+              background: #f8f9fa;
+              padding: 20px;
+              text-align: center;
+              border-top: 1px solid #dee2e6;
+              font-size: 12px;
+              color: #666;
+            }
+            
+            .nota-importante {
+              background: #fff3cd;
+              border: 1px solid #ffeaa7;
+              border-radius: 6px;
+              padding: 15px;
+              margin: 20px 0;
+              font-size: 14px;
+              color: #856404;
+            }
+            
+            @media print {
+              body { margin: 0; padding: 10px; }
+              .recibo-container { border: 1px solid #ccc; }
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            <div class="logo">🏠 SUNDECK - Levantamiento de Medidas</div>
-            <p>Fecha: {{fecha}}</p>
-          </div>
+          <div class="recibo-container">
+            <!-- Header -->
+            <div class="header">
+              <div class="logo">🏠 SUNDECK</div>
+              <div class="subtitulo">Recibo de Visita - Medición de Productos</div>
+            </div>
 
-          <div class="info-grid">
-            <div>
-              <strong>Cliente:</strong> {{prospecto.nombre}}<br>
-              <strong>Teléfono:</strong> {{prospecto.telefono}}
+            <!-- Información del Cliente -->
+            <div class="info-cliente">
+              <div class="fecha-recibo">
+                Fecha de visita: {{fecha}}
+              </div>
+              <div class="cliente-grid">
+                <div>
+                  <div class="campo">
+                    <span class="campo-label">Cliente:</span><br>
+                    <span class="campo-valor">{{prospecto.nombre}}</span>
+                  </div>
+                  <div class="campo">
+                    <span class="campo-label">Teléfono:</span><br>
+                    <span class="campo-valor">{{prospecto.telefono}}</span>
+                  </div>
+                </div>
+                <div>
+                  {{#if prospecto.email}}
+                  <div class="campo">
+                    <span class="campo-label">Email:</span><br>
+                    <span class="campo-valor">{{prospecto.email}}</span>
+                  </div>
+                  {{/if}}
+                  {{#if prospecto.direccion}}
+                  <div class="campo">
+                    <span class="campo-label">Dirección:</span><br>
+                    <span class="campo-valor">{{prospecto.direccion}}</span>
+                  </div>
+                  {{/if}}
+                </div>
+              </div>
             </div>
-            <div>
-              <strong>Precio General:</strong> {{precioGeneral}}/m²<br>
-              <strong>Unidad:</strong> {{unidadMedida}}
-            </div>
-          </div>
 
-          <h3>Piezas Medidas</h3>
-          {{#each piezas}}
-          <div class="pieza">
-            <h4>📍 {{ubicacion}} {{#if etapa}}<span style="color: #666; font-size: 14px;">({{etapa}})</span>{{/if}}</h4>
-            <div class="info-grid">
-              <div>
-                <strong>Dimensiones:</strong> {{ancho}} × {{alto}} {{../unidadMedida}}<br>
-                <strong>Área:</strong> {{area}} m²<br>
-                {{#if precioM2}}
-                <strong>Precio m²:</strong> {{precioM2}}/m²<br>
-                {{/if}}
-                {{#if subtotalBase}}
-                <strong>Subtotal base:</strong> {{subtotalBase}}<br>
-                {{/if}}
-              </div>
-              <div>
-                <strong>Producto:</strong> {{productoLabel}}{{#unless productoLabel}}{{producto}}{{/unless}}<br>
-                <strong>Color/Acabado:</strong> {{color}}<br>
-                {{#if fotoUrls.length}}
-                <strong>Fotos:</strong> {{fotoUrls.length}} archivo{{#if (gt fotoUrls.length 1)}}s{{/if}}<br>
-                {{/if}}
-                {{#if videoUrl}}
-                <strong>Video:</strong> Disponible<br>
-                {{/if}}
-              </div>
-            </div>
-            
-            {{#if esProductoToldo}}
-            <div style="margin-top: 10px; padding: 8px; background: #e3f2fd; border-left: 4px solid #2196f3;">
-              <strong>🏗️ Kit de Toldo:</strong> {{kitModelo}}
-              {{#if kitPrecio}} → {{kitPrecio}}{{/if}}
-            </div>
-            {{/if}}
-            
-            {{#if motorizado}}
-            <div style="margin-top: 10px; padding: 8px; background: #f3e5f5; border-left: 4px solid #9c27b0;">
-              <strong>⚡ Motorización:</strong><br>
-              • Motor: {{motorModelo}}{{#if motorPrecio}} → {{motorPrecio}}{{/if}}<br>
-              • Control: {{controlModelo}}{{#if controlPrecio}} → {{controlPrecio}}{{/if}}
-            </div>
-            {{/if}}
-            
-            {{#if subtotal}}
-            <div style="margin-top: 10px; padding: 8px; background: #e8f5e8; border-left: 4px solid #4caf50; text-align: right;">
-              <strong>💰 Total Pieza: {{subtotal}}</strong>
-            </div>
-            {{/if}}
-            {{#if observaciones}}
-            <p><strong>Observaciones:</strong> {{observaciones}}</p>
-            {{/if}}
-            {{#if fechaEtapa}}
-            <p style="font-size: 12px; color: #666; margin-top: 10px;">
-              <strong>Registrado:</strong> {{formatDate fechaEtapa}}
-            </p>
-            {{/if}}
-          </div>
-          {{/each}}
+            <!-- Contenido Principal -->
+            <div class="contenido">
+              <h3 style="color: #D4AF37; margin-bottom: 20px; text-align: center;">
+                📋 Productos Medidos y Cotizados
+              </h3>
 
-          <div class="resumen">
-            <h3>Resumen del Levantamiento</h3>
-            <div class="info-grid">
-              <div>
-                <strong>Total de piezas:</strong> {{totalPiezas}}<br>
-                <strong>Área total:</strong> {{totalM2}} m²
+              {{#each piezas}}
+              <div class="partida">
+                <div class="partida-header">
+                  📍 {{ubicacion}} - {{productoLabel}}{{#unless productoLabel}}{{producto}}{{/unless}}
+                </div>
+                <div class="partida-body">
+                  <div class="medidas-grid">
+                    <div>
+                      <div class="campo">
+                        <span class="campo-label">Dimensiones:</span><br>
+                        <span class="campo-valor">{{ancho}} × {{alto}} {{../unidadMedida}}</span>
+                      </div>
+                      <div class="campo">
+                        <span class="campo-label">Área:</span><br>
+                        <span class="campo-valor">{{area}} m²</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="campo">
+                        <span class="campo-label">Color/Acabado:</span><br>
+                        <span class="campo-valor">{{color}}</span>
+                      </div>
+                      <div class="campo">
+                        <span class="campo-label">Precio por m²:</span><br>
+                        <span class="campo-valor">{{precioM2}}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {{#if (or esProductoToldo motorizado)}}
+                  <div class="incluidos">
+                    <div class="incluidos-titulo">📦 Incluye en el precio:</div>
+                    {{#if esProductoToldo}}
+                    <div class="incluido-item">
+                      <span>🏗️ Kit de Toldo ({{kitModelo}})</span>
+                      <span>{{kitPrecio}}</span>
+                    </div>
+                    {{/if}}
+                    {{#if motorizado}}
+                    <div class="incluido-item">
+                      <span>⚡ Motor ({{motorModelo}})</span>
+                      <span>{{motorPrecio}}</span>
+                    </div>
+                    <div class="incluido-item">
+                      <span>🎛️ Control ({{controlModelo}})</span>
+                      <span>{{controlPrecio}}</span>
+                    </div>
+                    {{/if}}
+                  </div>
+                  {{/if}}
+
+                  <div class="precio-unitario">
+                    <div>💰 <strong>Precio total de esta partida:</strong></div>
+                    <div class="monto">{{subtotal}}</div>
+                  </div>
+
+                  {{#if observaciones}}
+                  <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; font-size: 14px;">
+                    <strong>📝 Observaciones:</strong> {{observaciones}}
+                  </div>
+                  {{/if}}
+                </div>
               </div>
-              <div>
-                <strong>Precio estimado:</strong> {{precioEstimado}}<br>
-                <div class="total">Total aproximado: {{totalAproximado}}</div>
+              {{/each}}
+
+              <!-- Resumen Final -->
+              <div class="resumen-final">
+                <h3 style="color: #D4AF37; margin-bottom: 20px;">
+                  📊 Resumen de la Visita
+                </h3>
+                
+                <div class="resumen-grid">
+                  <div class="resumen-item">
+                    <span class="resumen-numero">{{totalPiezas}}</span>
+                    <div class="resumen-label">Partidas medidas</div>
+                  </div>
+                  <div class="resumen-item">
+                    <span class="resumen-numero">{{totalM2}}</span>
+                    <div class="resumen-label">Metros cuadrados</div>
+                  </div>
+                  <div class="resumen-item">
+                    <span class="resumen-numero">{{precioEstimado}}</span>
+                    <div class="resumen-label">Precio promedio/m²</div>
+                  </div>
+                </div>
+
+                <div class="total-final">
+                  💰 TOTAL ESTIMADO: {{totalAproximado}}
+                </div>
               </div>
+
+              <div class="nota-importante">
+                <strong>📋 Importante:</strong> Este recibo confirma la visita realizada y las medidas tomadas. 
+                El precio mostrado es una cotización preliminar. La cotización final será enviada por separado 
+                con términos y condiciones completos.
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+              <p><strong>🏠 SUNDECK - Especialistas en Ventanas y Puertas</strong></p>
+              <p>Acapulco, Guerrero • Tel: (744) 123-4567 • info@sundeckacapulco.com</p>
+              <p>Gracias por confiar en nosotros para su proyecto</p>
             </div>
           </div>
         </body>
@@ -591,6 +855,10 @@ class PDFService {
       // Registrar helpers de Handlebars
       handlebars.registerHelper('gt', function(a, b) {
         return a > b;
+      });
+
+      handlebars.registerHelper('or', function(a, b) {
+        return a || b;
       });
 
       handlebars.registerHelper('formatDate', function(date) {
