@@ -25,6 +25,8 @@ const ProspectoForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [productos, setProductos] = useState([]);
+  const [mostrarProductoPersonalizado, setMostrarProductoPersonalizado] = useState(false);
+  const [productoPersonalizado, setProductoPersonalizado] = useState('');
   
   const navigate = useNavigate();
   const { id } = useParams();
@@ -61,7 +63,37 @@ const ProspectoForm = () => {
     { value: 'puerta', label: 'Puerta' },
     { value: 'cancel', label: 'Cancel' },
     { value: 'domo', label: 'Domo' },
+    { value: 'toldo', label: 'Toldo' },
     { value: 'otro', label: 'Otro' }
+  ];
+
+  const productosDisponibles = [
+    // Persianas Enrollables
+    { value: 'screen_3', label: 'Persianas Screen 3%' },
+    { value: 'screen_5', label: 'Persianas Screen 5%' },
+    { value: 'screen_10', label: 'Persianas Screen 10%' },
+    { value: 'blackout', label: 'Persianas Blackout' },
+    { value: 'sunscreen', label: 'Persianas Sunscreen' },
+    
+    // Cortinas Tradicionales
+    { value: 'cortina_tradicional', label: 'Cortinas Tradicionales' },
+    { value: 'cortina_romana', label: 'Cortinas Romanas' },
+    { value: 'cortina_panel', label: 'Cortinas Panel' },
+    
+    // Toldos
+    { value: 'toldo_vertical', label: 'Toldo Vertical' },
+    { value: 'toldo_proyeccion', label: 'Toldo de Proyección' },
+    { value: 'toldo_brazo_invisible', label: 'Toldo Brazo Invisible' },
+    
+    // Productos Especiales
+    { value: 'doble_cortina', label: 'Doble Cortina (2 en 1 ventana)' },
+    { value: 'cortina_screen', label: 'Cortina + Screen (combinado)' },
+    { value: 'sistema_dia_noche', label: 'Sistema Día/Noche' },
+    { value: 'cortina_cenefa', label: 'Cortina con Cenefa' },
+    
+    // Otros
+    { value: 'personalizado', label: 'Producto Personalizado' },
+    { value: 'otro', label: 'Otro (especificar)' }
   ];
 
   const fuentes = [
@@ -107,11 +139,45 @@ const ProspectoForm = () => {
     }
   };
 
+  const handleProductoChange = (value) => {
+    if (value === 'personalizado') {
+      setMostrarProductoPersonalizado(true);
+    } else {
+      setMostrarProductoPersonalizado(false);
+      setProductoPersonalizado('');
+    }
+  };
+
+  const handleAgregarProductoPersonalizado = () => {
+    if (productoPersonalizado.trim().length >= 3) {
+      // Agregar el producto personalizado a la lista temporal
+      const nuevoProducto = {
+        value: `personalizado_${Date.now()}`,
+        label: productoPersonalizado.trim()
+      };
+      
+      // Actualizar el valor del formulario
+      reset(prev => ({
+        ...prev,
+        producto: nuevoProducto.value
+      }));
+      
+      setMostrarProductoPersonalizado(false);
+      setProductoPersonalizado('');
+      setSuccess(`✨ Producto personalizado agregado: ${nuevoProducto.label}`);
+    }
+  };
+
   const onSubmit = async (data) => {
     try {
       setLoading(true);
       setError('');
       setSuccess('');
+
+      // Si es un producto personalizado, usar el nombre personalizado
+      if (data.producto.startsWith('personalizado_')) {
+        data.productoLabel = productoPersonalizado || data.producto;
+      }
 
       if (isEdit) {
         await axiosConfig.put(`/prospectos/${id}`, data);
@@ -328,16 +394,99 @@ const ProspectoForm = () => {
                   control={control}
                   rules={{ required: 'El producto es requerido' }}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Producto Específico *"
-                      error={!!errors.producto}
-                      helperText={errors.producto?.message}
-                    />
+                    <FormControl fullWidth error={!!errors.producto}>
+                      <InputLabel>Producto Específico *</InputLabel>
+                      <Select 
+                        {...field} 
+                        label="Producto Específico *"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleProductoChange(e.target.value);
+                        }}
+                      >
+                        {productosDisponibles.map(producto => (
+                          <MenuItem key={producto.value} value={producto.value}>
+                            {producto.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.producto && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                          {errors.producto.message}
+                        </Typography>
+                      )}
+                    </FormControl>
                   )}
                 />
               </Grid>
+
+              {/* Formulario de Producto Personalizado */}
+              {mostrarProductoPersonalizado && (
+                <Grid item xs={12}>
+                  <Card sx={{ p: 2, backgroundColor: '#f8f9fa', border: '1px solid #e9ecef' }}>
+                    <Typography variant="h6" gutterBottom>
+                      ✨ Agregar Producto Personalizado
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Útil para casos especiales como: dos cortinas en una ventana, combinaciones específicas, sistemas únicos, etc.
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
+                      <TextField
+                        fullWidth
+                        label="Nombre del producto personalizado"
+                        placeholder="Ej. Doble Screen 3% + Blackout, Sistema Triple, Cortina Especial..."
+                        value={productoPersonalizado}
+                        onChange={(e) => setProductoPersonalizado(e.target.value)}
+                        helperText="Sé específico para identificar fácilmente el producto"
+                        error={productoPersonalizado.length > 0 && productoPersonalizado.length < 3}
+                      />
+                      <Button
+                        variant="contained"
+                        onClick={handleAgregarProductoPersonalizado}
+                        disabled={productoPersonalizado.trim().length < 3}
+                        sx={{ minWidth: 120 }}
+                      >
+                        Agregar
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        onClick={() => {
+                          setMostrarProductoPersonalizado(false);
+                          setProductoPersonalizado('');
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    </Box>
+
+                    {/* Sugerencias rápidas */}
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Sugerencias rápidas:
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+                        {[
+                          'Doble Screen + Blackout',
+                          'Sistema Día/Noche Especial',
+                          'Cortina Triple',
+                          'Sistema con Cenefa Decorativa'
+                        ].map((sugerencia) => (
+                          <Button
+                            key={sugerencia}
+                            size="small"
+                            variant="outlined"
+                            onClick={() => setProductoPersonalizado(sugerencia)}
+                            sx={{ fontSize: '0.75rem' }}
+                          >
+                            {sugerencia}
+                          </Button>
+                        ))}
+                      </Box>
+                    </Box>
+                  </Card>
+                </Grid>
+              )}
               
               <Grid item xs={12}>
                 <Controller
