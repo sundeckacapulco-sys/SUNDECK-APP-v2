@@ -1174,7 +1174,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         guardarPDF: true
       };
 
-      const response = await axiosConfig.post(`/prospectos/${prospectoId}/etapas/pdf`, payload, {
+      const response = await axiosConfig.post('/etapas/levantamiento-pdf', payload, {
         responseType: 'blob'
       });
       
