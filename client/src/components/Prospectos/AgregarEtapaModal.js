@@ -22,7 +22,8 @@ import {
 import { 
   Add,
   CloudUpload,
-  Delete
+  Delete,
+  Close
 } from '@mui/icons-material';
 import axiosConfig from '../../config/axios';
 
@@ -52,8 +53,38 @@ const productosOptions = [
   { label: "Doble Cortina (2 en 1 ventana)", value: "doble_cortina" },
   { label: "Cortina + Screen (combinado)", value: "cortina_screen" },
   { label: "Sistema Día/Noche", value: "dia_noche" },
-  { label: "Cortina con Cenefa", value: "cortina_cenefa" },
+  { label: "Cortinas Tradicionales", value: "cortina_tradicional" },
   { label: "+ Agregar producto personalizado", value: "nuevo" }
+];
+
+// Modelos de toldos predefinidos
+const modelosToldos = {
+  caida_vertical: [
+    { label: "Padova", value: "padova" },
+    { label: "Contempo", value: "contempo" },
+    { label: "Otro (especificar)", value: "otro_manual" }
+  ],
+  proyeccion: [
+    { label: "Europa", value: "europa" },
+    { label: "Cofre", value: "cofre" },
+    { label: "Sunset", value: "sunset" },
+    { label: "Otro (especificar)", value: "otro_manual" }
+  ]
+};
+
+// Modelos de motores predefinidos
+const modelosMotores = [
+  { label: "Somfy 25 Nm", value: "somfy_25nm" },
+  { label: "Somfy 35 Nm", value: "somfy_35nm" },
+  { label: "Somfy RTS", value: "somfy_rts" },
+  { label: "Otro (especificar)", value: "otro_manual" }
+];
+
+// Modelos de controles predefinidos
+const modelosControles = [
+  { label: "Monocanal", value: "monocanal" },
+  { label: "Multicanal", value: "multicanal" },
+  { label: "Otro (especificar)", value: "otro_manual" }
 ];
 
 const emptyPieza = {
@@ -73,7 +104,21 @@ const emptyPieza = {
   precioM2: '', // Precio base (para compatibilidad)
   observaciones: '',
   fotoUrls: [], // Cambio a array para múltiples fotos
-  videoUrl: ''
+  videoUrl: '',
+  // Nuevos campos para toldos
+  esToldo: false,
+  tipoToldo: 'caida_vertical', // 'caida_vertical' o 'proyeccion'
+  kitModelo: '',
+  kitModeloManual: '',
+  kitPrecio: '',
+  // Nuevos campos para motorización
+  motorizado: false,
+  motorModelo: '',
+  motorModeloManual: '',
+  motorPrecio: '',
+  controlModelo: '',
+  controlModeloManual: '',
+  controlPrecio: ''
 };
 
 const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => {
@@ -110,6 +155,15 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const [aplicaDescuento, setAplicaDescuento] = useState(false);
   const [tipoDescuento, setTipoDescuento] = useState('porcentaje'); // 'porcentaje' o 'monto'
   const [valorDescuento, setValorDescuento] = useState('');
+  
+  // Nuevos estados para pedidos y facturación
+  const [requiereFactura, setRequiereFactura] = useState(false);
+  const [incluirTerminos, setIncluirTerminos] = useState(true);
+  const [tiempoEntrega, setTiempoEntrega] = useState('normal'); // 'normal' o 'expres'
+  const [diasExpres, setDiasExpres] = useState('');
+  const [guardandoPedido, setGuardandoPedido] = useState(false);
+  const [metodoPagoAnticipo, setMetodoPagoAnticipo] = useState(''); // efectivo, transferencia, etc.
+  const [guardandoPDF, setGuardandoPDF] = useState(false);
 
   const resetFormulario = () => {
     setNombreEtapa(etapaOptions[0]);
@@ -118,21 +172,21 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setComentarios('');
     setPrecioGeneral(750);
     setErrorLocal('');
-    setGuardando(false);
-    setGenerandoCotizacion(false);
-    setDescargandoLevantamiento(false);
-    setDescargandoExcel(false);
     setAgregandoPieza(false);
-    setPiezaForm(emptyPieza);
-    setMostrarNuevoProducto(false);
-    setNuevoProductoNombre('');
-    setSubiendoFoto(false);
     setCobraInstalacion(false);
     setPrecioInstalacion('');
     setTipoInstalacion('estandar');
     setAplicaDescuento(false);
     setTipoDescuento('porcentaje');
     setValorDescuento('');
+    // Reset nuevos campos
+    setRequiereFactura(false);
+    setIncluirTerminos(true);
+    setTiempoEntrega('normal');
+    setDiasExpres('');
+    setGuardandoPedido(false);
+    setMetodoPagoAnticipo('');
+    setGuardandoPDF(false);
   };
 
   useEffect(() => {
@@ -163,24 +217,45 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   // Calcular subtotal de productos con precios específicos
   const calcularSubtotalProductos = useMemo(() => {
     return piezas.reduce((total, pieza) => {
+      let areaPieza = 0;
+      
       if (pieza.medidas && Array.isArray(pieza.medidas)) {
-        // Formato nuevo: cada pieza puede tener su propio producto y precio
-        const subtotalPieza = pieza.medidas.reduce((subtotal, medida) => {
-          const area = medida.area || 0;
-          const precioEspecifico = parseFloat(medida.precioM2) || parseFloat(pieza.precioM2) || precioGeneral;
-          return subtotal + (area * precioEspecifico);
+        areaPieza = pieza.medidas.reduce((subtotal, medida) => {
+          return subtotal + (medida.area || 0);
         }, 0);
-        return total + subtotalPieza;
       } else {
-        // Formato anterior para compatibilidad
         const ancho = parseFloat(pieza.ancho) || 0;
         const alto = parseFloat(pieza.alto) || 0;
         const cantidad = parseInt(pieza.cantidad) || 1;
         const area = unidad === 'cm' ? (ancho * alto) / 10000 : ancho * alto;
-        const areaPieza = area * cantidad;
-        const precio = parseFloat(pieza.precioM2) || precioGeneral;
-        return total + (areaPieza * precio);
+        areaPieza = area * cantidad;
       }
+      
+      const precio = parseFloat(pieza.precioM2) || precioGeneral;
+      let subtotalPieza = areaPieza * precio;
+      
+      // Calcular cantidad de piezas para esta partida
+      let cantidadPiezasPartida = 1;
+      if (pieza.medidas && Array.isArray(pieza.medidas)) {
+        cantidadPiezasPartida = pieza.medidas.length;
+      } else {
+        cantidadPiezasPartida = parseInt(pieza.cantidad) || 1;
+      }
+      
+      // Agregar kit de toldo si aplica (multiplicado por cantidad de piezas)
+      if (pieza.esToldo && pieza.kitPrecio) {
+        subtotalPieza += (parseFloat(pieza.kitPrecio) || 0) * cantidadPiezasPartida;
+      }
+      
+      // Agregar motorización si aplica
+      if (pieza.motorizado) {
+        // Motores: uno por pieza
+        subtotalPieza += (parseFloat(pieza.motorPrecio) || 0) * cantidadPiezasPartida;
+        // Control: uno por partida (no por pieza)
+        subtotalPieza += parseFloat(pieza.controlPrecio) || 0;
+      }
+      
+      return total + subtotalPieza;
     }, 0);
   }, [piezas, unidad, precioGeneral]);
 
@@ -198,9 +273,101 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     }
   }, [aplicaDescuento, valorDescuento, tipoDescuento, calcularSubtotalProductos, cobraInstalacion, precioInstalacion]);
 
+  // Calcular IVA y total con factura
+  const calcularIVA = useMemo(() => {
+    if (!requiereFactura) return 0;
+    const subtotalConInstalacion = calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0);
+    const subtotalConDescuento = subtotalConInstalacion - calcularDescuento;
+    return subtotalConDescuento * 0.16; // 16% IVA
+  }, [requiereFactura, calcularSubtotalProductos, cobraInstalacion, precioInstalacion, calcularDescuento]);
+
+  const totalConIVA = useMemo(() => {
+    const subtotalConInstalacion = calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0);
+    const subtotalConDescuento = subtotalConInstalacion - calcularDescuento;
+    return subtotalConDescuento + calcularIVA;
+  }, [calcularSubtotalProductos, cobraInstalacion, precioInstalacion, calcularDescuento, calcularIVA]);
+
+  // Calcular total final (con o sin IVA)
+  const totalFinal = useMemo(() => {
+    return requiereFactura ? totalConIVA : (calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0) - calcularDescuento);
+  }, [requiereFactura, totalConIVA, calcularSubtotalProductos, cobraInstalacion, precioInstalacion, calcularDescuento]);
+
+  // Calcular anticipo (60%) y saldo (40%)
+  const anticipo = useMemo(() => {
+    return totalFinal * 0.6;
+  }, [totalFinal]);
+
+  const saldo = useMemo(() => {
+    return totalFinal * 0.4;
+  }, [totalFinal]);
+
+  // Calcular fecha de entrega
+  const calcularFechaEntrega = useMemo(() => {
+    const hoy = new Date();
+    let diasHabiles = 15; // Default para toldos/persianas
+    
+    if (tiempoEntrega === 'expres' && diasExpres) {
+      diasHabiles = parseInt(diasExpres);
+    } else if (tiempoEntrega === 'normal') {
+      // Determinar días según productos
+      const tieneCortinasTrad = piezas.some(p => p.producto === 'cortina_tradicional');
+      const tieneSistemasProteccion = piezas.some(p => p.producto === 'antihuracan');
+      
+      if (tieneSistemasProteccion) {
+        diasHabiles = 42; // 6 semanas = 42 días hábiles
+      } else if (tieneCortinasTrad) {
+        diasHabiles = 28; // 4 semanas = 28 días hábiles
+      }
+    }
+    
+    // Calcular fecha agregando días hábiles (excluyendo fines de semana)
+    let fechaEntrega = new Date(hoy);
+    let diasAgregados = 0;
+    
+    while (diasAgregados < diasHabiles) {
+      fechaEntrega.setDate(fechaEntrega.getDate() + 1);
+      // Si no es sábado (6) ni domingo (0)
+      if (fechaEntrega.getDay() !== 0 && fechaEntrega.getDay() !== 6) {
+        diasAgregados++;
+      }
+    }
+    
+    return fechaEntrega;
+  }, [tiempoEntrega, diasExpres, piezas]);
+
   const cerrarModal = () => {
     resetFormulario();
     onClose();
+  };
+
+  // Función para sincronizar colores individuales con el campo general
+  const sincronizarColores = () => {
+    if (piezaForm.medidas && piezaForm.medidas.length > 0) {
+      // Obtener colores únicos de las piezas
+      const coloresUnicos = [...new Set(piezaForm.medidas.map(m => m.color).filter(c => c))];
+      
+      if (coloresUnicos.length === 1) {
+        // Si todas las piezas tienen el mismo color, usar ese
+        setPiezaForm(prev => ({ ...prev, color: coloresUnicos[0] }));
+      } else if (coloresUnicos.length > 1) {
+        // Si hay colores diferentes, mostrar "Mixto"
+        setPiezaForm(prev => ({ ...prev, color: `Mixto (${coloresUnicos.join(', ')})` }));
+      }
+    }
+  };
+
+  // Función para detectar si un producto es toldo
+  const esToldo = (producto) => {
+    return producto && (producto.includes('toldo') || producto === 'toldo_vertical' || producto === 'toldo_retractil');
+  };
+
+  // Función para detectar si un producto puede ser motorizado
+  const puedeSerMotorizado = (producto) => {
+    const productosMotorizables = [
+      'toldo_vertical', 'toldo_retractil', 'screen_3', 'screen_5', 'screen_10', 
+      'blackout', 'duo', 'motorizadas', 'cortina_tradicional'
+    ];
+    return productosMotorizables.includes(producto);
   };
 
   // Función para actualizar las medidas cuando cambie la cantidad
@@ -275,6 +442,20 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       medidas: medidasProcesadas, // Array de medidas individuales
       precioM2: parseFloat(piezaForm.precioM2) || precioGeneral,
       productoLabel: productoLabel,
+      // Preservar información de toldos
+      esToldo: piezaForm.esToldo || false,
+      tipoToldo: piezaForm.tipoToldo || 'caida_vertical',
+      kitModelo: piezaForm.kitModelo || '',
+      kitModeloManual: piezaForm.kitModeloManual || '',
+      kitPrecio: piezaForm.kitPrecio || '',
+      // Preservar información de motorización
+      motorizado: piezaForm.motorizado || false,
+      motorModelo: piezaForm.motorModelo || '',
+      motorModeloManual: piezaForm.motorModeloManual || '',
+      motorPrecio: piezaForm.motorPrecio || '',
+      controlModelo: piezaForm.controlModelo || '',
+      controlModeloManual: piezaForm.controlModeloManual || '',
+      controlPrecio: piezaForm.controlPrecio || '',
       // Agregar descripción de la partida
       observaciones: `${piezaForm.observaciones ? piezaForm.observaciones + ' - ' : ''}Partida de ${cantidad} pieza${cantidad > 1 ? 's' : ''}`
     };
@@ -324,14 +505,35 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setPiezaForm({
       ubicacion: piezaAEditar.ubicacion,
       cantidad: piezaAEditar.cantidad || (piezaAEditar.medidas ? piezaAEditar.medidas.length : 1),
-      medidas: piezaAEditar.medidas || [{ ancho: piezaAEditar.ancho || '', alto: piezaAEditar.alto || '' }],
+      medidas: piezaAEditar.medidas || [{ 
+        ancho: piezaAEditar.ancho || '', 
+        alto: piezaAEditar.alto || '',
+        producto: piezaAEditar.producto,
+        productoLabel: piezaAEditar.productoLabel,
+        color: piezaAEditar.color,
+        precioM2: piezaAEditar.precioM2
+      }],
       producto: piezaAEditar.producto,
       productoLabel: piezaAEditar.productoLabel,
       color: piezaAEditar.color,
       precioM2: piezaAEditar.precioM2 || '',
       observaciones: piezaAEditar.observaciones || '',
       fotoUrls: piezaAEditar.fotoUrls || [],
-      videoUrl: piezaAEditar.videoUrl || ''
+      videoUrl: piezaAEditar.videoUrl || '',
+      // Cargar información de toldos
+      esToldo: piezaAEditar.esToldo || false,
+      tipoToldo: piezaAEditar.tipoToldo || 'caida_vertical',
+      kitModelo: piezaAEditar.kitModelo || '',
+      kitModeloManual: piezaAEditar.kitModeloManual || '',
+      kitPrecio: piezaAEditar.kitPrecio || '',
+      // Cargar información de motorización
+      motorizado: piezaAEditar.motorizado || false,
+      motorModelo: piezaAEditar.motorModelo || '',
+      motorModeloManual: piezaAEditar.motorModeloManual || '',
+      motorPrecio: piezaAEditar.motorPrecio || '',
+      controlModelo: piezaAEditar.controlModelo || '',
+      controlModeloManual: piezaAEditar.controlModeloManual || '',
+      controlPrecio: piezaAEditar.controlPrecio || ''
     });
     
     setIndiceEditando(index);
@@ -446,15 +648,58 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         prospectoId,
         piezas: piezas.map((pieza) => ({
           ubicacion: pieza.ubicacion,
-          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
-          alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+          cantidad: pieza.cantidad || 1,
+          medidas: pieza.medidas || [{ 
+            ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+            alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+            area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
+            producto: pieza.producto,
+            productoLabel: pieza.productoLabel,
+            color: pieza.color,
+            precioM2: pieza.precioM2
+          }],
           producto: pieza.producto,
+          productoLabel: pieza.productoLabel,
           color: pieza.color,
-          observaciones: pieza.observaciones
+          precioM2: pieza.precioM2,
+          observaciones: pieza.observaciones,
+          // Información de toldos
+          esToldo: pieza.esToldo || false,
+          tipoToldo: pieza.tipoToldo || '',
+          kitModelo: pieza.kitModelo || '',
+          kitModeloManual: pieza.kitModeloManual || '',
+          kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
+          // Información de motorización
+          motorizado: pieza.motorizado || false,
+          motorModelo: pieza.motorModelo || '',
+          motorModeloManual: pieza.motorModeloManual || '',
+          motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
+          controlModelo: pieza.controlModelo || '',
+          controlModeloManual: pieza.controlModeloManual || '',
+          controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
+          // Compatibilidad con formato anterior
+          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+          alto: pieza.alto !== '' ? Number(pieza.alto) : 0
         })),
         precioGeneral: Number(precioGeneral),
         totalM2: calcularTotalM2,
-        unidadMedida: unidad
+        subtotalProductos: calcularSubtotalProductos,
+        unidadMedida: unidad,
+        // Información de instalación
+        instalacion: {
+          cobra: cobraInstalacion,
+          tipo: tipoInstalacion,
+          precio: cobraInstalacion ? Number(precioInstalacion) || 0 : 0
+        },
+        // Información de descuentos
+        descuento: {
+          aplica: aplicaDescuento,
+          tipo: tipoDescuento,
+          valor: aplicaDescuento ? Number(valorDescuento) || 0 : 0,
+          monto: calcularDescuento
+        },
+        // Totales finales
+        totalFinal: calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0) - calcularDescuento
       };
 
       const response = await axiosConfig.post('/etapas/levantamiento-pdf', payload, {
@@ -500,19 +745,60 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         prospectoId,
         piezas: piezas.map((pieza) => ({
           ubicacion: pieza.ubicacion,
-          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
-          alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+          cantidad: pieza.cantidad || 1,
+          medidas: pieza.medidas || [{ 
+            ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+            alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+            area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
+            producto: pieza.producto,
+            productoLabel: pieza.productoLabel,
+            color: pieza.color,
+            precioM2: pieza.precioM2
+          }],
           producto: pieza.producto,
           productoLabel: pieza.productoLabel,
           color: pieza.color,
           precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : undefined,
           observaciones: pieza.observaciones,
           fotoUrls: pieza.fotoUrls || [],
-          videoUrl: pieza.videoUrl || ''
+          videoUrl: pieza.videoUrl || '',
+          // Información de toldos
+          esToldo: pieza.esToldo || false,
+          tipoToldo: pieza.tipoToldo || '',
+          kitModelo: pieza.kitModelo || '',
+          kitModeloManual: pieza.kitModeloManual || '',
+          kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
+          // Información de motorización
+          motorizado: pieza.motorizado || false,
+          motorModelo: pieza.motorModelo || '',
+          motorModeloManual: pieza.motorModeloManual || '',
+          motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
+          controlModelo: pieza.controlModelo || '',
+          controlModeloManual: pieza.controlModeloManual || '',
+          controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
+          // Compatibilidad con formato anterior
+          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+          alto: pieza.alto !== '' ? Number(pieza.alto) : 0
         })),
         precioGeneral: Number(precioGeneral),
         totalM2: calcularTotalM2,
-        unidadMedida: unidad
+        subtotalProductos: calcularSubtotalProductos,
+        unidadMedida: unidad,
+        // Información de instalación
+        instalacion: {
+          cobra: cobraInstalacion,
+          tipo: tipoInstalacion,
+          precio: cobraInstalacion ? Number(precioInstalacion) || 0 : 0
+        },
+        // Información de descuentos
+        descuento: {
+          aplica: aplicaDescuento,
+          tipo: tipoDescuento,
+          valor: aplicaDescuento ? Number(valorDescuento) || 0 : 0,
+          monto: calcularDescuento
+        },
+        // Totales finales
+        totalFinal: calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0) - calcularDescuento
       };
 
       const response = await axiosConfig.post('/etapas/levantamiento-excel', payload, {
@@ -652,12 +938,245 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     }
   };
 
+  const handleAgregarPedido = async () => {
+    if (piezas.length === 0) {
+      setErrorLocal('Debes agregar al menos una partida para crear un pedido');
+      return;
+    }
+
+    setGuardandoPedido(true);
+    setErrorLocal('');
+
+    try {
+      const payload = {
+        prospectoId,
+        piezas: piezas.map((pieza) => ({
+          ubicacion: pieza.ubicacion,
+          cantidad: pieza.cantidad || 1,
+          medidas: pieza.medidas || [{ 
+            ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+            alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+            area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
+            producto: pieza.producto,
+            productoLabel: pieza.productoLabel,
+            color: pieza.color,
+            precioM2: pieza.precioM2
+          }],
+          producto: pieza.producto,
+          productoLabel: pieza.productoLabel,
+          color: pieza.color,
+          precioM2: pieza.precioM2,
+          observaciones: pieza.observaciones,
+          // Información de toldos
+          esToldo: pieza.esToldo || false,
+          tipoToldo: pieza.tipoToldo || '',
+          kitModelo: pieza.kitModelo || '',
+          kitModeloManual: pieza.kitModeloManual || '',
+          kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
+          // Información de motorización
+          motorizado: pieza.motorizado || false,
+          motorModelo: pieza.motorModelo || '',
+          motorModeloManual: pieza.motorModeloManual || '',
+          motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
+          controlModelo: pieza.controlModelo || '',
+          controlModeloManual: pieza.controlModeloManual || '',
+          controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
+          // Compatibilidad con formato anterior
+          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+          alto: pieza.alto !== '' ? Number(pieza.alto) : 0
+        })),
+        precioGeneral: Number(precioGeneral),
+        totalM2: calcularTotalM2,
+        subtotalProductos: calcularSubtotalProductos,
+        unidadMedida: unidad,
+        // Información de instalación
+        instalacion: {
+          cobra: cobraInstalacion,
+          tipo: tipoInstalacion,
+          precio: cobraInstalacion ? Number(precioInstalacion) || 0 : 0
+        },
+        // Información de descuentos
+        descuento: {
+          aplica: aplicaDescuento,
+          tipo: tipoDescuento,
+          valor: aplicaDescuento ? Number(valorDescuento) || 0 : 0,
+          monto: calcularDescuento
+        },
+        // Nueva información para pedidos
+        facturacion: {
+          requiereFactura,
+          iva: calcularIVA,
+          totalConIVA: requiereFactura ? totalConIVA : totalFinal
+        },
+        // Método de pago
+        metodoPago: {
+          anticipo: anticipo,
+          saldo: saldo,
+          porcentajeAnticipo: 60,
+          porcentajeSaldo: 40,
+          metodoPagoAnticipo: metodoPagoAnticipo
+        },
+        entrega: {
+          tipo: tiempoEntrega,
+          diasExpres: tiempoEntrega === 'expres' ? Number(diasExpres) : null,
+          fechaEstimada: calcularFechaEntrega.toISOString().split('T')[0]
+        },
+        terminos: {
+          incluir: incluirTerminos
+        },
+        totalFinal: totalFinal,
+        comentarios,
+        fotoUrls: [],
+        videoUrl: ''
+      };
+
+      const response = await axiosConfig.post(`/prospectos/${prospectoId}/pedidos`, payload);
+      
+      if (response.data) {
+        onSaved?.('Pedido creado exitosamente');
+        cerrarModal();
+      }
+    } catch (error) {
+      console.error('Error al crear pedido:', error);
+      const mensaje = error.response?.data?.message || 'Error al crear el pedido';
+      setErrorLocal(mensaje);
+      onError?.(mensaje);
+    } finally {
+      setGuardandoPedido(false);
+    }
+  };
+
+  const handleGenerarYGuardarPDF = async () => {
+    if (piezas.length === 0) {
+      setErrorLocal('Debes agregar al menos una partida para generar el PDF');
+      return;
+    }
+
+    setGuardandoPDF(true);
+    setErrorLocal('');
+
+    try {
+      const payload = {
+        prospectoId,
+        piezas: piezas.map((pieza) => ({
+          ubicacion: pieza.ubicacion,
+          cantidad: pieza.cantidad || 1,
+          medidas: pieza.medidas || [{ 
+            ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+            alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+            area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
+            producto: pieza.producto,
+            productoLabel: pieza.productoLabel,
+            color: pieza.color,
+            precioM2: pieza.precioM2
+          }],
+          producto: pieza.producto,
+          productoLabel: pieza.productoLabel,
+          color: pieza.color,
+          precioM2: pieza.precioM2,
+          observaciones: pieza.observaciones,
+          // Información de toldos
+          esToldo: pieza.esToldo || false,
+          tipoToldo: pieza.tipoToldo || '',
+          kitModelo: pieza.kitModelo || '',
+          kitModeloManual: pieza.kitModeloManual || '',
+          kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
+          // Información de motorización
+          motorizado: pieza.motorizado || false,
+          motorModelo: pieza.motorModelo || '',
+          motorModeloManual: pieza.motorModeloManual || '',
+          motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
+          controlModelo: pieza.controlModelo || '',
+          controlModeloManual: pieza.controlModeloManual || '',
+          controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
+          // Compatibilidad con formato anterior
+          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+          alto: pieza.alto !== '' ? Number(pieza.alto) : 0
+        })),
+        precioGeneral: Number(precioGeneral),
+        totalM2: calcularTotalM2,
+        subtotalProductos: calcularSubtotalProductos,
+        unidadMedida: unidad,
+        // Información de instalación
+        instalacion: {
+          cobra: cobraInstalacion,
+          tipo: tipoInstalacion,
+          precio: cobraInstalacion ? Number(precioInstalacion) || 0 : 0
+        },
+        // Información de descuentos
+        descuento: {
+          aplica: aplicaDescuento,
+          tipo: tipoDescuento,
+          valor: aplicaDescuento ? Number(valorDescuento) || 0 : 0,
+          monto: calcularDescuento
+        },
+        // Información de facturación
+        facturacion: {
+          requiereFactura,
+          iva: calcularIVA,
+          totalConIVA: requiereFactura ? totalConIVA : totalFinal
+        },
+        // Método de pago
+        metodoPago: {
+          anticipo: anticipo,
+          saldo: saldo,
+          porcentajeAnticipo: 60,
+          porcentajeSaldo: 40,
+          metodoPagoAnticipo: metodoPagoAnticipo
+        },
+        // Información de entrega
+        entrega: {
+          tipo: tiempoEntrega,
+          diasExpres: tiempoEntrega === 'expres' ? Number(diasExpres) : null,
+          fechaEstimada: calcularFechaEntrega.toISOString().split('T')[0]
+        },
+        // Términos comerciales
+        terminos: {
+          incluir: incluirTerminos
+        },
+        totalFinal: totalFinal,
+        comentarios,
+        fotoUrls: [],
+        videoUrl: '',
+        // Indicar que es para guardar PDF
+        guardarPDF: true
+      };
+
+      const response = await axiosConfig.post(`/prospectos/${prospectoId}/etapas/pdf`, payload, {
+        responseType: 'blob'
+      });
+      
+      if (response.data) {
+        // Crear URL del blob y descargar
+        const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Cotizacion-${prospectoId}-${Date.now()}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        onSaved?.('PDF generado y guardado exitosamente');
+      }
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      const mensaje = error.response?.data?.message || 'Error al generar el PDF';
+      setErrorLocal(mensaje);
+      onError?.(mensaje);
+    } finally {
+      setGuardandoPDF(false);
+    }
+  };
+
   return (
     <Dialog 
       open={open} 
-      onClose={cerrarModal} 
+      onClose={() => {}} // Deshabilitamos el cierre automático
       maxWidth="lg" 
       fullWidth
+      disableEscapeKeyDown // También deshabilitamos ESC para cerrar
       PaperProps={{
         sx: { maxHeight: '90vh' }
       }}
@@ -838,79 +1357,6 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                 </CardContent>
               </Card>
 
-              {/* Descuentos */}
-              <Card sx={{ mb: 2, bgcolor: 'success.50', border: 2, borderColor: 'success.200' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      💰 Descuentos para Cerrar Venta
-                    </Typography>
-                    <Button
-                      variant={aplicaDescuento ? 'contained' : 'outlined'}
-                      size="small"
-                      onClick={() => setAplicaDescuento(!aplicaDescuento)}
-                      sx={{ 
-                        bgcolor: aplicaDescuento ? '#16a34a' : 'transparent',
-                        color: aplicaDescuento ? 'white' : '#16a34a',
-                        borderColor: '#16a34a',
-                        '&:hover': { 
-                          bgcolor: aplicaDescuento ? '#15803d' : '#f0fdf4',
-                          borderColor: '#15803d'
-                        }
-                      }}
-                    >
-                      {aplicaDescuento ? '✅ Activado' : '➕ Activar'}
-                    </Button>
-                  </Box>
-                  
-                  {aplicaDescuento && (
-                    <Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Aplica descuentos por porcentaje o monto fijo para cerrar la venta
-                      </Typography>
-                      
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} sm={4}>
-                          <TextField
-                            select
-                            label="Tipo de descuento"
-                            fullWidth
-                            value={tipoDescuento}
-                            onChange={(e) => setTipoDescuento(e.target.value)}
-                            SelectProps={{ native: true }}
-                          >
-                            <option value="porcentaje">Porcentaje (%)</option>
-                            <option value="monto">Monto fijo ($)</option>
-                          </TextField>
-                        </Grid>
-                        <Grid item xs={12} sm={4}>
-                          <TextField
-                            label={tipoDescuento === 'porcentaje' ? '📊 Porcentaje (%)' : '💵 Monto (MXN)'}
-                            type="number"
-                            fullWidth
-                            value={valorDescuento}
-                            onChange={(e) => setValorDescuento(e.target.value)}
-                            placeholder={tipoDescuento === 'porcentaje' ? 'Ej. 5, 10, 15...' : 'Ej. 1000, 2500, 5000...'}
-                            helperText={tipoDescuento === 'porcentaje' ? 'Porcentaje de descuento' : 'Monto fijo a descontar'}
-                          />
-                        </Grid>
-                        <Grid item xs={12} sm={4}>
-                          {valorDescuento && (
-                            <Box sx={{ p: 2, bgcolor: 'success.100', borderRadius: 1, border: '1px solid', borderColor: 'success.300' }}>
-                              <Typography variant="body2" color="success.dark" fontWeight="bold">
-                                💸 Descuento: ${calcularDescuento.toLocaleString()}
-                              </Typography>
-                              <Typography variant="caption" color="success.dark">
-                                {tipoDescuento === 'porcentaje' ? `${valorDescuento}% de descuento` : 'Descuento fijo'}
-                              </Typography>
-                            </Box>
-                          )}
-                        </Grid>
-                      </Grid>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
 
               {/* Unidad */}
               <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
@@ -979,37 +1425,44 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                         />
                       </Grid>
                       <Grid item xs={12} sm={6}>
-                        <FormControl fullWidth>
-                          <InputLabel>Producto</InputLabel>
-                          <Select
-                            value={piezaForm.producto}
-                            label="Producto"
-                            onChange={(e) => {
-                              if (e.target.value === 'nuevo') {
-                                setMostrarNuevoProducto(true);
-                              } else {
-                                const productoSeleccionado = productosOptions.find(p => p.value === e.target.value);
-                                setPiezaForm(prev => ({ 
-                                  ...prev, 
-                                  producto: e.target.value,
-                                  productoLabel: productoSeleccionado ? productoSeleccionado.label : e.target.value
-                                }));
-                              }
-                            }}
-                          >
-                            {productosOptions.map((producto) => (
-                              <MenuItem 
-                                key={producto.value} 
-                                value={producto.value}
-                                sx={producto.value === 'nuevo' ? { color: 'primary.main', fontWeight: 'bold' } : {}}
-                              >
-                                {producto.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        
-                        {/* Indicador de producto personalizado */}
+                        <TextField
+                          select
+                          label="Producto"
+                          fullWidth
+                          value={piezaForm.producto}
+                          onChange={(e) => {
+                            const selectedOption = productosOptions.find(opt => opt.value === e.target.value);
+                            const nuevoProducto = e.target.value;
+                            setPiezaForm(prev => ({ 
+                              ...prev, 
+                              producto: nuevoProducto,
+                              productoLabel: selectedOption ? selectedOption.label : nuevoProducto,
+                              // Detectar automáticamente si es toldo
+                              esToldo: esToldo(nuevoProducto),
+                              // Reset campos específicos al cambiar producto
+                              kitModelo: '',
+                              kitModeloManual: '',
+                              kitPrecio: '',
+                              motorizado: false,
+                              motorModelo: '',
+                              motorModeloManual: '',
+                              motorPrecio: '',
+                              controlModelo: '',
+                              controlModeloManual: '',
+                              controlPrecio: ''
+                            }));
+                          }}
+                        >
+                          {productosOptions.map((producto) => (
+                            <MenuItem 
+                              key={producto.value} 
+                              value={producto.value}
+                              sx={producto.value === 'nuevo' ? { color: 'primary.main', fontWeight: 'bold' } : {}}
+                            >
+                              {producto.label}
+                            </MenuItem>
+                          ))}
+                        </TextField>
                         {piezaForm.producto.startsWith('custom_') && (
                           <Box sx={{ mt: 1, p: 1, bgcolor: 'success.50', borderRadius: 1, border: '1px solid', borderColor: 'success.200' }}>
                             <Typography variant="caption" color="success.dark" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -1064,6 +1517,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                 const nuevasMedidas = [...(piezaForm.medidas || [])];
                                 nuevasMedidas[index] = { ...nuevasMedidas[index], color: e.target.value };
                                 setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                // Sincronizar con el campo general después de un pequeño delay
+                                setTimeout(sincronizarColores, 100);
                               }}
                               placeholder="Ej. Blanco, Negro, Gris"
                             />
@@ -1121,8 +1576,23 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                           label="Color / Acabado"
                           fullWidth
                           value={piezaForm.color}
-                          onChange={(e) => setPiezaForm(prev => ({ ...prev, color: e.target.value }))}
+                          onChange={(e) => {
+                            const nuevoColor = e.target.value;
+                            setPiezaForm(prev => {
+                              // Actualizar color general y propagarlo a todas las piezas
+                              const nuevasMedidas = (prev.medidas || []).map(medida => ({
+                                ...medida,
+                                color: nuevoColor
+                              }));
+                              return { 
+                                ...prev, 
+                                color: nuevoColor,
+                                medidas: nuevasMedidas
+                              };
+                            });
+                          }}
                           placeholder="Ej. Blanco, Negro, Gris, etc."
+                          helperText="Se aplicará a todas las piezas. Puedes personalizar individualmente arriba."
                         />
                       </Grid>
                       <Grid item xs={12} sm={6}>
@@ -1136,6 +1606,208 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                           inputProps={{ step: 0.01 }}
                         />
                       </Grid>
+
+                      {/* Sección de Kit de Toldo - Solo para toldos */}
+                      {esToldo(piezaForm.producto) && (
+                        <>
+                          <Grid item xs={12}>
+                            <Typography variant="h6" sx={{ mt: 2, mb: 1, color: 'primary.main' }}>
+                              🏗️ Kit de Toldo
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <TextField
+                              select
+                              label="Tipo de Toldo"
+                              fullWidth
+                              value={piezaForm.tipoToldo}
+                              onChange={(e) => {
+                                setPiezaForm(prev => ({ 
+                                  ...prev, 
+                                  tipoToldo: e.target.value,
+                                  kitModelo: '', // Reset modelo al cambiar tipo
+                                  kitModeloManual: ''
+                                }));
+                              }}
+                            >
+                              <MenuItem value="caida_vertical">Caída Vertical</MenuItem>
+                              <MenuItem value="proyeccion">Proyección</MenuItem>
+                            </TextField>
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <TextField
+                              select
+                              label="Modelo de Kit"
+                              fullWidth
+                              value={piezaForm.kitModelo}
+                              onChange={(e) => {
+                                setPiezaForm(prev => ({ 
+                                  ...prev, 
+                                  kitModelo: e.target.value,
+                                  kitModeloManual: e.target.value === 'otro_manual' ? '' : prev.kitModeloManual
+                                }));
+                              }}
+                            >
+                              {modelosToldos[piezaForm.tipoToldo]?.map(modelo => (
+                                <MenuItem key={modelo.value} value={modelo.value}>
+                                  {modelo.label}
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                          </Grid>
+                          {piezaForm.kitModelo === 'otro_manual' && (
+                            <Grid item xs={12} sm={4}>
+                              <TextField
+                                label="Especificar modelo"
+                                fullWidth
+                                value={piezaForm.kitModeloManual}
+                                onChange={(e) => setPiezaForm(prev => ({ ...prev, kitModeloManual: e.target.value }))}
+                                placeholder="Ej. Modelo personalizado"
+                              />
+                            </Grid>
+                          )}
+                          <Grid item xs={12} sm={4}>
+                            <TextField
+                              label="Precio del Kit (MXN)"
+                              type="number"
+                              fullWidth
+                              value={piezaForm.kitPrecio}
+                              onChange={(e) => setPiezaForm(prev => ({ ...prev, kitPrecio: e.target.value }))}
+                              placeholder="Ej. 3500, 4200, 5000"
+                              inputProps={{ step: 0.01 }}
+                            />
+                          </Grid>
+                        </>
+                      )}
+
+                      {/* Sección de Motorización - Para toldos, persianas y cortinas */}
+                      {puedeSerMotorizado(piezaForm.producto) && (
+                        <>
+                          <Grid item xs={12}>
+                            <Typography variant="h6" sx={{ mt: 2, mb: 1, color: 'secondary.main' }}>
+                              ⚡ Motorización (Opcional)
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} sm={3}>
+                            <TextField
+                              select
+                              label="¿Motorizado?"
+                              fullWidth
+                              value={piezaForm.motorizado ? 'si' : 'no'}
+                              onChange={(e) => {
+                                const esMotorizado = e.target.value === 'si';
+                                setPiezaForm(prev => ({ 
+                                  ...prev, 
+                                  motorizado: esMotorizado,
+                                  // Reset campos si se desmarca
+                                  motorModelo: esMotorizado ? prev.motorModelo : '',
+                                  motorModeloManual: esMotorizado ? prev.motorModeloManual : '',
+                                  motorPrecio: esMotorizado ? prev.motorPrecio : '',
+                                  controlModelo: esMotorizado ? prev.controlModelo : '',
+                                  controlModeloManual: esMotorizado ? prev.controlModeloManual : '',
+                                  controlPrecio: esMotorizado ? prev.controlPrecio : ''
+                                }));
+                              }}
+                            >
+                              <MenuItem value="no">No</MenuItem>
+                              <MenuItem value="si">Sí</MenuItem>
+                            </TextField>
+                          </Grid>
+                          
+                          {piezaForm.motorizado && (
+                            <>
+                              <Grid item xs={12} sm={3}>
+                                <TextField
+                                  select
+                                  label="Modelo de Motor"
+                                  fullWidth
+                                  value={piezaForm.motorModelo}
+                                  onChange={(e) => {
+                                    setPiezaForm(prev => ({ 
+                                      ...prev, 
+                                      motorModelo: e.target.value,
+                                      motorModeloManual: e.target.value === 'otro_manual' ? '' : prev.motorModeloManual
+                                    }));
+                                  }}
+                                >
+                                  {modelosMotores.map(motor => (
+                                    <MenuItem key={motor.value} value={motor.value}>
+                                      {motor.label}
+                                    </MenuItem>
+                                  ))}
+                                </TextField>
+                              </Grid>
+                              {piezaForm.motorModelo === 'otro_manual' && (
+                                <Grid item xs={12} sm={3}>
+                                  <TextField
+                                    label="Especificar motor"
+                                    fullWidth
+                                    value={piezaForm.motorModeloManual}
+                                    onChange={(e) => setPiezaForm(prev => ({ ...prev, motorModeloManual: e.target.value }))}
+                                    placeholder="Ej. Motor Nacional 28Nm"
+                                  />
+                                </Grid>
+                              )}
+                              <Grid item xs={12} sm={3}>
+                                <TextField
+                                  label="Precio Motor (MXN)"
+                                  type="number"
+                                  fullWidth
+                                  value={piezaForm.motorPrecio}
+                                  onChange={(e) => setPiezaForm(prev => ({ ...prev, motorPrecio: e.target.value }))}
+                                  placeholder="Ej. 3800, 4500"
+                                  inputProps={{ step: 0.01 }}
+                                />
+                              </Grid>
+                              
+                              <Grid item xs={12} sm={3}>
+                                <TextField
+                                  select
+                                  label="Modelo de Control"
+                                  fullWidth
+                                  value={piezaForm.controlModelo}
+                                  onChange={(e) => {
+                                    setPiezaForm(prev => ({ 
+                                      ...prev, 
+                                      controlModelo: e.target.value,
+                                      controlModeloManual: e.target.value === 'otro_manual' ? '' : prev.controlModeloManual
+                                    }));
+                                  }}
+                                >
+                                  {modelosControles.map(control => (
+                                    <MenuItem key={control.value} value={control.value}>
+                                      {control.label}
+                                    </MenuItem>
+                                  ))}
+                                </TextField>
+                              </Grid>
+                              {piezaForm.controlModelo === 'otro_manual' && (
+                                <Grid item xs={12} sm={3}>
+                                  <TextField
+                                    label="Especificar control"
+                                    fullWidth
+                                    value={piezaForm.controlModeloManual}
+                                    onChange={(e) => setPiezaForm(prev => ({ ...prev, controlModeloManual: e.target.value }))}
+                                    placeholder="Ej. Control personalizado"
+                                  />
+                                </Grid>
+                              )}
+                              <Grid item xs={12} sm={3}>
+                                <TextField
+                                  label="Precio Control (MXN)"
+                                  type="number"
+                                  fullWidth
+                                  value={piezaForm.controlPrecio}
+                                  onChange={(e) => setPiezaForm(prev => ({ ...prev, controlPrecio: e.target.value }))}
+                                  placeholder="Ej. 950, 1200"
+                                  inputProps={{ step: 0.01 }}
+                                />
+                              </Grid>
+                            </>
+                          )}
+                        </>
+                      )}
+
                       <Grid item xs={12}>
                         <TextField
                           label="Observaciones"
@@ -1359,21 +2031,28 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     }
                     
                     const precio = pieza.precioM2 || precioGeneral;
-                    const subtotal = areaTotal * precio;
+                    const subtotalM2 = areaTotal * precio;
+                    
+                    // Calcular costos adicionales
+                    const esProductoToldo = esToldo(pieza.producto) || pieza.esToldo;
+                    const kitPrecio = esProductoToldo && pieza.kitPrecio ? parseFloat(pieza.kitPrecio) : 0;
+                    const motorPrecio = pieza.motorizado && pieza.motorPrecio ? parseFloat(pieza.motorPrecio) : 0;
+                    const controlPrecio = pieza.motorizado && pieza.controlPrecio ? parseFloat(pieza.controlPrecio) : 0;
+                    
+                    const totalPartida = subtotalM2 + (kitPrecio * cantidadPiezas) + (motorPrecio * cantidadPiezas) + controlPrecio;
                     
                     return (
                       <Card key={index} sx={{ mb: 2, border: 1, borderColor: 'grey.200' }}>
                         <CardContent sx={{ p: 2 }}>
-                          {/* Fila principal con información básica */}
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                              <Chip label={`📍 ${pieza.ubicacion}`} color="primary" variant="outlined" />
-                              <Typography variant="body2" fontWeight="bold">
-                                {pieza.productoLabel || pieza.producto}
+                          {/* Encabezado de la partida */}
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                            <Box>
+                              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                📍 Partida {index + 1} – {pieza.ubicacion}
                               </Typography>
-                              <Chip label={`${cantidadPiezas} pieza${cantidadPiezas > 1 ? 's' : ''}`} size="small" />
-                              <Chip label={`📐 ${areaTotal.toFixed(2)} m²`} color="info" size="small" />
-                              <Chip label={`💰 $${subtotal.toLocaleString()}`} color="success" size="small" />
+                              <Typography variant="body1" fontWeight="bold" color="primary.main">
+                                {pieza.productoLabel || pieza.producto} ({cantidadPiezas} pieza{cantidadPiezas > 1 ? 's' : ''})
+                              </Typography>
                             </Box>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                               <IconButton
@@ -1395,39 +2074,111 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                             </Box>
                           </Box>
 
-                          {/* Fila secundaria con detalles */}
-                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', mb: 1 }}>
-                            {pieza.color && (
-                              <Chip label={`🎨 ${pieza.color}`} size="small" variant="outlined" />
-                            )}
-                            {pieza.precioM2 && (
-                              <Chip label={`💲 $${pieza.precioM2}/m²`} size="small" color="warning" />
-                            )}
-                            {pieza.fotoUrls && pieza.fotoUrls.length > 0 && (
-                              <Chip 
-                                label={`📷 ${pieza.fotoUrls.length} foto${pieza.fotoUrls.length > 1 ? 's' : ''}`} 
-                                color="info" 
-                                size="small"
-                                onClick={() => pieza.fotoUrls.forEach(url => window.open(url, '_blank'))}
-                                sx={{ cursor: 'pointer' }}
-                              />
-                            )}
-                            {pieza.videoUrl && (
-                              <Chip 
-                                label="🎥 Video" 
-                                color="secondary" 
-                                size="small"
-                                onClick={() => window.open(pieza.videoUrl, '_blank')}
-                                sx={{ cursor: 'pointer' }}
-                              />
-                            )}
+                          {/* Información básica */}
+                          <Box sx={{ mb: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+                            <Grid container spacing={2}>
+                              <Grid item xs={6} sm={3}>
+                                <Typography variant="body2" color="text.secondary">Superficie:</Typography>
+                                <Typography variant="body1" fontWeight="bold">📐 {areaTotal.toFixed(2)} m²</Typography>
+                              </Grid>
+                              <Grid item xs={6} sm={3}>
+                                <Typography variant="body2" color="text.secondary">Precio m²:</Typography>
+                                <Typography variant="body1" fontWeight="bold">💲 ${precio.toLocaleString()}/m²</Typography>
+                              </Grid>
+                              <Grid item xs={6} sm={3}>
+                                <Typography variant="body2" color="text.secondary">Subtotal m²:</Typography>
+                                <Typography variant="body1" fontWeight="bold">💰 ${subtotalM2.toLocaleString()}</Typography>
+                              </Grid>
+                              <Grid item xs={6} sm={3}>
+                                <Typography variant="body2" color="text.secondary">Color:</Typography>
+                                <Typography variant="body1" fontWeight="bold">🎨 {pieza.color || 'No especificado'}</Typography>
+                              </Grid>
+                            </Grid>
+                          </Box>
+
+                          {/* Desglose de incluidos */}
+                          {(esProductoToldo || pieza.motorizado) && (
+                            <Box sx={{ mb: 2 }}>
+                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: 'info.main' }}>
+                                📦 Incluye:
+                              </Typography>
+                              <Box sx={{ pl: 2 }}>
+                                {/* Kit de toldo */}
+                                {esProductoToldo && kitPrecio > 0 && (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                    <Typography variant="body2" sx={{ minWidth: 20 }}>•</Typography>
+                                    <Typography variant="body2">
+                                      {cantidadPiezas} Kit{cantidadPiezas > 1 ? 's' : ''} de Toldo ({pieza.kitModeloManual || pieza.kitModelo || 'Modelo estándar'}) 
+                                      → ${kitPrecio.toLocaleString()} c/u → 
+                                      <span style={{ fontWeight: 'bold', color: '#1976d2' }}> ${(kitPrecio * cantidadPiezas).toLocaleString()}</span>
+                                    </Typography>
+                                  </Box>
+                                )}
+                                
+                                {/* Motores */}
+                                {pieza.motorizado && motorPrecio > 0 && (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                    <Typography variant="body2" sx={{ minWidth: 20 }}>•</Typography>
+                                    <Typography variant="body2">
+                                      {cantidadPiezas} Motor{cantidadPiezas > 1 ? 'es' : ''} ({pieza.motorModeloManual || pieza.motorModelo || 'Modelo estándar'}) 
+                                      → ${motorPrecio.toLocaleString()} c/u → 
+                                      <span style={{ fontWeight: 'bold', color: '#1976d2' }}> ${(motorPrecio * cantidadPiezas).toLocaleString()}</span>
+                                    </Typography>
+                                  </Box>
+                                )}
+                                
+                                {/* Controles */}
+                                {pieza.motorizado && controlPrecio > 0 && (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                    <Typography variant="body2" sx={{ minWidth: 20 }}>•</Typography>
+                                    <Typography variant="body2">
+                                      1 Control ({pieza.controlModeloManual || pieza.controlModelo || 'Modelo estándar'}) 
+                                      → <span style={{ fontWeight: 'bold', color: '#1976d2' }}>${controlPrecio.toLocaleString()}</span>
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Box>
+                            </Box>
+                          )}
+
+                          {/* Total de la partida */}
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1, borderTop: 1, borderColor: 'grey.200' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                              Total Partida: ${totalPartida.toLocaleString()}
+                            </Typography>
                           </Box>
 
                           {/* Observaciones */}
                           {pieza.observaciones && (
-                            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                              💬 {pieza.observaciones}
-                            </Typography>
+                            <Box sx={{ mt: 2, p: 1, bgcolor: 'warning.50', borderRadius: 1, borderLeft: 3, borderColor: 'warning.main' }}>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                💬 {pieza.observaciones}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          {/* Fotos y videos */}
+                          {((pieza.fotoUrls && pieza.fotoUrls.length > 0) || pieza.videoUrl) && (
+                            <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                              {pieza.fotoUrls && pieza.fotoUrls.length > 0 && (
+                                <Chip 
+                                  label={`📷 ${pieza.fotoUrls.length} foto${pieza.fotoUrls.length > 1 ? 's' : ''}`} 
+                                  color="info" 
+                                  size="small"
+                                  onClick={() => pieza.fotoUrls.forEach(url => window.open(url, '_blank'))}
+                                  sx={{ cursor: 'pointer' }}
+                                />
+                              )}
+                              {pieza.videoUrl && (
+                                <Chip 
+                                  label="🎥 Video" 
+                                  color="secondary" 
+                                  size="small"
+                                  onClick={() => window.open(pieza.videoUrl, '_blank')}
+                                  sx={{ cursor: 'pointer' }}
+                                />
+                              )}
+                            </Box>
                           )}
                         </CardContent>
                       </Card>
@@ -1459,7 +2210,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                           {aplicaDescuento ? 'Total final:' : (cobraInstalacion ? 'Total con instalación:' : 'Total estimado:')}
                         </Typography>
                         <Typography variant="body1" fontWeight="bold" color="success.main">
-                          💵 ${(calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0) - calcularDescuento).toLocaleString()}
+                          💵 ${totalFinal.toLocaleString()}
                         </Typography>
                       </Grid>
                     </Grid>
@@ -1484,6 +2235,340 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                   </CardContent>
                 </Card>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Descuentos - Solo aparece cuando hay partidas */}
+        {piezas.length > 0 && (
+          <Card sx={{ mb: 2, bgcolor: 'success.50', border: 2, borderColor: 'success.200' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  💰 Descuentos para Cerrar Venta
+                </Typography>
+                <Button
+                  variant={aplicaDescuento ? 'contained' : 'outlined'}
+                  size="small"
+                  onClick={() => setAplicaDescuento(!aplicaDescuento)}
+                  sx={{ 
+                    bgcolor: aplicaDescuento ? '#16a34a' : 'transparent',
+                    color: aplicaDescuento ? 'white' : '#16a34a',
+                    borderColor: '#16a34a',
+                    '&:hover': { 
+                      bgcolor: aplicaDescuento ? '#15803d' : '#f0fdf4',
+                      borderColor: '#15803d'
+                    }
+                  }}
+                >
+                  {aplicaDescuento ? '✅ Activado' : '➕ Activar'}
+                </Button>
+              </Box>
+              
+              {aplicaDescuento && (
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Aplica descuentos por porcentaje o monto fijo para cerrar la venta
+                  </Typography>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        select
+                        label="Tipo de descuento"
+                        fullWidth
+                        value={tipoDescuento}
+                        onChange={(e) => setTipoDescuento(e.target.value)}
+                        SelectProps={{ native: true }}
+                      >
+                        <option value="porcentaje">Porcentaje (%)</option>
+                        <option value="monto">Monto fijo ($)</option>
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        label={tipoDescuento === 'porcentaje' ? '📊 Porcentaje (%)' : '💵 Monto (MXN)'}
+                        type="number"
+                        fullWidth
+                        value={valorDescuento}
+                        onChange={(e) => setValorDescuento(e.target.value)}
+                        placeholder={tipoDescuento === 'porcentaje' ? 'Ej. 5, 10, 15...' : 'Ej. 1000, 2500, 5000...'}
+                        helperText={tipoDescuento === 'porcentaje' ? 'Porcentaje de descuento' : 'Monto fijo a descontar'}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      {valorDescuento && (
+                        <Box sx={{ p: 2, bgcolor: 'success.100', borderRadius: 1, border: '1px solid', borderColor: 'success.300' }}>
+                          <Typography variant="body2" color="success.dark" fontWeight="bold">
+                            💸 Descuento: ${calcularDescuento.toLocaleString()}
+                          </Typography>
+                          <Typography variant="caption" color="success.dark">
+                            {tipoDescuento === 'porcentaje' ? `${valorDescuento}% de descuento` : 'Descuento fijo'}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Grid>
+                  </Grid>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Sección de Facturación y Términos - Solo aparece cuando hay partidas */}
+        {piezas.length > 0 && (
+          <Card sx={{ mb: 2, bgcolor: 'warning.50', border: 2, borderColor: 'warning.200' }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                📋 Facturación y Método de Pago
+              </Typography>
+              
+              <Grid container spacing={2}>
+                {/* Casilla de Factura */}
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid', borderColor: 'grey.300' }}>
+                    <Typography variant="body1" fontWeight="medium" sx={{ mb: 1 }}>¿Requiere Factura?</Typography>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        variant={!requiereFactura ? 'contained' : 'outlined'}
+                        size="small"
+                        onClick={() => setRequiereFactura(false)}
+                        sx={{ 
+                          bgcolor: !requiereFactura ? '#f57c00' : 'transparent',
+                          color: !requiereFactura ? 'white' : '#f57c00',
+                          borderColor: '#f57c00',
+                          '&:hover': { 
+                            bgcolor: !requiereFactura ? '#ef6c00' : '#fff3e0',
+                            borderColor: '#ef6c00'
+                          }
+                        }}
+                      >
+                        ❌ No
+                      </Button>
+                      <Button
+                        variant={requiereFactura ? 'contained' : 'outlined'}
+                        size="small"
+                        onClick={() => setRequiereFactura(true)}
+                        sx={{ 
+                          bgcolor: requiereFactura ? '#f57c00' : 'transparent',
+                          color: requiereFactura ? 'white' : '#f57c00',
+                          borderColor: '#f57c00',
+                          '&:hover': { 
+                            bgcolor: requiereFactura ? '#ef6c00' : '#fff3e0',
+                            borderColor: '#ef6c00'
+                          }
+                        }}
+                      >
+                        ✅ Sí
+                      </Button>
+                    </Box>
+                  </Box>
+                </Grid>
+
+                {/* Desglose de Totales */}
+                <Grid item xs={12} sm={8}>
+                  <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
+                    <Typography variant="subtitle2" fontWeight="bold" color="info.dark" sx={{ mb: 1 }}>
+                      💰 Desglose de Totales:
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography variant="body2">Subtotal productos:</Typography>
+                      <Typography variant="body2" fontWeight="bold">
+                        ${calcularSubtotalProductos.toLocaleString()}
+                      </Typography>
+                    </Box>
+                    
+                    {cobraInstalacion && precioInstalacion && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="body2">Instalación:</Typography>
+                        <Typography variant="body2" fontWeight="bold">
+                          ${parseFloat(precioInstalacion).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {aplicaDescuento && valorDescuento && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="body2">Descuento:</Typography>
+                        <Typography variant="body2" fontWeight="bold" color="success.dark">
+                          -${calcularDescuento.toLocaleString()}
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {requiereFactura && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="body2">IVA (16%):</Typography>
+                        <Typography variant="body2" fontWeight="bold" color="warning.dark">
+                          ${calcularIVA.toLocaleString()}
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: 1, borderColor: 'grey.300' }}>
+                      <Typography variant="body1" fontWeight="bold">Total Final:</Typography>
+                      <Typography variant="body1" fontWeight="bold" color="success.main">
+                        ${totalFinal.toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Grid>
+
+                {/* Método de Pago */}
+                <Grid item xs={12}>
+                  <Box sx={{ p: 2, bgcolor: 'success.50', borderRadius: 1, border: '1px solid', borderColor: 'success.200' }}>
+                    <Typography variant="subtitle2" fontWeight="bold" color="success.dark" sx={{ mb: 2 }}>
+                      💳 Método de Pago (60% Anticipo - 40% Saldo):
+                    </Typography>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={4}>
+                        <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid', borderColor: 'success.300' }}>
+                          <Typography variant="body2" color="text.secondary">Anticipo (60%):</Typography>
+                          <Typography variant="h6" fontWeight="bold" color="success.dark">
+                            ${anticipo.toLocaleString()}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Al confirmar pedido
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
+                        <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid', borderColor: 'info.300' }}>
+                          <Typography variant="body2" color="text.secondary">Saldo (40%):</Typography>
+                          <Typography variant="h6" fontWeight="bold" color="info.dark">
+                            ${saldo.toLocaleString()}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Contra entrega/instalación
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={4}>
+                        <TextField
+                          select
+                          label="Método de Pago del Anticipo"
+                          fullWidth
+                          value={metodoPagoAnticipo}
+                          onChange={(e) => setMetodoPagoAnticipo(e.target.value)}
+                          helperText="¿Cómo pagará el anticipo?"
+                          size="small"
+                        >
+                          <MenuItem value="">Seleccionar...</MenuItem>
+                          <MenuItem value="efectivo">💵 Efectivo</MenuItem>
+                          <MenuItem value="transferencia">🏦 Transferencia</MenuItem>
+                          <MenuItem value="tarjeta_credito">💳 Tarjeta de Crédito</MenuItem>
+                          <MenuItem value="tarjeta_debito">💳 Tarjeta de Débito</MenuItem>
+                          <MenuItem value="cheque">📄 Cheque</MenuItem>
+                          <MenuItem value="deposito">🏧 Depósito Bancario</MenuItem>
+                          <MenuItem value="otro">🔄 Otro</MenuItem>
+                        </TextField>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </Grid>
+
+                {/* Términos Comerciales */}
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid', borderColor: 'grey.300' }}>
+                    <Typography variant="body1" fontWeight="medium">Incluir términos comerciales:</Typography>
+                    <Button
+                      variant={incluirTerminos ? 'contained' : 'outlined'}
+                      size="small"
+                      onClick={() => setIncluirTerminos(!incluirTerminos)}
+                      sx={{ 
+                        bgcolor: incluirTerminos ? '#1976d2' : 'transparent',
+                        color: incluirTerminos ? 'white' : '#1976d2',
+                        borderColor: '#1976d2',
+                        '&:hover': { 
+                          bgcolor: incluirTerminos ? '#1565c0' : '#e3f2fd',
+                          borderColor: '#1565c0'
+                        }
+                      }}
+                    >
+                      {incluirTerminos ? '✅ Sí' : '❌ No'}
+                    </Button>
+                  </Box>
+                  
+                  {/* Términos comerciales */}
+                  {incluirTerminos && (
+                    <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.300' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', lineHeight: 1.3 }}>
+                        <strong>CONDICIONES DE CRÉDITO:</strong> 60% DE ANTICIPO, RESTO CONTRA ORDEN DE EMBARQUE O INSTALACIÓN, CON 3 AÑOS DE GARANTÍA.<br/>
+                        <strong>POR SER NUESTROS PRODUCTOS HECHOS A LA MEDIDA,</strong> NO SE ACEPTAN CAMBIOS NI CANCELACIONES UNA VEZ GENERADO EL PAGO DEL ANTICIPO.<br/>
+                        {requiereFactura ? 
+                          <strong>PRECIO CON IVA INCLUIDO.</strong> :
+                          <strong>PRECIOS SUJETOS A CAMBIO SIN PREVIO AVISO.</strong>
+                        }
+                      </Typography>
+                    </Box>
+                  )}
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Sección de Tiempo de Entrega - Solo aparece cuando hay partidas */}
+        {piezas.length > 0 && (
+          <Card sx={{ mb: 2, bgcolor: 'info.50', border: 2, borderColor: 'info.200' }}>
+            <CardContent>
+              <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                🚚 Tiempo de Entrega
+              </Typography>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    select
+                    label="Tipo de entrega"
+                    fullWidth
+                    value={tiempoEntrega}
+                    onChange={(e) => setTiempoEntrega(e.target.value)}
+                  >
+                    <MenuItem value="normal">Normal</MenuItem>
+                    <MenuItem value="expres">Exprés</MenuItem>
+                  </TextField>
+                </Grid>
+                
+                {tiempoEntrega === 'expres' && (
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Días exprés"
+                      type="number"
+                      fullWidth
+                      value={diasExpres}
+                      onChange={(e) => setDiasExpres(e.target.value)}
+                      placeholder="Ej. 5, 7, 10"
+                      helperText="Días hábiles para entrega"
+                      inputProps={{ min: 1, max: 30 }}
+                    />
+                  </Grid>
+                )}
+                
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ p: 2, bgcolor: 'white', borderRadius: 1, border: '1px solid', borderColor: 'info.300' }}>
+                    <Typography variant="body2" color="text.secondary">Fecha estimada de entrega:</Typography>
+                    <Typography variant="body1" fontWeight="bold" color="info.dark">
+                      📅 {calcularFechaEntrega.toLocaleDateString('es-MX', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {tiempoEntrega === 'expres' && diasExpres ? 
+                        `${diasExpres} días hábiles` : 
+                        `${piezas.some(p => p.producto === 'antihuracan') ? '6-8 semanas' : 
+                          piezas.some(p => p.producto === 'cortina_tradicional') ? '4 semanas' : 
+                          '15 días hábiles'}`
+                      }
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
             </CardContent>
           </Card>
         )}
@@ -1516,12 +2601,12 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           Cancelar
         </Button>
         
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           {/* Botón Generar Cotización - Solo para Visita Inicial con piezas */}
           {nombreEtapa === 'Visita Inicial / Medición' && piezas.length > 0 && (
             <Button
               onClick={handleGenerarCotizacion}
-              disabled={generandoCotizacion || guardando}
+              disabled={generandoCotizacion || guardando || guardandoPedido || guardandoPDF}
               variant="contained"
               startIcon={<span>💰</span>}
               sx={{ bgcolor: '#16A34A', '&:hover': { bgcolor: '#15803D' } }}
@@ -1530,9 +2615,35 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             </Button>
           )}
           
+          {/* Botón Generar y Guardar PDF - Solo cuando hay piezas */}
+          {piezas.length > 0 && (
+            <Button
+              onClick={handleGenerarYGuardarPDF}
+              disabled={guardandoPDF || guardando || generandoCotizacion || guardandoPedido}
+              variant="contained"
+              startIcon={<span>📄</span>}
+              sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}
+            >
+              {guardandoPDF ? 'Generando PDF...' : 'Guardar PDF'}
+            </Button>
+          )}
+          
+          {/* Botón Agregar Pedido - Solo cuando hay piezas */}
+          {piezas.length > 0 && (
+            <Button
+              onClick={handleAgregarPedido}
+              disabled={guardandoPedido || guardando || generandoCotizacion || guardandoPDF}
+              variant="contained"
+              startIcon={<span>📦</span>}
+              sx={{ bgcolor: '#1976D2', '&:hover': { bgcolor: '#1565C0' } }}
+            >
+              {guardandoPedido ? 'Creando...' : 'Agregar Pedido'}
+            </Button>
+          )}
+          
           <Button
             onClick={handleGuardarEtapa}
-            disabled={guardando || generandoCotizacion}
+            disabled={guardando || generandoCotizacion || guardandoPedido || guardandoPDF}
             variant="contained"
             sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8860B' } }}
           >
