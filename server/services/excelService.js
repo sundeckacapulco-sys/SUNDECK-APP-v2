@@ -135,53 +135,127 @@ class ExcelService {
       // Datos de las piezas
       let currentRow = 7;
       let totalGeneral = 0;
+      let totalPiezasReales = 0;
+      let totalAreaReal = 0;
 
-      piezas.forEach((pieza, index) => {
-        const row = worksheet.getRow(currentRow);
-        const area = (pieza.ancho || 0) * (pieza.alto || 0);
-        const precio = pieza.precioM2 || precioGeneral;
-        const subtotal = area * precio;
-        totalGeneral += subtotal;
+      piezas.forEach((pieza, piezaIndex) => {
+        // Detectar si la pieza tiene medidas individuales o formato anterior
+        if (pieza.medidas && Array.isArray(pieza.medidas) && pieza.medidas.length > 0) {
+          // Formato nuevo: iterar cada medida individual
+          pieza.medidas.forEach((medida, medidaIndex) => {
+            const row = worksheet.getRow(currentRow);
+            const ancho = Number(medida.ancho) || 0;
+            const alto = Number(medida.alto) || 0;
+            const area = ancho * alto;
+            const precio = Number(medida.precioM2) || Number(pieza.precioM2) || precioGeneral;
+            const subtotal = area * precio;
+            
+            totalGeneral += subtotal;
+            totalPiezasReales += 1;
+            totalAreaReal += area;
 
-        // Datos de la fila
-        row.getCell(1).value = pieza.ubicacion || '';
-        row.getCell(2).value = pieza.productoLabel || pieza.producto || '';
-        row.getCell(3).value = pieza.ancho || 0;
-        row.getCell(4).value = pieza.alto || 0;
-        row.getCell(5).value = area.toFixed(2);
-        row.getCell(6).value = pieza.color || '';
-        row.getCell(7).value = this.formatCurrency(precio);
-        row.getCell(8).value = this.formatCurrency(subtotal);
-        row.getCell(9).value = pieza.observaciones || '';
-        row.getCell(10).value = (pieza.fotoUrls && pieza.fotoUrls.length) ? pieza.fotoUrls.length : 0;
-        row.getCell(11).value = pieza.videoUrl ? 'Sí' : 'No';
+            // Datos de la fila
+            const ubicacionDisplay = pieza.medidas.length > 1 ? 
+              `${pieza.ubicacion || ''} (${medidaIndex + 1}/${pieza.medidas.length})` : 
+              (pieza.ubicacion || '');
+            
+            row.getCell(1).value = ubicacionDisplay;
+            row.getCell(2).value = medida.productoLabel || medida.producto || pieza.productoLabel || pieza.producto || '';
+            row.getCell(3).value = ancho;
+            row.getCell(4).value = alto;
+            row.getCell(5).value = area.toFixed(2);
+            row.getCell(6).value = medida.color || pieza.color || '';
+            row.getCell(7).value = this.formatCurrency(precio);
+            row.getCell(8).value = this.formatCurrency(subtotal);
+            row.getCell(9).value = pieza.observaciones || '';
+            row.getCell(10).value = (pieza.fotoUrls && pieza.fotoUrls.length) ? pieza.fotoUrls.length : 0;
+            row.getCell(11).value = pieza.videoUrl ? 'Sí' : 'No';
 
-        // Formato de números
-        row.getCell(3).numFmt = '0.00';
-        row.getCell(4).numFmt = '0.00';
-        row.getCell(5).numFmt = '0.00';
+            // Formato de números
+            row.getCell(3).numFmt = '0.00';
+            row.getCell(4).numFmt = '0.00';
+            row.getCell(5).numFmt = '0.00';
 
-        // Bordes para todas las celdas
-        for (let col = 1; col <= 11; col++) {
-          const cell = row.getCell(col);
-          cell.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' }
-          };
+            // Bordes para todas las celdas
+            for (let col = 1; col <= 11; col++) {
+              const cell = row.getCell(col);
+              cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+              };
+              
+              // Alternar colores de fila
+              if (currentRow % 2 === 0) {
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FFF8F9FA' }
+                };
+              }
+            }
+
+            currentRow++;
+          });
+        } else {
+          // Formato anterior: usar campos planos
+          const row = worksheet.getRow(currentRow);
+          const ancho = Number(pieza.ancho) || 0;
+          const alto = Number(pieza.alto) || 0;
+          const cantidad = Number(pieza.cantidad) || 1;
+          const area = ancho * alto * cantidad;
+          const precio = Number(pieza.precioM2) || precioGeneral;
+          const subtotal = area * precio;
           
-          // Alternar colores de fila
-          if (index % 2 === 1) {
-            cell.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FFF8F9FA' }
-            };
-          }
-        }
+          totalGeneral += subtotal;
+          totalPiezasReales += cantidad;
+          totalAreaReal += area;
 
-        currentRow++;
+          // Datos de la fila
+          const ubicacionDisplay = cantidad > 1 ? 
+            `${pieza.ubicacion || ''} (${cantidad} piezas)` : 
+            (pieza.ubicacion || '');
+            
+          row.getCell(1).value = ubicacionDisplay;
+          row.getCell(2).value = pieza.productoLabel || pieza.producto || '';
+          row.getCell(3).value = ancho;
+          row.getCell(4).value = alto;
+          row.getCell(5).value = area.toFixed(2);
+          row.getCell(6).value = pieza.color || '';
+          row.getCell(7).value = this.formatCurrency(precio);
+          row.getCell(8).value = this.formatCurrency(subtotal);
+          row.getCell(9).value = pieza.observaciones || '';
+          row.getCell(10).value = (pieza.fotoUrls && pieza.fotoUrls.length) ? pieza.fotoUrls.length : 0;
+          row.getCell(11).value = pieza.videoUrl ? 'Sí' : 'No';
+
+          // Formato de números
+          row.getCell(3).numFmt = '0.00';
+          row.getCell(4).numFmt = '0.00';
+          row.getCell(5).numFmt = '0.00';
+
+          // Bordes para todas las celdas
+          for (let col = 1; col <= 11; col++) {
+            const cell = row.getCell(col);
+            cell.border = {
+              top: { style: 'thin' },
+              left: { style: 'thin' },
+              bottom: { style: 'thin' },
+              right: { style: 'thin' }
+            };
+            
+            // Alternar colores de fila
+            if (piezaIndex % 2 === 1) {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFF8F9FA' }
+              };
+            }
+          }
+
+          currentRow++;
+        }
       });
 
       // Fila de totales
@@ -190,11 +264,11 @@ class ExcelService {
       totalRow.getCell(1).font = { bold: true };
       totalRow.getCell(4).value = 'Piezas:';
       totalRow.getCell(4).font = { bold: true };
-      totalRow.getCell(5).value = piezas.length;
+      totalRow.getCell(5).value = totalPiezasReales;
       totalRow.getCell(5).font = { bold: true };
       totalRow.getCell(6).value = 'Total m²:';
       totalRow.getCell(6).font = { bold: true };
-      totalRow.getCell(7).value = totalM2.toFixed(2);
+      totalRow.getCell(7).value = totalAreaReal.toFixed(2);
       totalRow.getCell(7).font = { bold: true };
       totalRow.getCell(8).value = this.formatCurrency(totalGeneral);
       totalRow.getCell(8).font = { bold: true, color: { argb: 'FFD4AF37' } };

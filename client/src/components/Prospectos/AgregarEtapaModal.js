@@ -650,8 +650,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           ubicacion: pieza.ubicacion,
           cantidad: pieza.cantidad || 1,
           medidas: pieza.medidas || [{ 
-            ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
-            alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+            ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
+            alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
             area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
             producto: pieza.producto,
             productoLabel: pieza.productoLabel,
@@ -678,7 +678,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           controlModeloManual: pieza.controlModeloManual || '',
           controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
           // Compatibilidad con formato anterior
-          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+          ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
           alto: pieza.alto !== '' ? Number(pieza.alto) : 0
         })),
         precioGeneral: Number(precioGeneral),
@@ -747,8 +747,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           ubicacion: pieza.ubicacion,
           cantidad: pieza.cantidad || 1,
           medidas: pieza.medidas || [{ 
-            ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
-            alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+            ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
+            alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
             area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
             producto: pieza.producto,
             productoLabel: pieza.productoLabel,
@@ -777,7 +777,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           controlModeloManual: pieza.controlModeloManual || '',
           controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
           // Compatibilidad con formato anterior
-          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+          ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
           alto: pieza.alto !== '' ? Number(pieza.alto) : 0
         })),
         precioGeneral: Number(precioGeneral),
@@ -842,18 +842,50 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     try {
       const payload = {
         prospectoId,
-        piezas: piezas.map((pieza) => ({
-          ubicacion: pieza.ubicacion,
-          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
-          alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
-          producto: pieza.producto,
-          productoLabel: pieza.productoLabel,
-          color: pieza.color,
-          precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : precioGeneral,
-          observaciones: pieza.observaciones,
-          fotoUrls: pieza.fotoUrls || [],
-          videoUrl: pieza.videoUrl || ''
-        })),
+        piezas: piezas.map((pieza) => {
+          // Obtener medidas del formato nuevo o del formato anterior
+          let ancho = 0, alto = 0;
+          
+          if (pieza.medidas && pieza.medidas.length > 0) {
+            // Formato nuevo: usar la primera medida como representativa
+            ancho = Number(pieza.medidas[0].ancho) || 0;
+            alto = Number(pieza.medidas[0].alto) || 0;
+          } else if (pieza.ancho !== undefined && pieza.alto !== undefined) {
+            // Formato anterior: usar campos directos
+            ancho = pieza.ancho !== '' ? Number(pieza.ancho) : 0;
+            alto = pieza.alto !== '' ? Number(pieza.alto) : 0;
+          }
+          
+          return {
+            ubicacion: pieza.ubicacion,
+            cantidad: pieza.cantidad || 1,
+            ancho: ancho,
+            alto: alto,
+            // Incluir también el array de medidas para compatibilidad completa
+            medidas: pieza.medidas || [{ ancho, alto }],
+            producto: pieza.producto,
+            productoLabel: pieza.productoLabel,
+            color: pieza.color,
+            precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : precioGeneral,
+            observaciones: pieza.observaciones,
+            fotoUrls: pieza.fotoUrls || [],
+            videoUrl: pieza.videoUrl || '',
+            // Información de toldos
+            esToldo: pieza.esToldo || false,
+            tipoToldo: pieza.tipoToldo || '',
+            kitModelo: pieza.kitModelo || '',
+            kitModeloManual: pieza.kitModeloManual || '',
+            kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
+            // Información de motorización
+            motorizado: pieza.motorizado || false,
+            motorModelo: pieza.motorModelo || '',
+            motorModeloManual: pieza.motorModeloManual || '',
+            motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
+            controlModelo: pieza.controlModelo || '',
+            controlModeloManual: pieza.controlModeloManual || '',
+            controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0
+          };
+        }),
         precioGeneral: Number(precioGeneral),
         totalM2: calcularTotalM2,
         unidadMedida: unidad,
@@ -907,8 +939,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         totalM2: calcularTotalM2,
         piezas: piezas.map((pieza) => ({
           ubicacion: pieza.ubicacion,
-          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
-          alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+          ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
+          alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
           producto: pieza.producto,
           productoLabel: pieza.productoLabel,
           color: pieza.color,
@@ -954,8 +986,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           ubicacion: pieza.ubicacion,
           cantidad: pieza.cantidad || 1,
           medidas: pieza.medidas || [{ 
-            ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
-            alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+            ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
+            alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
             area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
             producto: pieza.producto,
             productoLabel: pieza.productoLabel,
@@ -982,7 +1014,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           controlModeloManual: pieza.controlModeloManual || '',
           controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
           // Compatibilidad con formato anterior
-          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+          ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
           alto: pieza.alto !== '' ? Number(pieza.alto) : 0
         })),
         precioGeneral: Number(precioGeneral),
@@ -1062,8 +1094,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           ubicacion: pieza.ubicacion,
           cantidad: pieza.cantidad || 1,
           medidas: pieza.medidas || [{ 
-            ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
-            alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+            ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
+            alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
             area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
             producto: pieza.producto,
             productoLabel: pieza.productoLabel,
@@ -1090,7 +1122,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           controlModeloManual: pieza.controlModeloManual || '',
           controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
           // Compatibilidad con formato anterior
-          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+          ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
           alto: pieza.alto !== '' ? Number(pieza.alto) : 0
         })),
         precioGeneral: Number(precioGeneral),

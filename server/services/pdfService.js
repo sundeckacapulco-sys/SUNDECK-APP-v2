@@ -522,7 +522,10 @@ class PDFService {
                 <strong>Dimensiones:</strong> {{ancho}} × {{alto}} {{../unidadMedida}}<br>
                 <strong>Área:</strong> {{area}} m²<br>
                 {{#if precioM2}}
-                <strong>Precio específico:</strong> {{precioM2}}/m²
+                <strong>Precio específico:</strong> {{precioM2}}/m²<br>
+                {{/if}}
+                {{#if subtotal}}
+                <strong>Subtotal:</strong> {{subtotal}}
                 {{/if}}
               </div>
               <div>
@@ -579,22 +582,82 @@ class PDFService {
         });
       });
 
+      // Calcular totales reales basados en medidas individuales
+      let totalPiezasReales = 0;
+      let totalAreaReal = 0;
+      let totalGeneralReal = 0;
+      const piezasExpandidas = [];
+
+      piezas.forEach((pieza) => {
+        if (pieza.medidas && Array.isArray(pieza.medidas) && pieza.medidas.length > 0) {
+          // Formato nuevo: procesar cada medida individual
+          pieza.medidas.forEach((medida, medidaIndex) => {
+            const ancho = Number(medida.ancho) || 0;
+            const alto = Number(medida.alto) || 0;
+            const area = ancho * alto;
+            const precio = Number(medida.precioM2) || Number(pieza.precioM2) || precioGeneral;
+            const subtotal = area * precio;
+            
+            totalPiezasReales += 1;
+            totalAreaReal += area;
+            totalGeneralReal += subtotal;
+
+            piezasExpandidas.push({
+              ...pieza,
+              ubicacion: pieza.medidas.length > 1 ? 
+                `${pieza.ubicacion || ''} (${medidaIndex + 1}/${pieza.medidas.length})` : 
+                (pieza.ubicacion || ''),
+              ancho: ancho,
+              alto: alto,
+              area: area.toFixed(2),
+              precioM2: this.formatCurrency(precio),
+              subtotal: this.formatCurrency(subtotal),
+              productoLabel: medida.productoLabel || medida.producto || pieza.productoLabel || pieza.producto,
+              color: medida.color || pieza.color || '',
+              fotoUrls: pieza.fotoUrls || [],
+              videoUrl: pieza.videoUrl
+            });
+          });
+        } else {
+          // Formato anterior: usar campos planos
+          const ancho = Number(pieza.ancho) || 0;
+          const alto = Number(pieza.alto) || 0;
+          const cantidad = Number(pieza.cantidad) || 1;
+          const area = ancho * alto * cantidad;
+          const precio = Number(pieza.precioM2) || precioGeneral;
+          const subtotal = area * precio;
+          
+          totalPiezasReales += cantidad;
+          totalAreaReal += area;
+          totalGeneralReal += subtotal;
+
+          piezasExpandidas.push({
+            ...pieza,
+            ubicacion: cantidad > 1 ? 
+              `${pieza.ubicacion || ''} (${cantidad} piezas)` : 
+              (pieza.ubicacion || ''),
+            ancho: ancho,
+            alto: alto,
+            area: area.toFixed(2),
+            precioM2: this.formatCurrency(precio),
+            subtotal: this.formatCurrency(subtotal),
+            productoLabel: pieza.productoLabel || pieza.producto,
+            fotoUrls: pieza.fotoUrls || [],
+            videoUrl: pieza.videoUrl
+          });
+        }
+      });
+
       const templateData = {
         fecha: this.formatDate(new Date()),
         prospecto: etapa.prospecto || { nombre: 'Cliente', telefono: '' },
         precioGeneral: this.formatCurrency(precioGeneral),
         unidadMedida: etapa.unidadMedida || 'm',
-        totalPiezas: piezas.length,
-        totalM2: totalM2.toFixed(2),
+        totalPiezas: totalPiezasReales,
+        totalM2: totalAreaReal.toFixed(2),
         precioEstimado: this.formatCurrency(precioGeneral),
-        totalAproximado: this.formatCurrency(totalM2 * precioGeneral),
-        piezas: piezas.map(pieza => ({
-          ...pieza,
-          area: ((pieza.ancho || 0) * (pieza.alto || 0)).toFixed(2),
-          precioM2: pieza.precioM2 ? this.formatCurrency(pieza.precioM2) : null,
-          fotoUrls: pieza.fotoUrls || [],
-          productoLabel: pieza.productoLabel || pieza.producto
-        }))
+        totalAproximado: this.formatCurrency(totalGeneralReal),
+        piezas: piezasExpandidas
       };
 
       const template = handlebars.compile(htmlTemplate);
