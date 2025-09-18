@@ -522,10 +522,10 @@ class PDFService {
                 <strong>Dimensiones:</strong> {{ancho}} × {{alto}} {{../unidadMedida}}<br>
                 <strong>Área:</strong> {{area}} m²<br>
                 {{#if precioM2}}
-                <strong>Precio específico:</strong> {{precioM2}}/m²<br>
+                <strong>Precio m²:</strong> {{precioM2}}/m²<br>
                 {{/if}}
-                {{#if subtotal}}
-                <strong>Subtotal:</strong> {{subtotal}}
+                {{#if subtotalBase}}
+                <strong>Subtotal base:</strong> {{subtotalBase}}<br>
                 {{/if}}
               </div>
               <div>
@@ -539,6 +539,27 @@ class PDFService {
                 {{/if}}
               </div>
             </div>
+            
+            {{#if esProductoToldo}}
+            <div style="margin-top: 10px; padding: 8px; background: #e3f2fd; border-left: 4px solid #2196f3;">
+              <strong>🏗️ Kit de Toldo:</strong> {{kitModelo}}
+              {{#if kitPrecio}} → {{kitPrecio}}{{/if}}
+            </div>
+            {{/if}}
+            
+            {{#if motorizado}}
+            <div style="margin-top: 10px; padding: 8px; background: #f3e5f5; border-left: 4px solid #9c27b0;">
+              <strong>⚡ Motorización:</strong><br>
+              • Motor: {{motorModelo}}{{#if motorPrecio}} → {{motorPrecio}}{{/if}}<br>
+              • Control: {{controlModelo}}{{#if controlPrecio}} → {{controlPrecio}}{{/if}}
+            </div>
+            {{/if}}
+            
+            {{#if subtotal}}
+            <div style="margin-top: 10px; padding: 8px; background: #e8f5e8; border-left: 4px solid #4caf50; text-align: right;">
+              <strong>💰 Total Pieza: {{subtotal}}</strong>
+            </div>
+            {{/if}}
             {{#if observaciones}}
             <p><strong>Observaciones:</strong> {{observaciones}}</p>
             {{/if}}
@@ -602,6 +623,15 @@ class PDFService {
             totalAreaReal += area;
             totalGeneralReal += subtotal;
 
+            // Información de toldos y motorización
+            const esProductoToldo = pieza.esToldo || (pieza.producto && pieza.producto.toLowerCase().includes('toldo'));
+            const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) : 0;
+            const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) : 0;
+            const controlPrecio = (pieza.motorizado && pieza.controlPrecio) ? Number(pieza.controlPrecio) : 0;
+            
+            const subtotalCompleto = subtotal + kitPrecio + motorPrecio + controlPrecio;
+            totalGeneralReal = totalGeneralReal - subtotal + subtotalCompleto; // Ajustar el total
+
             piezasExpandidas.push({
               ...pieza,
               ubicacion: pieza.medidas.length > 1 ? 
@@ -611,7 +641,19 @@ class PDFService {
               alto: alto,
               area: area.toFixed(2),
               precioM2: this.formatCurrency(precio),
-              subtotal: this.formatCurrency(subtotal),
+              subtotalBase: this.formatCurrency(subtotal),
+              // Información de toldos
+              esProductoToldo: esProductoToldo,
+              kitModelo: esProductoToldo ? (pieza.kitModeloManual || pieza.kitModelo || 'Kit incluido') : null,
+              kitPrecio: kitPrecio > 0 ? this.formatCurrency(kitPrecio) : null,
+              // Información de motorización
+              motorizado: pieza.motorizado,
+              motorModelo: pieza.motorizado ? (pieza.motorModeloManual || pieza.motorModelo || 'Motor incluido') : null,
+              motorPrecio: motorPrecio > 0 ? this.formatCurrency(motorPrecio) : null,
+              controlModelo: pieza.motorizado ? (pieza.controlModeloManual || pieza.controlModelo || 'Control incluido') : null,
+              controlPrecio: controlPrecio > 0 ? this.formatCurrency(controlPrecio) : null,
+              // Subtotal completo
+              subtotal: this.formatCurrency(subtotalCompleto),
               productoLabel: medida.productoLabel || medida.producto || pieza.productoLabel || pieza.producto,
               color: medida.color || pieza.color || '',
               fotoUrls: pieza.fotoUrls || [],
@@ -631,6 +673,15 @@ class PDFService {
           totalAreaReal += area;
           totalGeneralReal += subtotal;
 
+          // Información de toldos y motorización
+          const esProductoToldo = pieza.esToldo || (pieza.producto && pieza.producto.toLowerCase().includes('toldo'));
+          const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) * cantidad : 0;
+          const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) * cantidad : 0;
+          const controlPrecio = (pieza.motorizado && pieza.controlPrecio) ? Number(pieza.controlPrecio) : 0;
+          
+          const subtotalCompleto = subtotal + kitPrecio + motorPrecio + controlPrecio;
+          totalGeneralReal = totalGeneralReal - subtotal + subtotalCompleto; // Ajustar el total
+
           piezasExpandidas.push({
             ...pieza,
             ubicacion: cantidad > 1 ? 
@@ -640,7 +691,19 @@ class PDFService {
             alto: alto,
             area: area.toFixed(2),
             precioM2: this.formatCurrency(precio),
-            subtotal: this.formatCurrency(subtotal),
+            subtotalBase: this.formatCurrency(subtotal),
+            // Información de toldos
+            esProductoToldo: esProductoToldo,
+            kitModelo: esProductoToldo ? (pieza.kitModeloManual || pieza.kitModelo || 'Kit incluido') : null,
+            kitPrecio: kitPrecio > 0 ? this.formatCurrency(kitPrecio) : null,
+            // Información de motorización
+            motorizado: pieza.motorizado,
+            motorModelo: pieza.motorizado ? (pieza.motorModeloManual || pieza.motorModelo || 'Motor incluido') : null,
+            motorPrecio: motorPrecio > 0 ? this.formatCurrency(motorPrecio) : null,
+            controlModelo: pieza.motorizado ? (pieza.controlModeloManual || pieza.controlModelo || 'Control incluido') : null,
+            controlPrecio: controlPrecio > 0 ? this.formatCurrency(controlPrecio) : null,
+            // Subtotal completo
+            subtotal: this.formatCurrency(subtotalCompleto),
             productoLabel: pieza.productoLabel || pieza.producto,
             fotoUrls: pieza.fotoUrls || [],
             videoUrl: pieza.videoUrl

@@ -66,16 +66,23 @@ class ExcelService {
         { key: 'area', width: 12 },
         { key: 'color', width: 15 },
         { key: 'precioM2', width: 15 },
-        { key: 'subtotal', width: 15 },
-        { key: 'observaciones', width: 30 },
-        { key: 'fotos', width: 10 },
-        { key: 'video', width: 10 }
+        { key: 'subtotalBase', width: 15 },
+        { key: 'kitToldo', width: 20 },
+        { key: 'precioKit', width: 12 },
+        { key: 'motor', width: 20 },
+        { key: 'precioMotor', width: 12 },
+        { key: 'control', width: 15 },
+        { key: 'precioControl', width: 12 },
+        { key: 'subtotalTotal', width: 15 },
+        { key: 'observaciones', width: 25 },
+        { key: 'fotos', width: 8 },
+        { key: 'video', width: 8 }
       ];
 
       // Título principal
-      worksheet.mergeCells('A1:K1');
+      worksheet.mergeCells('A1:R1');
       const titleCell = worksheet.getCell('A1');
-      titleCell.value = '🏠 SUNDECK - Levantamiento de Medidas';
+      titleCell.value = '🏠 SUNDECK - Levantamiento de Medidas Completo';
       titleCell.font = { size: 16, bold: true, color: { argb: 'FFD4AF37' } };
       titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
       titleCell.fill = {
@@ -85,14 +92,14 @@ class ExcelService {
       };
 
       // Información del cliente
-      worksheet.mergeCells('A3:K3');
+      worksheet.mergeCells('A3:R3');
       const infoCell = worksheet.getCell('A3');
       infoCell.value = `Cliente: ${prospecto.nombre || 'N/A'} | Teléfono: ${prospecto.telefono || 'N/A'} | Fecha: ${this.formatDate(new Date())}`;
       infoCell.font = { size: 12, bold: true };
       infoCell.alignment = { horizontal: 'center' };
 
       // Información de precios
-      worksheet.mergeCells('A4:K4');
+      worksheet.mergeCells('A4:R4');
       const precioCell = worksheet.getCell('A4');
       precioCell.value = `Precio General: ${this.formatCurrency(precioGeneral)}/m² | Unidad: ${unidadMedida} | Total: ${totalM2.toFixed(2)} m²`;
       precioCell.font = { size: 11 };
@@ -108,7 +115,14 @@ class ExcelService {
         'Área (m²)',
         'Color/Acabado',
         'Precio/m²',
-        'Subtotal',
+        'Subtotal Base',
+        'Kit de Toldo',
+        'Precio Kit',
+        'Motor',
+        'Precio Motor',
+        'Control',
+        'Precio Control',
+        'Subtotal Total',
         'Observaciones',
         'Fotos',
         'Video'
@@ -148,9 +162,17 @@ class ExcelService {
             const alto = Number(medida.alto) || 0;
             const area = ancho * alto;
             const precio = Number(medida.precioM2) || Number(pieza.precioM2) || precioGeneral;
-            const subtotal = area * precio;
+            const subtotalBase = area * precio;
             
-            totalGeneral += subtotal;
+            // Información de toldos y motorización
+            const esProductoToldo = pieza.esToldo || (pieza.producto && pieza.producto.toLowerCase().includes('toldo'));
+            const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) : 0;
+            const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) : 0;
+            const controlPrecio = (pieza.motorizado && pieza.controlPrecio) ? Number(pieza.controlPrecio) : 0;
+            
+            const subtotalTotal = subtotalBase + kitPrecio + motorPrecio + controlPrecio;
+            
+            totalGeneral += subtotalTotal;
             totalPiezasReales += 1;
             totalAreaReal += area;
 
@@ -166,10 +188,23 @@ class ExcelService {
             row.getCell(5).value = area.toFixed(2);
             row.getCell(6).value = medida.color || pieza.color || '';
             row.getCell(7).value = this.formatCurrency(precio);
-            row.getCell(8).value = this.formatCurrency(subtotal);
-            row.getCell(9).value = pieza.observaciones || '';
-            row.getCell(10).value = (pieza.fotoUrls && pieza.fotoUrls.length) ? pieza.fotoUrls.length : 0;
-            row.getCell(11).value = pieza.videoUrl ? 'Sí' : 'No';
+            row.getCell(8).value = this.formatCurrency(subtotalBase);
+            
+            // Información de kit de toldo
+            row.getCell(9).value = esProductoToldo ? (pieza.kitModeloManual || pieza.kitModelo || 'Kit incluido') : '-';
+            row.getCell(10).value = kitPrecio > 0 ? this.formatCurrency(kitPrecio) : '-';
+            
+            // Información de motorización
+            row.getCell(11).value = pieza.motorizado ? (pieza.motorModeloManual || pieza.motorModelo || 'Motor incluido') : '-';
+            row.getCell(12).value = motorPrecio > 0 ? this.formatCurrency(motorPrecio) : '-';
+            row.getCell(13).value = pieza.motorizado ? (pieza.controlModeloManual || pieza.controlModelo || 'Control incluido') : '-';
+            row.getCell(14).value = controlPrecio > 0 ? this.formatCurrency(controlPrecio) : '-';
+            
+            // Subtotal total
+            row.getCell(15).value = this.formatCurrency(subtotalTotal);
+            row.getCell(16).value = pieza.observaciones || '';
+            row.getCell(17).value = (pieza.fotoUrls && pieza.fotoUrls.length) ? pieza.fotoUrls.length : 0;
+            row.getCell(18).value = pieza.videoUrl ? 'Sí' : 'No';
 
             // Formato de números
             row.getCell(3).numFmt = '0.00';
@@ -177,7 +212,7 @@ class ExcelService {
             row.getCell(5).numFmt = '0.00';
 
             // Bordes para todas las celdas
-            for (let col = 1; col <= 11; col++) {
+            for (let col = 1; col <= 18; col++) {
               const cell = row.getCell(col);
               cell.border = {
                 top: { style: 'thin' },
@@ -206,9 +241,17 @@ class ExcelService {
           const cantidad = Number(pieza.cantidad) || 1;
           const area = ancho * alto * cantidad;
           const precio = Number(pieza.precioM2) || precioGeneral;
-          const subtotal = area * precio;
+          const subtotalBase = area * precio;
           
-          totalGeneral += subtotal;
+          // Información de toldos y motorización
+          const esProductoToldo = pieza.esToldo || (pieza.producto && pieza.producto.toLowerCase().includes('toldo'));
+          const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) * cantidad : 0;
+          const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) * cantidad : 0;
+          const controlPrecio = (pieza.motorizado && pieza.controlPrecio) ? Number(pieza.controlPrecio) * cantidad : 0;
+          
+          const subtotalTotal = subtotalBase + kitPrecio + motorPrecio + controlPrecio;
+          
+          totalGeneral += subtotalTotal;
           totalPiezasReales += cantidad;
           totalAreaReal += area;
 
@@ -224,10 +267,23 @@ class ExcelService {
           row.getCell(5).value = area.toFixed(2);
           row.getCell(6).value = pieza.color || '';
           row.getCell(7).value = this.formatCurrency(precio);
-          row.getCell(8).value = this.formatCurrency(subtotal);
-          row.getCell(9).value = pieza.observaciones || '';
-          row.getCell(10).value = (pieza.fotoUrls && pieza.fotoUrls.length) ? pieza.fotoUrls.length : 0;
-          row.getCell(11).value = pieza.videoUrl ? 'Sí' : 'No';
+          row.getCell(8).value = this.formatCurrency(subtotalBase);
+          
+          // Información de kit de toldo
+          row.getCell(9).value = esProductoToldo ? (pieza.kitModeloManual || pieza.kitModelo || 'Kit incluido') : '-';
+          row.getCell(10).value = kitPrecio > 0 ? this.formatCurrency(kitPrecio) : '-';
+          
+          // Información de motorización
+          row.getCell(11).value = pieza.motorizado ? (pieza.motorModeloManual || pieza.motorModelo || 'Motor incluido') : '-';
+          row.getCell(12).value = motorPrecio > 0 ? this.formatCurrency(motorPrecio) : '-';
+          row.getCell(13).value = pieza.motorizado ? (pieza.controlModeloManual || pieza.controlModelo || 'Control incluido') : '-';
+          row.getCell(14).value = controlPrecio > 0 ? this.formatCurrency(controlPrecio) : '-';
+          
+          // Subtotal total
+          row.getCell(15).value = this.formatCurrency(subtotalTotal);
+          row.getCell(16).value = pieza.observaciones || '';
+          row.getCell(17).value = (pieza.fotoUrls && pieza.fotoUrls.length) ? pieza.fotoUrls.length : 0;
+          row.getCell(18).value = pieza.videoUrl ? 'Sí' : 'No';
 
           // Formato de números
           row.getCell(3).numFmt = '0.00';
@@ -235,7 +291,7 @@ class ExcelService {
           row.getCell(5).numFmt = '0.00';
 
           // Bordes para todas las celdas
-          for (let col = 1; col <= 11; col++) {
+          for (let col = 1; col <= 18; col++) {
             const cell = row.getCell(col);
             cell.border = {
               top: { style: 'thin' },
@@ -270,11 +326,13 @@ class ExcelService {
       totalRow.getCell(6).font = { bold: true };
       totalRow.getCell(7).value = totalAreaReal.toFixed(2);
       totalRow.getCell(7).font = { bold: true };
-      totalRow.getCell(8).value = this.formatCurrency(totalGeneral);
-      totalRow.getCell(8).font = { bold: true, color: { argb: 'FFD4AF37' } };
+      totalRow.getCell(14).value = 'TOTAL FINAL:';
+      totalRow.getCell(14).font = { bold: true };
+      totalRow.getCell(15).value = this.formatCurrency(totalGeneral);
+      totalRow.getCell(15).font = { bold: true, color: { argb: 'FFD4AF37' } };
 
       // Bordes para la fila de totales
-      for (let col = 1; col <= 11; col++) {
+      for (let col = 1; col <= 18; col++) {
         const cell = totalRow.getCell(col);
         cell.border = {
           top: { style: 'thick' },
