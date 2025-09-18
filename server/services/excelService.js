@@ -1,8 +1,19 @@
-const ExcelJS = require('exceljs');
+// Variable para carga lazy de ExcelJS
+let ExcelJSLib;
 
 class ExcelService {
   constructor() {
     this.workbook = null;
+  }
+
+  async initExcelJS() {
+    try {
+      // Carga lazy de ExcelJS con manejo de errores
+      ExcelJSLib ??= require('exceljs');
+      return ExcelJSLib;
+    } catch (error) {
+      throw new Error('ExcelJS no está disponible. Para generar archivos Excel, instala exceljs: npm install exceljs');
+    }
   }
 
   formatCurrency(amount) {
@@ -24,6 +35,7 @@ class ExcelService {
 
   async generarLevantamientoExcel(prospecto, piezas, precioGeneral, totalM2, unidadMedida = 'm') {
     try {
+      const ExcelJS = await this.initExcelJS();
       this.workbook = new ExcelJS.Workbook();
       
       // Metadatos del archivo

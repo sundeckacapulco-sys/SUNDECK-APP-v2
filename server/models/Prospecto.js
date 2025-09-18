@@ -95,7 +95,7 @@ const prospectoSchema = new mongoose.Schema({
   // Origen del prospecto
   fuente: {
     type: String,
-    enum: ['web', 'telefono', 'referido', 'facebook', 'Facebook', 'instagram', 'Instagram', 'google', 'Google', 'volante', 'otro'],
+    enum: ['web', 'telefono', 'referido', 'Referido', 'facebook', 'Facebook', 'instagram', 'Instagram', 'google', 'Google', 'volante', 'otro'],
     default: 'web'
   },
   referidoPor: String,

@@ -1,7 +1,9 @@
-const puppeteer = require('puppeteer');
 const handlebars = require('handlebars');
 const path = require('path');
 const fs = require('fs').promises;
+
+// Variable para carga lazy de puppeteer
+let puppeteerLib;
 
 class PDFService {
   constructor() {
@@ -9,8 +11,15 @@ class PDFService {
   }
 
   async initBrowser() {
+    try {
+      // Carga lazy de puppeteer con manejo de errores
+      puppeteerLib ??= require('puppeteer');
+    } catch (error) {
+      throw new Error('Puppeteer no está disponible. Para generar PDFs, instala puppeteer: npm install puppeteer');
+    }
+
     if (!this.browser) {
-      this.browser = await puppeteer.launch({
+      this.browser = await puppeteerLib.launch({
         headless: 'new',
         args: ['--no-sandbox', '--disable-setuid-sandbox']
       });

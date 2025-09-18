@@ -163,7 +163,20 @@ router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), 
 
   } catch (error) {
     console.error('Error generando PDF de levantamiento:', error);
-    res.status(500).json({ message: 'Error generando PDF del levantamiento' });
+    
+    // Verificar si es un error de dependencia faltante
+    if (error.message.includes('Puppeteer no está disponible')) {
+      return res.status(503).json({ 
+        message: 'Servicio de generación de PDF no disponible',
+        error: error.message,
+        suggestion: 'Contacta al administrador para instalar las dependencias necesarias'
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Error generando PDF del levantamiento',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Error interno del servidor'
+    });
   }
 });
 
@@ -210,7 +223,20 @@ router.post('/levantamiento-excel', auth, verificarPermiso('prospectos', 'leer')
 
   } catch (error) {
     console.error('Error generando Excel de levantamiento:', error);
-    res.status(500).json({ message: 'Error generando Excel del levantamiento' });
+    
+    // Verificar si es un error de dependencia faltante
+    if (error.message.includes('ExcelJS no está disponible')) {
+      return res.status(503).json({ 
+        message: 'Servicio de generación de Excel no disponible',
+        error: error.message,
+        suggestion: 'Contacta al administrador para instalar las dependencias necesarias'
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Error generando Excel del levantamiento',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Error interno del servidor'
+    });
   }
 });
 
