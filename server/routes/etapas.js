@@ -4,6 +4,7 @@ const { auth, verificarPermiso } = require('../middleware/auth');
 const Etapa = require('../models/Etapa');
 const Prospecto = require('../models/Prospecto');
 const pdfService = require('../services/pdfService');
+const excelService = require('../services/excelService');
 
 const router = express.Router();
 
@@ -163,6 +164,53 @@ router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), 
   } catch (error) {
     console.error('Error generando PDF de levantamiento:', error);
     res.status(500).json({ message: 'Error generando PDF del levantamiento' });
+  }
+});
+
+// Generar Excel de levantamiento de medidas
+router.post('/levantamiento-excel', auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
+  try {
+    const {
+      prospectoId,
+      piezas = [],
+      precioGeneral = 750,
+      totalM2 = 0,
+      unidadMedida = 'm'
+    } = req.body;
+
+    if (!prospectoId || !mongoose.Types.ObjectId.isValid(prospectoId)) {
+      return res.status(400).json({ message: 'prospectoId inválido' });
+    }
+
+    const prospecto = await Prospecto.findById(prospectoId);
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+
+    // Generar Excel
+    const excelBuffer = await excelService.generarLevantamientoExcel(
+      {
+        nombre: prospecto.nombre,
+        telefono: prospecto.telefono,
+        email: prospecto.email,
+        direccion: prospecto.direccion
+      },
+      piezas,
+      precioGeneral,
+      totalM2,
+      unidadMedida
+    );
+
+    // Configurar headers para descarga
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="Levantamiento-${prospecto.nombre.replace(/\s+/g, '-')}.xlsx"`);
+    res.setHeader('Content-Length', excelBuffer.length);
+
+    res.send(excelBuffer);
+
+  } catch (error) {
+    console.error('Error generando Excel de levantamiento:', error);
+    res.status(500).json({ message: 'Error generando Excel del levantamiento' });
   }
 });
 

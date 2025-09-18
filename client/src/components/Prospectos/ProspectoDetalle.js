@@ -20,6 +20,7 @@ import {
   StepLabel,
   Stepper,
   TextField,
+  Tooltip,
   Typography
 } from '@mui/material';
 import {
@@ -366,6 +367,49 @@ const ProspectoDetalle = () => {
     } catch (error) {
       console.error('Error descargando PDF completo:', error);
       setError('Error al generar el PDF completo');
+    }
+  };
+
+  const handleDescargarExcelEtapa = async (etapa) => {
+    if (!etapa.piezas || etapa.piezas.length === 0) {
+      setError('Esta etapa no tiene piezas registradas');
+      return;
+    }
+
+    try {
+      const totalM2 = etapa.piezas.reduce((total, pieza) => {
+        const area = (pieza.ancho || 0) * (pieza.alto || 0);
+        return total + area;
+      }, 0);
+
+      const precioGeneral = etapa.precioGeneral || 750;
+
+      const payload = {
+        prospectoId: id,
+        piezas: etapa.piezas,
+        precioGeneral,
+        totalM2,
+        unidadMedida: etapa.unidadMedida || 'm'
+      };
+
+      const response = await axiosConfig.post('/etapas/levantamiento-excel', payload, {
+        responseType: 'blob'
+      });
+
+      // Crear y descargar el archivo
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${etapa.nombreEtapa.replace(/\s+/g, '-')}-${prospecto.nombre.replace(/\s+/g, '-')}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      console.error('Error descargando Excel de etapa:', error);
+      setError('Error al generar el Excel de la etapa');
     }
   };
 
@@ -745,23 +789,47 @@ const ProspectoDetalle = () => {
                     <ListItem key={etapa._id || idx} alignItems="flex-start" divider>
                       <ListItemText
                         primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="subtitle1" fontWeight="bold">
-                              {etapa.nombreEtapa}
-                            </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="subtitle1" fontWeight="bold">
+                                {etapa.nombreEtapa}
+                              </Typography>
+                              {etapa.piezas && etapa.piezas.length > 0 && (
+                                <Chip 
+                                  label={`${etapa.piezas.length} pieza${etapa.piezas.length > 1 ? 's' : ''}`} 
+                                  size="small" 
+                                  color="primary" 
+                                />
+                              )}
+                              {etapa.totalM2 && (
+                                <Chip 
+                                  label={`${etapa.totalM2.toFixed(2)} m²`} 
+                                  size="small" 
+                                  color="info" 
+                                />
+                              )}
+                            </Box>
+                            {/* Botón de descarga Excel para esta etapa */}
                             {etapa.piezas && etapa.piezas.length > 0 && (
-                              <Chip 
-                                label={`${etapa.piezas.length} pieza${etapa.piezas.length > 1 ? 's' : ''}`} 
-                                size="small" 
-                                color="primary" 
-                              />
-                            )}
-                            {etapa.totalM2 && (
-                              <Chip 
-                                label={`${etapa.totalM2.toFixed(2)} m²`} 
-                                size="small" 
-                                color="info" 
-                              />
+                              <Tooltip title="Descargar Excel de esta etapa" arrow>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={() => handleDescargarExcelEtapa(etapa)}
+                                  sx={{ 
+                                    color: '#16A34A', 
+                                    borderColor: '#16A34A',
+                                    minWidth: 'auto',
+                                    px: 1,
+                                    '&:hover': { 
+                                      bgcolor: '#16A34A', 
+                                      color: 'white' 
+                                    }
+                                  }}
+                                >
+                                  📊
+                                </Button>
+                              </Tooltip>
                             )}
                           </Box>
                         }

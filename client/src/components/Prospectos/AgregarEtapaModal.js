@@ -71,6 +71,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const [guardando, setGuardando] = useState(false);
   const [generandoCotizacion, setGenerandoCotizacion] = useState(false);
   const [descargandoLevantamiento, setDescargandoLevantamiento] = useState(false);
+  const [descargandoExcel, setDescargandoExcel] = useState(false);
   const [errorLocal, setErrorLocal] = useState('');
   
   // Estados para productos
@@ -90,6 +91,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setGuardando(false);
     setGenerandoCotizacion(false);
     setDescargandoLevantamiento(false);
+    setDescargandoExcel(false);
     setAgregandoPieza(false);
     setPiezaForm(emptyPieza);
     setMostrarNuevoProducto(false);
@@ -265,6 +267,64 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       setErrorLocal(mensaje);
     } finally {
       setDescargandoLevantamiento(false);
+    }
+  };
+
+  const handleDescargarExcel = async () => {
+    if (!prospectoId) {
+      setErrorLocal('No se encontró el identificador del prospecto.');
+      return;
+    }
+
+    if (piezas.length === 0) {
+      setErrorLocal('Debes agregar al menos una pieza para descargar el Excel.');
+      return;
+    }
+
+    setDescargandoExcel(true);
+    setErrorLocal('');
+
+    try {
+      const payload = {
+        prospectoId,
+        piezas: piezas.map((pieza) => ({
+          ubicacion: pieza.ubicacion,
+          ancho: pieza.ancho !== '' ? Number(pieza.ancho) : 0,
+          alto: pieza.alto !== '' ? Number(pieza.alto) : 0,
+          producto: pieza.producto,
+          productoLabel: pieza.productoLabel,
+          color: pieza.color,
+          precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : undefined,
+          observaciones: pieza.observaciones,
+          fotoUrls: pieza.fotoUrls || [],
+          videoUrl: pieza.videoUrl || ''
+        })),
+        precioGeneral: Number(precioGeneral),
+        totalM2: calcularTotalM2,
+        unidadMedida: unidad
+      };
+
+      const response = await axiosConfig.post('/etapas/levantamiento-excel', payload, {
+        responseType: 'blob'
+      });
+
+      // Crear enlace de descarga
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Levantamiento-Medidas-${Date.now()}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      console.log('✅ Excel descargado exitosamente');
+    } catch (error) {
+      console.error('Error descargando Excel:', error);
+      const mensaje = error.response?.data?.message || 'No se pudo descargar el Excel.';
+      setErrorLocal(mensaje);
+    } finally {
+      setDescargandoExcel(false);
     }
   };
 
@@ -462,6 +522,15 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     sx={{ bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' } }}
                   >
                     {descargandoLevantamiento ? 'Generando...' : '📄 Descargar PDF'}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleDescargarExcel}
+                    disabled={descargandoExcel || piezas.length === 0}
+                    sx={{ bgcolor: '#16A34A', '&:hover': { bgcolor: '#15803D' } }}
+                  >
+                    {descargandoExcel ? 'Generando...' : '📊 Descargar Excel'}
                   </Button>
                 </Box>
               </Box>
