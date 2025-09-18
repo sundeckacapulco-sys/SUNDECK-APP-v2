@@ -1,34 +1,8 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
-// Modelo de Usuario
-const usuarioSchema = new mongoose.Schema({
-  nombre: { type: String, required: true },
-  apellido: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  rol: { 
-    type: String, 
-    enum: ['admin', 'gerente', 'vendedor', 'coordinador'], 
-    default: 'vendedor' 
-  },
-  activo: { type: Boolean, default: true },
-  permisos: {
-    prospectos: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-    cotizaciones: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-    pedidos: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-    fabricacion: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-    instalaciones: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-    postventa: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-    usuarios: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean },
-    reportes: { leer: Boolean, crear: Boolean, actualizar: Boolean, eliminar: Boolean }
-  }
-}, {
-  timestamps: true
-});
-
-const Usuario = mongoose.model('Usuario', usuarioSchema);
+// Importar el modelo Usuario real
+const Usuario = require('./server/models/Usuario');
 
 async function createAdmin() {
   try {
@@ -40,30 +14,29 @@ async function createAdmin() {
     const adminExistente = await Usuario.findOne({ email: 'admin@sundeck.com' });
     
     if (adminExistente) {
-      console.log('✅ Usuario admin ya existe');
-      process.exit(0);
+      console.log('⚠️ Usuario admin ya existe, eliminándolo para recrear...');
+      await Usuario.deleteOne({ email: 'admin@sundeck.com' });
     }
 
-    // Crear usuario admin
-    const hashedPassword = await bcrypt.hash('password', 12);
-    
+    // Crear usuario admin con la nueva estructura de permisos
     const admin = new Usuario({
       nombre: 'Admin',
       apellido: 'Sundeck',
       email: 'admin@sundeck.com',
-      password: hashedPassword,
+      password: 'password', // El hook pre('save') se encargará del cifrado
       rol: 'admin',
       activo: true,
-      permisos: {
-        prospectos: { leer: true, crear: true, actualizar: true, eliminar: true },
-        cotizaciones: { leer: true, crear: true, actualizar: true, eliminar: true },
-        pedidos: { leer: true, crear: true, actualizar: true, eliminar: true },
-        fabricacion: { leer: true, crear: true, actualizar: true, eliminar: true },
-        instalaciones: { leer: true, crear: true, actualizar: true, eliminar: true },
-        postventa: { leer: true, crear: true, actualizar: true, eliminar: true },
-        usuarios: { leer: true, crear: true, actualizar: true, eliminar: true },
-        reportes: { leer: true, crear: true, actualizar: true, eliminar: true }
-      }
+      permisos: [
+        { modulo: 'prospectos', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'cotizaciones', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'pedidos', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'fabricacion', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'instalaciones', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'postventa', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'reportes', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'usuarios', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] },
+        { modulo: 'configuracion', acciones: ['crear', 'leer', 'actualizar', 'eliminar', 'exportar'] }
+      ]
     });
 
     await admin.save();
