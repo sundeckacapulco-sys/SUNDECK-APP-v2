@@ -129,6 +129,8 @@ const ProspectoDetalle = () => {
   const [mensajeEtapa, setMensajeEtapa] = useState('');
   const [errorEtapa, setErrorEtapa] = useState('');
   const [registrandoVisita, setRegistrandoVisita] = useState(false);
+  const [openLevantamientoModal, setOpenLevantamientoModal] = useState(false);
+  const [levantamientoSeleccionado, setLevantamientoSeleccionado] = useState(null);
 
   // Comentarios y etapas (timeline)
   const [comentarios, setComentarios] = useState([]);
@@ -453,8 +455,14 @@ const ProspectoDetalle = () => {
 
     } catch (error) {
       console.error('Error descargando PDF completo:', error);
-      setError('Error al generar el PDF completo');
+      setError('Error al generar PDF completo: ' + (error.response?.data?.message || error.message));
     }
+  };
+
+  // Función para crear cotización con datos del levantamiento
+  const handleCrearCotizacion = () => {
+    // Navegar a crear nueva cotización pasando el ID del prospecto
+    navigate(`/cotizaciones/nueva?prospecto=${prospecto._id}`);
   };
 
   const handleDescargarExcelEtapa = async (etapa) => {
@@ -693,9 +701,8 @@ const ProspectoDetalle = () => {
                             variant="outlined"
                             size="small"
                             onClick={() => {
-                              // Aquí podrías abrir un modal o expandir la sección
-                              console.log('Datos del levantamiento:', etapaConPiezas);
-                              alert('Funcionalidad para ver detalle completo del levantamiento - Por implementar');
+                              setLevantamientoSeleccionado(etapaConPiezas);
+                              setOpenLevantamientoModal(true);
                             }}
                             sx={{ 
                               fontSize: '0.75rem',
@@ -910,6 +917,14 @@ const ProspectoDetalle = () => {
                     📄 PDF Completo
                   </Button>
                 )}
+                <Button
+                  variant="contained"
+                  onClick={handleCrearCotizacion}
+                  sx={{ backgroundColor: '#16a34a', color: 'white', '&:hover': { backgroundColor: '#15803d' } }}
+                  disabled={!prospecto}
+                >
+                  💰 Crear Cotización
+                </Button>
                 <Button
                   variant="contained"
                   onClick={() => {
@@ -1264,6 +1279,305 @@ const ProspectoDetalle = () => {
           setErrorEtapa(mensaje);
         }}
       />
+
+      {/* Modal de Detalle del Levantamiento */}
+      <Dialog
+        open={openLevantamientoModal}
+        onClose={() => setOpenLevantamientoModal(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            📋 Detalle del Levantamiento Técnico
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {levantamientoSeleccionado && (
+            <Box>
+              {/* Información General */}
+              <Card sx={{ mb: 3 }}>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    📊 Resumen General
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Chip 
+                        label={`${(() => {
+                          if (!levantamientoSeleccionado.piezas) return 0;
+                          return levantamientoSeleccionado.piezas.reduce((total, pieza) => {
+                            if (pieza.medidas && Array.isArray(pieza.medidas)) {
+                              return total + pieza.medidas.length;
+                            } else {
+                              return total + (pieza.cantidad || 1);
+                            }
+                          }, 0);
+                        })()} piezas`}
+                        color="primary"
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Chip 
+                        label={`${(levantamientoSeleccionado.totalM2 || 0).toFixed(2)} m²`}
+                        color="success"
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Chip 
+                        label={`$${(levantamientoSeleccionado.subtotalProductos || 0).toLocaleString()}`}
+                        color="warning"
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Chip 
+                        label={new Date(levantamientoSeleccionado.fechaHora).toLocaleDateString()}
+                        color="info"
+                        variant="outlined"
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+
+              {/* Detalle por Pieza */}
+              <Typography variant="h6" gutterBottom color="primary">
+                🔧 Detalle por Pieza
+              </Typography>
+              
+              {levantamientoSeleccionado.piezas?.map((pieza, index) => (
+                <Card key={index} sx={{ mb: 2, border: '1px solid #e0e0e0' }}>
+                  <CardContent>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                      <Box>
+                        <Typography variant="h6" fontWeight="bold" sx={{ color: '#1a1a1a' }}>
+                          📍 {pieza.ubicacion || `Área ${index + 1}`}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#6c757d', fontStyle: 'italic' }}>
+                          Área de instalación
+                        </Typography>
+                      </Box>
+                      <Chip 
+                        label={pieza.productoLabel || pieza.producto || 'Producto no especificado'}
+                        color="primary"
+                        size="small"
+                      />
+                    </Box>
+
+                    {/* Medidas Individuales */}
+                    {pieza.medidas && Array.isArray(pieza.medidas) && pieza.medidas.length > 0 ? (
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          📏 Medidas Individuales:
+                        </Typography>
+                        <Grid container spacing={1} sx={{ mb: 2 }}>
+                          {pieza.medidas.map((medida, medidaIndex) => (
+                            <Grid item xs={12} sm={6} md={4} key={medidaIndex}>
+                              <Box sx={{ 
+                                p: 1.5, 
+                                border: '1px solid #e0e0e0', 
+                                borderRadius: 1,
+                                bgcolor: '#f9f9f9'
+                              }}>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {pieza.medidas.length > 1 ? `Medida ${medidaIndex + 1}` : 'Medidas'}
+                                </Typography>
+                                <Typography variant="body2">
+                                  📐 {medida.ancho || 0} × {medida.alto || 0} m
+                                </Typography>
+                                <Typography variant="body2">
+                                  📊 Área: {((medida.ancho || 0) * (medida.alto || 0)).toFixed(2)} m²
+                                </Typography>
+                                {medida.productoLabel && (
+                                  <Typography variant="body2">
+                                    🏷️ {medida.productoLabel}
+                                  </Typography>
+                                )}
+                                {medida.color && (
+                                  <Typography variant="body2">
+                                    🎨 {medida.color}
+                                  </Typography>
+                                )}
+                                {medida.precioM2 && (
+                                  <Typography variant="body2" color="success.main">
+                                    💰 ${medida.precioM2}/m²
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      </Box>
+                    ) : (
+                      // Formato anterior
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          📏 Medidas:
+                        </Typography>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={4}>
+                            <Typography variant="body2">
+                              📐 {pieza.ancho || 0} × {pieza.alto || 0} m
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <Typography variant="body2">
+                              📊 Área: {((pieza.ancho || 0) * (pieza.alto || 0) * (pieza.cantidad || 1)).toFixed(2)} m²
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <Typography variant="body2">
+                              🔢 Cantidad: {pieza.cantidad || 1}
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    )}
+
+                    {/* Información Adicional */}
+                    <Grid container spacing={2}>
+                      {pieza.color && (
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2">
+                            🎨 <strong>Color:</strong> {pieza.color}
+                          </Typography>
+                        </Grid>
+                      )}
+                      {pieza.precioM2 && (
+                        <Grid item xs={12} sm={6}>
+                          <Typography variant="body2" color="success.main">
+                            💰 <strong>Precio:</strong> ${pieza.precioM2}/m²
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Grid>
+
+                    {/* Observaciones */}
+                    {pieza.observaciones && (
+                      <Box sx={{ mt: 2, p: 1, bgcolor: '#fff3cd', borderRadius: 1 }}>
+                        <Typography variant="body2">
+                          💬 <strong>Observaciones:</strong> {pieza.observaciones}
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* Fotos */}
+                    {pieza.fotoUrls && pieza.fotoUrls.length > 0 && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          📷 Fotos ({pieza.fotoUrls.length}):
+                        </Typography>
+                        <Box display="flex" gap={1} flexWrap="wrap">
+                          {pieza.fotoUrls.slice(0, 6).map((foto, fotoIndex) => (
+                            <Box
+                              key={fotoIndex}
+                              component="img"
+                              src={foto}
+                              alt={`Foto ${fotoIndex + 1}`}
+                              sx={{
+                                width: 80,
+                                height: 80,
+                                objectFit: 'cover',
+                                borderRadius: 1,
+                                border: '1px solid #ddd',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => window.open(foto, '_blank')}
+                            />
+                          ))}
+                          {pieza.fotoUrls.length > 6 && (
+                            <Box
+                              sx={{
+                                width: 80,
+                                height: 80,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                bgcolor: '#f5f5f5',
+                                borderRadius: 1,
+                                border: '1px solid #ddd'
+                              }}
+                            >
+                              <Typography variant="caption">
+                                +{pieza.fotoUrls.length - 6}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
+                    )}
+
+                    {/* Video */}
+                    {pieza.videoUrl && (
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                          🎥 Video:
+                        </Typography>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => window.open(pieza.videoUrl, '_blank')}
+                        >
+                          Ver Video
+                        </Button>
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Información Técnica Adicional */}
+              {(levantamientoSeleccionado.instalacion || levantamientoSeleccionado.descuento) && (
+                <Card sx={{ mt: 3 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      ⚙️ Información Técnica Adicional
+                    </Typography>
+                    
+                    {levantamientoSeleccionado.instalacion?.cobra && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          🔧 Instalación Especial:
+                        </Typography>
+                        <Typography variant="body2">
+                          Tipo: {levantamientoSeleccionado.instalacion.tipo || 'No especificado'}
+                        </Typography>
+                        <Typography variant="body2" color="success.main">
+                          Precio: ${(levantamientoSeleccionado.instalacion.precio || 0).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {levantamientoSeleccionado.descuento?.aplica && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          💸 Descuento Aplicado:
+                        </Typography>
+                        <Typography variant="body2">
+                          Tipo: {levantamientoSeleccionado.descuento.tipo === 'porcentaje' ? 'Porcentaje' : 'Monto fijo'}
+                        </Typography>
+                        <Typography variant="body2" color="error.main">
+                          Descuento: {levantamientoSeleccionado.descuento.tipo === 'porcentaje' 
+                            ? `${levantamientoSeleccionado.descuento.valor}%` 
+                            : `$${(levantamientoSeleccionado.descuento.valor || 0).toLocaleString()}`}
+                        </Typography>
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenLevantamientoModal(false)}>
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
