@@ -32,26 +32,46 @@ export const downloadFileFromBlob = (blob, responseHeaders, fallbackName) => {
 };
 
 /**
- * Genera un nombre de archivo único con timestamp y ID aleatorio
+ * Genera un nombre de archivo consistente basado en contenido
  * @param {string} prefix - Prefijo del archivo (ej: "Levantamiento", "Cotizacion")
  * @param {string} clientName - Nombre del cliente
  * @param {string} extension - Extensión del archivo (ej: "pdf", "xlsx")
- * @param {string} additionalInfo - Información adicional opcional
- * @returns {string} Nombre de archivo único
+ * @param {string} identifier - Identificador único del documento (ID, número, etc.)
+ * @param {Date} baseDate - Fecha base del documento (opcional)
+ * @returns {string} Nombre de archivo consistente
  */
-export const generateUniqueFileName = (prefix, clientName, extension, additionalInfo = '') => {
-  const now = new Date();
-  const dateFormatted = now.toISOString().split('T')[0]; // YYYY-MM-DD
-  const timeFormatted = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
-  const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
-  const uniqueId = Math.random().toString(36).substr(2, 6); // ID aleatorio de 6 caracteres
+export const generateConsistentFileName = (prefix, clientName, extension, identifier = '', baseDate = null) => {
   const cleanClientName = (clientName || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
+  const dateFormatted = baseDate ? baseDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
   
-  const parts = [prefix, cleanClientName];
-  if (additionalInfo) {
-    parts.push(additionalInfo);
+  // Generar hash simple basado en el identificador
+  let hash = '';
+  if (identifier) {
+    hash = identifier.split('').reduce((acc, char) => {
+      return ((acc << 5) - acc + char.charCodeAt(0)) & 0xffffffff;
+    }, 0).toString(16).substring(0, 8);
   }
-  parts.push(dateFormatted, timeFormatted, milliseconds, uniqueId);
+  
+  const parts = [prefix, cleanClientName, dateFormatted];
+  if (hash) {
+    parts.push(hash);
+  }
   
   return `${parts.join('-')}.${extension}`;
+};
+
+/**
+ * Genera un nombre de archivo único con timestamp (para casos donde se necesite unicidad temporal)
+ * @param {string} prefix - Prefijo del archivo
+ * @param {string} clientName - Nombre del cliente
+ * @param {string} extension - Extensión del archivo
+ * @returns {string} Nombre de archivo único
+ */
+export const generateUniqueFileName = (prefix, clientName, extension) => {
+  const now = new Date();
+  const timeFormatted = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+  const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
+  const uniqueId = Math.random().toString(36).substr(2, 6);
+  
+  return generateConsistentFileName(prefix, clientName, extension, `${timeFormatted}-${milliseconds}-${uniqueId}`, now);
 };

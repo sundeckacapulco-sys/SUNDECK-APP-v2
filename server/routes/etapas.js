@@ -167,14 +167,21 @@ router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), 
 
     const pdf = await pdfService.generarLevantamientoPDF(etapaTemp, piezas, totalM2, precioGeneral);
 
-    // Crear nombre de archivo personalizado con timestamp único y ID aleatorio
-    const ahora = new Date();
-    const fechaFormateada = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
-    const horaFormateada = ahora.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
-    const milisegundos = ahora.getMilliseconds().toString().padStart(3, '0');
-    const idUnico = Math.random().toString(36).substr(2, 6); // ID aleatorio de 6 caracteres
+    // Crear nombre de archivo consistente basado en contenido
     const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
-    const nombreArchivo = `Levantamiento-${nombreCliente}-${fechaFormateada}-${horaFormateada}-${milisegundos}-${idUnico}.pdf`;
+    
+    // Generar hash basado en el contenido del prospecto (consistente para el mismo prospecto)
+    const crypto = require('crypto');
+    const contenidoHash = crypto.createHash('md5')
+      .update(`${prospectoId}-${prospecto.nombre}-${prospecto.telefono}`)
+      .digest('hex')
+      .substring(0, 8); // Usar solo los primeros 8 caracteres
+    
+    // Fecha de creación del prospecto o fecha actual si no existe
+    const fechaBase = prospecto.creadoEn ? new Date(prospecto.creadoEn) : new Date();
+    const fechaFormateada = fechaBase.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    const nombreArchivo = `Levantamiento-${nombreCliente}-${fechaFormateada}-${contenidoHash}.pdf`;
 
     // Headers CORS específicos para descarga
     res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
@@ -238,14 +245,21 @@ router.post('/levantamiento-excel', auth, verificarPermiso('prospectos', 'leer')
       unidadMedida
     );
 
-    // Crear nombre de archivo personalizado para Excel con timestamp único y ID aleatorio
-    const ahora = new Date();
-    const fechaFormateada = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
-    const horaFormateada = ahora.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
-    const milisegundos = ahora.getMilliseconds().toString().padStart(3, '0');
-    const idUnico = Math.random().toString(36).substr(2, 6); // ID aleatorio de 6 caracteres
+    // Crear nombre de archivo consistente basado en contenido para Excel
     const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
-    const nombreArchivoExcel = `Levantamiento-${nombreCliente}-${fechaFormateada}-${horaFormateada}-${milisegundos}-${idUnico}.xlsx`;
+    
+    // Generar hash basado en el contenido del prospecto (consistente para el mismo prospecto)
+    const crypto = require('crypto');
+    const contenidoHash = crypto.createHash('md5')
+      .update(`${prospectoId}-${prospecto.nombre}-${prospecto.telefono}`)
+      .digest('hex')
+      .substring(0, 8); // Usar solo los primeros 8 caracteres
+    
+    // Fecha de creación del prospecto o fecha actual si no existe
+    const fechaBase = prospecto.creadoEn ? new Date(prospecto.creadoEn) : new Date();
+    const fechaFormateada = fechaBase.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    const nombreArchivoExcel = `Levantamiento-${nombreCliente}-${fechaFormateada}-${contenidoHash}.xlsx`;
 
     // Configurar headers para descarga
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
