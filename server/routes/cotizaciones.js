@@ -352,25 +352,37 @@ router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (re
 
     const pdf = await pdfService.generarCotizacionPDF(cotizacion);
 
+    // Crear nombre de archivo personalizado con timestamp único y ID aleatorio
+    const ahora = new Date();
+    const fechaFormateada = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+    const horaFormateada = ahora.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
+    const milisegundos = ahora.getMilliseconds().toString().padStart(3, '0');
+    const idUnico = Math.random().toString(36).substr(2, 6); // ID aleatorio de 6 caracteres
+    const nombreCliente = (cotizacion.prospecto?.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
+    const numeroCorto = cotizacion.numero || 'SIN-NUM';
+    const nombreArchivo = `Cotizacion-${numeroCorto}-${nombreCliente}-${fechaFormateada}-${horaFormateada}-${milisegundos}-${idUnico}.pdf`;
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Cotizacion-${cotizacion.numero}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
     res.send(pdf);
 
   } catch (error) {
     console.error('Error generando PDF:', error);
+    console.error('Stack trace:', error.stack);
     
     // Verificar si es un error de dependencia faltante
     if (error.message.includes('Puppeteer no está disponible')) {
       return res.status(503).json({ 
         message: 'Servicio de generación de PDF no disponible',
         error: error.message,
-        suggestion: 'Contacta al administrador para instalar las dependencias necesarias'
+        solucion: 'Instala Puppeteer: npm install puppeteer'
       });
     }
     
     res.status(500).json({ 
-      message: 'Error generando PDF',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Error interno del servidor'
+      message: 'Error generando PDF de cotización',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

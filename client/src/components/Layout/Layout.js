@@ -74,24 +74,56 @@ const Layout = ({ children }) => {
   };
 
   const drawer = (
-    <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          Sundeck CRM
+    <div style={{ backgroundColor: '#000000', height: '100%' }}>
+      <Toolbar sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        py: 2,
+        backgroundColor: '#000000'
+      }}>
+        <Box sx={{ mb: 1 }}>
+          <img 
+            src="/assets/sundeck-logo.svg" 
+            alt="Sundeck Logo" 
+            style={{ 
+              height: '60px', 
+              width: 'auto',
+              maxWidth: '200px'
+            }} 
+          />
+        </Box>
+        <Typography variant="caption" color="#ffffff" textAlign="center">
+          Sistema CRM
         </Typography>
       </Toolbar>
-      <Divider />
-      <List>
+      <Divider sx={{ backgroundColor: '#333333' }} />
+      <List sx={{ backgroundColor: '#000000', height: '100%' }}>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
               selected={location.pathname === item.path}
               onClick={() => navigate(item.path)}
+              sx={{
+                color: '#ffffff',
+                '&:hover': {
+                  backgroundColor: '#1E40AF',
+                },
+                '&.Mui-selected': {
+                  backgroundColor: '#1E40AF',
+                  '&:hover': {
+                    backgroundColor: '#1E3A8A',
+                  },
+                },
+              }}
             >
-              <ListItemIcon>
+              <ListItemIcon sx={{ color: '#ffffff' }}>
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemText 
+                primary={item.text} 
+                sx={{ color: '#ffffff' }}
+              />
             </ListItemButton>
           </ListItem>
         ))}
@@ -119,9 +151,21 @@ const Layout = ({ children }) => {
             <MenuIcon />
           </IconButton>
           
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {menuItems.find(item => item.path === location.pathname)?.text || 'Sundeck CRM'}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+            <Box sx={{ display: { xs: 'block', sm: 'none' }, mr: 2 }}>
+              <img 
+                src="/assets/sundeck-logo.svg" 
+                alt="Sundeck Logo" 
+                style={{ 
+                  height: '32px', 
+                  width: 'auto'
+                }} 
+              />
+            </Box>
+            <Typography variant="h6" noWrap component="div">
+              {menuItems.find(item => item.path === location.pathname)?.text || 'Sundeck CRM'}
+            </Typography>
+          </Box>
 
           <IconButton color="inherit" sx={{ mr: 1 }}>
             <Badge badgeContent={4} color="error">
@@ -201,7 +245,11 @@ const Layout = ({ children }) => {
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+              backgroundColor: '#000000'
+            },
           }}
         >
           {drawer}
@@ -210,7 +258,11 @@ const Layout = ({ children }) => {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+              backgroundColor: '#000000'
+            },
           }}
           open
         >

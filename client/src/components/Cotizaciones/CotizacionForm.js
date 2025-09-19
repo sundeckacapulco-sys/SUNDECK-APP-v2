@@ -704,22 +704,6 @@ const CotizacionForm = () => {
           Volver
         </Button>
         <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-          {/* Espacio para Logo */}
-          <Box sx={{ 
-            width: 60, 
-            height: 60, 
-            bgcolor: 'white', 
-            borderRadius: 1,
-            mr: 3,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px',
-            color: '#1a1a1a',
-            fontWeight: 'bold'
-          }}>
-            LOGO
-          </Box>
           <Box>
             <Typography variant="h4" component="h1" sx={{ color: 'white', fontWeight: 'bold' }}>
               {isEdit ? 'Editar Cotización' : 'Nueva Cotización'}

@@ -29,7 +29,16 @@ class PDFService {
       
       const browser = await puppeteerLib.launch({
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: [
+          '--no-sandbox', 
+          '--disable-setuid-sandbox',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--force-color-profile=srgb',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding'
+        ]
       });
       
       return { browser, isAlternative: false };
@@ -71,6 +80,13 @@ class PDFService {
     try {
       const browser = await this.initBrowser();
       const page = await browser.newPage();
+      
+      // Configurar página para mejor calidad de texto
+      await page.setViewport({ 
+        width: 1200, 
+        height: 1600, 
+        deviceScaleFactor: 2 // Mejora la resolución del texto
+      });
 
       // Template HTML para la cotización
       const htmlTemplate = `
@@ -88,10 +104,13 @@ class PDFService {
             }
             
             body {
-              font-family: 'Arial', sans-serif;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
               line-height: 1.6;
               color: #333;
               background: #fff;
+              -webkit-font-smoothing: antialiased;
+              -moz-osx-font-smoothing: grayscale;
+              text-rendering: optimizeLegibility;
             }
             
             .container {
@@ -105,14 +124,25 @@ class PDFService {
               justify-content: space-between;
               align-items: center;
               margin-bottom: 30px;
-              border-bottom: 3px solid #D4AF37;
+              border-bottom: 3px solid #1E40AF;
               padding-bottom: 20px;
             }
             
             .logo {
+              display: flex;
+              align-items: center;
+              gap: 15px;
+            }
+            
+            .logo img {
+              height: 60px;
+              width: auto;
+            }
+            
+            .logo-text {
               font-size: 28px;
               font-weight: bold;
-              color: #D4AF37;
+              color: #1E40AF;
             }
             
             .company-info {
@@ -230,9 +260,34 @@ class PDFService {
               text-align: center;
               margin-top: 40px;
               padding-top: 20px;
-              border-top: 1px solid #ddd;
+              border-top: 2px solid #2563eb;
               font-size: 12px;
               color: #666;
+            }
+            
+            .footer a {
+              color: #2563eb;
+              text-decoration: none;
+              font-weight: 500;
+            }
+            
+            .footer a:hover {
+              text-decoration: underline;
+            }
+            
+            .condiciones-instalacion {
+              background: #f8f9fa;
+              border: 1px solid #dee2e6;
+              border-radius: 4px;
+              padding: 10px;
+              margin: 15px 0;
+              font-size: 8px;
+              line-height: 1.3;
+              color: #495057;
+            }
+            
+            .condiciones-instalacion p {
+              margin: 0;
             }
             
             .badge {
@@ -256,7 +311,12 @@ class PDFService {
             <!-- Header -->
             <div class="header">
               <div class="logo">
-                🏠 SUNDECK
+                <div class="logo-text">
+                  🏠 SUNDECK
+                </div>
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                  PERSIANAS Y DECORACIONES
+                </div>
               </div>
               <div class="company-info">
                 <strong>Sundeck Acapulco</strong><br>
@@ -421,9 +481,17 @@ class PDFService {
 
             <!-- Footer -->
             <div class="footer">
-              <p><strong>¡Gracias por confiar en Sundeck!</strong></p>
-              <p>Esta cotización es válida por 30 días a partir de la fecha de emisión.</p>
-              <p>Para cualquier duda o aclaración, no dudes en contactarnos.</p>
+              <p><strong>🏠 Sundeck Persianas y Decoraciones – Instalación y Decoración de Persianas, Toldos y Cortinas a Medida</strong></p>
+              <p>Acapulco: Almirante Damian Churruca 5 Local 3 Fracc. Costa Azul</p>
+              <p>Teléfonos: <a href="tel:7444334126">744-433-4126</a> • WhatsApp: <a href="https://wa.me/527444522540">744-452-2540</a></p>
+              <p>Web: <a href="https://www.sundeckcortinasypersianas.com/" target="_blank">www.sundeckcortinasypersianas.com</a></p>
+              <p>Instagram: <a href="https://www.instagram.com/sundeck_oficial/" target="_blank">@sundeck_oficial</a></p>
+              
+              <p><em>Esta cotización es válida hasta la fecha indicada. Para cualquier duda, no dudes en contactarnos.</em></p>
+              
+              <div class="condiciones-instalacion">
+                <p><strong>📋 Condiciones de Instalación:</strong> La instalación está sujeta a que el área se encuentre en condiciones óptimas y libres para el trabajo. La cotización incluye únicamente los productos y servicios especificados; cualquier modificación adicional (volados, adaptaciones, refuerzos, cortes o ajustes especiales) no está contemplada y generará un costo extra.</p>
+              </div>
             </div>
           </div>
         </body>
@@ -472,15 +540,23 @@ class PDFService {
       // Generar PDF
       await page.setContent(html, { waitUntil: 'networkidle0' });
       
+      // Esperar a que las fuentes se carguen completamente
+      await page.evaluateHandle('document.fonts.ready');
+      
       const pdf = await page.pdf({
         format: 'A4',
         printBackground: true,
+        preferCSSPageSize: true,
+        displayHeaderFooter: false,
         margin: {
           top: '20px',
           right: '20px',
           bottom: '20px',
           left: '20px'
-        }
+        },
+        // Configuraciones para mejor calidad de texto
+        scale: 1,
+        quality: 100
       });
 
       await page.close();
@@ -504,6 +580,13 @@ class PDFService {
       // Si es puppeteer
       const browser = browserResult.browser;
       const page = await browser.newPage();
+      
+      // Configurar página para mejor calidad de texto
+      await page.setViewport({ 
+        width: 1200, 
+        height: 1600, 
+        deviceScaleFactor: 2 // Mejora la resolución del texto
+      });
 
       const htmlTemplate = `
         <!DOCTYPE html>
@@ -514,11 +597,14 @@ class PDFService {
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
-              font-family: 'Arial', sans-serif; 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
               line-height: 1.4; 
               color: #333; 
               background: #fff;
               padding: 20px;
+              -webkit-font-smoothing: antialiased;
+              -moz-osx-font-smoothing: grayscale;
+              text-rendering: optimizeLegibility;
             }
             
             .recibo-container {
@@ -531,14 +617,16 @@ class PDFService {
             }
             
             .header {
-              background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
+              background: linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%);
               color: white;
               padding: 25px;
               text-align: center;
+              border-radius: 10px 10px 0 0;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
             }
             
             .logo {
-              font-size: 28px;
+              font-size: 24px;
               font-weight: bold;
               margin-bottom: 5px;
             }
@@ -593,24 +681,35 @@ class PDFService {
             
             .medidas-grid {
               display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 15px;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 10px;
               margin-bottom: 15px;
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 6px;
             }
             
             .campo {
               margin-bottom: 8px;
+              text-align: center;
+              background: white;
+              padding: 8px;
+              border-radius: 4px;
+              border: 1px solid #dee2e6;
             }
             
             .campo-label {
               font-weight: bold;
               color: #495057;
-              font-size: 14px;
+              font-size: 12px;
+              display: block;
+              margin-bottom: 4px;
             }
             
             .campo-valor {
               color: #212529;
-              font-size: 15px;
+              font-size: 14px;
+              font-weight: 600;
             }
             
             .incluidos {
@@ -701,9 +800,34 @@ class PDFService {
               background: #f8f9fa;
               padding: 20px;
               text-align: center;
-              border-top: 1px solid #dee2e6;
               font-size: 12px;
               color: #666;
+              border-top: 2px solid #D4AF37;
+            }
+            
+            .footer a {
+              color: #2563eb;
+              text-decoration: none;
+              font-weight: 500;
+            }
+            
+            .footer a:hover {
+              text-decoration: underline;
+            }
+            
+            .condiciones-instalacion {
+              background: #f8f9fa;
+              border: 1px solid #dee2e6;
+              border-radius: 4px;
+              padding: 10px;
+              margin: 15px 0;
+              font-size: 8px;
+              line-height: 1.3;
+              color: #495057;
+            }
+            
+            .condiciones-instalacion p {
+              margin: 0;
             }
             
             .nota-importante {
@@ -726,7 +850,8 @@ class PDFService {
           <div class="recibo-container">
             <!-- Header -->
             <div class="header">
-              <div class="logo">🏠 SUNDECK</div>
+              <div class="logo">SUNDECK</div>
+              <div style="font-size: 14px; margin-bottom: 10px;">PERSIANAS Y DECORACIONES</div>
               <div class="subtitulo">Recibo de Visita - Medición de Productos</div>
             </div>
 
@@ -869,9 +994,17 @@ class PDFService {
 
             <!-- Footer -->
             <div class="footer">
-              <p><strong>🏠 SUNDECK - Especialistas en Ventanas y Puertas</strong></p>
-              <p>Acapulco, Guerrero • Tel: (744) 123-4567 • info@sundeckacapulco.com</p>
-              <p>Gracias por confiar en nosotros para su proyecto</p>
+              <p><strong>🏠 Sundeck Persianas y Decoraciones – Instalación y Decoración de Persianas, Toldos y Cortinas a Medida</strong></p>
+              <p>Acapulco: Almirante Damian Churruca 5 Local 3 Fracc. Costa Azul</p>
+              <p>Teléfonos: <a href="tel:7444334126">744-433-4126</a> • WhatsApp: <a href="https://wa.me/527444522540">744-452-2540</a></p>
+              <p>Web: <a href="https://www.sundeckcortinasypersianas.com/" target="_blank">www.sundeckcortinasypersianas.com</a></p>
+              <p>Instagram: <a href="https://www.instagram.com/sundeck_oficial/" target="_blank">@sundeck_oficial</a></p>
+              
+              <p><em>Gracias por confiar en nosotros para su proyecto</em></p>
+              
+              <div class="condiciones-instalacion">
+                <p><strong>📋 Condiciones de Instalación:</strong> La instalación está sujeta a que el área se encuentre en condiciones óptimas y libres para el trabajo. La cotización incluye únicamente los productos y servicios especificados; cualquier modificación adicional (volados, adaptaciones, refuerzos, cortes o ajustes especiales) no está contemplada y generará un costo extra.</p>
+              </div>
             </div>
           </div>
         </body>
@@ -1022,10 +1155,18 @@ class PDFService {
 
       await page.setContent(html, { waitUntil: 'networkidle0' });
       
+      // Esperar a que las fuentes se carguen completamente
+      await page.evaluateHandle('document.fonts.ready');
+      
       const pdf = await page.pdf({
         format: 'A4',
         printBackground: true,
-        margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }
+        preferCSSPageSize: true,
+        displayHeaderFooter: false,
+        margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
+        // Configuraciones para mejor calidad de texto
+        scale: 1,
+        quality: 100
       });
 
       await page.close();

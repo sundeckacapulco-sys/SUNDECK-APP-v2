@@ -125,6 +125,14 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
   }
 });
 
+// Manejar preflight para PDF
+router.options('/levantamiento-pdf', (req, res) => {
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
+});
+
 // Generar PDF de levantamiento de medidas
 router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
   try {
@@ -159,25 +167,39 @@ router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), 
 
     const pdf = await pdfService.generarLevantamientoPDF(etapaTemp, piezas, totalM2, precioGeneral);
 
+    // Crear nombre de archivo personalizado con timestamp único y ID aleatorio
+    const ahora = new Date();
+    const fechaFormateada = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+    const horaFormateada = ahora.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
+    const milisegundos = ahora.getMilliseconds().toString().padStart(3, '0');
+    const idUnico = Math.random().toString(36).substr(2, 6); // ID aleatorio de 6 caracteres
+    const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
+    const nombreArchivo = `Levantamiento-${nombreCliente}-${fechaFormateada}-${horaFormateada}-${milisegundos}-${idUnico}.pdf`;
+
+    // Headers CORS específicos para descarga
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Levantamiento-${prospecto.nombre.replace(/\s+/g, '-')}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
     res.send(pdf);
 
   } catch (error) {
     console.error('Error generando PDF de levantamiento:', error);
+    console.error('Stack trace:', error.stack);
     
     // Verificar si es un error de dependencia faltante
     if (error.message.includes('Puppeteer no está disponible')) {
       return res.status(503).json({ 
         message: 'Servicio de generación de PDF no disponible',
         error: error.message,
-        suggestion: 'Contacta al administrador para instalar las dependencias necesarias'
+        solucion: 'Instala Puppeteer: npm install puppeteer'
       });
     }
     
     res.status(500).json({ 
-      message: 'Error generando PDF del levantamiento',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Error interno del servidor'
+      message: 'Error generando PDF de levantamiento',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
@@ -216,9 +238,18 @@ router.post('/levantamiento-excel', auth, verificarPermiso('prospectos', 'leer')
       unidadMedida
     );
 
+    // Crear nombre de archivo personalizado para Excel con timestamp único y ID aleatorio
+    const ahora = new Date();
+    const fechaFormateada = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+    const horaFormateada = ahora.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
+    const milisegundos = ahora.getMilliseconds().toString().padStart(3, '0');
+    const idUnico = Math.random().toString(36).substr(2, 6); // ID aleatorio de 6 caracteres
+    const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
+    const nombreArchivoExcel = `Levantamiento-${nombreCliente}-${fechaFormateada}-${horaFormateada}-${milisegundos}-${idUnico}.xlsx`;
+
     // Configurar headers para descarga
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="Levantamiento-${prospecto.nombre.replace(/\s+/g, '-')}.xlsx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivoExcel}"`);
     res.setHeader('Content-Length', excelBuffer.length);
 
     res.send(excelBuffer);

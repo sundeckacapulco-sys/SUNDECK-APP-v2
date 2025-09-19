@@ -36,6 +36,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
 import AgregarEtapaModal from './AgregarEtapaModal';
+import { downloadFileFromBlob } from '../../utils/downloadUtils';
 
 const etapaLabels = {
   nuevo: 'Nuevo',
@@ -442,16 +443,10 @@ const ProspectoDetalle = () => {
         responseType: 'blob'
       });
 
-      // Crear y descargar el archivo
+      // Crear y descargar el archivo usando la utilidad
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Levantamiento-Completo-${prospecto.nombre.replace(/\s+/g, '-')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const fallbackName = `Levantamiento-Completo-${prospecto.nombre.replace(/\s+/g, '-')}.pdf`;
+      downloadFileFromBlob(blob, response.headers, fallbackName);
 
     } catch (error) {
       console.error('Error descargando PDF completo:', error);

@@ -64,13 +64,17 @@ const Login = () => {
           alignItems: 'center',
         }}
       >
-        <Avatar sx={{ m: 1, bgcolor: 'primary.main', width: 56, height: 56 }}>
-          <LockOutlined />
-        </Avatar>
-        
-        <Typography component="h1" variant="h4" gutterBottom>
-          Sundeck CRM
-        </Typography>
+        <Box sx={{ mb: 2 }}>
+          <img 
+            src="/assets/sundeck-logo.svg" 
+            alt="Sundeck Logo" 
+            style={{ 
+              height: '80px', 
+              width: 'auto',
+              maxWidth: '300px'
+            }} 
+          />
+        </Box>
         
         <Typography variant="h6" color="text.secondary" gutterBottom>
           Iniciar Sesión
@@ -151,10 +155,10 @@ const Login = () => {
 
         <Box sx={{ mt: 4, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
-            Sistema CRM para gestión completa de ventas
+            Sistema CRM para Persianas y Decoraciones
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            v1.0.0 - Sundeck Team
+            v1.0.0 - Sundeck Acapulco
           </Typography>
         </Box>
       </Box>
