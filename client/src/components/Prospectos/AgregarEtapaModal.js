@@ -164,6 +164,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const [guardandoPedido, setGuardandoPedido] = useState(false);
   const [metodoPagoAnticipo, setMetodoPagoAnticipo] = useState(''); // efectivo, transferencia, etc.
   const [guardandoPDF, setGuardandoPDF] = useState(false);
+  
+  // Estado para tipo de visita inicial
+  const [tipoVisitaInicial, setTipoVisitaInicial] = useState('levantamiento'); // 'levantamiento' o 'cotizacion'
 
   const resetFormulario = () => {
     setNombreEtapa(etapaOptions[0]);
@@ -187,6 +190,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setGuardandoPedido(false);
     setMetodoPagoAnticipo('');
     setGuardandoPDF(false);
+    setTipoVisitaInicial('levantamiento');
   };
 
   useEffect(() => {
@@ -930,25 +934,42 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setErrorLocal('');
 
     try {
-      const payload = {
+      console.log('🔍 DEBUG GUARDADO - Estado completo:');
+      console.log('- Partidas array:', piezas);
+      console.log('- Cantidad de partidas:', piezas.length);
+      console.log('- Piezas totales:', piezas.reduce((total, partida) => total + (partida.cantidad || 1), 0));
+      console.log('- Tipo de visita:', tipoVisitaInicial);
+      console.log('- Nombre etapa:', nombreEtapa);
+      
+      // Debug detallado de cada partida
+      piezas.forEach((partida, index) => {
+        console.log(`📦 Partida ${index + 1}: ${partida.ubicacion} - ${partida.cantidad || 1} piezas`);
+      });
+      let payload = {
         prospectoId,
         nombreEtapa,
         comentarios,
         unidadMedida: unidad,
         precioGeneral: Number(precioGeneral),
         totalM2: calcularTotalM2,
-        piezas: piezas.map((pieza) => ({
-          ubicacion: pieza.ubicacion,
-          ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
-          alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
-          producto: pieza.producto,
-          productoLabel: pieza.productoLabel,
-          color: pieza.color,
-          precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : undefined,
-          observaciones: pieza.observaciones,
-          fotoUrls: pieza.fotoUrls || [],
-          videoUrl: pieza.videoUrl || ''
-        })),
+        piezas: piezas.map((pieza) => {
+          console.log(`🔍 Procesando pieza: ${pieza.ubicacion}, cantidad original: ${pieza.cantidad}`);
+          return {
+            ubicacion: pieza.ubicacion,
+            cantidad: pieza.cantidad || 1,
+            ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
+            alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
+            producto: pieza.producto,
+            productoLabel: pieza.productoLabel,
+            color: pieza.color,
+            precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : undefined,
+            observaciones: pieza.observaciones,
+            fotoUrls: pieza.fotoUrls || [],
+            videoUrl: pieza.videoUrl || '',
+            // Incluir medidas individuales para levantamiento técnico
+            medidas: pieza.medidas || []
+          };
+        }),
         // Información de instalación especial
         instalacionEspecial: cobraInstalacion ? {
           activa: true,
@@ -956,6 +977,21 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           precio: Number(precioInstalacion) || 0
         } : { activa: false }
       };
+
+      // Si es levantamiento técnico, agregar información específica
+      if (tipoVisitaInicial === 'levantamiento') {
+        payload = {
+          ...payload,
+          tipoVisita: 'levantamiento',
+          datosLevantamiento: {
+            personaVisita: piezaForm.personaVisita || '',
+            piezas: piezas.map((pieza) => ({
+              ...pieza,
+              medidas: pieza.medidas || []
+            }))
+          }
+        };
+      }
 
       const { data } = await axiosConfig.post('/etapas', payload);
       onSaved?.(data.message || 'Etapa agregada exitosamente', data.etapa);
@@ -1244,10 +1280,70 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           </Select>
         </FormControl>
 
-        {/* Debug Info */}
-        <Alert severity="info" sx={{ mb: 2 }}>
-          DEBUG: Etapa actual = "{nombreEtapa}" | Es Visita Inicial = {nombreEtapa === 'Visita Inicial / Medición' ? 'SÍ' : 'NO'}
-        </Alert>
+        {/* Selector de Tipo de Visita Inicial */}
+        {nombreEtapa === 'Visita Inicial / Medición' && (
+          <Card sx={{ mb: 3, backgroundColor: '#f8f9fa', border: '2px solid #e9ecef' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ color: '#495057', fontWeight: 600 }}>
+                🎯 Tipo de Visita Inicial
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Selecciona el tipo de visita según el escenario:
+              </Typography>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Card 
+                    sx={{ 
+                      cursor: 'pointer',
+                      border: tipoVisitaInicial === 'levantamiento' ? '2px solid #2196f3' : '1px solid #e0e0e0',
+                      backgroundColor: tipoVisitaInicial === 'levantamiento' ? '#e3f2fd' : 'white',
+                      '&:hover': { backgroundColor: '#f5f5f5' }
+                    }}
+                    onClick={() => setTipoVisitaInicial('levantamiento')}
+                  >
+                    <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                      <Typography variant="h6" sx={{ color: '#1976d2', mb: 1 }}>
+                        📋 Levantamiento Simple
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Solo medidas, fotos y notas
+                      </Typography>
+                      <Typography variant="caption" display="block" sx={{ mt: 1, fontStyle: 'italic' }}>
+                        Sin precios • Para levantamiento técnico
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} md={6}>
+                  <Card 
+                    sx={{ 
+                      cursor: 'pointer',
+                      border: tipoVisitaInicial === 'cotizacion' ? '2px solid #4caf50' : '1px solid #e0e0e0',
+                      backgroundColor: tipoVisitaInicial === 'cotizacion' ? '#e8f5e9' : 'white',
+                      '&:hover': { backgroundColor: '#f5f5f5' }
+                    }}
+                    onClick={() => setTipoVisitaInicial('cotizacion')}
+                  >
+                    <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                      <Typography variant="h6" sx={{ color: '#388e3c', mb: 1 }}>
+                        💰 Cotización en Vivo
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Con precios y cotización completa
+                      </Typography>
+                      <Typography variant="caption" display="block" sx={{ mt: 1, fontStyle: 'italic' }}>
+                        Con precios • Cliente presente
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        )}
+
 
         {/* Fecha y Hora - Solo para etapas que NO sean Visita Inicial */}
         {nombreEtapa !== 'Visita Inicial / Medición' && (
@@ -1288,15 +1384,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                   >
                     Agregar Partida
                   </Button>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={handleDescargarLevantamiento}
-                    disabled={descargandoLevantamiento || piezas.length === 0}
-                    sx={{ bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' } }}
-                  >
-                    {descargandoLevantamiento ? 'Generando...' : '📄 Descargar PDF'}
-                  </Button>
+                  {/* Solo mostrar Excel para levantamiento técnico */}
                   <Button
                     variant="contained"
                     size="small"
@@ -1306,31 +1394,37 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                   >
                     {descargandoExcel ? 'Generando...' : '📊 Descargar Excel'}
                   </Button>
+                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                    📋 Excel necesario para realizar cotización
+                  </Typography>
                 </Box>
               </Box>
 
-              {/* Precio General */}
-              <Card sx={{ mb: 2, bgcolor: 'warning.50' }}>
-                <CardContent>
-                  <TextField
-                    label="💰 Precio General por m² (MXN)"
-                    type="number"
-                    fullWidth
-                    value={precioGeneral}
-                    onChange={(e) => setPrecioGeneral(e.target.value)}
-                    placeholder="750"
-                  />
-                </CardContent>
-              </Card>
+              {/* Precio General - Solo para Cotización en Vivo */}
+              {tipoVisitaInicial === 'cotizacion' && (
+                <Card sx={{ mb: 2, bgcolor: 'warning.50' }}>
+                  <CardContent>
+                    <TextField
+                      label="💰 Precio General por m² (MXN)"
+                      type="number"
+                      fullWidth
+                      value={precioGeneral}
+                      onChange={(e) => setPrecioGeneral(e.target.value)}
+                      placeholder="750"
+                    />
+                  </CardContent>
+                </Card>
+              )}
 
-              {/* Instalación Manual */}
-              <Card sx={{ mb: 2, bgcolor: 'info.50', border: 2, borderColor: 'info.200' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      🔧 Instalación Especial
-                    </Typography>
-                    <Button
+              {/* Instalación Manual - Solo para Cotización en Vivo */}
+              {tipoVisitaInicial === 'cotizacion' && (
+                <Card sx={{ mb: 2, bgcolor: 'info.50', border: 2, borderColor: 'info.200' }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        🔧 Instalación Especial
+                      </Typography>
+                      <Button
                       variant={cobraInstalacion ? 'contained' : 'outlined'}
                       size="small"
                       onClick={() => setCobraInstalacion(!cobraInstalacion)}
@@ -1388,7 +1482,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                   )}
                 </CardContent>
               </Card>
-
+              )}
 
               {/* Unidad */}
               <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
@@ -1506,10 +1600,48 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                       {/* Campos dinámicos de medidas para cada pieza */}
                       {(piezaForm.medidas || []).map((medida, index) => (
                         <React.Fragment key={index}>
+                          {/* Divisor entre piezas (excepto la primera) */}
+                          {index > 0 && (
+                            <Grid item xs={12}>
+                              <Box sx={{ 
+                                my: 2, 
+                                borderTop: '2px solid', 
+                                borderColor: 'divider',
+                                position: 'relative'
+                              }}>
+                                <Box sx={{
+                                  position: 'absolute',
+                                  top: -12,
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  bgcolor: 'background.paper',
+                                  px: 2,
+                                  color: 'text.secondary',
+                                  fontSize: '0.75rem'
+                                }}>
+                                  ✂️ ─ ─ ─
+                                </Box>
+                              </Box>
+                            </Grid>
+                          )}
+                          
                           <Grid item xs={12}>
-                            <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 'bold', mb: 1 }}>
-                              📏 Pieza {index + 1} de {piezaForm.cantidad}
-                            </Typography>
+                            <Box sx={{ 
+                              p: 2, 
+                              bgcolor: index === 0 ? 'primary.50' : 'grey.50', 
+                              borderRadius: 2,
+                              border: '1px solid',
+                              borderColor: index === 0 ? 'primary.200' : 'grey.200'
+                            }}>
+                              <Typography variant="subtitle2" color={index === 0 ? 'primary.main' : 'text.primary'} sx={{ fontWeight: 'bold', mb: 2 }}>
+                                📏 Especificaciones pieza {index + 1} de {piezaForm.cantidad}
+                                {index === 0 && (
+                                  <Typography component="span" variant="caption" sx={{ ml: 1, color: 'primary.main', fontWeight: 'normal' }}>
+                                    (Pieza principal - se propaga a las demás)
+                                  </Typography>
+                                )}
+                              </Typography>
+                            </Box>
                           </Grid>
                           
                           {/* Producto específico para esta pieza */}
@@ -1522,12 +1654,32 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                 onChange={(e) => {
                                   const nuevasMedidas = [...(piezaForm.medidas || [])];
                                   const productoSeleccionado = productosOptions.find(p => p.value === e.target.value);
-                                  nuevasMedidas[index] = { 
-                                    ...nuevasMedidas[index], 
-                                    producto: e.target.value,
-                                    productoLabel: productoSeleccionado ? productoSeleccionado.label : e.target.value
-                                  };
-                                  setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                  
+                                  // Si es la primera pieza (index 0), propagar a todas las demás
+                                  if (index === 0) {
+                                    for (let i = 0; i < nuevasMedidas.length; i++) {
+                                      nuevasMedidas[i] = { 
+                                        ...nuevasMedidas[i], 
+                                        producto: e.target.value,
+                                        productoLabel: productoSeleccionado ? productoSeleccionado.label : e.target.value
+                                      };
+                                    }
+                                    // También actualizar el producto general
+                                    setPiezaForm(prev => ({ 
+                                      ...prev, 
+                                      producto: e.target.value,
+                                      productoLabel: productoSeleccionado ? productoSeleccionado.label : e.target.value,
+                                      medidas: nuevasMedidas 
+                                    }));
+                                  } else {
+                                    // Solo actualizar la pieza específica
+                                    nuevasMedidas[index] = { 
+                                      ...nuevasMedidas[index], 
+                                      producto: e.target.value,
+                                      productoLabel: productoSeleccionado ? productoSeleccionado.label : e.target.value
+                                    };
+                                    setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                  }
                                 }}
                               >
                                 {productosOptions.filter(p => p.value !== 'nuevo').map((producto) => (
@@ -1537,6 +1689,15 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                 ))}
                               </Select>
                             </FormControl>
+                            {index === 0 ? (
+                              <Typography variant="caption" color="primary" sx={{ mt: 0.5, display: 'block' }}>
+                                💡 Se aplicará a todas las piezas (puedes cambiar individualmente después)
+                              </Typography>
+                            ) : (
+                              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                                📋 Propagado desde pieza 1 (puedes cambiar si es necesario)
+                              </Typography>
+                            )}
                           </Grid>
                           
                           {/* Color específico para esta pieza */}
@@ -1547,14 +1708,319 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                               value={medida.color || piezaForm.color}
                               onChange={(e) => {
                                 const nuevasMedidas = [...(piezaForm.medidas || [])];
-                                nuevasMedidas[index] = { ...nuevasMedidas[index], color: e.target.value };
-                                setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
-                                // Sincronizar con el campo general después de un pequeño delay
-                                setTimeout(sincronizarColores, 100);
+                                
+                                // Si es la primera pieza (index 0), propagar a todas las demás
+                                if (index === 0) {
+                                  for (let i = 0; i < nuevasMedidas.length; i++) {
+                                    nuevasMedidas[i] = { ...nuevasMedidas[i], color: e.target.value };
+                                  }
+                                  // También actualizar el color general
+                                  setPiezaForm(prev => ({ 
+                                    ...prev, 
+                                    color: e.target.value,
+                                    medidas: nuevasMedidas 
+                                  }));
+                                } else {
+                                  // Solo actualizar la pieza específica
+                                  nuevasMedidas[index] = { ...nuevasMedidas[index], color: e.target.value };
+                                  setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                  // Sincronizar con el campo general después de un pequeño delay
+                                  setTimeout(sincronizarColores, 100);
+                                }
                               }}
                               placeholder="Ej. Blanco, Negro, Gris"
                             />
+                            {index === 0 ? (
+                              <Typography variant="caption" color="primary" sx={{ mt: 0.5, display: 'block' }}>
+                                💡 Se aplicará a todas las piezas (puedes cambiar individualmente después)
+                              </Typography>
+                            ) : (
+                              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                                📋 Propagado desde pieza 1 (puedes cambiar si es necesario)
+                              </Typography>
+                            )}
                           </Grid>
+
+                          {/* Campos técnicos según formato Excel */}
+                          {tipoVisitaInicial === 'levantamiento' && (
+                            <>
+                              {/* Control */}
+                              <Grid item xs={12} sm={4}>
+                                <FormControl fullWidth>
+                                  <InputLabel>{`Control pieza ${index + 1}`}</InputLabel>
+                                  <Select
+                                    value={medida.control || ''}
+                                    label={`Control pieza ${index + 1}`}
+                                    onChange={(e) => {
+                                      const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                      nuevasMedidas[index] = { ...nuevasMedidas[index], control: e.target.value };
+                                      setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                    }}
+                                  >
+                                    <MenuItem value="">Seleccionar</MenuItem>
+                                    <MenuItem value="IZQ">IZQ</MenuItem>
+                                    <MenuItem value="DER">DER</MenuItem>
+                                  </Select>
+                                </FormControl>
+                              </Grid>
+
+                              {/* Galería */}
+                              <Grid item xs={12} sm={4}>
+                                <FormControl fullWidth>
+                                  <InputLabel>{`Galería pieza ${index + 1}`}</InputLabel>
+                                  <Select
+                                    value={medida.galeria || ''}
+                                    label={`Galería pieza ${index + 1}`}
+                                    onChange={(e) => {
+                                      const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                      nuevasMedidas[index] = { 
+                                        ...nuevasMedidas[index], 
+                                        galeria: e.target.value,
+                                        // Limpiar Base Tabla si Galería es "No"
+                                        baseTabla: e.target.value === 'no' ? '' : nuevasMedidas[index].baseTabla
+                                      };
+                                      setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                    }}
+                                  >
+                                    <MenuItem value="">Seleccionar</MenuItem>
+                                    <MenuItem value="si">Sí</MenuItem>
+                                    <MenuItem value="no">No</MenuItem>
+                                  </Select>
+                                </FormControl>
+                              </Grid>
+
+                              {/* Base de Tabla - Solo si Galería es "Sí" */}
+                              {medida.galeria === 'si' ? (
+                                <Grid item xs={12} sm={4}>
+                                  <FormControl fullWidth>
+                                    <InputLabel>{`Base Tabla pieza ${index + 1}`}</InputLabel>
+                                    <Select
+                                      value={medida.baseTabla || ''}
+                                      label={`Base Tabla pieza ${index + 1}`}
+                                      onChange={(e) => {
+                                        const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                        nuevasMedidas[index] = { ...nuevasMedidas[index], baseTabla: e.target.value };
+                                        setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                      }}
+                                    >
+                                      <MenuItem value="">Seleccionar</MenuItem>
+                                      <MenuItem value="7">7</MenuItem>
+                                      <MenuItem value="15">15</MenuItem>
+                                      <MenuItem value="18">18</MenuItem>
+                                    </Select>
+                                  </FormControl>
+                                </Grid>
+                              ) : (
+                                <Grid item xs={12} sm={4}>
+                                  <Box sx={{ 
+                                    p: 2, 
+                                    bgcolor: 'grey.100', 
+                                    borderRadius: 1, 
+                                    textAlign: 'center',
+                                    color: 'text.secondary'
+                                  }}>
+                                    <Typography variant="body2">
+                                      Base Tabla: N/A
+                                    </Typography>
+                                    <Typography variant="caption">
+                                      (Galería: No)
+                                    </Typography>
+                                  </Box>
+                                </Grid>
+                              )}
+
+                              {/* Fotos específicas por pieza */}
+                              <Grid item xs={12}>
+                                <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px dashed', borderColor: 'grey.300' }}>
+                                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                    📷 Fotos pieza {index + 1}:
+                                  </Typography>
+                                  
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                                    <Button
+                                      variant="outlined"
+                                      size="small"
+                                      startIcon={<CloudUpload />}
+                                      onClick={() => {
+                                        const input = document.createElement('input');
+                                        input.type = 'file';
+                                        input.accept = 'image/*';
+                                        input.multiple = true;
+                                        input.onchange = async (e) => {
+                                          const files = Array.from(e.target.files);
+                                          if (files.length === 0) return;
+                                          
+                                          setSubiendoFoto(true);
+                                          try {
+                                            const uploadPromises = files.map(async (file) => {
+                                              const formData = new FormData();
+                                              formData.append('foto', file);
+                                              const response = await axiosConfig.post('/upload/foto', formData);
+                                              return response.data.url;
+                                            });
+                                            
+                                            const urls = await Promise.all(uploadPromises);
+                                            const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                            const fotosActuales = nuevasMedidas[index].fotoUrls || [];
+                                            nuevasMedidas[index] = { 
+                                              ...nuevasMedidas[index], 
+                                              fotoUrls: [...fotosActuales, ...urls] 
+                                            };
+                                            setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                          } catch (error) {
+                                            console.error('Error al subir fotos:', error);
+                                            setErrorLocal('Error al subir las fotos');
+                                          } finally {
+                                            setSubiendoFoto(false);
+                                          }
+                                        };
+                                        input.click();
+                                      }}
+                                      disabled={subiendoFoto}
+                                      sx={{ minWidth: 'auto' }}
+                                    >
+                                      {subiendoFoto ? 'Subiendo...' : 'Subir Fotos'}
+                                    </Button>
+                                    
+                                    {medida.fotoUrls && medida.fotoUrls.length > 0 && (
+                                      <Typography variant="caption" color="success.main">
+                                        ✅ {medida.fotoUrls.length} foto{medida.fotoUrls.length > 1 ? 's' : ''} subida{medida.fotoUrls.length > 1 ? 's' : ''}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                  
+                                  {/* Mostrar fotos subidas */}
+                                  {medida.fotoUrls && medida.fotoUrls.length > 0 && (
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                                      {medida.fotoUrls.map((url, fotoIndex) => (
+                                        <Box key={fotoIndex} sx={{ position: 'relative' }}>
+                                          <img 
+                                            src={url} 
+                                            alt={`Foto ${fotoIndex + 1} pieza ${index + 1}`}
+                                            style={{ 
+                                              width: 60, 
+                                              height: 60, 
+                                              objectFit: 'cover', 
+                                              borderRadius: 4,
+                                              cursor: 'pointer'
+                                            }}
+                                            onClick={() => window.open(url, '_blank')}
+                                          />
+                                          <IconButton
+                                            size="small"
+                                            onClick={() => {
+                                              const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                              const nuevasFotos = [...(nuevasMedidas[index].fotoUrls || [])];
+                                              nuevasFotos.splice(fotoIndex, 1);
+                                              nuevasMedidas[index] = { 
+                                                ...nuevasMedidas[index], 
+                                                fotoUrls: nuevasFotos 
+                                              };
+                                              setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                            }}
+                                            sx={{
+                                              position: 'absolute',
+                                              top: -8,
+                                              right: -8,
+                                              bgcolor: 'error.main',
+                                              color: 'white',
+                                              width: 20,
+                                              height: 20,
+                                              '&:hover': { bgcolor: 'error.dark' }
+                                            }}
+                                          >
+                                            <Delete sx={{ fontSize: 12 }} />
+                                          </IconButton>
+                                        </Box>
+                                      ))}
+                                    </Box>
+                                  )}
+                                  
+                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                                    Sube fotos específicas de esta pieza (medidas, ubicación, detalles)
+                                  </Typography>
+                                </Box>
+                              </Grid>
+
+                              {/* Sistema (Checkboxes múltiples) */}
+                              <Grid item xs={12}>
+                                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                  Sistema pieza {index + 1}:
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                  {[
+                                    'Manual', 'Motorizado', 'Galera', 'Muro', 'Techo', 
+                                    'Traslape', 'Cofre', 'Empotrada', 'Piso/techo', 
+                                    'Concreto', 'Tablaroca'
+                                  ].map((sistema) => (
+                                    <Button
+                                      key={sistema}
+                                      size="small"
+                                      variant={medida.sistema?.includes(sistema) ? 'contained' : 'outlined'}
+                                      onClick={() => {
+                                        const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                        const sistemasActuales = nuevasMedidas[index].sistema || [];
+                                        const nuevosSistemas = sistemasActuales.includes(sistema)
+                                          ? sistemasActuales.filter(s => s !== sistema)
+                                          : [...sistemasActuales, sistema];
+                                        nuevasMedidas[index] = { ...nuevasMedidas[index], sistema: nuevosSistemas };
+                                        setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                      }}
+                                      sx={{ 
+                                        fontSize: '0.75rem',
+                                        minWidth: 'auto',
+                                        px: 1,
+                                        py: 0.5
+                                      }}
+                                    >
+                                      {sistema}
+                                    </Button>
+                                  ))}
+                                </Box>
+                              </Grid>
+
+                              {/* Sistema Especial (Checkboxes múltiples) */}
+                              <Grid item xs={12}>
+                                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                  Sistema Especial pieza {index + 1}:
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                  {[
+                                    'Estándar', 'Skyline', 'Día & Noche', 'Otros modelos de persianas'
+                                  ].map((sistemaEsp) => (
+                                    <Button
+                                      key={sistemaEsp}
+                                      size="small"
+                                      variant={medida.sistemaEspecial?.includes(sistemaEsp) ? 'contained' : 'outlined'}
+                                      onClick={() => {
+                                        const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                        const sistemasActuales = nuevasMedidas[index].sistemaEspecial || [];
+                                        const nuevosSistemas = sistemasActuales.includes(sistemaEsp)
+                                          ? sistemasActuales.filter(s => s !== sistemaEsp)
+                                          : [...sistemasActuales, sistemaEsp];
+                                        nuevasMedidas[index] = { ...nuevasMedidas[index], sistemaEspecial: nuevosSistemas };
+                                        setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                      }}
+                                      sx={{ 
+                                        fontSize: '0.75rem',
+                                        minWidth: 'auto',
+                                        px: 1,
+                                        py: 0.5,
+                                        bgcolor: medida.sistemaEspecial?.includes(sistemaEsp) ? '#9c27b0' : 'transparent',
+                                        color: medida.sistemaEspecial?.includes(sistemaEsp) ? 'white' : '#9c27b0',
+                                        borderColor: '#9c27b0',
+                                        '&:hover': {
+                                          bgcolor: medida.sistemaEspecial?.includes(sistemaEsp) ? '#7b1fa2' : '#f3e5f5'
+                                        }
+                                      }}
+                                    >
+                                      {sistemaEsp}
+                                    </Button>
+                                  ))}
+                                </Box>
+                              </Grid>
+                            </>
+                          )}
                           
                           <Grid item xs={12} sm={4}>
                             <TextField
@@ -1586,21 +2052,24 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                               placeholder="Ej. 3.00"
                             />
                           </Grid>
-                          <Grid item xs={12} sm={4}>
-                            <TextField
-                              label={`Precio pieza ${index + 1} ($/m²)`}
-                              type="number"
-                              fullWidth
-                              value={medida.precioM2 || ''}
-                              onChange={(e) => {
-                                const nuevasMedidas = [...(piezaForm.medidas || [])];
-                                nuevasMedidas[index] = { ...nuevasMedidas[index], precioM2: e.target.value };
-                                setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
-                              }}
-                              placeholder={`Precio base: $${precioGeneral}`}
-                              helperText="Opcional, usa precio base si vacío"
-                            />
-                          </Grid>
+                          {/* Campo de precio solo para Cotización en Vivo */}
+                          {tipoVisitaInicial === 'cotizacion' && (
+                            <Grid item xs={12} sm={6}>
+                              <TextField
+                                label={`Precio pieza ${index + 1} ($/m²)`}
+                                type="number"
+                                fullWidth
+                                value={medida.precioM2 || ''}
+                                onChange={(e) => {
+                                  const nuevasMedidas = [...(piezaForm.medidas || [])];
+                                  nuevasMedidas[index] = { ...nuevasMedidas[index], precioM2: e.target.value };
+                                  setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                }}
+                                placeholder={`Precio base: $${precioGeneral}`}
+                                helperText="Opcional, usa precio base si vacío"
+                              />
+                            </Grid>
+                          )}
                         </React.Fragment>
                       ))}
                       <Grid item xs={12} sm={6}>
@@ -1627,17 +2096,90 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                           helperText="Se aplicará a todas las piezas. Puedes personalizar individualmente arriba."
                         />
                       </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          label="Precio por m² (opcional)"
-                          type="number"
-                          fullWidth
-                          value={piezaForm.precioM2}
-                          onChange={(e) => setPiezaForm(prev => ({ ...prev, precioM2: e.target.value }))}
-                          placeholder={`Usar precio general: $${precioGeneral}`}
-                          inputProps={{ step: 0.01 }}
-                        />
-                      </Grid>
+                      {/* Campo de precio solo para Cotización en Vivo */}
+                      {tipoVisitaInicial === 'cotizacion' && (
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="Precio por m² (opcional)"
+                            type="number"
+                            fullWidth
+                            value={piezaForm.precioM2}
+                            onChange={(e) => setPiezaForm(prev => ({ ...prev, precioM2: e.target.value }))}
+                            placeholder={`Usar precio general: $${precioGeneral}`}
+                            inputProps={{ step: 0.01 }}
+                          />
+                        </Grid>
+                      )}
+
+                      {/* Información técnica general para Levantamiento Simple */}
+                      {tipoVisitaInicial === 'levantamiento' && (
+                        <>
+                          <Grid item xs={12}>
+                            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, color: 'info.main', fontWeight: 'bold' }}>
+                              📋 Datos Generales del Levantamiento
+                            </Typography>
+                          </Grid>
+                          
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              label="Persona que realizó visita"
+                              fullWidth
+                              value={piezaForm.personaVisita || ''}
+                              onChange={(e) => setPiezaForm(prev => ({ ...prev, personaVisita: e.target.value }))}
+                              placeholder="Nombre del asesor/técnico"
+                            />
+                          </Grid>
+
+                          <Grid item xs={12} sm={6}>
+                            <Box sx={{ 
+                              p: 2, 
+                              bgcolor: 'warning.50', 
+                              borderRadius: 1, 
+                              border: '1px solid', 
+                              borderColor: 'warning.200',
+                              height: '56px',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                                <Box sx={{ 
+                                  bgcolor: 'warning.main', 
+                                  color: 'white', 
+                                  borderRadius: '50%', 
+                                  width: 24, 
+                                  height: 24, 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  fontSize: '12px',
+                                  fontWeight: 'bold'
+                                }}>
+                                  ⏰
+                                </Box>
+                                <Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'warning.dark' }}>
+                                    Recordatorio automático
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Cotización en menos de 24 horas
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+                          </Grid>
+
+                          <Grid item xs={12}>
+                            <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px dashed', borderColor: 'grey.300' }}>
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                📝 Firma digital (opcional):
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                La firma digital se capturará al finalizar el levantamiento
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        </>
+                      )}
 
                       {/* Sección de Kit de Toldo - Solo para toldos */}
                       {esToldo(piezaForm.producto) && (
@@ -2128,6 +2670,37 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                             </Grid>
                           </Box>
 
+                          {/* Detalle de medidas individuales */}
+                          {pieza.medidas && Array.isArray(pieza.medidas) && pieza.medidas.length > 0 && (
+                            <Box sx={{ mb: 2, p: 1.5, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
+                              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: 'info.main' }}>
+                                📏 Medidas individuales:
+                              </Typography>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                {pieza.medidas.map((medida, medidaIndex) => (
+                                  <Box key={medidaIndex} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
+                                    <Typography variant="body2" sx={{ minWidth: 20, color: 'info.main', fontWeight: 'bold' }}>
+                                      {medidaIndex + 1}.
+                                    </Typography>
+                                    <Typography variant="body2">
+                                      {medida.ancho}m × {medida.alto}m = {medida.area?.toFixed(2) || (medida.ancho * medida.alto).toFixed(2)} m²
+                                    </Typography>
+                                    {medida.producto && medida.producto !== pieza.producto && (
+                                      <Typography variant="caption" color="text.secondary">
+                                        ({medida.productoLabel || medida.producto})
+                                      </Typography>
+                                    )}
+                                    {medida.color && medida.color !== pieza.color && (
+                                      <Typography variant="caption" color="text.secondary">
+                                        - {medida.color}
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                ))}
+                              </Box>
+                            </Box>
+                          )}
+
                           {/* Desglose de incluidos */}
                           {(esProductoToldo || pieza.motorizado) && (
                             <Box sx={{ mb: 2 }}>
@@ -2271,8 +2844,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           </Card>
         )}
 
-        {/* Descuentos - Solo aparece cuando hay partidas */}
-        {piezas.length > 0 && (
+        {/* Descuentos - Solo aparece cuando hay partidas y es Cotización en Vivo */}
+        {piezas.length > 0 && tipoVisitaInicial === 'cotizacion' && (
           <Card sx={{ mb: 2, bgcolor: 'success.50', border: 2, borderColor: 'success.200' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -2347,8 +2920,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           </Card>
         )}
 
-        {/* Sección de Facturación y Términos - Solo aparece cuando hay partidas */}
-        {piezas.length > 0 && (
+        {/* Sección de Facturación y Términos - Solo aparece cuando hay partidas y es Cotización en Vivo */}
+        {piezas.length > 0 && tipoVisitaInicial === 'cotizacion' && (
           <Card sx={{ mb: 2, bgcolor: 'warning.50', border: 2, borderColor: 'warning.200' }}>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -2673,14 +3246,29 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             </Button>
           )}
           
-          <Button
-            onClick={handleGuardarEtapa}
-            disabled={guardando || generandoCotizacion || guardandoPedido || guardandoPDF}
-            variant="contained"
-            sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8860B' } }}
-          >
-            {guardando ? 'Guardando...' : 'Agregar Etapa'}
-          </Button>
+          {/* Botón específico para Levantamiento Técnico */}
+          {tipoVisitaInicial === 'levantamiento' && (
+            <Button
+              onClick={handleGuardarEtapa}
+              disabled={guardando || generandoCotizacion || guardandoPedido || guardandoPDF}
+              variant="contained"
+              sx={{ bgcolor: '#16A34A', '&:hover': { bgcolor: '#15803D' } }}
+            >
+              {guardando ? 'Guardando...' : '💾 Guardar Levantamiento'}
+            </Button>
+          )}
+          
+          {/* Botón general para otros tipos */}
+          {tipoVisitaInicial !== 'levantamiento' && (
+            <Button
+              onClick={handleGuardarEtapa}
+              disabled={guardando || generandoCotizacion || guardandoPedido || guardandoPDF}
+              variant="contained"
+              sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8860B' } }}
+            >
+              {guardando ? 'Guardando...' : 'Agregar Etapa'}
+            </Button>
+          )}
         </Box>
       </DialogActions>
     </Dialog>

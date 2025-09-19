@@ -42,7 +42,8 @@ const ProspectoForm = () => {
         colonia: '',
         ciudad: '',
         codigoPostal: '',
-        referencias: ''
+        referencias: '',
+        linkMapa: ''
       },
       producto: '',
       tipoProducto: 'visita_servicio',
@@ -117,6 +118,21 @@ const ProspectoForm = () => {
     { value: 'urgente', label: 'Urgente' }
   ];
 
+  const motivosCompra = [
+    { value: 'privacidad', label: 'Privacidad' },
+    { value: 'control_luz', label: 'Control de Luz' },
+    { value: 'decoracion', label: 'Decoración' },
+    { value: 'ahorro_energia', label: 'Ahorro de Energía' },
+    { value: 'proteccion_solar', label: 'Protección Solar' },
+    { value: 'seguridad', label: 'Seguridad' },
+    { value: 'reemplazo', label: 'Reemplazo/Renovación' },
+    { value: 'casa_nueva', label: 'Casa Nueva' },
+    { value: 'remodelacion', label: 'Remodelación' },
+    { value: 'recomendacion', label: 'Recomendación' },
+    { value: 'precio_oferta', label: 'Precio/Oferta' },
+    { value: 'otro', label: 'Otro' }
+  ];
+
   useEffect(() => {
     fetchProductos();
     if (isEdit) {
@@ -159,12 +175,6 @@ const ProspectoForm = () => {
         label: productoPersonalizado.trim()
       };
       
-      // Actualizar el valor del formulario
-      reset(prev => ({
-        ...prev,
-        producto: nuevoProducto.value
-      }));
-      
       setMostrarProductoPersonalizado(false);
       setProductoPersonalizado('');
       setSuccess(`✨ Producto personalizado agregado: ${nuevoProducto.label}`);
@@ -178,7 +188,7 @@ const ProspectoForm = () => {
       setSuccess('');
 
       // Si es un producto personalizado, usar el nombre personalizado
-      if (data.producto.startsWith('personalizado_')) {
+      if (data.producto && data.producto.startsWith('personalizado_')) {
         data.productoLabel = productoPersonalizado || data.producto;
       }
 
@@ -358,6 +368,23 @@ const ProspectoForm = () => {
                       label="Referencias"
                       multiline
                       rows={2}
+                    />
+                  )}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Controller
+                  name="direccion.linkMapa"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="🗺️ Link de Google Maps"
+                      placeholder="https://maps.google.com/... o https://goo.gl/maps/..."
+                      helperText="Pega aquí el enlace de Google Maps para llegar más rápido a la ubicación"
+                      type="url"
                     />
                   )}
                 />
@@ -620,13 +647,16 @@ const ProspectoForm = () => {
                   name="motivoCompra"
                   control={control}
                   render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Motivo de Compra"
-                      multiline
-                      rows={2}
-                    />
+                    <FormControl fullWidth>
+                      <InputLabel>Motivo de Compra</InputLabel>
+                      <Select {...field} label="Motivo de Compra">
+                        {motivosCompra.map(motivo => (
+                          <MenuItem key={motivo.value} value={motivo.value}>
+                            {motivo.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
                   )}
                 />
               </Grid>

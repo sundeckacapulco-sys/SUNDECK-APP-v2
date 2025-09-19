@@ -81,6 +81,7 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
 
           return {
             ubicacion: pieza.ubicacion || '',
+            cantidad: pieza.cantidad ? Number(pieza.cantidad) : 1, // ✅ CAMPO AGREGADO
             ancho: Number.isFinite(ancho) ? ancho : undefined,
             alto: Number.isFinite(alto) ? alto : undefined,
             producto: pieza.producto || '',
@@ -89,7 +90,8 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
             precioM2: pieza.precioM2 ? Number(pieza.precioM2) : undefined,
             observaciones: pieza.observaciones || '',
             fotoUrls: Array.isArray(pieza.fotoUrls) ? pieza.fotoUrls : (pieza.fotoUrl ? [pieza.fotoUrl] : []),
-            videoUrl: pieza.videoUrl || ''
+            videoUrl: pieza.videoUrl || '',
+            medidas: Array.isArray(pieza.medidas) ? pieza.medidas : [] // ✅ CAMPO AGREGADO
           };
         })
         .filter(Boolean)

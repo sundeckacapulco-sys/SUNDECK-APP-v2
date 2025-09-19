@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const piezaSchema = new mongoose.Schema({
   ubicacion: { type: String, trim: true },
+  cantidad: { type: Number, default: 1 }, // ✅ CAMPO AGREGADO
   ancho: { type: Number },
   alto: { type: Number },
   producto: { type: String, trim: true },
@@ -12,7 +13,9 @@ const piezaSchema = new mongoose.Schema({
   fotoUrls: { type: [String], default: [] },
   videoUrl: { type: String, trim: true },
   // Mantener fotoUrl para compatibilidad hacia atrás
-  fotoUrl: { type: String }
+  fotoUrl: { type: String },
+  // Campos para levantamiento técnico
+  medidas: { type: [mongoose.Schema.Types.Mixed], default: [] }
 }, { _id: false });
 
 const etapaSchema = new mongoose.Schema({

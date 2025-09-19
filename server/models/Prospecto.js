@@ -23,7 +23,8 @@ const prospectoSchema = new mongoose.Schema({
     colonia: String,
     ciudad: String,
     codigoPostal: String,
-    referencias: String
+    referencias: String,
+    linkMapa: String
   },
   
   // Información del producto/servicio
@@ -33,8 +34,8 @@ const prospectoSchema = new mongoose.Schema({
   },
   tipoProducto: {
     type: String,
-    enum: ['ventana', 'puerta', 'cancel', 'domo', 'otro'],
-    default: 'ventana'
+    enum: ['visita_servicio', 'toma_medidas', 'cotizacion', 'instalacion', 'mantenimiento', 'reparacion', 'garantia', 'asesoria', 'otro'],
+    default: 'visita_servicio'
   },
   descripcionNecesidad: String,
   presupuestoEstimado: Number,
@@ -122,7 +123,10 @@ const prospectoSchema = new mongoose.Schema({
   // Información adicional
   comoSeEntero: String,
   competencia: [String],
-  motivoCompra: String,
+  motivoCompra: {
+    type: String,
+    enum: ['privacidad', 'control_luz', 'decoracion', 'ahorro_energia', 'proteccion_solar', 'seguridad', 'reemplazo', 'casa_nueva', 'remodelacion', 'recomendacion', 'precio_oferta', 'otro', '']
+  },
   
   // Archivos adjuntos
   archivos: [{

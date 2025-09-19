@@ -30,7 +30,8 @@ import {
   Event,
   LocationOn,
   Phone,
-  WhatsApp
+  WhatsApp,
+  CheckCircle
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
@@ -127,6 +128,7 @@ const ProspectoDetalle = () => {
   const [openAgregarEtapa, setOpenAgregarEtapa] = useState(false);
   const [mensajeEtapa, setMensajeEtapa] = useState('');
   const [errorEtapa, setErrorEtapa] = useState('');
+  const [registrandoVisita, setRegistrandoVisita] = useState(false);
 
   // Comentarios y etapas (timeline)
   const [comentarios, setComentarios] = useState([]);
@@ -215,6 +217,44 @@ const ProspectoDetalle = () => {
 
   const medidasTexto = useMemo(() => {
     if (!prospecto) return 'Sin registrar';
+    
+    console.log('🔍 DEBUG MEDIDAS - Prospecto completo:', prospecto);
+    console.log('🔍 DEBUG MEDIDAS - Etapas:', prospecto.etapas);
+    
+    // Buscar medidas en etapas de levantamiento (usar el estado etapas en lugar de prospecto.etapas)
+    if (Array.isArray(etapas) && etapas.length > 0) {
+      console.log('🔍 DEBUG MEDIDAS - Etapas del estado:', etapas);
+      const etapaLevantamiento = etapas.find(etapa => 
+        etapa.nombreEtapa === 'Visita Inicial / Medición' || 
+        etapa.nombreEtapa === 'Levantamiento Técnico' ||
+        (etapa.piezas && etapa.piezas.length > 0)
+      );
+      
+      console.log('🔍 DEBUG MEDIDAS - Etapa encontrada:', etapaLevantamiento);
+      
+      // Usar las piezas directamente de la etapa
+      if (etapaLevantamiento?.piezas && etapaLevantamiento.piezas.length > 0) {
+        const totalPiezas = etapaLevantamiento.piezas.reduce((total, pieza) => total + (pieza.cantidad || 1), 0);
+        const totalM2 = etapaLevantamiento.totalM2 || 0;
+        console.log('🔍 DEBUG MEDIDAS - Total piezas:', totalPiezas, 'Total M2:', totalM2);
+        return `${totalPiezas} pieza${totalPiezas > 1 ? 's' : ''} - ${totalM2.toFixed(2)} m²`;
+      }
+    }
+    
+    // También buscar en etapas normales (no solo levantamiento)
+    if (Array.isArray(prospecto.etapas) && prospecto.etapas.length > 0) {
+      const etapaConPiezas = prospecto.etapas.find(etapa => 
+        etapa.piezas && etapa.piezas.length > 0
+      );
+      
+      if (etapaConPiezas) {
+        const totalPiezas = etapaConPiezas.piezas.reduce((total, pieza) => total + (pieza.cantidad || 1), 0);
+        const totalM2 = etapaConPiezas.totalM2 || 0;
+        return `${totalPiezas} pieza${totalPiezas > 1 ? 's' : ''} - ${totalM2.toFixed(2)} m²`;
+      }
+    }
+    
+    // Buscar medidas directas (formato anterior)
     const medidasDirectas = prospecto.medidas || prospecto.detallesProducto?.medidas;
 
     if (medidasDirectas?.ancho || medidasDirectas?.alto) {
@@ -235,7 +275,7 @@ const ProspectoDetalle = () => {
     }
 
     return 'Sin registrar';
-  }, [prospecto]);
+  }, [prospecto, etapas]);
 
   const etapaActualIndex = useMemo(() => {
     if (!prospecto?.etapa) return -1;
@@ -308,6 +348,53 @@ const ProspectoDetalle = () => {
       setError(err.response?.data?.message || 'Error al reagendar la cita');
     } finally {
       setSavingReagendar(false);
+    }
+  };
+
+  const handleRegistrarVisita = async () => {
+    try {
+      setRegistrandoVisita(true);
+      setError('');
+      
+      const fechaHoraActual = new Date().toISOString();
+      
+      // Registrar la visita como una etapa
+      await axiosConfig.post(`/prospectos/${id}/etapas`, {
+        nombre: 'Visita Registrada',
+        fechaHora: fechaHoraActual,
+        observaciones: `Asesor llegó al domicilio el ${new Date().toLocaleString('es-MX', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}`
+      });
+
+      // Actualizar el estado de la cita a completada
+      await axiosConfig.put(`/prospectos/${id}`, {
+        estadoCita: 'completada',
+        fechaUltimoContacto: fechaHoraActual
+      });
+
+      // Agregar comentario automático
+      await axiosConfig.post(`/prospectos/${id}/comentarios`, {
+        contenido: `✅ Visita registrada automáticamente - Asesor llegó al domicilio`,
+        categoria: 'Puntualidad'
+      });
+
+      // Refrescar datos
+      fetchProspecto();
+      fetchComentarios();
+      fetchEtapas();
+      
+      setMensajeEtapa('✅ Visita registrada exitosamente');
+      setTimeout(() => setMensajeEtapa(''), 3000);
+      
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al registrar la visita');
+    } finally {
+      setRegistrandoVisita(false);
     }
   };
 
@@ -448,6 +535,19 @@ const ProspectoDetalle = () => {
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant="contained"
+            startIcon={<CheckCircle />}
+            onClick={handleRegistrarVisita}
+            disabled={registrandoVisita || prospecto?.estadoCita === 'completada'}
+            sx={{ 
+              backgroundColor: '#16a34a', 
+              '&:hover': { backgroundColor: '#15803d' },
+              '&:disabled': { backgroundColor: '#9ca3af' }
+            }}
+          >
+            {registrandoVisita ? 'Registrando...' : 'Registrar Visita'}
+          </Button>
+          <Button
+            variant="contained"
             startIcon={<WhatsApp />}
             onClick={abrirWhatsApp}
             sx={{ backgroundColor: '#22c55e', '&:hover': { backgroundColor: '#16a34a' } }}
@@ -574,6 +674,45 @@ const ProspectoDetalle = () => {
                   <Typography variant="body1" sx={{ mb: 2 }}>
                     {medidasTexto}
                   </Typography>
+                  
+                  {/* Mostrar detalle del levantamiento si existe */}
+                  {(() => {
+                    // Buscar etapa con piezas en el estado etapas
+                    const etapaConPiezas = etapas?.find(etapa => 
+                      (etapa.nombreEtapa === 'Visita Inicial / Medición' || 
+                       etapa.nombreEtapa === 'Levantamiento Técnico') &&
+                      (etapa.piezas && etapa.piezas.length > 0)
+                    );
+                    
+                    const tienePiezas = etapaConPiezas?.piezas?.length > 0;
+                    
+                    if (tienePiezas) {
+                      return (
+                        <Box sx={{ mt: 1 }}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => {
+                              // Aquí podrías abrir un modal o expandir la sección
+                              console.log('Datos del levantamiento:', etapaConPiezas);
+                              alert('Funcionalidad para ver detalle completo del levantamiento - Por implementar');
+                            }}
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              color: 'primary.main',
+                              borderColor: 'primary.main',
+                              '&:hover': {
+                                bgcolor: 'primary.50'
+                              }
+                            }}
+                          >
+                            📋 Ver Levantamiento Completo
+                          </Button>
+                        </Box>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   <Typography variant="subtitle2" color="text.secondary">
                     Observaciones
@@ -794,13 +933,22 @@ const ProspectoDetalle = () => {
                               <Typography variant="subtitle1" fontWeight="bold">
                                 {etapa.nombreEtapa}
                               </Typography>
-                              {etapa.piezas && etapa.piezas.length > 0 && (
-                                <Chip 
-                                  label={`${etapa.piezas.length} pieza${etapa.piezas.length > 1 ? 's' : ''}`} 
-                                  size="small" 
-                                  color="primary" 
-                                />
-                              )}
+                              {etapa.piezas && etapa.piezas.length > 0 && (() => {
+                                // Calcular total de piezas sumando las cantidades
+                                console.log('🔍 DEBUG - Piezas de la etapa:', etapa.piezas);
+                                const totalPiezas = etapa.piezas.reduce((total, pieza) => {
+                                  console.log(`🔍 Pieza: ${pieza.ubicacion}, cantidad: ${pieza.cantidad || 1}`);
+                                  return total + (pieza.cantidad || 1);
+                                }, 0);
+                                console.log('🔍 Total piezas calculado:', totalPiezas);
+                                return (
+                                  <Chip 
+                                    label={`${totalPiezas} pieza${totalPiezas > 1 ? 's' : ''}`} 
+                                    size="small" 
+                                    color="primary" 
+                                  />
+                                );
+                              })()}
                               {etapa.totalM2 && (
                                 <Chip 
                                   label={`${etapa.totalM2.toFixed(2)} m²`} 
@@ -847,7 +995,10 @@ const ProspectoDetalle = () => {
                             {etapa.piezas && etapa.piezas.length > 0 && (
                               <Box sx={{ mt: 1 }}>
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                  📋 {etapa.piezas.length} pieza{etapa.piezas.length > 1 ? 's' : ''} registrada{etapa.piezas.length > 1 ? 's' : ''}
+                                  {(() => {
+                                    const totalPiezas = etapa.piezas.reduce((total, pieza) => total + (pieza.cantidad || 1), 0);
+                                    return `📋 ${totalPiezas} pieza${totalPiezas > 1 ? 's' : ''} registrada${totalPiezas > 1 ? 's' : ''}`;
+                                  })()}
                                   {etapa.totalM2 && ` • Total: ${etapa.totalM2.toFixed(2)} m²`}
                                 </Typography>
                                 
@@ -856,7 +1007,9 @@ const ProspectoDetalle = () => {
                                   {etapa.piezas.map((pieza, piezaIdx) => {
                                     const area = (pieza.ancho || 0) * (pieza.alto || 0);
                                     const precio = pieza.precioM2 || etapa.precioGeneral || 750;
-                                    const subtotal = area * precio;
+                                    const cantidad = pieza.cantidad || 1;
+                                    const areaTotal = area * cantidad;
+                                    const subtotal = areaTotal * precio;
                                     
                                     return (
                                       <Box key={piezaIdx} sx={{ mb: 1.5, p: 1, bgcolor: '#f9fafb', borderRadius: 1 }}>
@@ -864,13 +1017,20 @@ const ProspectoDetalle = () => {
                                           <Typography variant="body2" fontWeight="medium" color="primary">
                                             📍 {pieza.ubicacion}
                                           </Typography>
+                                          {cantidad > 1 && (
+                                            <Chip 
+                                              label={`${cantidad} piezas`} 
+                                              size="small" 
+                                              color="primary"
+                                            />
+                                          )}
                                           <Chip 
                                             label={`${pieza.ancho || 0} × ${pieza.alto || 0} ${etapa.unidadMedida || 'm'}`} 
                                             size="small" 
                                             variant="outlined"
                                           />
                                           <Chip 
-                                            label={`${area.toFixed(2)} m²`} 
+                                            label={`${areaTotal.toFixed(2)} m² total`} 
                                             size="small" 
                                             color="info"
                                           />
@@ -971,6 +1131,19 @@ const ProspectoDetalle = () => {
                 Acciones rápidas
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Button 
+                  variant="contained" 
+                  startIcon={<CheckCircle />} 
+                  onClick={handleRegistrarVisita}
+                  disabled={registrandoVisita || prospecto?.estadoCita === 'completada'}
+                  sx={{ 
+                    backgroundColor: '#16a34a', 
+                    '&:hover': { backgroundColor: '#15803d' },
+                    '&:disabled': { backgroundColor: '#9ca3af' }
+                  }}
+                >
+                  {registrandoVisita ? 'Registrando...' : 'Registrar Visita'}
+                </Button>
                 <Button variant="outlined" startIcon={<Event />} onClick={() => setOpenReagendar(true)}>
                   Reagendar cita
                 </Button>
