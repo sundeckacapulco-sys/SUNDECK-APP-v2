@@ -127,7 +127,19 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
 
 // Manejar preflight para PDF
 router.options('/levantamiento-pdf', (req, res) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'http://localhost:1000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    process.env.FRONTEND_URL
+  ].filter(Boolean);
+  
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
   res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.sendStatus(200);
@@ -167,24 +179,42 @@ router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), 
 
     const pdf = await pdfService.generarLevantamientoPDF(etapaTemp, piezas, totalM2, precioGeneral);
 
-    // Crear nombre de archivo consistente basado en contenido
+    // Crear nombre de archivo con hash del contenido actual (incluye piezas)
     const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
     
-    // Generar hash basado en el contenido del prospecto (consistente para el mismo prospecto)
+    // Generar hash basado en el contenido actual del levantamiento (piezas + datos)
     const crypto = require('crypto');
-    const contenidoHash = crypto.createHash('md5')
-      .update(`${prospectoId}-${prospecto.nombre}-${prospecto.telefono}`)
-      .digest('hex')
-      .substring(0, 8); // Usar solo los primeros 8 caracteres
+    const contenidoActual = JSON.stringify({
+      prospecto: prospectoId,
+      piezas: piezas.sort((a, b) => (a.ubicacion || '').localeCompare(b.ubicacion || '')), // Ordenar para consistencia
+      totalM2,
+      precioGeneral
+    });
     
-    // Fecha de creación del prospecto o fecha actual si no existe
-    const fechaBase = prospecto.creadoEn ? new Date(prospecto.creadoEn) : new Date();
-    const fechaFormateada = fechaBase.toISOString().split('T')[0]; // YYYY-MM-DD
+    const contenidoHash = crypto.createHash('md5')
+      .update(contenidoActual)
+      .digest('hex')
+      .substring(0, 8); // Hash del contenido actual
+    
+    // Fecha actual para el nombre
+    const fechaFormateada = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     
     const nombreArchivo = `Levantamiento-${nombreCliente}-${fechaFormateada}-${contenidoHash}.pdf`;
 
     // Headers CORS específicos para descarga
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+      'http://localhost:1000',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:3001',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    if (allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    
     res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
@@ -209,6 +239,26 @@ router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), 
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
+});
+
+// Manejar preflight para Excel
+router.options('/levantamiento-excel', (req, res) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'http://localhost:1000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    process.env.FRONTEND_URL
+  ].filter(Boolean);
+  
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.sendStatus(200);
 });
 
 // Generar Excel de levantamiento de medidas
@@ -245,23 +295,44 @@ router.post('/levantamiento-excel', auth, verificarPermiso('prospectos', 'leer')
       unidadMedida
     );
 
-    // Crear nombre de archivo consistente basado en contenido para Excel
+    // Crear nombre de archivo con hash del contenido actual para Excel
     const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
     
-    // Generar hash basado en el contenido del prospecto (consistente para el mismo prospecto)
+    // Generar hash basado en el contenido actual del levantamiento (piezas + datos)
     const crypto = require('crypto');
-    const contenidoHash = crypto.createHash('md5')
-      .update(`${prospectoId}-${prospecto.nombre}-${prospecto.telefono}`)
-      .digest('hex')
-      .substring(0, 8); // Usar solo los primeros 8 caracteres
+    const contenidoActual = JSON.stringify({
+      prospecto: prospectoId,
+      piezas: piezas.sort((a, b) => (a.ubicacion || '').localeCompare(b.ubicacion || '')), // Ordenar para consistencia
+      totalM2,
+      precioGeneral
+    });
     
-    // Fecha de creación del prospecto o fecha actual si no existe
-    const fechaBase = prospecto.creadoEn ? new Date(prospecto.creadoEn) : new Date();
-    const fechaFormateada = fechaBase.toISOString().split('T')[0]; // YYYY-MM-DD
+    const contenidoHash = crypto.createHash('md5')
+      .update(contenidoActual)
+      .digest('hex')
+      .substring(0, 8); // Hash del contenido actual
+    
+    // Fecha actual para el nombre
+    const fechaFormateada = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     
     const nombreArchivoExcel = `Levantamiento-${nombreCliente}-${fechaFormateada}-${contenidoHash}.xlsx`;
 
+    // Headers CORS específicos para descarga de Excel
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+      'http://localhost:1000',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:3001',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    if (allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    
     // Configurar headers para descarga
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivoExcel}"`);
     res.setHeader('Content-Length', excelBuffer.length);

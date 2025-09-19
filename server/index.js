@@ -20,6 +20,7 @@ const corsOptions = {
     if (!origin) return callback(null, true);
     
     const allowedOrigins = [
+      'http://localhost:1000',  // Puerto actual del frontend
       'http://localhost:3000',
       'http://127.0.0.1:3000',
       'http://localhost:3001',
@@ -61,7 +62,20 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use((req, res, next) => {
   // Permitir descargas de PDF y Excel
   if (req.path.includes('/pdf') || req.path.includes('/excel')) {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+      'http://localhost:1000',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:3001',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    // Usar el origen de la petición si está en la lista permitida
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
+    
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Expose-Headers', 'Content-Disposition, Content-Type, Content-Length');

@@ -445,7 +445,12 @@ const ProspectoDetalle = () => {
 
       // Crear y descargar el archivo usando la utilidad
       const blob = new Blob([response.data], { type: 'application/pdf' });
-      const fallbackName = `Levantamiento-Completo-${prospecto.nombre.replace(/\s+/g, '-')}.pdf`;
+      
+      // Generar nombre de fallback consistente (por si falla el header del servidor)
+      const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
+      const fechaFormateada = prospecto.creadoEn ? new Date(prospecto.creadoEn).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      const fallbackName = `Levantamiento-${nombreCliente}-${fechaFormateada}.pdf`;
+      
       downloadFileFromBlob(blob, response.headers, fallbackName);
 
     } catch (error) {
