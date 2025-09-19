@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -27,31 +28,42 @@ const getAllowedOrigins = () => {
   ].flat().filter(Boolean);
 };
 
-// CORS configuration
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Permitir requests sin origin (como aplicaciones móviles o Postman)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = getAllowedOrigins();
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log(`✅ CORS: Origen permitido: ${origin}`);
-      callback(null, true);
-    } else {
-      console.warn(`🚫 CORS: Origen no permitido: ${origin}`);
-      console.warn(`📋 Orígenes permitidos: ${allowedOrigins.join(', ')}`);
-      callback(new Error('No permitido por CORS'));
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length']
-};
-
-app.use(cors(corsOptions));
+// CORS configuration - Simplificado para desarrollo
+if (process.env.NODE_ENV === 'development') {
+  // En desarrollo, permitir todo desde localhost
+  app.use(cors({
+    origin: true, // Permitir cualquier origen en desarrollo
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length']
+  }));
+  console.log('🔓 CORS: Modo desarrollo - todos los orígenes permitidos');
+} else {
+  // En producción, usar configuración estricta
+  const corsOptions = {
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      
+      const allowedOrigins = getAllowedOrigins();
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        console.log(`✅ CORS: Origen permitido: ${origin}`);
+        callback(null, true);
+      } else {
+        console.warn(`🚫 CORS: Origen no permitido: ${origin}`);
+        callback(new Error('No permitido por CORS'));
+      }
+    },
+    credentials: true,
+    optionsSuccessStatus: 200,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length']
+  };
+  
+  app.use(cors(corsOptions));
+}
 
 // Rate limiting
 const limiter = rateLimit({
@@ -69,21 +81,11 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Middleware para manejar descargas de archivos
+// Middleware simplificado para descargas
 app.use((req, res, next) => {
-  // Permitir descargas de PDF y Excel
-  if (req.path.includes('/pdf') || req.path.includes('/excel')) {
-    const origin = req.headers.origin;
-    const allowedOrigins = getAllowedOrigins();
-    
-    // Solo exponer headers adicionales para descargas, CORS ya maneja Access-Control-Allow-Origin
-    res.header('Access-Control-Expose-Headers', 'Content-Disposition, Content-Type, Content-Length');
-    
-    // Log para debugging (solo en desarrollo)
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`📥 Descarga desde origen: ${origin}`);
-      console.log(`✅ Orígenes permitidos: ${allowedOrigins.join(', ')}`);
-    }
+  // Log para debugging en desarrollo
+  if (process.env.NODE_ENV === 'development' && (req.path.includes('/pdf') || req.path.includes('/excel'))) {
+    console.log(`📥 Petición de descarga: ${req.method} ${req.path} desde ${req.headers.origin}`);
   }
   next();
 });
@@ -116,6 +118,9 @@ app.use('/api/storage', require('./routes/storage'));
 
 // Servir archivos estáticos desde uploads
 app.use('/uploads', express.static('uploads'));
+
+// Servir archivos estáticos públicos (imágenes, logos, etc.)
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
 
 // Health check
 app.get('/api/health', (req, res) => {

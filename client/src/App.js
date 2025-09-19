@@ -11,6 +11,8 @@ import ProspectoDetalle from './components/Prospectos/ProspectoDetalle';
 import KanbanBoard from './components/Kanban/KanbanBoard';
 import CotizacionesList from './components/Cotizaciones/CotizacionesList';
 import CotizacionForm from './components/Cotizaciones/CotizacionForm';
+import CotizacionDirecta from './components/Cotizaciones/CotizacionDirecta';
+import CatalogoProductos from './components/Productos/CatalogoProductos';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 
 function App() {
@@ -43,7 +45,11 @@ function App() {
           {/* Cotizaciones */}
           <Route path="/cotizaciones" element={<CotizacionesList />} />
           <Route path="/cotizaciones/nueva" element={<CotizacionForm />} />
+          <Route path="/cotizaciones/directa" element={<CotizacionDirecta />} />
           <Route path="/cotizaciones/:id" element={<CotizacionForm />} />
+          
+          {/* Productos */}
+          <Route path="/productos" element={<CatalogoProductos />} />
           
           {/* Rutas futuras */}
           <Route path="/pedidos" element={<div>Módulo de Pedidos (En desarrollo)</div>} />

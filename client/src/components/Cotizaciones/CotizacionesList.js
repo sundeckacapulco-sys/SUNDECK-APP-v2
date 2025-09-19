@@ -81,13 +81,31 @@ const CotizacionesList = () => {
         <Typography variant="h4" component="h1">
           Cotizaciones
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => navigate('/cotizaciones/nueva')}
-        >
-          Nueva Cotización
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Add />}
+            onClick={() => navigate('/cotizaciones/directa')}
+            sx={{
+              borderColor: '#28a745',
+              color: '#28a745',
+              '&:hover': {
+                borderColor: '#218838',
+                color: '#218838',
+                bgcolor: '#f8f9fa'
+              }
+            }}
+          >
+            Cotización Directa
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => navigate('/cotizaciones/nueva')}
+          >
+            Nueva Cotización
+          </Button>
+        </Box>
       </Box>
 
       <TableContainer component={Paper}>

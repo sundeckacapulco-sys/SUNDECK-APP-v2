@@ -402,7 +402,13 @@ const ProspectoDetalle = () => {
   };
 
   const handleDescargarPDFCompleto = async () => {
-    if (!etapas.length) return;
+    console.log('🎯 Iniciando descarga de PDF completo...');
+    
+    if (!etapas.length) {
+      console.warn('⚠️ No hay etapas para generar PDF');
+      setError('No hay etapas para generar el PDF');
+      return;
+    }
 
     try {
       // Recopilar todas las piezas de todas las etapas
@@ -431,31 +437,26 @@ const ProspectoDetalle = () => {
 
       const precioPromedio = etapas.find(e => e.precioGeneral)?.precioGeneral || 750;
 
-      const payload = {
+      // SOLUCIÓN SIMPLE: Usar window.open() con parámetros en la URL
+      const params = new URLSearchParams({
         prospectoId: id,
-        piezas: todasLasPiezas,
+        piezas: JSON.stringify(todasLasPiezas),
         precioGeneral: precioPromedio,
-        totalM2,
+        totalM2: totalM2,
         unidadMedida: 'm'
-      };
-
-      const response = await axiosConfig.post('/etapas/levantamiento-pdf', payload, {
-        responseType: 'blob'
       });
 
-      // Crear y descargar el archivo usando la utilidad
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const token = localStorage.getItem('token');
+      const url = `http://localhost:5001/api/etapas/levantamiento-pdf?${params.toString()}&token=${token}`;
       
-      // Generar nombre de fallback consistente (por si falla el header del servidor)
-      const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
-      const fechaFormateada = prospecto.creadoEn ? new Date(prospecto.creadoEn).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-      const fallbackName = `Levantamiento-${nombreCliente}-${fechaFormateada}.pdf`;
+      console.log('🚀 Abriendo PDF directamente...');
+      window.open(url, '_blank');
       
-      downloadFileFromBlob(blob, response.headers, fallbackName);
+      console.log('✅ PDF abierto en nueva pestaña');
 
     } catch (error) {
       console.error('Error descargando PDF completo:', error);
-      setError('Error al generar PDF completo: ' + (error.response?.data?.message || error.message));
+      setError('Error al generar PDF completo: ' + error.message);
     }
   };
 

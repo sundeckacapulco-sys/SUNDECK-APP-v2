@@ -34,6 +34,7 @@ import {
   Delete,
   Calculate
 } from '@mui/icons-material';
+import SelectorProductos from './SelectorProductos';
 import {
   Checkbox,
   FormControlLabel,
@@ -398,10 +399,16 @@ const CotizacionForm = () => {
 
   const calcularTotales = () => {
     const subtotal = watchedProductos.reduce((sum, producto) => {
-      return sum + (producto.subtotal || 0);
+      // Calcular subtotal del producto si no está calculado
+      const area = producto.medidas?.area || 0;
+      const precio = producto.precioUnitario || 0;
+      const cantidad = producto.cantidad || 1;
+      const subtotalProducto = producto.subtotal || (area * precio * cantidad);
+      return sum + subtotalProducto;
     }, 0);
 
-    const descuentoMonto = subtotal * (watchedDescuento.porcentaje / 100);
+    const descuentoPorcentaje = watchedDescuento?.porcentaje || 0;
+    const descuentoMonto = subtotal * (descuentoPorcentaje / 100);
     const subtotalConDescuento = subtotal - descuentoMonto;
     const iva = incluirIVA ? subtotalConDescuento * 0.16 : 0;
     const total = subtotalConDescuento + iva;
@@ -652,26 +659,63 @@ const CotizacionForm = () => {
       setError('');
       setSuccess('');
 
-      const totales = calcularTotales();
-      const cotizacionData = {
-        ...data,
-        prospectoId: data.prospecto, // Renombrar el campo para que coincida con la API
-        ...totales,
-        fechaEntregaEstimada: new Date(Date.now() + data.tiempoFabricacion * 24 * 60 * 60 * 1000)
-      };
+      // Validar que hay productos
+      if (!data.productos || data.productos.length === 0) {
+        setError('Debe agregar al menos un producto a la cotización');
+        return;
+      }
+
+      // Validar que los productos tienen información básica
+      const productosIncompletos = data.productos.some(producto => 
+        !producto.nombre || !producto.precioUnitario || producto.precioUnitario <= 0
+      );
       
-      // Eliminar el campo 'prospecto' ya que ahora usamos 'prospectoId'
-      delete cotizacionData.prospecto;
+      if (productosIncompletos) {
+        setError('Todos los productos deben tener nombre y precio válido');
+        return;
+      }
+
+      const totales = calcularTotales();
+      
+      // Calcular subtotales de productos si no están calculados
+      const productosConSubtotal = data.productos.map(producto => ({
+        ...producto,
+        subtotal: (producto.medidas?.area || 0) * (producto.precioUnitario || 0) * (producto.cantidad || 1)
+      }));
+
+      const cotizacionData = {
+        prospectoId: data.prospecto, // Campo correcto para la API
+        validoHasta: data.validoHasta,
+        productos: productosConSubtotal,
+        descuento: data.descuento,
+        formaPago: data.formaPago,
+        tiempoFabricacion: data.tiempoFabricacion || 15,
+        tiempoInstalacion: data.tiempoInstalacion || 1,
+        requiereInstalacion: data.requiereInstalacion !== false,
+        costoInstalacion: data.costoInstalacion || 0,
+        garantia: data.garantia,
+        // Incluir totales calculados
+        subtotal: totales.subtotal,
+        iva: totales.iva,
+        total: totales.total,
+        fechaEntregaEstimada: new Date(Date.now() + (data.tiempoFabricacion || 15) * 24 * 60 * 60 * 1000)
+      };
+
+      console.log('Enviando cotización:', cotizacionData);
 
       if (isEdit) {
-        await axiosConfig.put(`/cotizaciones/${id}`, cotizacionData);
+        const response = await axiosConfig.put(`/cotizaciones/${id}`, cotizacionData);
         setSuccess('Cotización actualizada exitosamente');
+        console.log('Cotización actualizada:', response.data);
       } else {
-        await axiosConfig.post('/cotizaciones', cotizacionData);
+        const response = await axiosConfig.post('/cotizaciones', cotizacionData);
         setSuccess('Cotización creada exitosamente');
+        console.log('Cotización creada:', response.data);
         setTimeout(() => navigate('/cotizaciones'), 2000);
       }
     } catch (error) {
+      console.error('Error guardando cotización:', error);
+      console.error('Response data:', error.response?.data);
       setError(error.response?.data?.message || 'Error guardando la cotización');
     } finally {
       setLoading(false);
@@ -837,10 +881,18 @@ const CotizacionForm = () => {
               </Grid>
             </Grid>
 
+            {/* Selector de productos del catálogo */}
+            <SelectorProductos 
+              onProductoSeleccionado={(producto) => {
+                append(producto);
+                setSuccess(`Producto "${producto.nombre}" agregado exitosamente`);
+              }}
+            />
+
             {/* Productos */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">
-                Productos
+                Productos Agregados
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 {(prospectoId || watchedProspecto) && (
@@ -859,7 +911,7 @@ const CotizacionForm = () => {
                   startIcon={<Add />}
                   onClick={agregarProducto}
                 >
-                  Agregar Producto
+                  Agregar Manual
                 </Button>
               </Box>
             </Box>
@@ -963,7 +1015,15 @@ const CotizacionForm = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        ${watchedProductos[index]?.subtotal?.toLocaleString() || 0}
+                        ${(() => {
+                          const producto = watchedProductos[index];
+                          if (!producto) return 0;
+                          const area = producto.medidas?.area || 0;
+                          const precio = producto.precioUnitario || 0;
+                          const cantidad = producto.cantidad || 1;
+                          const subtotal = area * precio * cantidad;
+                          return subtotal.toLocaleString();
+                        })()}
                       </TableCell>
                       <TableCell>
                         <IconButton

@@ -9,6 +9,11 @@
  * @param {string} fallbackName - Nombre de archivo por defecto si no se encuentra en headers
  */
 export const downloadFileFromBlob = (blob, responseHeaders, fallbackName) => {
+  console.log('🔧 downloadFileFromBlob iniciado');
+  console.log('📊 Blob size:', blob.size, 'bytes');
+  console.log('📋 Response headers:', responseHeaders);
+  console.log('📁 Fallback name:', fallbackName);
+  
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -17,18 +22,29 @@ export const downloadFileFromBlob = (blob, responseHeaders, fallbackName) => {
   const contentDisposition = responseHeaders['content-disposition'];
   let fileName = fallbackName;
   
+  console.log('📄 Content-Disposition header:', contentDisposition);
+  
   if (contentDisposition) {
     const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
     if (fileNameMatch && fileNameMatch[1]) {
       fileName = fileNameMatch[1].replace(/['"]/g, '');
+      console.log('✅ Nombre extraído del servidor:', fileName);
+    } else {
+      console.log('⚠️ No se pudo extraer nombre del header, usando fallback');
     }
+  } else {
+    console.log('⚠️ No hay Content-Disposition header, usando fallback');
   }
+  
+  console.log('📁 Nombre final del archivo:', fileName);
   
   link.download = fileName;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
+  
+  console.log('✅ Descarga iniciada');
 };
 
 /**

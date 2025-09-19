@@ -1,6 +1,7 @@
 const handlebars = require('handlebars');
 const path = require('path');
 const fs = require('fs').promises;
+const companyConfig = require('../config/company');
 
 // Variable para carga lazy de puppeteer
 let puppeteerLib;
@@ -104,10 +105,12 @@ class PDFService {
             }
             
             body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-              line-height: 1.6;
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 15px 20px 20px 20px;
+              padding: 0;
+              line-height: 1.4;
               color: #333;
-              background: #fff;
+              font-size: 12px;
               -webkit-font-smoothing: antialiased;
               -moz-osx-font-smoothing: grayscale;
               text-rendering: optimizeLegibility;
@@ -570,6 +573,24 @@ class PDFService {
 
   async generarLevantamientoPDF(etapa, piezas, totalM2, precioGeneral) {
     try {
+      // Cargar logo como base64
+      let logoBase64 = '';
+      try {
+        const logoPath = path.join(__dirname, '../public/images/logo-sundeck.png');
+        const logoStats = await fs.stat(logoPath);
+        
+        // Verificar que el archivo no sea demasiado grande (máximo 2MB)
+        if (logoStats.size > 2 * 1024 * 1024) {
+          console.log('⚠️ Logo muy grande (>2MB), usando fallback');
+        } else {
+          const logoBuffer = await fs.readFile(logoPath);
+          logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+          console.log(`✅ Logo cargado correctamente (${Math.round(logoStats.size / 1024)} KB)`);
+        }
+      } catch (logoError) {
+        console.log('⚠️ No se pudo cargar el logo, usando fallback:', logoError.message);
+      }
+
       const browserResult = await this.initBrowser();
       
       // Si es alternativa (html-pdf-node)
@@ -593,418 +614,373 @@ class PDFService {
         <html lang="es">
         <head>
           <meta charset="UTF-8">
-          <title>Recibo de Visita - Medición</title>
+          <title>Levantamiento de Medidas</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-              line-height: 1.4; 
+              line-height: 1.3; 
               color: #333; 
               background: #fff;
-              padding: 20px;
+              font-size: 12px;
               -webkit-font-smoothing: antialiased;
               -moz-osx-font-smoothing: grayscale;
               text-rendering: optimizeLegibility;
             }
             
-            .recibo-container {
-              max-width: 800px;
-              margin: 0 auto;
-              background: #fff;
-              border: 2px solid #D4AF37;
-              border-radius: 10px;
-              overflow: hidden;
-            }
-            
+            /* CABECERA PROFESIONAL */
             .header {
-              background: linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%);
-              color: white;
-              padding: 25px;
-              text-align: center;
-              border-radius: 10px 10px 0 0;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+              display: table;
+              width: 100%;
+              margin-bottom: 8px;
+              padding-bottom: 6px;
+              min-height: 80px;
             }
             
-            .logo {
-              font-size: 24px;
-              font-weight: bold;
-              margin-bottom: 5px;
+            .header-content {
+              display: table;
+              width: 100%;
+              margin-bottom: 8px;
             }
             
-            .subtitulo {
-              font-size: 16px;
-              opacity: 0.9;
+            .header-left {
+              display: table-cell;
+              vertical-align: middle;
+              width: 50%;
+              padding-right: 15px;
+              padding-top: 0;
             }
             
-            .info-cliente {
-              background: #f8f9fa;
-              padding: 20px;
-              border-bottom: 1px solid #dee2e6;
-            }
-            
-            .cliente-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 20px;
-            }
-            
-            .fecha-recibo {
+            .header-right {
+              display: table-cell;
+              vertical-align: middle;
+              width: 50%;
               text-align: right;
-              font-size: 14px;
-              color: #666;
-              margin-bottom: 10px;
+              padding-top: 0;
             }
             
-            .contenido {
-              padding: 25px;
+            .logo-container {
+              display: block;
+              margin-left: 0;
             }
             
+            .company-logo {
+              height: 112px;
+              width: auto;
+              max-width: 280px;
+              margin-bottom: 0;
+              object-fit: contain;
+              display: block;
+            }
+            
+            .logo-fallback {
+              font-size: 36px;
+              font-weight: bold;
+              color: #0F172A;
+              margin-bottom: 0;
+            }
+            
+            .header-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #0F172A;
+              margin-bottom: 6px;
+              line-height: 1.2;
+            }
+            
+            .header-date {
+              font-size: 12px;
+              color: #334155;
+              font-weight: 500;
+            }
+            
+            .slogan {
+              font-size: 11px;
+              color: #6B7280;
+              font-style: italic;
+              font-weight: 400;
+              line-height: 1.4;
+              margin-top: 5px;
+              margin-left: 0;
+              max-width: 420px;
+            }
+            
+            .header-divider {
+              width: 100%;
+              height: 1.5px;
+              background: #0F172A;
+              margin: 8px 0 12px 0;
+            }
+            
+            /* TABLA DE CLIENTE Y VISITA */
+            .info-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 15px;
+              font-size: 11px;
+            }
+            
+            .info-table td {
+              padding: 6px 8px;
+              border: 1px solid #ddd;
+              vertical-align: top;
+            }
+            
+            .info-table .label {
+              background: #f8f9fa;
+              font-weight: bold;
+              width: 25%;
+            }
+            
+            .total-destacado {
+              background: #fff3cd !important;
+              color: #856404;
+              font-size: 12px;
+            }
+            
+            /* PARTIDAS COMPACTAS */
             .partida {
-              background: #fff;
-              border: 1px solid #e9ecef;
-              border-radius: 8px;
-              margin-bottom: 20px;
-              overflow: hidden;
+              border: 1px solid #ddd;
+              margin-bottom: 8px;
+              page-break-inside: avoid;
+              break-inside: avoid;
             }
             
             .partida-header {
               background: #f8f9fa;
-              padding: 15px;
-              border-bottom: 1px solid #e9ecef;
+              padding: 6px 10px;
               font-weight: bold;
-              color: #495057;
+              font-size: 11px;
+              border-bottom: 1px solid #ddd;
             }
             
-            .partida-body {
-              padding: 20px;
+            .partida-table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 10px;
             }
             
-            .medidas-grid {
-              display: grid;
-              grid-template-columns: repeat(4, 1fr);
-              gap: 10px;
-              margin-bottom: 15px;
-              background: #f8f9fa;
-              padding: 15px;
-              border-radius: 6px;
+            .partida-table td {
+              padding: 4px 6px;
+              border-bottom: 1px solid #eee;
+              vertical-align: top;
             }
             
-            .campo {
-              margin-bottom: 8px;
-              text-align: center;
-              background: white;
-              padding: 8px;
-              border-radius: 4px;
-              border: 1px solid #dee2e6;
-            }
-            
-            .campo-label {
+            .partida-table .field-label {
               font-weight: bold;
-              color: #495057;
-              font-size: 12px;
-              display: block;
-              margin-bottom: 4px;
+              width: 20%;
+              background: #fafafa;
             }
             
-            .campo-valor {
-              color: #212529;
-              font-size: 14px;
-              font-weight: 600;
+            .partida-table .field-value {
+              width: 30%;
             }
             
-            .incluidos {
-              background: #e8f4fd;
-              border: 1px solid #bee5eb;
-              border-radius: 6px;
-              padding: 15px;
-              margin-top: 15px;
-            }
-            
-            .incluidos-titulo {
-              font-weight: bold;
-              color: #0c5460;
-              margin-bottom: 10px;
-              font-size: 14px;
-            }
-            
-            .incluido-item {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              padding: 5px 0;
-              border-bottom: 1px solid #bee5eb;
-            }
-            
-            .incluido-item:last-child {
-              border-bottom: none;
-            }
-            
-            .precio-unitario {
-              background: #fff3cd;
-              border: 1px solid #ffeaa7;
-              border-radius: 6px;
-              padding: 12px;
-              margin-top: 15px;
-              text-align: center;
-            }
-            
-            .precio-unitario .monto {
-              font-size: 18px;
-              font-weight: bold;
-              color: #856404;
-            }
-            
-            .resumen-final {
-              background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-              border: 2px solid #D4AF37;
-              border-radius: 10px;
-              padding: 25px;
-              margin-top: 30px;
-              text-align: center;
-            }
-            
-            .resumen-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr 1fr;
-              gap: 20px;
-              margin-bottom: 20px;
-            }
-            
-            .resumen-item {
-              text-align: center;
-            }
-            
-            .resumen-numero {
-              font-size: 24px;
-              font-weight: bold;
-              color: #D4AF37;
-              display: block;
-            }
-            
-            .resumen-label {
-              font-size: 14px;
+            .observaciones {
+              background: #f0f0f0;
+              padding: 6px;
+              margin-top: 4px;
+              font-size: 9px;
+              font-style: italic;
               color: #666;
-              margin-top: 5px;
             }
             
-            .total-final {
-              font-size: 28px;
-              font-weight: bold;
-              color: #D4AF37;
-              margin-top: 15px;
-              padding-top: 15px;
-              border-top: 2px solid #D4AF37;
+            /* DIRECCIÓN COMO TEXTO NORMAL */
+            .direccion-texto {
+              font-size: 11px;
+              line-height: 1.4;
             }
             
-            .footer {
-              background: #f8f9fa;
-              padding: 20px;
-              text-align: center;
-              font-size: 12px;
-              color: #666;
-              border-top: 2px solid #D4AF37;
-            }
-            
-            .footer a {
-              color: #2563eb;
+            .direccion-texto a {
+              color: #1E40AF;
               text-decoration: none;
               font-weight: 500;
             }
             
-            .footer a:hover {
+            .direccion-texto a:hover {
               text-decoration: underline;
             }
             
-            .condiciones-instalacion {
-              background: #f8f9fa;
-              border: 1px solid #dee2e6;
-              border-radius: 4px;
-              padding: 10px;
+            /* RESUMEN COMPACTO */
+            .resumen-table {
+              width: 100%;
+              border-collapse: collapse;
               margin: 15px 0;
-              font-size: 8px;
-              line-height: 1.3;
-              color: #495057;
+              font-size: 11px;
             }
             
-            .condiciones-instalacion p {
-              margin: 0;
+            .resumen-table td {
+              padding: 6px 10px;
+              border: 1px solid #ddd;
+              text-align: center;
             }
             
-            .nota-importante {
+            .resumen-table .header-cell {
+              background: #D4AF37;
+              color: white;
+              font-weight: bold;
+            }
+            
+            .resumen-table .total-cell {
               background: #fff3cd;
-              border: 1px solid #ffeaa7;
-              border-radius: 6px;
-              padding: 15px;
-              margin: 20px 0;
+              font-weight: bold;
               font-size: 14px;
-              color: #856404;
+            }
+            
+            /* PIE DE PÁGINA LIMPIO */
+            .footer {
+              margin-top: 20px;
+              padding-top: 10px;
+              border-top: 1px solid #ddd;
+              font-size: 8px;
+              text-align: center;
+              color: #666;
+            }
+            
+            .footer-logo {
+              font-size: 10px;
+              font-weight: bold;
+              color: #1E40AF;
+              margin-bottom: 5px;
+            }
+            
+            .condiciones {
+              background: #f8f9fa;
+              border: 1px solid #ddd;
+              padding: 10px;
+              margin: 10px 0;
+              font-size: 10px;
+              line-height: 1.3;
+              border-radius: 4px;
+            }
+            
+            /* EVITAR CORTES DE PÁGINA */
+            .no-break {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            
+            @page {
+              margin: 15mm;
+              size: A4;
             }
             
             @media print {
-              body { margin: 0; padding: 10px; }
-              .recibo-container { border: 1px solid #ccc; }
+              body { margin: 0; }
+              .partida { page-break-inside: avoid; }
             }
           </style>
         </head>
         <body>
-          <div class="recibo-container">
-            <!-- Header -->
-            <div class="header">
-              <div class="logo">SUNDECK</div>
-              <div style="font-size: 14px; margin-bottom: 10px;">PERSIANAS Y DECORACIONES</div>
-              <div class="subtitulo">Recibo de Visita - Medición de Productos</div>
-            </div>
-
-            <!-- Información del Cliente -->
-            <div class="info-cliente">
-              <div class="fecha-recibo">
-                Fecha de visita: {{fecha}}
+          <!-- CABECERA PROFESIONAL -->
+          <div class="header">
+            <div class="header-content">
+              <div class="header-left">
+                <div class="logo-container">
+                  {{#if logoBase64}}
+                    <img src="{{logoBase64}}" alt="{{company.assets.logoAlt}}" class="company-logo">
+                  {{else}}
+                    <div class="logo-fallback">🏠 {{company.name}}</div>
+                  {{/if}}
+                </div>
               </div>
-              <div class="cliente-grid">
-                <div>
-                  <div class="campo">
-                    <span class="campo-label">Cliente:</span><br>
-                    <span class="campo-valor">{{prospecto.nombre}}</span>
-                  </div>
-                  <div class="campo">
-                    <span class="campo-label">Teléfono:</span><br>
-                    <span class="campo-valor">{{prospecto.telefono}}</span>
-                  </div>
-                </div>
-                <div>
-                  {{#if prospecto.email}}
-                  <div class="campo">
-                    <span class="campo-label">Email:</span><br>
-                    <span class="campo-valor">{{prospecto.email}}</span>
-                  </div>
-                  {{/if}}
-                  {{#if prospecto.direccion}}
-                  <div class="campo">
-                    <span class="campo-label">Dirección:</span><br>
-                    <span class="campo-valor">{{prospecto.direccion}}</span>
-                  </div>
-                  {{/if}}
-                </div>
+              <div class="header-right">
+                <div class="header-title">LEVANTAMIENTO DE MEDIDAS</div>
+                <div class="header-date">Fecha: {{fecha}}</div>
               </div>
             </div>
+            
+            <!-- SLOGAN DEBAJO -->
+            <div class="slogan">En Sundeck nos especializamos en las más selectas marcas y a los mejores precios</div>
+          </div>
+          
+          <!-- LÍNEA DIVISORIA ELEGANTE -->
+          <div class="header-divider"></div>
 
-            <!-- Contenido Principal -->
-            <div class="contenido">
-              <h3 style="color: #D4AF37; margin-bottom: 20px; text-align: center;">
-                📋 Productos Medidos y Cotizados
-              </h3>
+          <!-- TABLA DE CLIENTE Y VISITA -->
+          <table class="info-table">
+            <tr>
+              <td class="label">Cliente:</td>
+              <td>{{prospecto.nombre}}</td>
+              <td class="label">Total m²:</td>
+              <td class="total-destacado"><strong>{{totalM2}} m²</strong></td>
+            </tr>
+            <tr>
+              <td class="label">Teléfono:</td>
+              <td>{{prospecto.telefono}}</td>
+              <td class="label">Total Estimado:</td>
+              <td class="total-destacado"><strong>{{totalEstimado}}</strong></td>
+            </tr>
+            <tr>
+              <td class="label">Email:</td>
+              <td colspan="3">{{#if prospecto.email}}{{prospecto.email}}{{else}}-{{/if}}</td>
+            </tr>
+            {{#if prospecto.direccion}}
+            <tr>
+              <td class="label">Dirección:</td>
+              <td colspan="3" class="direccion-texto">
+                {{#if prospecto.direccion.calle}}
+                  {{prospecto.direccion.calle}}, {{prospecto.direccion.colonia}}, {{prospecto.direccion.ciudad}}, CP {{prospecto.direccion.codigoPostal}}
+                  {{#if prospecto.direccion.referencias}}<br><em>Ref: {{prospecto.direccion.referencias}}</em>{{/if}}
+                  {{#if prospecto.direccion.linkMapa}}<br><a href="{{prospecto.direccion.linkMapa}}" target="_blank" style="color: #1E40AF; text-decoration: none;">📍 Ver en Google Maps</a>{{/if}}
+                {{else}}
+                  {{formatDireccion prospecto.direccion}}
+                {{/if}}
+              </td>
+            </tr>
+            {{/if}}
+          </table>
 
-              {{#each piezas}}
-              <div class="partida">
-                <div class="partida-header">
-                  📍 {{ubicacion}} - {{productoLabel}}{{#unless productoLabel}}{{producto}}{{/unless}}
-                </div>
-                <div class="partida-body">
-                  <div class="medidas-grid">
-                    <div>
-                      <div class="campo">
-                        <span class="campo-label">Dimensiones:</span><br>
-                        <span class="campo-valor">{{ancho}} × {{alto}} {{../unidadMedida}}</span>
-                      </div>
-                      <div class="campo">
-                        <span class="campo-label">Área:</span><br>
-                        <span class="campo-valor">{{area}} m²</span>
-                      </div>
-                    </div>
-                    <div>
-                      <div class="campo">
-                        <span class="campo-label">Color/Acabado:</span><br>
-                        <span class="campo-valor">{{color}}</span>
-                      </div>
-                      <div class="campo">
-                        <span class="campo-label">Precio por m²:</span><br>
-                        <span class="campo-valor">{{precioM2}}</span>
-                      </div>
-                    </div>
-                  </div>
+          <!-- PARTIDAS COMPACTAS -->
+          <h3 style="color: #D4AF37; margin: 15px 0 10px 0; font-size: 14px;">📋 Productos Medidos</h3>
 
-                  {{#if (or esProductoToldo motorizado)}}
-                  <div class="incluidos">
-                    <div class="incluidos-titulo">📦 Incluye en el precio:</div>
-                    {{#if esProductoToldo}}
-                    <div class="incluido-item">
-                      <span>🏗️ Kit de Toldo ({{kitModelo}})</span>
-                      <span>{{kitPrecio}}</span>
-                    </div>
-                    {{/if}}
-                    {{#if motorizado}}
-                    <div class="incluido-item">
-                      <span>⚡ Motor ({{motorModelo}})</span>
-                      <span>{{motorPrecio}}</span>
-                    </div>
-                    <div class="incluido-item">
-                      <span>🎛️ Control ({{controlModelo}})</span>
-                      <span>{{controlPrecio}}</span>
-                    </div>
-                    {{/if}}
-                  </div>
-                  {{/if}}
-
-                  <div class="precio-unitario">
-                    <div>💰 <strong>Precio total de esta partida:</strong></div>
-                    <div class="monto">{{subtotal}}</div>
-                  </div>
-
-                  {{#if observaciones}}
-                  <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; font-size: 14px;">
-                    <strong>📝 Observaciones:</strong> {{observaciones}}
-                  </div>
-                  {{/if}}
-                </div>
-              </div>
-              {{/each}}
-
-              <!-- Resumen Final -->
-              <div class="resumen-final">
-                <h3 style="color: #D4AF37; margin-bottom: 20px;">
-                  📊 Resumen de la Visita
-                </h3>
-                
-                <div class="resumen-grid">
-                  <div class="resumen-item">
-                    <span class="resumen-numero">{{totalPiezas}}</span>
-                    <div class="resumen-label">Partidas medidas</div>
-                  </div>
-                  <div class="resumen-item">
-                    <span class="resumen-numero">{{totalM2}}</span>
-                    <div class="resumen-label">Metros cuadrados</div>
-                  </div>
-                  <div class="resumen-item">
-                    <span class="resumen-numero">{{precioEstimado}}</span>
-                    <div class="resumen-label">Precio promedio/m²</div>
-                  </div>
-                </div>
-
-                <div class="total-final">
-                  💰 TOTAL ESTIMADO: {{totalAproximado}}
-                </div>
-              </div>
-
-              <div class="nota-importante">
-                <strong>📋 Importante:</strong> Este recibo confirma la visita realizada y las medidas tomadas. 
-                El precio mostrado es una cotización preliminar. La cotización final será enviada por separado 
-                con términos y condiciones completos.
-              </div>
+          {{#each piezas}}
+          <div class="partida no-break">
+            <div class="partida-header">
+              {{ubicacion}} - {{productoLabel}}{{#unless productoLabel}}{{producto}}{{/unless}}
             </div>
+            <table class="partida-table">
+              <tr>
+                <td class="field-label">Ubicación:</td>
+                <td class="field-value">{{ubicacion}}</td>
+                <td class="field-label">Dimensiones:</td>
+                <td class="field-value">{{ancho}} × {{alto}} {{../unidadMedida}}</td>
+              </tr>
+              <tr>
+                <td class="field-label">Área:</td>
+                <td class="field-value"><strong>{{area}} m²</strong></td>
+                <td class="field-label">Color/Acabado:</td>
+                <td class="field-value">{{color}}</td>
+              </tr>
+              <tr>
+                <td class="field-label">Precio/m²:</td>
+                <td class="field-value">{{precioM2}}</td>
+                <td class="field-label">Total:</td>
+                <td class="field-value"><strong>{{subtotal}}</strong></td>
+              </tr>
+            </table>
+            {{#if observaciones}}
+            <div class="observaciones">
+              📝 Observaciones: {{observaciones}}
+            </div>
+            {{/if}}
+          </div>
+          {{/each}}
 
-            <!-- Footer -->
-            <div class="footer">
-              <p><strong>🏠 Sundeck Persianas y Decoraciones – Instalación y Decoración de Persianas, Toldos y Cortinas a Medida</strong></p>
-              <p>Acapulco: Almirante Damian Churruca 5 Local 3 Fracc. Costa Azul</p>
-              <p>Teléfonos: <a href="tel:7444334126">744-433-4126</a> • WhatsApp: <a href="https://wa.me/527444522540">744-452-2540</a></p>
-              <p>Web: <a href="https://www.sundeckcortinasypersianas.com/" target="_blank">www.sundeckcortinasypersianas.com</a></p>
-              <p>Instagram: <a href="https://www.instagram.com/sundeck_oficial/" target="_blank">@sundeck_oficial</a></p>
-              
-              <p><em>Gracias por confiar en nosotros para su proyecto</em></p>
-              
-              <div class="condiciones-instalacion">
-                <p><strong>📋 Condiciones de Instalación:</strong> La instalación está sujeta a que el área se encuentre en condiciones óptimas y libres para el trabajo. La cotización incluye únicamente los productos y servicios especificados; cualquier modificación adicional (volados, adaptaciones, refuerzos, cortes o ajustes especiales) no está contemplada y generará un costo extra.</p>
-              </div>
+          <!-- RESUMEN COMPACTO -->
+          <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+            <strong style="color: #D4AF37; font-size: 12px;">📊 Resumen: {{piezas.length}} partidas medidas • Precio promedio: {{precioGeneral}}</strong>
+          </div>
+
+          <!-- PIE DE PÁGINA LIMPIO -->
+          <div class="footer">
+            <div class="footer-logo">🏠 {{company.fullName}}</div>
+            <div>{{company.address.street}} {{company.address.neighborhood}}, {{company.address.city}}</div>
+            <div>Tel: <a href="tel:{{company.contact.phone}}">{{company.contact.phone}}</a> • WhatsApp: <a href="{{company.contact.whatsappLink}}">{{company.contact.whatsapp}}</a></div>
+            <div>Web: <a href="{{company.social.website}}" target="_blank">{{company.social.website}}</a> • Instagram: <a href="{{company.social.instagram}}" target="_blank">{{company.social.instagramHandle}}</a></div>
+            
+            <div class="condiciones">
+              <strong>📋 Condiciones de Instalación:</strong> {{company.legal.installationConditions}}
             </div>
           </div>
         </body>
@@ -1028,6 +1004,35 @@ class PDFService {
           hour: '2-digit',
           minute: '2-digit'
         });
+      });
+
+      handlebars.registerHelper('formatDireccion', function(direccion) {
+        if (!direccion) return '';
+        
+        // Si es un string, devolverlo tal como está
+        if (typeof direccion === 'string') {
+          return direccion;
+        }
+        
+        // Si es un objeto, formatear correctamente
+        if (typeof direccion === 'object') {
+          let resultado = '';
+          
+          if (direccion.calle) {
+            resultado += direccion.calle;
+            if (direccion.colonia) resultado += ', ' + direccion.colonia;
+            if (direccion.ciudad) resultado += ', ' + direccion.ciudad;
+            if (direccion.codigoPostal) resultado += ', CP ' + direccion.codigoPostal;
+            
+            if (direccion.referencias) {
+              resultado += '\nRef: ' + direccion.referencias;
+            }
+          }
+          
+          return resultado;
+        }
+        
+        return '';
       });
 
       // Calcular totales reales basados en medidas individuales
@@ -1147,7 +1152,10 @@ class PDFService {
         totalM2: totalAreaReal.toFixed(2),
         precioEstimado: this.formatCurrency(precioGeneral),
         totalAproximado: this.formatCurrency(totalGeneralReal),
-        piezas: piezasExpandidas
+        totalEstimado: this.formatCurrency(totalGeneralReal), // Para el nuevo formato
+        piezas: piezasExpandidas,
+        company: companyConfig, // Datos dinámicos de la empresa
+        logoBase64: logoBase64 // Logo en base64
       };
 
       const template = handlebars.compile(htmlTemplate);
@@ -1163,7 +1171,7 @@ class PDFService {
         printBackground: true,
         preferCSSPageSize: true,
         displayHeaderFooter: false,
-        margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
+        margin: { top: '15px', right: '15px', bottom: '15px', left: '15px' }, // Márgenes optimizados
         // Configuraciones para mejor calidad de texto
         scale: 1,
         quality: 100

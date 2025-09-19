@@ -352,21 +352,17 @@ router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (re
 
     const pdf = await pdfService.generarCotizacionPDF(cotizacion);
 
-    // Crear nombre de archivo consistente basado en contenido de la cotización
+    // Crear nombre de archivo único pero más corto para cotización
     const nombreCliente = (cotizacion.prospecto?.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
     const numeroCorto = cotizacion.numero || 'SIN-NUM';
     
-    // Generar hash basado en el ID de la cotización (consistente para la misma cotización)
-    const crypto = require('crypto');
-    const contenidoHash = crypto.createHash('md5')
-      .update(`${cotizacion._id}-${cotizacion.numero}`)
-      .digest('hex')
-      .substring(0, 8); // Usar solo los primeros 8 caracteres
+    // Generar ID único más corto
+    const ahora = new Date();
+    const fechaFormateada = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+    const horaCorta = ahora.toTimeString().substr(0, 5).replace(':', ''); // HHMM
+    const idCorto = Date.now().toString().slice(-6); // Últimos 6 dígitos del timestamp
     
-    // Fecha de la cotización
-    const fechaFormateada = new Date(cotizacion.fecha).toISOString().split('T')[0]; // YYYY-MM-DD
-    
-    const nombreArchivo = `Cotizacion-${numeroCorto}-${nombreCliente}-${fechaFormateada}-${contenidoHash}.pdf`;
+    const nombreArchivo = `Cotizacion-${numeroCorto}-${nombreCliente}-${fechaFormateada}-${horaCorta}-${idCorto}.pdf`;
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);

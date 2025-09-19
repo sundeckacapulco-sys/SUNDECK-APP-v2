@@ -130,8 +130,52 @@ router.options('/levantamiento-pdf', (req, res) => {
   res.sendStatus(200);
 });
 
-// Generar PDF de levantamiento de medidas
+// Middleware de autenticación simplificado para GET con token en URL
+const authSimple = (req, res, next) => {
+  const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ message: 'Token requerido' });
+  }
+  
+  try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-jwt-secret-por-defecto');
+    req.usuario = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Token inválido' });
+  }
+};
+
+// Generar PDF de levantamiento de medidas (GET y POST)
+router.get('/levantamiento-pdf', authSimple, async (req, res) => {
+  console.log('🎯 Iniciando generación de PDF de levantamiento (GET)...');
+  
+  try {
+    const {
+      prospectoId,
+      piezas: piezasString = '[]',
+      precioGeneral = 750,
+      totalM2 = 0,
+      unidadMedida = 'm'
+    } = req.query;
+    
+    const piezas = JSON.parse(piezasString);
+    console.log('📋 Datos recibidos:', { prospectoId, piezasCount: piezas?.length || 0 });
+    
+    await generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGeneral: Number(precioGeneral), totalM2: Number(totalM2), unidadMedida });
+  } catch (error) {
+    console.error('Error en GET PDF:', error);
+    res.status(500).json({ message: 'Error generando PDF', error: error.message });
+  }
+});
+
+// Generar PDF de levantamiento de medidas (POST - mantener compatibilidad)
 router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
+  console.log('🎯 Iniciando generación de PDF de levantamiento (POST)...');
+  console.log('📋 Datos recibidos:', { prospectoId: req.body.prospectoId, piezasCount: req.body.piezas?.length || 0 });
+  
   try {
     const {
       prospectoId,
@@ -140,6 +184,16 @@ router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), 
       totalM2 = 0,
       unidadMedida = 'm'
     } = req.body;
+    
+    await generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGeneral, totalM2, unidadMedida });
+  } catch (error) {
+    console.error('Error en POST PDF:', error);
+    res.status(500).json({ message: 'Error generando PDF', error: error.message });
+  }
+});
+
+// Función común para generar PDF
+async function generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGeneral, totalM2, unidadMedida }) {
 
     if (!prospectoId || !mongoose.Types.ObjectId.isValid(prospectoId)) {
       return res.status(400).json({ message: 'prospectoId inválido' });
@@ -164,53 +218,28 @@ router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), 
 
     const pdf = await pdfService.generarLevantamientoPDF(etapaTemp, piezas, totalM2, precioGeneral);
 
-    // Crear nombre de archivo con hash del contenido actual (incluye piezas)
+    // Crear nombre de archivo único pero más corto
     const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
     
-    // Generar hash basado en el contenido actual del levantamiento (piezas + datos)
-    const crypto = require('crypto');
-    const contenidoActual = JSON.stringify({
-      prospecto: prospectoId,
-      piezas: piezas.sort((a, b) => (a.ubicacion || '').localeCompare(b.ubicacion || '')), // Ordenar para consistencia
-      totalM2,
-      precioGeneral
-    });
+    // Generar ID único más corto (últimos 6 dígitos del timestamp + hora)
+    const ahora = new Date();
+    const fechaFormateada = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+    const horaCorta = ahora.toTimeString().substr(0, 5).replace(':', ''); // HHMM
+    const idCorto = Date.now().toString().slice(-6); // Últimos 6 dígitos del timestamp
     
-    const contenidoHash = crypto.createHash('md5')
-      .update(contenidoActual)
-      .digest('hex')
-      .substring(0, 8); // Hash del contenido actual
-    
-    // Fecha actual para el nombre
-    const fechaFormateada = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    
-    const nombreArchivo = `Levantamiento-${nombreCliente}-${fechaFormateada}-${contenidoHash}.pdf`;
+    const nombreArchivo = `Levantamiento-${nombreCliente}-${fechaFormateada}-${horaCorta}-${idCorto}.pdf`;
+
+    console.log('📄 PDF generado exitosamente');
+    console.log('📁 Nombre de archivo:', nombreArchivo);
+    console.log('📊 Tamaño del PDF:', pdf.length, 'bytes');
 
     // Headers para descarga (CORS ya maneja Access-Control-Allow-Origin)
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
     res.send(pdf);
-
-  } catch (error) {
-    console.error('Error generando PDF de levantamiento:', error);
-    console.error('Stack trace:', error.stack);
     
-    // Verificar si es un error de dependencia faltante
-    if (error.message.includes('Puppeteer no está disponible')) {
-      return res.status(503).json({ 
-        message: 'Servicio de generación de PDF no disponible',
-        error: error.message,
-        solucion: 'Instala Puppeteer: npm install puppeteer'
-      });
-    }
-    
-    res.status(500).json({ 
-      message: 'Error generando PDF de levantamiento',
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-  }
-});
+    console.log('✅ PDF enviado al cliente');
+}
 
 // Manejar preflight para Excel (CORS ya maneja esto globalmente)
 router.options('/levantamiento-excel', (req, res) => {
@@ -251,27 +280,16 @@ router.post('/levantamiento-excel', auth, verificarPermiso('prospectos', 'leer')
       unidadMedida
     );
 
-    // Crear nombre de archivo con hash del contenido actual para Excel
+    // Crear nombre de archivo único pero más corto para Excel
     const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
     
-    // Generar hash basado en el contenido actual del levantamiento (piezas + datos)
-    const crypto = require('crypto');
-    const contenidoActual = JSON.stringify({
-      prospecto: prospectoId,
-      piezas: piezas.sort((a, b) => (a.ubicacion || '').localeCompare(b.ubicacion || '')), // Ordenar para consistencia
-      totalM2,
-      precioGeneral
-    });
+    // Generar ID único más corto
+    const ahora = new Date();
+    const fechaFormateada = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+    const horaCorta = ahora.toTimeString().substr(0, 5).replace(':', ''); // HHMM
+    const idCorto = Date.now().toString().slice(-6); // Últimos 6 dígitos del timestamp
     
-    const contenidoHash = crypto.createHash('md5')
-      .update(contenidoActual)
-      .digest('hex')
-      .substring(0, 8); // Hash del contenido actual
-    
-    // Fecha actual para el nombre
-    const fechaFormateada = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    
-    const nombreArchivoExcel = `Levantamiento-${nombreCliente}-${fechaFormateada}-${contenidoHash}.xlsx`;
+    const nombreArchivoExcel = `Levantamiento-${nombreCliente}-${fechaFormateada}-${horaCorta}-${idCorto}.xlsx`;
 
     // Headers para descarga de Excel (CORS ya maneja Access-Control-Allow-Origin)
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
