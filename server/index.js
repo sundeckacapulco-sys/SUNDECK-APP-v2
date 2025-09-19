@@ -13,23 +13,34 @@ app.set('trust proxy', 1);
 // Security middleware
 app.use(helmet());
 
+// Función helper para obtener orígenes permitidos (reutilizable)
+const getAllowedOrigins = () => {
+  const frontendPort = process.env.FRONTEND_PORT || '3000'; // Cambiar default a 3000
+  return [
+    'http://localhost:3000',             // Puerto principal React
+    'http://127.0.0.1:3000',            // Localhost alternativo
+    `http://localhost:${frontendPort}`,  // Puerto configurado del frontend
+    'http://localhost:1000',             // Puerto alternativo
+    'http://localhost:3001',             // Puerto alternativo
+    process.env.FRONTEND_URL,            // URL de producción
+    process.env.ALLOWED_ORIGINS?.split(',') || [] // Orígenes adicionales separados por coma
+  ].flat().filter(Boolean);
+};
+
 // CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
     // Permitir requests sin origin (como aplicaciones móviles o Postman)
     if (!origin) return callback(null, true);
     
-    const allowedOrigins = [
-      'http://localhost:1000',  // Puerto actual del frontend
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:3001',
-      process.env.FRONTEND_URL
-    ].filter(Boolean);
+    const allowedOrigins = getAllowedOrigins();
     
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`✅ CORS: Origen permitido: ${origin}`);
       callback(null, true);
     } else {
+      console.warn(`🚫 CORS: Origen no permitido: ${origin}`);
+      console.warn(`📋 Orígenes permitidos: ${allowedOrigins.join(', ')}`);
       callback(new Error('No permitido por CORS'));
     }
   },
@@ -63,22 +74,16 @@ app.use((req, res, next) => {
   // Permitir descargas de PDF y Excel
   if (req.path.includes('/pdf') || req.path.includes('/excel')) {
     const origin = req.headers.origin;
-    const allowedOrigins = [
-      'http://localhost:1000',
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:3001',
-      process.env.FRONTEND_URL
-    ].filter(Boolean);
+    const allowedOrigins = getAllowedOrigins();
     
-    // Usar el origen de la petición si está en la lista permitida
-    if (allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin);
-    }
-    
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // Solo exponer headers adicionales para descargas, CORS ya maneja Access-Control-Allow-Origin
     res.header('Access-Control-Expose-Headers', 'Content-Disposition, Content-Type, Content-Length');
+    
+    // Log para debugging (solo en desarrollo)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📥 Descarga desde origen: ${origin}`);
+      console.log(`✅ Orígenes permitidos: ${allowedOrigins.join(', ')}`);
+    }
   }
   next();
 });
@@ -139,4 +144,5 @@ const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
   console.log(`🌐 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Orígenes CORS permitidos: ${getAllowedOrigins().join(', ')}`);
 });

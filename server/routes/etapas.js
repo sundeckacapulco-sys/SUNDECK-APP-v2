@@ -125,23 +125,8 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
   }
 });
 
-// Manejar preflight para PDF
+// Manejar preflight para PDF (CORS ya maneja esto globalmente)
 router.options('/levantamiento-pdf', (req, res) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    'http://localhost:1000',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:3001',
-    process.env.FRONTEND_URL
-  ].filter(Boolean);
-  
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.sendStatus(200);
 });
 
@@ -201,21 +186,7 @@ router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), 
     
     const nombreArchivo = `Levantamiento-${nombreCliente}-${fechaFormateada}-${contenidoHash}.pdf`;
 
-    // Headers CORS específicos para descarga
-    const origin = req.headers.origin;
-    const allowedOrigins = [
-      'http://localhost:1000',
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:3001',
-      process.env.FRONTEND_URL
-    ].filter(Boolean);
-    
-    if (allowedOrigins.includes(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-    
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+    // Headers para descarga (CORS ya maneja Access-Control-Allow-Origin)
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
     res.send(pdf);
@@ -241,23 +212,8 @@ router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), 
   }
 });
 
-// Manejar preflight para Excel
+// Manejar preflight para Excel (CORS ya maneja esto globalmente)
 router.options('/levantamiento-excel', (req, res) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    'http://localhost:1000',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:3001',
-    process.env.FRONTEND_URL
-  ].filter(Boolean);
-  
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.sendStatus(200);
 });
 
@@ -317,22 +273,7 @@ router.post('/levantamiento-excel', auth, verificarPermiso('prospectos', 'leer')
     
     const nombreArchivoExcel = `Levantamiento-${nombreCliente}-${fechaFormateada}-${contenidoHash}.xlsx`;
 
-    // Headers CORS específicos para descarga de Excel
-    const origin = req.headers.origin;
-    const allowedOrigins = [
-      'http://localhost:1000',
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:3001',
-      process.env.FRONTEND_URL
-    ].filter(Boolean);
-    
-    if (allowedOrigins.includes(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-    
-    // Configurar headers para descarga
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+    // Headers para descarga de Excel (CORS ya maneja Access-Control-Allow-Origin)
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivoExcel}"`);
     res.setHeader('Content-Length', excelBuffer.length);
