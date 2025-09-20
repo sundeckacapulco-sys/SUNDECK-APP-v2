@@ -30,7 +30,8 @@ import {
   Notifications,
   AccountCircle,
   Logout,
-  Settings
+  Settings,
+  Inventory
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -42,6 +43,7 @@ const menuItems = [
   { text: 'Kanban', icon: <ViewKanban />, path: '/kanban' },
   { text: 'Prospectos', icon: <People />, path: '/prospectos' },
   { text: 'Cotizaciones', icon: <Assignment />, path: '/cotizaciones' },
+  { text: 'Catálogo Productos', icon: <Inventory />, path: '/productos' },
   { text: 'Pedidos', icon: <Build />, path: '/pedidos' },
   { text: 'Fabricación', icon: <Construction />, path: '/fabricacion' },
   { text: 'Instalaciones', icon: <Construction />, path: '/instalaciones' },

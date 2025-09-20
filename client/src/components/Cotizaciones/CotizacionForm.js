@@ -35,6 +35,7 @@ import {
   Calculate
 } from '@mui/icons-material';
 import SelectorProductos from './SelectorProductos';
+import AgregarProductoRapido from './AgregarProductoRapido';
 import {
   Checkbox,
   FormControlLabel,
@@ -42,6 +43,7 @@ import {
 } from '@mui/material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useAuth } from '../../contexts/AuthContext';
 import axiosConfig from '../../config/axios';
 
 // Componente para importar partidas del levantamiento
@@ -264,6 +266,7 @@ const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fiel
 };
 
 const CotizacionForm = () => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -272,7 +275,8 @@ const CotizacionForm = () => {
   const [openCalculadora, setOpenCalculadora] = useState(false);
   const [productoCalcular, setProductoCalcular] = useState(null);
   const [levantamientoData, setLevantamientoData] = useState(null);
-  const [openImportarModal, setOpenImportarModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showAgregarProducto, setShowAgregarProducto] = useState(false);
   const [incluirIVA, setIncluirIVA] = useState(true);
   const [diasValidez, setDiasValidez] = useState(15);
 
@@ -541,7 +545,7 @@ const CotizacionForm = () => {
         etapaFinal.piezas = piezasUnicasOriginales;
         
         setLevantamientoData(etapaFinal);
-        setOpenImportarModal(true);
+        setShowImportModal(true);
       } else {
         console.log('No se encontraron etapas con piezas');
         setError(`No se encontró levantamiento técnico para este prospecto. Etapas disponibles: ${etapas.map(e => `${e.nombreEtapa} (propiedades: ${Object.keys(e).join(', ')})`).join(' | ')}`);
@@ -624,7 +628,7 @@ const CotizacionForm = () => {
       append(productoImportado);
     });
 
-    setOpenImportarModal(false);
+    setShowImportModal(false);
     setSuccess(`Se importaron ${partidasUnicas.length} partidas del levantamiento técnico (${partidasSeleccionadas.length - partidasUnicas.length} duplicados eliminados)`);
   };
 
@@ -889,6 +893,18 @@ const CotizacionForm = () => {
               }}
             />
 
+            {/* Modal para agregar producto rápido */}
+            <AgregarProductoRapido
+              open={showAgregarProducto}
+              onClose={() => setShowAgregarProducto(false)}
+              onProductoCreado={(producto) => {
+                setSuccess(`Producto "${producto.nombre}" creado y disponible en el catálogo`);
+                // Opcional: agregar directamente a la cotización
+                // append(producto);
+              }}
+              userRole={user?.rol || 'vendedor'}
+            />
+
             {/* Productos */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">
@@ -906,13 +922,31 @@ const CotizacionForm = () => {
                     📋 Importar Levantamiento
                   </Button>
                 )}
-                <Button
-                  variant="outlined"
-                  startIcon={<Add />}
-                  onClick={agregarProducto}
-                >
-                  Agregar Manual
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<Add />}
+                    onClick={agregarProducto}
+                  >
+                    Agregar Manual
+                  </Button>
+                  {['admin', 'supervisor'].includes(user?.rol) && (
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      startIcon={<Add />}
+                      onClick={() => setShowAgregarProducto(true)}
+                      sx={{
+                        bgcolor: '#9c27b0',
+                        '&:hover': {
+                          bgcolor: '#7b1fa2'
+                        }
+                      }}
+                    >
+                      Crear Producto
+                    </Button>
+                  )}
+                </Box>
               </Box>
             </Box>
 
@@ -1325,8 +1359,8 @@ const CotizacionForm = () => {
 
       {/* Modal para Importar Partidas del Levantamiento */}
       <Dialog
-        open={openImportarModal}
-        onClose={() => setOpenImportarModal(false)}
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
         maxWidth="lg"
         fullWidth
       >
@@ -1338,7 +1372,7 @@ const CotizacionForm = () => {
             <ImportarPartidasModal
               levantamientoData={levantamientoData}
               onImportar={importarPartidas}
-              onCancelar={() => setOpenImportarModal(false)}
+              onCancelar={() => setShowImportModal(false)}
               fields={fields}
               remove={remove}
             />

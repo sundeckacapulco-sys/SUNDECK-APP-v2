@@ -20,11 +20,13 @@ import {
   TableRow,
   Paper,
   IconButton,
+  Tooltip,
   Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  DialogContentText,
   Autocomplete,
   Switch,
   FormControlLabel
@@ -35,17 +37,25 @@ import {
   Delete,
   Search,
   FilterList,
+  Warning,
   Save,
   Cancel
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
+import { useAuth } from '../../contexts/AuthContext';
 import axiosConfig from '../../config/axios';
 
 const CatalogoProductos = () => {
+  const { user } = useAuth();
   const [productos, setProductos] = useState([]);
+  
+  // Debug temporal
+  console.log('Usuario actual en catálogo:', user);
+  console.log('Rol del usuario:', user?.rol);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, producto: null });
   const [openDialog, setOpenDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [filtros, setFiltros] = useState({
@@ -76,7 +86,12 @@ const CatalogoProductos = () => {
         porM2Adicional: 0
       },
       activo: true,
-      disponible: true
+      disponible: true,
+      imagenes: [],
+      especificaciones: '',
+      garantia: '',
+      peso: '',
+      dimensiones: ''
     }
   });
 
@@ -176,7 +191,12 @@ const CatalogoProductos = () => {
           porM2Adicional: 0
         },
         activo: true,
-        disponible: true
+        disponible: true,
+        imagenes: [],
+        especificaciones: '',
+        garantia: '',
+        peso: '',
+        dimensiones: ''
       });
     }
     setOpenDialog(true);
@@ -185,6 +205,24 @@ const CatalogoProductos = () => {
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingProduct(null);
+    reset({
+      nombre: '',
+      codigo: '',
+      descripcion: '',
+      categoria: 'ventana',
+      material: 'aluminio',
+      unidadMedida: 'm2',
+      precioBase: '',
+      coloresDisponibles: ['Blanco'],
+      tiempoFabricacion: 5,
+      activo: true,
+      disponible: true,
+      imagenes: [],
+      especificaciones: '',
+      garantia: '',
+      peso: '',
+      dimensiones: ''
+    });
     setError('');
     setSuccess('');
   };
@@ -193,12 +231,31 @@ const CatalogoProductos = () => {
     try {
       setLoading(true);
       setError('');
+      setSuccess('');
 
+      const productData = {
+        ...data,
+        coloresDisponibles: data.coloresDisponibles || ['Blanco'],
+        tiempoFabricacion: {
+          base: parseInt(data.tiempoFabricacion) || 5,
+          porM2Adicional: data.unidadMedida === 'm2' ? 0.5 : 0
+        },
+        imagenes: data.imagenes || [],
+        especificaciones: data.especificaciones || '',
+        garantia: data.garantia || '',
+        peso: data.peso || '',
+        dimensiones: data.dimensiones || ''
+      };
+
+      console.log('Enviando producto:', productData);
+      
       if (editingProduct) {
-        await axiosConfig.put(`/productos/${editingProduct._id}`, data);
+        // Actualizar producto existente
+        await axiosConfig.put(`/productos/${editingProduct._id}`, productData);
         setSuccess('Producto actualizado exitosamente');
       } else {
-        await axiosConfig.post('/productos', data);
+        // Crear nuevo producto
+        await axiosConfig.post('/productos', productData);
         setSuccess('Producto creado exitosamente');
       }
 
@@ -211,16 +268,47 @@ const CatalogoProductos = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar este producto?')) {
-      try {
-        await axiosConfig.delete(`/productos/${id}`);
-        setSuccess('Producto eliminado exitosamente');
-        await fetchProductos();
-      } catch (error) {
-        setError('Error eliminando producto');
-      }
+  const handleEdit = (producto) => {
+    setEditingProduct(producto);
+    // Llenar el formulario con los datos del producto
+    reset({
+      nombre: producto.nombre,
+      codigo: producto.codigo,
+      descripcion: producto.descripcion,
+      categoria: producto.categoria,
+      material: producto.material,
+      unidadMedida: producto.unidadMedida,
+      precioBase: producto.precioBase,
+      coloresDisponibles: producto.coloresDisponibles || [],
+      tiempoFabricacion: producto.tiempoFabricacion?.base || 5,
+      activo: producto.activo,
+      disponible: producto.disponible,
+      imagenes: producto.imagenes || []
+    });
+    setOpenDialog(true);
+  };
+
+  const handleDeleteClick = (producto) => {
+    setDeleteDialog({ open: true, producto });
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setLoading(true);
+      await axiosConfig.delete(`/productos/${deleteDialog.producto._id}`);
+      setSuccess(`Producto "${deleteDialog.producto.nombre}" eliminado exitosamente`);
+      setDeleteDialog({ open: false, producto: null });
+      fetchProductos(); // Recargar lista
+    } catch (error) {
+      console.error('Error eliminando producto:', error);
+      setError(error.response?.data?.message || 'Error eliminando el producto');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialog({ open: false, producto: null });
   };
 
   const getUnidadLabel = (unidad) => {
@@ -245,17 +333,27 @@ const CatalogoProductos = () => {
     <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-          📦 Catálogo de Productos
+        <Typography variant="h4" component="h1">
+          📎 Catálogo de Productos
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpenDialog()}
-          sx={{ bgcolor: '#2563eb', '&:hover': { bgcolor: '#1d4ed8' } }}
-        >
-          Nuevo Producto
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          {/* Botón temporal para testing */}
+          <Button
+            variant="outlined"
+            color="warning"
+            onClick={() => console.log('Rol actual:', user?.rol)}
+            size="small"
+          >
+            Debug Rol: {user?.rol || 'undefined'}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleOpenDialog}
+          >
+            Nuevo Producto
+          </Button>
+        </Box>
       </Box>
 
       {/* Filtros */}
@@ -413,20 +511,30 @@ const CatalogoProductos = () => {
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleOpenDialog(producto)}
-                        color="primary"
-                      >
-                        <Edit />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDelete(producto._id)}
-                        color="error"
-                      >
-                        <Delete />
-                      </IconButton>
+                      <Tooltip title="Editar">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEdit(producto)}
+                          sx={{ color: '#1976d2' }}
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      {/* Debug: mostrar siempre el botón para testing */}
+                      <Tooltip title={`Eliminar (Rol actual: ${user?.rol || 'no definido'})`}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteClick(producto)}
+                          sx={{ 
+                            color: '#d32f2f',
+                            '&:hover': {
+                              bgcolor: '#ffebee'
+                            }
+                          }}
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -632,6 +740,117 @@ const CatalogoProductos = () => {
                 />
               </Grid>
 
+              {/* Información para Venta en Línea */}
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom sx={{ color: '#9c27b0' }}>
+                  🛒 Información para Venta en Línea
+                </Typography>
+              </Grid>
+
+              {/* URLs de Imágenes */}
+              <Grid item xs={12}>
+                <Controller
+                  name="imagenes"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete
+                      {...field}
+                      multiple
+                      freeSolo
+                      options={[]}
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => (
+                          <Chip
+                            variant="outlined"
+                            label={`Imagen ${index + 1}`}
+                            {...getTagProps({ index })}
+                            key={index}
+                            color="secondary"
+                          />
+                        ))
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="URLs de Imágenes"
+                          placeholder="https://ejemplo.com/imagen.jpg"
+                          helperText="Presiona Enter para agregar cada URL de imagen"
+                        />
+                      )}
+                      onChange={(_, value) => field.onChange(value)}
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Especificaciones Técnicas */}
+              <Grid item xs={12}>
+                <Controller
+                  name="especificaciones"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      multiline
+                      rows={3}
+                      label="Especificaciones Técnicas"
+                      placeholder="Detalles técnicos, materiales, dimensiones estándar, etc."
+                      helperText="Información detallada para mostrar a los clientes"
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Garantía y Detalles Adicionales */}
+              <Grid item xs={12} md={4}>
+                <Controller
+                  name="garantia"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Garantía"
+                      placeholder="Ej: 2 años"
+                      helperText="Tiempo de garantía"
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <Controller
+                  name="peso"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Peso Aproximado"
+                      placeholder="Ej: 2.5 kg/m²"
+                      helperText="Para cálculos de envío"
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <Controller
+                  name="dimensiones"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Dimensiones Estándar"
+                      placeholder="Ej: Max 3x2.5m"
+                      helperText="Limitaciones de tamaño"
+                    />
+                  )}
+                />
+              </Grid>
+
               {/* Estado */}
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom>
@@ -678,6 +897,61 @@ const CatalogoProductos = () => {
             disabled={loading}
           >
             {loading ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de confirmación para eliminar */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Warning color="error" />
+          Confirmar Eliminación
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            ¿Estás seguro de que deseas eliminar el producto{' '}
+            <strong>"{deleteDialog.producto?.nombre}"</strong>?
+          </DialogContentText>
+          <DialogContentText sx={{ mt: 2, color: 'error.main' }}>
+            ⚠️ Esta acción no se puede deshacer. El producto se eliminará permanentemente del catálogo.
+          </DialogContentText>
+          {deleteDialog.producto && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Información del producto:
+              </Typography>
+              <Typography variant="body2">
+                <strong>Código:</strong> {deleteDialog.producto.codigo}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Categoría:</strong> {deleteDialog.producto.categoria}
+              </Typography>
+              <Typography variant="body2">
+                <strong>Precio:</strong> ${deleteDialog.producto.precioBase?.toLocaleString()} / {deleteDialog.producto.unidadMedida}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button 
+            onClick={handleDeleteCancel}
+            disabled={loading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            disabled={loading}
+            startIcon={loading ? null : <Delete />}
+          >
+            {loading ? 'Eliminando...' : 'Eliminar Producto'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -35,6 +35,7 @@ import {
   Description
 } from '@mui/icons-material';
 import SelectorProductos from './SelectorProductos';
+import AgregarProductoRapido from './AgregarProductoRapido';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import axiosConfig from '../../config/axios';
@@ -45,6 +46,7 @@ const CotizacionDirecta = () => {
   const [success, setSuccess] = useState('');
   const [activeStep, setActiveStep] = useState(0);
   const [incluirIVA, setIncluirIVA] = useState(true);
+  const [showAgregarProducto, setShowAgregarProducto] = useState(false);
 
   const navigate = useNavigate();
 
@@ -358,17 +360,43 @@ const CotizacionDirecta = () => {
               }}
             />
 
+            {/* Modal para agregar producto rápido */}
+            <AgregarProductoRapido
+              open={showAgregarProducto}
+              onClose={() => setShowAgregarProducto(false)}
+              onProductoCreado={(producto) => {
+                setSuccess(`Producto "${producto.nombre}" creado y disponible en el catálogo`);
+              }}
+              userRole={'admin'} // En cotización directa asumimos permisos
+            />
+
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6" sx={{ color: '#1a1a1a' }}>
                 Productos Agregados
               </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<Add />}
-                onClick={agregarProducto}
-              >
-                Agregar Manual
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Add />}
+                  onClick={agregarProducto}
+                >
+                  Agregar Manual
+                </Button>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<Add />}
+                  onClick={() => setShowAgregarProducto(true)}
+                  sx={{
+                    bgcolor: '#9c27b0',
+                    '&:hover': {
+                      bgcolor: '#7b1fa2'
+                    }
+                  }}
+                >
+                  Crear Producto
+                </Button>
+              </Box>
             </Box>
 
             <TableContainer component={Paper} sx={{ mb: 3, boxShadow: 3 }}>

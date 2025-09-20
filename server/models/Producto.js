@@ -98,6 +98,8 @@ const productoSchema = new mongoose.Schema({
   },
   
   // Información adicional
+  tags: [String],
+  popularidad: { type: Number, default: 0 },
   garantia: {
     fabricacion: Number, // meses
     instalacion: Number // meses
@@ -106,10 +108,13 @@ const productoSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  especificaciones: String,
+  peso: String,
+  dimensiones: String,
+  palabrasClave: [String],
+  descripcionSEO: String,
   
   // Metadatos
-  tags: [String],
-  popularidad: { type: Number, default: 0 },
   vecesVendido: { type: Number, default: 0 }
 }, {
   timestamps: true

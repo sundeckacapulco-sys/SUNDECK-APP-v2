@@ -281,6 +281,9 @@ const SelectorProductos = ({ onProductoSeleccionado, onCalcularPrecio }) => {
         onInputChange={(event, newInputValue) => {
           if (newInputValue.length > 2) {
             fetchProductos(newInputValue);
+          } else if (newInputValue.length === 0) {
+            // Recargar todos los productos cuando se borra el texto
+            fetchProductos('');
           }
         }}
         loading={loading}
