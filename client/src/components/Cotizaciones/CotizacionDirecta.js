@@ -223,16 +223,24 @@ const CotizacionDirecta = () => {
       // Paso final: crear prospecto y cotización
       const totales = calcularTotales();
 
-      // 1. Crear prospecto primero
+      // 1. Crear prospecto primero con información completa
       const prospectoData = {
         nombre: data.cliente.nombre,
         telefono: data.cliente.telefono,
         email: data.cliente.email || '',
-        direccion: data.cliente.direccion || '',
+        direccion: {
+          calle: data.cliente.direccion || '',
+          colonia: '',
+          ciudad: '',
+          codigoPostal: '',
+          referencias: 'Creado desde cotización directa'
+        },
         fuente: 'cotizacion_directa',
         producto: data.productos[0]?.nombre || 'Cotización directa',
         etapa: 'cotizacion',
-        observaciones: 'Cliente creado desde cotización directa'
+        prioridad: 'alta', // Cotización directa = alta prioridad
+        observaciones: `Cliente creado desde cotización directa el ${new Date().toLocaleDateString('es-MX')}. Productos: ${data.productos.map(p => p.nombre).join(', ')}. Total: $${totales.total.toLocaleString()}`,
+        fechaUltimoContacto: new Date()
       };
 
       console.log('Creando prospecto:', prospectoData);
@@ -246,27 +254,67 @@ const CotizacionDirecta = () => {
       }));
 
       const cotizacionData = {
-        prospectoId: prospecto._id,
+        prospecto: prospecto._id, // Cambiar de prospectoId a prospecto
         validoHasta: data.validoHasta,
         productos: productosConSubtotal,
-        descuento: data.descuento,
-        formaPago: data.formaPago,
+        descuento: {
+          porcentaje: tipoDescuento === 'porcentaje' ? (data.descuento?.porcentaje || 0) : 0,
+          monto: tipoDescuento === 'monto' ? (data.descuento?.monto || 0) : 0,
+          motivo: data.descuento?.motivo || 'Descuento aplicado en cotización directa'
+        },
+        formaPago: {
+          anticipo: {
+            porcentaje: 60, // Estándar 60%
+            monto: totales.total * 0.6
+          },
+          saldo: {
+            porcentaje: 40, // Estándar 40%
+            monto: totales.total * 0.4,
+            condiciones: 'contra entrega'
+          }
+        },
         tiempoFabricacion: data.tiempoFabricacion || 15,
         tiempoInstalacion: data.tiempoInstalacion || 1,
         requiereInstalacion: data.requiereInstalacion !== false,
         costoInstalacion: data.costoInstalacion || 0,
-        garantia: data.garantia,
+        garantia: data.garantia || {
+          fabricacion: 36, // 3 años estándar
+          instalacion: 12, // 1 año estándar
+          descripcion: 'Garantía estándar Sundeck: 3 años en productos, 1 año en instalación'
+        },
         subtotal: totales.subtotal,
-        iva: totales.iva,
+        iva: incluirIVA ? totales.iva : 0,
         total: totales.total,
-        fechaEntregaEstimada: new Date(Date.now() + (data.tiempoFabricacion || 15) * 24 * 60 * 60 * 1000)
+        fechaEntregaEstimada: new Date(Date.now() + (data.tiempoFabricacion || 15) * 24 * 60 * 60 * 1000),
+        // elaboradaPor se asignará automáticamente en el backend
+        estado: 'enviada', // Cotización directa se considera enviada inmediatamente
+        fechaEnvio: new Date(),
+        observaciones: `Cotización directa generada. Cliente: ${data.cliente.nombre}. ${incluirIVA ? 'Con IVA' : 'Sin IVA'}. Descuento: ${tipoDescuento === 'porcentaje' ? (data.descuento?.porcentaje || 0) + '%' : '$' + (data.descuento?.monto || 0)}`
       };
 
       console.log('Creando cotización:', cotizacionData);
       const cotizacionResponse = await axiosConfig.post('/cotizaciones', cotizacionData);
+      const cotizacion = cotizacionResponse.data.cotizacion || cotizacionResponse.data;
 
-      setSuccess(`¡Cotización creada exitosamente! Cliente: ${prospecto.nombre}, Cotización: ${cotizacionResponse.data.cotizacion.numero}`);
-      setTimeout(() => navigate('/cotizaciones'), 3000);
+      // 3. Actualizar el prospecto con información adicional
+      try {
+        await axiosConfig.put(`/prospectos/${prospecto._id}`, {
+          etapa: 'cotizacion',
+          fechaUltimoContacto: new Date(),
+          observaciones: `${prospecto.observaciones || ''}\n\n💰 Cotización ${cotizacion.numero} generada por $${totales.total.toLocaleString()}. Válida hasta: ${new Date(data.validoHasta).toLocaleDateString('es-MX')}. Tiempo estimado de fabricación: ${data.tiempoFabricacion || 15} días.`
+        });
+      } catch (updateError) {
+        console.warn('Error actualizando prospecto, pero cotización creada exitosamente:', updateError);
+      }
+
+      setSuccess(`¡Cotización creada exitosamente! 
+📋 Cliente: ${prospecto.nombre}
+🔢 Cotización: ${cotizacion.numero}
+💰 Total: $${totales.total.toLocaleString()}
+📅 Válida hasta: ${new Date(data.validoHasta).toLocaleDateString('es-MX')}`);
+      
+      // Redirigir al detalle del prospecto creado para seguimiento
+      setTimeout(() => navigate(`/prospectos/${prospecto._id}`), 4000);
 
     } catch (error) {
       console.error('Error creando cotización directa:', error);
