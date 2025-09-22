@@ -32,10 +32,17 @@ import {
   Save,
   Add,
   Delete,
-  Calculate
+  Calculate,
+  Settings,
+  CalendarToday,
+  Functions
 } from '@mui/icons-material';
 import SelectorProductos from './SelectorProductos';
 import AgregarProductoRapido from './AgregarProductoRapido';
+import CalculadoraRapida from '../Calculadoras/CalculadoraRapida';
+import CalculadoraDiasHabiles from '../Calculadoras/CalculadoraDiasHabiles';
+import CalculadoraMotores from '../Calculadoras/CalculadoraMotores';
+import CalcularYAgregar from '../Calculadoras/CalcularYAgregar';
 import {
   Checkbox,
   FormControlLabel,
@@ -279,6 +286,10 @@ const CotizacionForm = () => {
   const [showAgregarProducto, setShowAgregarProducto] = useState(false);
   const [incluirIVA, setIncluirIVA] = useState(true);
   const [diasValidez, setDiasValidez] = useState(15);
+  const [showCalculadoraRapida, setShowCalculadoraRapida] = useState(false);
+  const [showCalculadoraDias, setShowCalculadoraDias] = useState(false);
+  const [showCalculadoraMotores, setShowCalculadoraMotores] = useState(false);
+  const [showCalcularYAgregar, setShowCalcularYAgregar] = useState(false);
 
   // Función para actualizar la fecha de validez
   const actualizarFechaValidez = (dias) => {
@@ -910,7 +921,7 @@ const CotizacionForm = () => {
               <Typography variant="h6">
                 Productos Agregados
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 {(prospectoId || watchedProspecto) && (
                   <Button
                     variant="contained"
@@ -922,32 +933,66 @@ const CotizacionForm = () => {
                     📋 Importar Levantamiento
                   </Button>
                 )}
-                <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Add />}
+                  onClick={agregarProducto}
+                >
+                  Agregar Manual
+                </Button>
+                {['admin', 'supervisor'].includes(user?.rol) && (
                   <Button
-                    variant="outlined"
+                    variant="contained"
+                    color="secondary"
                     startIcon={<Add />}
-                    onClick={agregarProducto}
+                    onClick={() => setShowAgregarProducto(true)}
+                    sx={{
+                      bgcolor: '#9c27b0',
+                      '&:hover': {
+                        bgcolor: '#7b1fa2'
+                      }
+                    }}
                   >
-                    Agregar Manual
+                    Crear Producto
                   </Button>
-                  {['admin', 'supervisor'].includes(user?.rol) && (
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      startIcon={<Add />}
-                      onClick={() => setShowAgregarProducto(true)}
-                      sx={{
-                        bgcolor: '#9c27b0',
-                        '&:hover': {
-                          bgcolor: '#7b1fa2'
-                        }
-                      }}
-                    >
-                      Crear Producto
-                    </Button>
-                  )}
-                </Box>
+                )}
+                <Button
+                  variant="outlined"
+                  startIcon={<Calculate />}
+                  onClick={() => setShowCalcularYAgregar(true)}
+                  color="warning"
+                >
+                  Calcular y Agregar
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Settings />}
+                  onClick={() => setShowCalculadoraMotores(true)}
+                  color="info"
+                >
+                  Motores
+                </Button>
               </Box>
+            </Box>
+
+            {/* Calculadoras rápidas */}
+            <Box sx={{ display: 'flex', gap: 1, mb: 2, justifyContent: 'center' }}>
+              <Button
+                variant="outlined"
+                startIcon={<Functions />}
+                onClick={() => setShowCalculadoraRapida(true)}
+                size="small"
+              >
+                Calculadora
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<CalendarToday />}
+                onClick={() => setShowCalculadoraDias(true)}
+                size="small"
+              >
+                Días Hábiles
+              </Button>
             </Box>
 
             <TableContainer component={Paper} sx={{ mb: 3, boxShadow: 3 }}>
@@ -1379,6 +1424,37 @@ const CotizacionForm = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modales de calculadoras */}
+      <CalculadoraRapida
+        open={showCalculadoraRapida}
+        onClose={() => setShowCalculadoraRapida(false)}
+      />
+
+      <CalculadoraDiasHabiles
+        open={showCalculadoraDias}
+        onClose={() => setShowCalculadoraDias(false)}
+      />
+
+      <CalculadoraMotores
+        open={showCalculadoraMotores}
+        onClose={() => setShowCalculadoraMotores(false)}
+        productos={watchedProductos}
+        onAgregarMotor={(motor) => {
+          append(motor);
+          setSuccess(`Motor "${motor.nombre}" agregado a la cotización`);
+        }}
+      />
+
+      <CalcularYAgregar
+        open={showCalcularYAgregar}
+        onClose={() => setShowCalcularYAgregar(false)}
+        productos={watchedProductos}
+        onAgregarProducto={(producto) => {
+          append(producto);
+          setSuccess(`Producto "${producto.nombre}" calculado y agregado`);
+        }}
+      />
     </Box>
   );
 };

@@ -32,10 +32,17 @@ import {
   ArrowBack,
   Person,
   Calculate,
-  Description
+  Description,
+  Settings,
+  CalendarToday,
+  Functions
 } from '@mui/icons-material';
 import SelectorProductos from './SelectorProductos';
 import AgregarProductoRapido from './AgregarProductoRapido';
+import CalculadoraRapida from '../Calculadoras/CalculadoraRapida';
+import CalculadoraDiasHabiles from '../Calculadoras/CalculadoraDiasHabiles';
+import CalculadoraMotores from '../Calculadoras/CalculadoraMotores';
+import CalcularYAgregar from '../Calculadoras/CalcularYAgregar';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import axiosConfig from '../../config/axios';
@@ -47,6 +54,10 @@ const CotizacionDirecta = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [incluirIVA, setIncluirIVA] = useState(true);
   const [showAgregarProducto, setShowAgregarProducto] = useState(false);
+  const [showCalculadoraRapida, setShowCalculadoraRapida] = useState(false);
+  const [showCalculadoraDias, setShowCalculadoraDias] = useState(false);
+  const [showCalculadoraMotores, setShowCalculadoraMotores] = useState(false);
+  const [showCalcularYAgregar, setShowCalcularYAgregar] = useState(false);
 
   const navigate = useNavigate();
 
@@ -374,7 +385,7 @@ const CotizacionDirecta = () => {
               <Typography variant="h6" sx={{ color: '#1a1a1a' }}>
                 Productos Agregados
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 <Button
                   variant="outlined"
                   startIcon={<Add />}
@@ -396,7 +407,43 @@ const CotizacionDirecta = () => {
                 >
                   Crear Producto
                 </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Calculate />}
+                  onClick={() => setShowCalcularYAgregar(true)}
+                  color="warning"
+                >
+                  Calcular y Agregar
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Settings />}
+                  onClick={() => setShowCalculadoraMotores(true)}
+                  color="info"
+                >
+                  Motores
+                </Button>
               </Box>
+            </Box>
+
+            {/* Calculadoras rápidas */}
+            <Box sx={{ display: 'flex', gap: 1, mb: 2, justifyContent: 'center' }}>
+              <Button
+                variant="outlined"
+                startIcon={<Functions />}
+                onClick={() => setShowCalculadoraRapida(true)}
+                size="small"
+              >
+                Calculadora
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<CalendarToday />}
+                onClick={() => setShowCalculadoraDias(true)}
+                size="small"
+              >
+                Días Hábiles
+              </Button>
             </Box>
 
             <TableContainer component={Paper} sx={{ mb: 3, boxShadow: 3 }}>
@@ -582,6 +629,37 @@ const CotizacionDirecta = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+
+            {/* Modales de calculadoras */}
+            <CalculadoraRapida
+              open={showCalculadoraRapida}
+              onClose={() => setShowCalculadoraRapida(false)}
+            />
+
+            <CalculadoraDiasHabiles
+              open={showCalculadoraDias}
+              onClose={() => setShowCalculadoraDias(false)}
+            />
+
+            <CalculadoraMotores
+              open={showCalculadoraMotores}
+              onClose={() => setShowCalculadoraMotores(false)}
+              productos={watchedProductos}
+              onAgregarMotor={(motor) => {
+                append(motor);
+                setSuccess(`Motor "${motor.nombre}" agregado a la cotización`);
+              }}
+            />
+
+            <CalcularYAgregar
+              open={showCalcularYAgregar}
+              onClose={() => setShowCalcularYAgregar(false)}
+              productos={watchedProductos}
+              onAgregarProducto={(producto) => {
+                append(producto);
+                setSuccess(`Producto "${producto.nombre}" calculado y agregado`);
+              }}
+            />
           </Box>
         );
 
