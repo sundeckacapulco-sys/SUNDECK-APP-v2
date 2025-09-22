@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -129,6 +129,76 @@ const CalculadoraRapida = ({ open, onClose }) => {
       setHistory(prev => [`Descuento: $${precio} - ${descuento}% = $${resultado}`, ...prev.slice(0, 9)]);
     }
   };
+
+  // Soporte para teclado
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      if (!open) return; // Solo funciona cuando la calculadora está abierta
+      
+      const key = event.key;
+      event.preventDefault(); // Prevenir comportamiento por defecto
+      
+      // Números
+      if (key >= '0' && key <= '9') {
+        inputNumber(key);
+      }
+      // Operaciones
+      else if (key === '+') {
+        performOperation('add');
+      }
+      else if (key === '-') {
+        performOperation('subtract');
+      }
+      else if (key === '*' || key === 'x' || key === 'X') {
+        performOperation('multiply');
+      }
+      else if (key === '/') {
+        performOperation('divide');
+      }
+      else if (key === '%') {
+        performOperation('percentage');
+      }
+      // Punto decimal
+      else if (key === '.' || key === ',') {
+        inputDecimal();
+      }
+      // Igual o Enter
+      else if (key === '=' || key === 'Enter') {
+        performOperation(null);
+      }
+      // Limpiar
+      else if (key === 'Escape' || key === 'c' || key === 'C') {
+        clear();
+      }
+      // Backspace
+      else if (key === 'Backspace') {
+        if (display.length > 1) {
+          setDisplay(display.slice(0, -1));
+        } else {
+          setDisplay('0');
+        }
+      }
+      // Copiar (Ctrl+C)
+      else if (event.ctrlKey && key === 'c') {
+        copyToClipboard();
+      }
+      // Funciones especiales
+      else if (key === 'a' || key === 'A') {
+        calcularArea();
+      }
+      else if (key === 'd' || key === 'D') {
+        calcularDescuento();
+      }
+    };
+
+    if (open) {
+      document.addEventListener('keydown', handleKeyPress);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [open, display, operation, previousValue, waitingForOperand]);
 
   return (
     <Dialog 
@@ -319,56 +389,84 @@ const CalculadoraRapida = ({ open, onClose }) => {
             </Grid>
             
             <Typography variant="caption" sx={{ display: 'block', mt: 1, color: '#6c757d' }}>
-              • Área: Ingresa "2.5x3.0" y presiona "Área" para calcular m²<br/>
-              • Descuento: Ingresa "1000-10" para aplicar 10% de descuento a $1000
+              💡 Para área: ingresa "2.5x3" y presiona el botón. Para descuento: ingresa "1000-10" y presiona el botón.
             </Typography>
           </Grid>
 
           {/* Historial */}
           {history.length > 0 && (
             <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
               <Typography variant="subtitle2" gutterBottom>
-                📋 Historial de Cálculos
+                📋 Historial
               </Typography>
-              <Box sx={{ maxHeight: 150, overflowY: 'auto' }}>
+              <Box sx={{ maxHeight: 120, overflowY: 'auto' }}>
                 {history.map((calc, index) => (
                   <Chip
                     key={index}
                     label={calc}
                     size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      const result = calc.split(' = ')[1];
+                      if (result) {
+                        const numericResult = result.replace(/[^\d.-]/g, '');
+                        if (numericResult) {
+                          setDisplay(numericResult);
+                        }
+                      }
+                    }}
                     sx={{ 
                       mb: 0.5, 
                       mr: 0.5,
-                      fontSize: '0.75rem',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => {
-                      const result = calc.split('=')[1]?.trim();
-                      if (result) setDisplay(result);
+                      cursor: 'pointer',
+                      '&:hover': {
+                        bgcolor: '#e3f2fd'
+                      }
                     }}
                   />
                 ))}
               </Box>
             </Grid>
           )}
-        </Grid>
-      </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose}>
-          Cerrar
-        </Button>
-        <Button 
-          variant="contained" 
-          onClick={copyToClipboard}
-          startIcon={<ContentCopy />}
-        >
-          Copiar Resultado
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
+          {/* Atajos de teclado */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2, bgcolor: '#f8f9fa', border: '1px solid #e0e0e0' }}>
+            <Typography variant="subtitle2" gutterBottom sx={{ color: '#2563eb', fontWeight: 'bold' }}>
+              ⌨️ Atajos de Teclado
+            </Typography>
+            <Box display="flex" flexWrap="wrap" gap={1}>
+              <Chip label="0-9: Números" size="small" variant="outlined" />
+              <Chip label="+, -, *, /: Operaciones" size="small" variant="outlined" />
+              <Chip label="Enter/=: Igual" size="small" variant="outlined" />
+              <Chip label="Esc/C: Limpiar" size="small" variant="outlined" />
+              <Chip label="Backspace: Borrar" size="small" variant="outlined" />
+              <Chip label="A: Área" size="small" variant="outlined" color="primary" />
+              <Chip label="D: Descuento" size="small" variant="outlined" color="primary" />
+              <Chip label="Ctrl+C: Copiar" size="small" variant="outlined" color="secondary" />
+            </Box>
+            <Typography variant="caption" sx={{ color: '#6c757d', display: 'block', mt: 1 }}>
+              💡 Puedes usar tu teclado normalmente. Para área: "2.5x3" + A. Para descuento: "1000-10" + D
+            </Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+    </DialogContent>
+
+    <DialogActions>
+      <Button onClick={onClose}>
+        Cerrar
+      </Button>
+      <Button 
+        variant="contained" 
+        onClick={copyToClipboard}
+        startIcon={<ContentCopy />}
+      >
+        Copiar Resultado
+      </Button>
+    </DialogActions>
+  </Dialog>
+);
 };
 
 export default CalculadoraRapida;

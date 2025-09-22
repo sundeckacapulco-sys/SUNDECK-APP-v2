@@ -19,7 +19,9 @@ import {
   TableRow,
   Paper,
   IconButton,
-  Divider
+  Divider,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material';
 import {
   Add,
@@ -58,6 +60,7 @@ const CotizacionDirecta = () => {
   const [showCalculadoraDias, setShowCalculadoraDias] = useState(false);
   const [showCalculadoraMotores, setShowCalculadoraMotores] = useState(false);
   const [showCalcularYAgregar, setShowCalcularYAgregar] = useState(false);
+  const [tipoDescuento, setTipoDescuento] = useState('porcentaje'); // 'porcentaje' o 'monto'
 
   const navigate = useNavigate();
 
@@ -125,15 +128,30 @@ const CotizacionDirecta = () => {
 
   const calcularTotales = () => {
     const subtotal = watchedProductos.reduce((sum, producto) => {
-      const area = producto.medidas?.area || 0;
       const precio = producto.precioUnitario || 0;
       const cantidad = producto.cantidad || 1;
-      const subtotalProducto = area * precio * cantidad;
+      const unidadMedida = producto?.unidadMedida;
+      
+      let subtotalProducto = 0;
+      if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
+        // Productos por pieza: precio × cantidad
+        subtotalProducto = precio * cantidad;
+      } else {
+        // Productos por área o lineales: área × precio × cantidad
+        const area = producto.medidas?.area || 0;
+        subtotalProducto = area * precio * cantidad;
+      }
+      
       return sum + subtotalProducto;
     }, 0);
 
-    const descuentoPorcentaje = watchedDescuento?.porcentaje || 0;
-    const descuentoMonto = subtotal * (descuentoPorcentaje / 100);
+    let descuentoMonto = 0;
+    if (tipoDescuento === 'porcentaje') {
+      const descuentoPorcentaje = watchedDescuento?.porcentaje || 0;
+      descuentoMonto = subtotal * (descuentoPorcentaje / 100);
+    } else {
+      descuentoMonto = watchedDescuento?.monto || 0;
+    }
     const subtotalConDescuento = subtotal - descuentoMonto;
     const iva = incluirIVA ? subtotalConDescuento * 0.16 : 0;
     const total = subtotalConDescuento + iva;
@@ -454,7 +472,7 @@ const CotizacionDirecta = () => {
                     <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Ubicación</TableCell>
                     <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Medidas</TableCell>
                     <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Cant.</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Precio/m²</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Precio Unit.</TableCell>
                     <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Subtotal</TableCell>
                     <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
                   </TableRow>
@@ -493,62 +511,131 @@ const CotizacionDirecta = () => {
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <Controller
-                            name={`productos.${index}.medidas.ancho`}
-                            control={control}
-                            render={({ field }) => (
-                              <TextField
-                                {...field}
-                                size="small"
-                                label="Ancho (m)"
-                                type="number"
-                                sx={{ width: 80 }}
-                                inputProps={{ step: 0.01, min: 0 }}
-                                onChange={(e) => {
-                                  field.onChange(e);
-                                  // Calcular área automáticamente
-                                  const ancho = parseFloat(e.target.value) || 0;
-                                  const alto = watchedProductos[index]?.medidas?.alto || 0;
-                                  const area = ancho * alto;
-                                  setValue(`productos.${index}.medidas.area`, area);
-                                  // Recalcular subtotal
-                                  const precio = watchedProductos[index]?.precioUnitario || 0;
-                                  const cantidad = watchedProductos[index]?.cantidad || 1;
-                                  setValue(`productos.${index}.subtotal`, area * precio * cantidad);
-                                }}
-                              />
-                            )}
-                          />
-                          <Controller
-                            name={`productos.${index}.medidas.alto`}
-                            control={control}
-                            render={({ field }) => (
-                              <TextField
-                                {...field}
-                                size="small"
-                                label="Alto (m)"
-                                type="number"
-                                sx={{ width: 80 }}
-                                inputProps={{ step: 0.01, min: 0 }}
-                                onChange={(e) => {
-                                  field.onChange(e);
-                                  // Calcular área automáticamente
-                                  const alto = parseFloat(e.target.value) || 0;
-                                  const ancho = watchedProductos[index]?.medidas?.ancho || 0;
-                                  const area = ancho * alto;
-                                  setValue(`productos.${index}.medidas.area`, area);
-                                  // Recalcular subtotal
-                                  const precio = watchedProductos[index]?.precioUnitario || 0;
-                                  const cantidad = watchedProductos[index]?.cantidad || 1;
-                                  setValue(`productos.${index}.subtotal`, area * precio * cantidad);
-                                }}
-                              />
-                            )}
-                          />
+                          {/* Mostrar campos según la unidad de medida */}
+                          {(() => {
+                            const producto = watchedProductos[index];
+                            const unidadMedida = producto?.unidadMedida;
+                            
+                            // Productos por pieza (motores, controles, etc.)
+                            if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
+                              return (
+                                <Box sx={{ textAlign: 'center', py: 1 }}>
+                                  <Typography variant="body2" sx={{ color: '#2563eb', fontWeight: 'bold' }}>
+                                    Producto por {unidadMedida}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: '#6c757d' }}>
+                                    No requiere medidas
+                                  </Typography>
+                                </Box>
+                              );
+                            }
+                            
+                            // Productos lineales (canaletas, galerías)
+                            if (['ml', 'metro'].includes(unidadMedida)) {
+                              return (
+                                <Controller
+                                  name={`productos.${index}.medidas.area`}
+                                  control={control}
+                                  render={({ field }) => (
+                                    <TextField
+                                      {...field}
+                                      size="small"
+                                      label="Metros lineales"
+                                      type="number"
+                                      sx={{ width: 100 }}
+                                      inputProps={{ step: 0.1, min: 0 }}
+                                      onChange={(e) => {
+                                        field.onChange(e);
+                                        // Recalcular subtotal
+                                        const metrosLineales = parseFloat(e.target.value) || 0;
+                                        const precio = watchedProductos[index]?.precioUnitario || 0;
+                                        const cantidad = watchedProductos[index]?.cantidad || 1;
+                                        setValue(`productos.${index}.subtotal`, metrosLineales * precio * cantidad);
+                                      }}
+                                    />
+                                  )}
+                                />
+                              );
+                            }
+                            
+                            // Productos por m² (persianas, cortinas, etc.) - comportamiento original
+                            return (
+                              <>
+                                <Controller
+                                  name={`productos.${index}.medidas.ancho`}
+                                  control={control}
+                                  render={({ field }) => (
+                                    <TextField
+                                      {...field}
+                                      size="small"
+                                      label="Ancho (m)"
+                                      type="number"
+                                      sx={{ width: 80 }}
+                                      inputProps={{ step: 0.01, min: 0 }}
+                                      onChange={(e) => {
+                                        field.onChange(e);
+                                        // Calcular área automáticamente
+                                        const ancho = parseFloat(e.target.value) || 0;
+                                        const alto = watchedProductos[index]?.medidas?.alto || 0;
+                                        const area = ancho * alto;
+                                        setValue(`productos.${index}.medidas.area`, area);
+                                        // Recalcular subtotal
+                                        const precio = watchedProductos[index]?.precioUnitario || 0;
+                                        const cantidad = watchedProductos[index]?.cantidad || 1;
+                                        setValue(`productos.${index}.subtotal`, area * precio * cantidad);
+                                      }}
+                                    />
+                                  )}
+                                />
+                                <Controller
+                                  name={`productos.${index}.medidas.alto`}
+                                  control={control}
+                                  render={({ field }) => (
+                                    <TextField
+                                      {...field}
+                                      size="small"
+                                      label="Alto (m)"
+                                      type="number"
+                                      sx={{ width: 80 }}
+                                      inputProps={{ step: 0.01, min: 0 }}
+                                      onChange={(e) => {
+                                        field.onChange(e);
+                                        // Calcular área automáticamente
+                                        const alto = parseFloat(e.target.value) || 0;
+                                        const ancho = watchedProductos[index]?.medidas?.ancho || 0;
+                                        const area = ancho * alto;
+                                        setValue(`productos.${index}.medidas.area`, area);
+                                        // Recalcular subtotal
+                                        const precio = watchedProductos[index]?.precioUnitario || 0;
+                                        const cantidad = watchedProductos[index]?.cantidad || 1;
+                                        setValue(`productos.${index}.subtotal`, area * precio * cantidad);
+                                      }}
+                                    />
+                                  )}
+                                />
+                              </>
+                            );
+                          })()}
+                          
                           <Typography variant="caption" sx={{ color: '#6c757d', textAlign: 'center' }}>
                             {(() => {
                               const producto = watchedProductos[index];
-                              if (!producto) return '0 m²';
+                              if (!producto) return '';
+                              
+                              const unidadMedida = producto?.unidadMedida;
+                              
+                              // Productos por pieza
+                              if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
+                                return `1 ${unidadMedida}`;
+                              }
+                              
+                              // Productos lineales
+                              if (['ml', 'metro'].includes(unidadMedida)) {
+                                const metrosLineales = producto.medidas?.area || 0;
+                                return `${metrosLineales.toFixed(1)} m.l.`;
+                              }
+                              
+                              // Productos por m²
                               const ancho = producto.medidas?.ancho || 0;
                               const alto = producto.medidas?.alto || 0;
                               return `${(ancho * alto).toFixed(2)} m²`;
@@ -570,11 +657,22 @@ const CotizacionDirecta = () => {
                               inputProps={{ step: 1, min: 1 }}
                               onChange={(e) => {
                                 field.onChange(e);
-                                // Calcular subtotal automáticamente
+                                // Calcular subtotal automáticamente según tipo de producto
                                 const cantidad = parseFloat(e.target.value) || 1;
-                                const area = watchedProductos[index]?.medidas?.area || 0;
-                                const precio = watchedProductos[index]?.precioUnitario || 0;
-                                setValue(`productos.${index}.subtotal`, area * precio * cantidad);
+                                const producto = watchedProductos[index];
+                                const precio = producto?.precioUnitario || 0;
+                                const unidadMedida = producto?.unidadMedida;
+                                
+                                let subtotal = 0;
+                                if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
+                                  // Productos por pieza: precio × cantidad
+                                  subtotal = precio * cantidad;
+                                } else {
+                                  // Productos por área o lineales: área × precio × cantidad
+                                  const area = producto?.medidas?.area || 0;
+                                  subtotal = area * precio * cantidad;
+                                }
+                                setValue(`productos.${index}.subtotal`, subtotal);
                               }}
                             />
                           )}
@@ -588,17 +686,37 @@ const CotizacionDirecta = () => {
                             <TextField
                               {...field}
                               size="small"
-                              label="$/m²"
+                              label={(() => {
+                                const producto = watchedProductos[index];
+                                const unidadMedida = producto?.unidadMedida;
+                                if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
+                                  return `$/${unidadMedida}`;
+                                } else if (['ml', 'metro'].includes(unidadMedida)) {
+                                  return '$/m.l.';
+                                }
+                                return '$/m²';
+                              })()}
                               type="number"
                               sx={{ width: 100 }}
                               inputProps={{ step: 0.01, min: 0 }}
                               onChange={(e) => {
                                 field.onChange(e);
-                                // Calcular subtotal automáticamente
+                                // Calcular subtotal automáticamente según tipo de producto
                                 const precio = parseFloat(e.target.value) || 0;
-                                const area = watchedProductos[index]?.medidas?.area || 0;
-                                const cantidad = watchedProductos[index]?.cantidad || 1;
-                                setValue(`productos.${index}.subtotal`, area * precio * cantidad);
+                                const producto = watchedProductos[index];
+                                const cantidad = producto?.cantidad || 1;
+                                const unidadMedida = producto?.unidadMedida;
+                                
+                                let subtotal = 0;
+                                if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
+                                  // Productos por pieza: precio × cantidad
+                                  subtotal = precio * cantidad;
+                                } else {
+                                  // Productos por área o lineales: área × precio × cantidad
+                                  const area = producto?.medidas?.area || 0;
+                                  subtotal = area * precio * cantidad;
+                                }
+                                setValue(`productos.${index}.subtotal`, subtotal);
                               }}
                             />
                           )}
@@ -608,10 +726,21 @@ const CotizacionDirecta = () => {
                         ${(() => {
                           const producto = watchedProductos[index];
                           if (!producto) return 0;
-                          const area = producto.medidas?.area || 0;
+                          
                           const precio = producto.precioUnitario || 0;
                           const cantidad = producto.cantidad || 1;
-                          const subtotal = area * precio * cantidad;
+                          const unidadMedida = producto?.unidadMedida;
+                          
+                          let subtotal = 0;
+                          if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
+                            // Productos por pieza: precio × cantidad
+                            subtotal = precio * cantidad;
+                          } else {
+                            // Productos por área o lineales: área × precio × cantidad
+                            const area = producto.medidas?.area || 0;
+                            subtotal = area * precio * cantidad;
+                          }
+                          
                           return subtotal.toLocaleString();
                         })()}
                       </TableCell>
@@ -671,19 +800,62 @@ const CotizacionDirecta = () => {
             </Typography>
             
             <Grid container spacing={3}>
+              {/* Selector de tipo de descuento */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" gutterBottom sx={{ color: '#2563eb', fontWeight: 'bold' }}>
+                  💸 Tipo de Descuento
+                </Typography>
+                <Box display="flex" gap={1} sx={{ mb: 2 }}>
+                  <Button
+                    variant={tipoDescuento === 'porcentaje' ? 'contained' : 'outlined'}
+                    onClick={() => setTipoDescuento('porcentaje')}
+                    sx={{ flex: 1 }}
+                  >
+                    📊 Por Porcentaje
+                  </Button>
+                  <Button
+                    variant={tipoDescuento === 'monto' ? 'contained' : 'outlined'}
+                    onClick={() => setTipoDescuento('monto')}
+                    color="secondary"
+                    sx={{ flex: 1 }}
+                  >
+                    💰 Monto Fijo
+                  </Button>
+                </Box>
+              </Grid>
+
               <Grid item xs={12} md={6}>
-                <Controller
-                  name="descuento.porcentaje"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Descuento (%)"
-                      type="number"
-                    />
-                  )}
-                />
+                {tipoDescuento === 'porcentaje' ? (
+                  <Controller
+                    name="descuento.porcentaje"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Descuento (%)"
+                        type="number"
+                        inputProps={{ min: 0, max: 100, step: 0.1 }}
+                        helperText="Porcentaje de descuento sobre el subtotal"
+                      />
+                    )}
+                  />
+                ) : (
+                  <Controller
+                    name="descuento.monto"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Descuento ($)"
+                        type="number"
+                        inputProps={{ min: 0, step: 0.01 }}
+                        helperText="Monto fijo de descuento en pesos"
+                      />
+                    )}
+                  />
+                )}
               </Grid>
               
               <Grid item xs={12} md={6}>
@@ -700,6 +872,32 @@ const CotizacionDirecta = () => {
                     />
                   )}
                 />
+                
+                {/* Checkbox para incluir IVA */}
+                <Box sx={{ mt: 2 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={incluirIVA}
+                        onChange={(e) => setIncluirIVA(e.target.checked)}
+                        sx={{
+                          color: '#2563eb',
+                          '&.Mui-checked': {
+                            color: '#2563eb',
+                          },
+                        }}
+                      />
+                    }
+                    label={
+                      <Typography sx={{ fontWeight: 'bold', color: '#1a1a1a' }}>
+                        💰 Incluir IVA (16%)
+                      </Typography>
+                    }
+                  />
+                  <Typography variant="caption" sx={{ display: 'block', color: '#6c757d', ml: 4 }}>
+                    {incluirIVA ? 'Precio con IVA incluido' : 'Precio sin IVA'}
+                  </Typography>
+                </Box>
               </Grid>
             </Grid>
 
@@ -713,23 +911,27 @@ const CotizacionDirecta = () => {
                     Subtotal: ${totales.subtotal.toLocaleString()}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#dc3545' }}>
-                    Descuento: -${totales.descuentoMonto.toLocaleString()}
+                    Descuento {tipoDescuento === 'porcentaje' 
+                      ? `(${watchedDescuento?.porcentaje || 0}%)` 
+                      : '(monto fijo)'}: -${totales.descuentoMonto.toLocaleString()}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#6c757d' }}>
                     Subtotal con descuento: ${totales.subtotalConDescuento.toLocaleString()}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: '#28a745' }}>
-                    IVA (16%): +${totales.iva.toLocaleString()}
-                  </Typography>
+                  {incluirIVA && (
+                    <Typography variant="body2" sx={{ color: '#28a745' }}>
+                      IVA (16%): +${totales.iva.toLocaleString()}
+                    </Typography>
+                  )}
                   <Divider sx={{ my: 1 }} />
                   <Typography variant="h5" sx={{ 
                     fontWeight: 'bold',
-                    color: '#2563eb',
-                    bgcolor: '#e3f2fd',
+                    color: incluirIVA ? '#2563eb' : '#28a745',
+                    bgcolor: incluirIVA ? '#e3f2fd' : '#f1f8e9',
                     p: 1,
                     borderRadius: 1
                   }}>
-                    Total: ${totales.total.toLocaleString()}
+                    Total {incluirIVA ? '(con IVA)' : '(sin IVA)'}: ${totales.total.toLocaleString()}
                   </Typography>
                 </Box>
               </CardContent>
