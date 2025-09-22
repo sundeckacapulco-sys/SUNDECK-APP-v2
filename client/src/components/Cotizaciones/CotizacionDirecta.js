@@ -431,7 +431,7 @@ const CotizacionDirecta = () => {
                   onClick={() => setShowCalcularYAgregar(true)}
                   color="warning"
                 >
-                  Calcular y Agregar
+                  Materiales Extras
                 </Button>
                 <Button
                   variant="outlined"
@@ -785,8 +785,11 @@ const CotizacionDirecta = () => {
               onClose={() => setShowCalcularYAgregar(false)}
               productos={watchedProductos}
               onAgregarProducto={(producto) => {
+                console.log('🎯 CotizacionDirecta - Recibiendo producto:', producto);
                 append(producto);
-                setSuccess(`Producto "${producto.nombre}" calculado y agregado`);
+                console.log('✅ CotizacionDirecta - Producto agregado con append');
+                setSuccess(`Material extra "${producto.nombre}" calculado y agregado`);
+                console.log('✅ CotizacionDirecta - Mensaje de éxito establecido');
               }}
             />
           </Box>
@@ -932,6 +935,139 @@ const CotizacionDirecta = () => {
                     borderRadius: 1
                   }}>
                     Total {incluirIVA ? '(con IVA)' : '(sin IVA)'}: ${totales.total.toLocaleString()}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+
+            {/* Términos y Condiciones */}
+            <Card sx={{ mt: 3, bgcolor: '#fff9e6', border: '2px solid #ffc107' }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ color: '#1a1a1a', fontWeight: 'bold' }}>
+                  📋 Términos y Condiciones
+                </Typography>
+                
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#ff6b35', mb: 1 }}>
+                    💰 Condiciones de Pago:
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    • <strong>Anticipo:</strong> 60% del total al confirmar el pedido
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    • <strong>Liquidación:</strong> 40% restante contra entrega
+                  </Typography>
+                  <Box sx={{ bgcolor: '#fff3cd', p: 2, borderRadius: 1, mt: 1 }}>
+                    <Typography variant="body2" sx={{ color: '#ff6b35', fontWeight: 'bold', mb: 1 }}>
+                      💳 Resumen de Pagos:
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 0.5 }}>
+                      • Anticipo (60%): ${(totales.total * 0.6).toLocaleString()}
+                    </Typography>
+                    <Typography variant="body2">
+                      • Saldo contra entrega (40%): ${(totales.total * 0.4).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#2563eb', mb: 1 }}>
+                    📦 Condiciones de Entrega:
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    • Tiempo de fabricación: 15-20 días hábiles
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    • Instalación disponible (costo adicional)
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    • Garantía estándar: 3 años en productos
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    • Todas las instalaciones incluyen: 1 año de garantía + 1 año de servicio gratuito
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#28a745', fontStyle: 'italic' }}>
+                    • Garantía extendida disponible para productos selectos
+                  </Typography>
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#9c27b0', mb: 1 }}>
+                    🛡️ Garantías por Tipo de Producto:
+                  </Typography>
+                  <Box sx={{ bgcolor: '#f3e5f5', p: 2, borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>• Persianas y Cortinas:</strong> 3 años
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>• Motores y Automatización:</strong> 3 años
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>• Sistemas de Protección Antihuracan:</strong> 3 años en producto
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>• Productos Selectos:</strong> 3 años + garantía extendida disponible
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#ff6b35', fontWeight: 'bold' }}>
+                      <strong>• Todas las Instalaciones:</strong> 1 año de garantía + 1 año de servicio gratuito
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#ff6b35', mb: 1 }}>
+                    🔧 Servicio Técnico Incluido:
+                  </Typography>
+                  <Box sx={{ bgcolor: '#fff3cd', p: 2, borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                      Todas nuestras instalaciones incluyen:
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      • <strong>1 año de garantía</strong> en instalación profesional
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      • <strong>1 año de servicio gratuito</strong> que incluye:
+                    </Typography>
+                    <Box sx={{ ml: 2 }}>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>
+                        - Ajustes y calibración del sistema
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>
+                        - Reparación de componentes menores (topes, guías, etc.)
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>
+                        - Mantenimiento preventivo semestral
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 0.5 }}>
+                        - Revisión de anclajes y sistemas de fijación
+                      </Typography>
+                      <Typography variant="body2">
+                        - Soporte técnico profesional
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#28a745', mb: 1 }}>
+                    ✅ Condiciones Generales:
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    • Precios válidos por 15 días
+                  </Typography>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    • Medidas sujetas a verificación en sitio
+                  </Typography>
+                  <Typography variant="body2">
+                    • Colores y acabados sujetos a disponibilidad
                   </Typography>
                 </Box>
               </CardContent>

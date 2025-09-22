@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -63,42 +63,72 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
 
     let totalCalculado = 0;
     let productosUsados = [];
+    let productosExcluidos = [];
     let unidadMedida = '';
 
     if (tipoCalculo === 'canaletas') {
-      // Para canaletas: sumar todos los ALTOS de las persianas
+      // Para canaletas: sumar todos los ALTOS de las persianas y multiplicar por 2 (laterales)
       productos.forEach(producto => {
-        const alto = producto.medidas?.alto || 0;
-        const cantidad = producto.cantidad || 1;
-        const altoTotal = alto * cantidad;
+        // Excluir productos que ya sean canaletas, galerías o accesorios lineales
+        const esProductoLineal = ['canaleta', 'galeria', 'bajante', 'riel'].some(tipo => 
+          producto.nombre?.toLowerCase().includes(tipo) || 
+          producto.categoria?.toLowerCase().includes(tipo)
+        );
         
-        if (alto > 0) {
-          totalCalculado += altoTotal;
-          productosUsados.push({
+        if (!esProductoLineal) {
+          const alto = producto.medidas?.alto || 0;
+          const cantidad = producto.cantidad || 1;
+          const altoTotal = alto * cantidad;
+          
+          if (alto > 0) {
+            totalCalculado += altoTotal;
+            productosUsados.push({
+              nombre: producto.nombre,
+              ubicacion: producto.descripcion,
+              alto: alto,
+              cantidad: cantidad,
+              altoTotal: altoTotal
+            });
+          }
+        } else {
+          productosExcluidos.push({
             nombre: producto.nombre,
-            ubicacion: producto.descripcion,
-            alto: alto,
-            cantidad: cantidad,
-            altoTotal: altoTotal
+            razon: 'Ya es un producto lineal (canaleta/galería)'
           });
         }
       });
-      unidadMedida = 'metros lineales (altura)';
+      
+      // Multiplicar por 2 para canaletas (van en ambos laterales)
+      totalCalculado = totalCalculado * 2;
+      unidadMedida = 'metros lineales (altura × 2 laterales)';
     } else {
-      // Para galerías: sumar todos los ANCHOS de las persianas
+      // Para galerías: sumar todos los ANCHOS de las persianas (NO incluir productos que ya sean galerías)
       productos.forEach(producto => {
-        const ancho = producto.medidas?.ancho || 0;
-        const cantidad = producto.cantidad || 1;
-        const anchoTotal = ancho * cantidad;
+        // Excluir productos que ya sean canaletas, galerías o accesorios lineales
+        const esProductoLineal = ['canaleta', 'galeria', 'bajante', 'riel'].some(tipo => 
+          producto.nombre?.toLowerCase().includes(tipo) || 
+          producto.categoria?.toLowerCase().includes(tipo)
+        );
         
-        if (ancho > 0) {
-          totalCalculado += anchoTotal;
-          productosUsados.push({
+        if (!esProductoLineal) {
+          const ancho = producto.medidas?.ancho || 0;
+          const cantidad = producto.cantidad || 1;
+          const anchoTotal = ancho * cantidad;
+          
+          if (ancho > 0) {
+            totalCalculado += anchoTotal;
+            productosUsados.push({
+              nombre: producto.nombre,
+              ubicacion: producto.descripcion,
+              ancho: ancho,
+              cantidad: cantidad,
+              anchoTotal: anchoTotal
+            });
+          }
+        } else {
+          productosExcluidos.push({
             nombre: producto.nombre,
-            ubicacion: producto.descripcion,
-            ancho: ancho,
-            cantidad: cantidad,
-            anchoTotal: anchoTotal
+            razon: 'Ya es un producto lineal (canaleta/galería)'
           });
         }
       });
@@ -109,9 +139,24 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
       total: totalCalculado,
       unidad: unidadMedida,
       productos: productosUsados,
+      productosExcluidos: productosExcluidos,
       tipo: tipoCalculo
     };
   };
+
+  // Recalcular automáticamente cuando cambien los productos o el tipo de cálculo
+  useEffect(() => {
+    if (productos && productos.length > 0) {
+      const calculo = calcularMedidas();
+      if (calculo && calculo.total > 0) {
+        setResultado(calculo);
+        console.log('🔄 Recálculo automático:', calculo);
+      } else {
+        setResultado(null);
+        console.log('🔄 Recálculo automático: sin resultados');
+      }
+    }
+  }, [productos, tipoCalculo]);
 
   const handleCalcular = () => {
     const calculo = calcularMedidas();
@@ -123,10 +168,22 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
   };
 
   const handleAgregar = () => {
-    if (!resultado || !productoSeleccionado || !precioUnitario) return;
+    console.log('🔧 handleAgregar iniciado');
+    console.log('📊 resultado:', resultado);
+    console.log('🛍️ productoSeleccionado:', productoSeleccionado);
+    console.log('💰 precioUnitario:', precioUnitario);
+    
+    if (!resultado || !productoSeleccionado || !precioUnitario) {
+      console.log('❌ Faltan datos requeridos');
+      return;
+    }
 
     const producto = productosDisponibles[tipoCalculo].find(p => p.id === productoSeleccionado);
-    if (!producto) return;
+    console.log('🔍 producto encontrado:', producto);
+    if (!producto) {
+      console.log('❌ Producto no encontrado');
+      return;
+    }
 
     const precio = parseFloat(precioUnitario);
     const cantidad = resultado.total;
@@ -134,10 +191,11 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
 
     const nuevoProducto = {
       nombre: producto.nombre,
-      descripcion: `${tipoCalculo === 'canaletas' ? 'Canaletas' : 'Galerías'} calculadas automáticamente`,
+      descripcion: `${tipoCalculo === 'canaletas' ? 'Canaletas (laterales × 2)' : 'Galerías'} calculadas automáticamente`,
       categoria: tipoCalculo === 'canaletas' ? 'canaleta' : 'galeria',
       material: producto.nombre.includes('Aluminio') ? 'aluminio' : 
                 producto.nombre.includes('PVC') ? 'pvc' : 'acero',
+      unidadMedida: 'ml', // Importante: definir la unidad de medida
       medidas: {
         ancho: tipoCalculo === 'galerias' ? resultado.total : 1,
         alto: tipoCalculo === 'canaletas' ? resultado.total : 1,
@@ -155,8 +213,14 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
       }
     };
 
+    console.log('🚀 Producto a agregar:', nuevoProducto);
+    
     if (onAgregarProducto) {
+      console.log('✅ Llamando onAgregarProducto');
       onAgregarProducto(nuevoProducto);
+      console.log('✅ onAgregarProducto ejecutado');
+    } else {
+      console.log('❌ onAgregarProducto no está definido');
     }
 
     // Limpiar y cerrar
@@ -168,6 +232,17 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
 
   const productosActuales = productosDisponibles[tipoCalculo] || [];
   const calculo = calcularMedidas();
+  
+  // Debug: Solo mostrar cuando hay problemas
+  if (open && (!resultado || !productoSeleccionado || !precioUnitario)) {
+    console.log('🔍 Estado del botón:', {
+      resultado: !!resultado,
+      productoSeleccionado: !!productoSeleccionado,
+      precioUnitario: !!precioUnitario,
+      calculo: !!calculo,
+      botonDeshabilitado: !resultado || !productoSeleccionado || !precioUnitario
+    });
+  }
 
   return (
     <Dialog 
@@ -183,7 +258,7 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Box display="flex" alignItems="center" gap={1}>
             <Calculate color="primary" />
-            <Typography variant="h6">Calcular y Agregar</Typography>
+            <Typography variant="h6">Materiales Extras</Typography>
           </Box>
           <IconButton onClick={onClose} size="small">
             <Close />
@@ -194,7 +269,7 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
       <DialogContent>
         <Box sx={{ mb: 3 }}>
           <Typography variant="body1" color="text.secondary" gutterBottom>
-            Calcula automáticamente las medidas necesarias para canaletas o galerías basándose en las persianas agregadas.
+            Calcula automáticamente las medidas necesarias para materiales extras como canaletas o galerías basándose en las persianas agregadas.
           </Typography>
         </Box>
 
@@ -225,7 +300,7 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
           
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
             {tipoCalculo === 'canaletas' 
-              ? '🔸 Canaletas: Suma la altura de todas las persianas para calcular metros lineales de canaleta'
+              ? '🔸 Canaletas: Suma la altura de todas las persianas × 2 (laterales) para calcular metros lineales de canaleta'
               : '🔸 Galerías: Suma el ancho de todas las persianas para calcular metros lineales de galería'
             }
           </Typography>
@@ -321,6 +396,23 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
                     </TableBody>
                   </Table>
                 </TableContainer>
+
+                {/* Mostrar productos excluidos si los hay */}
+                {calculo.productosExcluidos && calculo.productosExcluidos.length > 0 && (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      📋 Productos Excluidos del Cálculo:
+                    </Typography>
+                    {calculo.productosExcluidos.map((prod, index) => (
+                      <Typography key={index} variant="body2" sx={{ ml: 1 }}>
+                        • <strong>{prod.nombre}</strong> - {prod.razon}
+                      </Typography>
+                    ))}
+                    <Typography variant="caption" sx={{ display: 'block', mt: 1, color: '#6c757d' }}>
+                      💡 Solo se incluyen persianas, cortinas y productos base para el cálculo de {tipoCalculo}.
+                    </Typography>
+                  </Alert>
+                )}
               </Paper>
             )}
           </Box>
@@ -336,7 +428,7 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
             <Divider sx={{ my: 3 }} />
             
             <Typography variant="h6" gutterBottom>
-              🛍️ Agregar Producto Calculado
+              🛍️ Agregar Material Extra Calculado
             </Typography>
 
             <Box display="flex" gap={2} sx={{ mb: 2 }}>
@@ -406,14 +498,14 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
         <Button 
           variant="contained" 
           onClick={handleAgregar}
-          disabled={!calculo || !productoSeleccionado || !precioUnitario}
+          disabled={!resultado || !productoSeleccionado || !precioUnitario}
           startIcon={<AddIcon />}
           sx={{
             bgcolor: '#2563eb',
             '&:hover': { bgcolor: '#1d4ed8' }
           }}
         >
-          Agregar Producto
+          Agregar Material
         </Button>
       </DialogActions>
     </Dialog>
