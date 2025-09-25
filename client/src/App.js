@@ -51,6 +51,7 @@ function App() {
           <Route path="/cotizaciones/nueva" element={<CotizacionForm />} />
           <Route path="/cotizaciones/directa" element={<CotizacionDirecta />} />
           <Route path="/cotizaciones/:id" element={<CotizacionForm />} />
+          <Route path="/cotizaciones/:id/editar" element={<CotizacionForm />} />
           
           {/* Productos */}
           <Route path="/productos" element={<CatalogoProductos />} />

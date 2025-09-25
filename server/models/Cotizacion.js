@@ -49,7 +49,7 @@ const cotizacionSchema = new mongoose.Schema({
         'ventana', 'puerta', 'cancel', 'domo', 'accesorio', 
         'motor', 'kit', 'control', 'galeria', 'persiana',
         'cortina', 'toldo', 'mosquitero', 'cristal', 'herraje',
-        'instalacion', 'mantenimiento', 'otro'
+        'instalacion', 'mantenimiento', 'canaleta', 'otro'
       ]
     },
     material: String, // aluminio, PVC, madera, etc.

@@ -190,7 +190,25 @@ router.post('/', auth, verificarPermiso('cotizaciones', 'crear'), async (req, re
     
     console.log('Prospecto encontrado:', prospecto.nombre);
 
+    // Generar número de cotización manualmente si no existe
+    let numeroCotizacion;
+    try {
+      const year = new Date().getFullYear();
+      const count = await Cotizacion.countDocuments({
+        createdAt: {
+          $gte: new Date(year, 0, 1),
+          $lt: new Date(year + 1, 0, 1)
+        }
+      });
+      numeroCotizacion = `COT-${year}-${String(count + 1).padStart(4, '0')}`;
+      console.log('Número de cotización generado:', numeroCotizacion);
+    } catch (error) {
+      console.error('Error generando número:', error);
+      numeroCotizacion = `COT-${new Date().getFullYear()}-${Date.now()}`; // Fallback
+    }
+
     const nuevaCotizacion = new Cotizacion({
+      numero: numeroCotizacion,
       prospecto: prospecto._id,
       validoHasta,
       mediciones,
@@ -251,15 +269,25 @@ router.post('/', auth, verificarPermiso('cotizaciones', 'crear'), async (req, re
 // Obtener cotización por ID
 router.get('/:id', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res) => {
   try {
+    console.log('=== OBTENER COTIZACIÓN ===');
+    console.log('ID solicitado:', req.params.id);
+    
     const cotizacion = await Cotizacion.findById(req.params.id)
       .populate('prospecto')
       .populate('elaboradaPor', 'nombre apellido email')
       .populate('notas.usuario', 'nombre apellido');
 
     if (!cotizacion) {
+      console.log('Cotización no encontrada con ID:', req.params.id);
       return res.status(404).json({ message: 'Cotización no encontrada' });
     }
 
+    console.log('Cotización encontrada:');
+    console.log('- Número:', cotizacion.numero);
+    console.log('- Prospecto:', cotizacion.prospecto?.nombre);
+    console.log('- Productos:', cotizacion.productos?.length || 0);
+    console.log('- Total:', cotizacion.total);
+    
     res.json(cotizacion);
   } catch (error) {
     console.error('Error obteniendo cotización:', error);

@@ -338,7 +338,7 @@ const CotizacionForm = () => {
   const prospectoId = searchParams.get('prospecto');
   const isEdit = Boolean(id);
 
-  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+  const { control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
     defaultValues: {
       prospecto: prospectoId || '',
       validoHasta: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // 15 días desde hoy
@@ -405,11 +405,66 @@ const CotizacionForm = () => {
 
   const fetchCotizacion = async () => {
     try {
+      console.log('Cargando cotización con ID:', id);
       const response = await axiosConfig.get(`/cotizaciones/${id}`);
-      // Reset form with fetched data
-      // Implementation would go here
+      const cotizacion = response.data;
+      
+      console.log('Cotización cargada:', cotizacion);
+      
+      // Resetear el formulario con los datos de la cotización
+      reset({
+        prospecto: cotizacion.prospecto?._id || '',
+        validoHasta: cotizacion.validoHasta ? new Date(cotizacion.validoHasta).toISOString().slice(0, 10) : '',
+        productos: cotizacion.productos || [],
+        descuento: {
+          porcentaje: cotizacion.descuento?.porcentaje || 0,
+          monto: cotizacion.descuento?.monto || 0,
+          motivo: cotizacion.descuento?.motivo || ''
+        },
+        formaPago: {
+          anticipo: {
+            porcentaje: cotizacion.formaPago?.anticipo?.porcentaje || 50,
+            monto: cotizacion.formaPago?.anticipo?.monto || 0
+          },
+          saldo: {
+            porcentaje: cotizacion.formaPago?.saldo?.porcentaje || 50,
+            monto: cotizacion.formaPago?.saldo?.monto || 0,
+            condiciones: cotizacion.formaPago?.saldo?.condiciones || 'contra entrega'
+          }
+        },
+        tiempoFabricacion: cotizacion.tiempoFabricacion || 15,
+        tiempoInstalacion: cotizacion.tiempoInstalacion || 1,
+        requiereInstalacion: cotizacion.requiereInstalacion !== false,
+        costoInstalacion: cotizacion.costoInstalacion || 0,
+        garantia: {
+          fabricacion: cotizacion.garantia?.fabricacion || 12,
+          instalacion: cotizacion.garantia?.instalacion || 6,
+          descripcion: cotizacion.garantia?.descripcion || 'Garantía completa contra defectos de fabricación e instalación'
+        },
+        observaciones: cotizacion.observaciones || ''
+      });
+      
+      // Configurar tipo de descuento según los datos
+      if (cotizacion.descuento?.monto && cotizacion.descuento?.monto > 0) {
+        setTipoDescuento('monto');
+      } else {
+        setTipoDescuento('porcentaje');
+      }
+      
+      // Configurar días de validez
+      if (cotizacion.validoHasta) {
+        const validoHasta = new Date(cotizacion.validoHasta);
+        const hoy = new Date();
+        const diffTime = validoHasta - hoy;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDiasValidez(Math.max(1, diffDays));
+      }
+      
+      setSuccess('Cotización cargada exitosamente');
+      
     } catch (error) {
-      setError('Error cargando la cotización');
+      console.error('Error cargando cotización:', error);
+      setError('Error cargando la cotización: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -755,17 +810,15 @@ const CotizacionForm = () => {
         fechaEntregaEstimada: new Date(Date.now() + (data.tiempoFabricacion || 15) * 24 * 60 * 60 * 1000)
       };
 
-      console.log('Enviando cotización con datos:', cotizacionData);
-      console.log('URL que se usará:', '/cotizaciones');
-
+      console.log(isEdit ? 'Actualizando cotización:' : 'Creando cotización:', cotizacionData);
+      
+      let response;
       if (isEdit) {
-        const response = await axiosConfig.put(`/cotizaciones/${id}`, cotizacionData);
+        response = await axiosConfig.put(`/cotizaciones/${id}`, cotizacionData);
         setSuccess('Cotización actualizada exitosamente');
         console.log('Cotización actualizada:', response.data);
       } else {
-        // Crear cotización directamente
-        console.log('Creando cotización con prospectoId:', prospectoIdFinal);
-        const response = await axiosConfig.post('/cotizaciones', cotizacionData);
+        response = await axiosConfig.post('/cotizaciones', cotizacionData);
         setSuccess('Cotización creada exitosamente');
         console.log('Cotización creada:', response.data);
         setTimeout(() => navigate('/cotizaciones'), 2000);
