@@ -17,7 +17,9 @@ import {
   Menu,
   MenuItem,
   TextField,
-  Grid
+  Grid,
+  Alert,
+  Snackbar
 } from '@mui/material';
 import {
   Add,
@@ -26,16 +28,22 @@ import {
   Edit,
   Send,
   GetApp,
-  Delete
+  Delete,
+  Payment,
+  CheckCircle
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
+import AplicarAnticipoModal from '../Pedidos/AplicarAnticipoModal';
 
 const CotizacionesList = () => {
   const [cotizaciones, setCotizaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedCotizacion, setSelectedCotizacion] = useState(null);
+  const [anticipoModalOpen, setAnticipoModalOpen] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
 
   const navigate = useNavigate();
 
@@ -57,9 +65,14 @@ const CotizacionesList = () => {
     try {
       setLoading(true);
       const response = await axiosConfig.get('/cotizaciones');
-      setCotizaciones(response.data.docs || []);
+      const cotizacionesData = response.data.docs || response.data || [];
+      // Filtrar cotizaciones válidas
+      const cotizacionesValidas = cotizacionesData.filter(cot => cot && cot._id);
+      setCotizaciones(cotizacionesValidas);
     } catch (error) {
       console.error('Error fetching cotizaciones:', error);
+      setError('Error cargando cotizaciones');
+      setCotizaciones([]);
     } finally {
       setLoading(false);
     }
@@ -73,6 +86,26 @@ const CotizacionesList = () => {
   const handleMenuClose = () => {
     setAnchorEl(null);
     setSelectedCotizacion(null);
+  };
+
+  const handleAplicarAnticipo = (cotizacion) => {
+    setSelectedCotizacion(cotizacion);
+    setAnticipoModalOpen(true);
+    handleMenuClose();
+  };
+
+  const handleAnticipoSuccess = (data) => {
+    setSuccess(`¡Anticipo aplicado exitosamente! Pedido ${data.pedido.numero} creado.`);
+    fetchCotizaciones(); // Recargar lista
+    // Redirigir al detalle del prospecto
+    setTimeout(() => {
+      navigate(`/prospectos/${data.pedido.prospecto}`);
+    }, 2000);
+  };
+
+  const puedeAplicarAnticipo = (cotizacion) => {
+    if (!cotizacion || !cotizacion.estado) return false;
+    return cotizacion.estado === 'enviada' || cotizacion.estado === 'vista' || cotizacion.estado === 'aprobada';
   };
 
   return (
@@ -135,41 +168,41 @@ const CotizacionesList = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              cotizaciones.map((cotizacion) => (
+              cotizaciones.filter(cotizacion => cotizacion && cotizacion._id).map((cotizacion) => (
                 <TableRow key={cotizacion._id} hover>
                   <TableCell>
                     <Typography variant="subtitle2">
-                      {cotizacion.numero}
+                      {cotizacion.numero || 'Sin número'}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {cotizacion.prospecto?.nombre}
+                      {cotizacion.prospecto?.nombre || 'Sin cliente'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {cotizacion.prospecto?.telefono}
+                      {cotizacion.prospecto?.telefono || ''}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="subtitle2">
-                      ${cotizacion.total?.toLocaleString()}
+                      ${(cotizacion.total || 0).toLocaleString()}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={cotizacion.estado}
-                      color={estadoColors[cotizacion.estado]}
+                      label={cotizacion.estado || 'Sin estado'}
+                      color={estadoColors[cotizacion.estado] || 'default'}
                       size="small"
                     />
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {new Date(cotizacion.fecha).toLocaleDateString()}
+                      {cotizacion.fecha ? new Date(cotizacion.fecha).toLocaleDateString() : 'Sin fecha'}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {new Date(cotizacion.validoHasta).toLocaleDateString()}
+                      {cotizacion.validoHasta ? new Date(cotizacion.validoHasta).toLocaleDateString() : 'Sin fecha'}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -220,7 +253,62 @@ const CotizacionesList = () => {
           <Send sx={{ mr: 1 }} />
           Enviar
         </MenuItem>
+        {selectedCotizacion && puedeAplicarAnticipo(selectedCotizacion) && (
+          <MenuItem
+            onClick={() => handleAplicarAnticipo(selectedCotizacion)}
+            sx={{ color: '#4caf50', fontWeight: 'bold' }}
+          >
+            <Payment sx={{ mr: 1 }} />
+            Aplicar Anticipo
+          </MenuItem>
+        )}
+        {selectedCotizacion?.estado === 'convertida' && (
+          <MenuItem
+            onClick={() => {
+              navigate(`/prospectos/${selectedCotizacion.prospecto?._id || selectedCotizacion.prospecto}`);
+              handleMenuClose();
+            }}
+            sx={{ color: '#2196f3' }}
+          >
+            <CheckCircle sx={{ mr: 1 }} />
+            Ver Pedido
+          </MenuItem>
+        )}
       </Menu>
+
+      {/* Modal para aplicar anticipo */}
+      {selectedCotizacion && (
+        <AplicarAnticipoModal
+          open={anticipoModalOpen}
+          onClose={() => {
+            setAnticipoModalOpen(false);
+            setSelectedCotizacion(null);
+          }}
+          cotizacion={selectedCotizacion}
+          onSuccess={handleAnticipoSuccess}
+        />
+      )}
+
+      {/* Notificaciones */}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={6000}
+        onClose={() => setSuccess('')}
+      >
+        <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
+          {success}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError('')}
+      >
+        <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

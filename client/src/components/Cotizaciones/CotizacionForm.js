@@ -982,7 +982,7 @@ const CotizacionForm = () => {
                   onClick={() => setShowCalcularYAgregar(true)}
                   color="warning"
                 >
-                  Calcular y Agregar
+                  Materiales Extras
                 </Button>
                 <Button
                   variant="outlined"
@@ -1650,7 +1650,7 @@ const CotizacionForm = () => {
         productos={watchedProductos}
         onAgregarProducto={(producto) => {
           append(producto);
-          setSuccess(`Producto "${producto.nombre}" calculado y agregado`);
+          setSuccess(`Material extra "${producto.nombre}" calculado y agregado`);
         }}
       />
     </Box>

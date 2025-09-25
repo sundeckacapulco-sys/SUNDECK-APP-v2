@@ -13,6 +13,7 @@ import CotizacionesList from './components/Cotizaciones/CotizacionesList';
 import CotizacionForm from './components/Cotizaciones/CotizacionForm';
 import CotizacionDirecta from './components/Cotizaciones/CotizacionDirecta';
 import CatalogoProductos from './components/Productos/CatalogoProductos';
+import PedidosList from './components/Pedidos/PedidosList';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 
 function App() {
@@ -51,9 +52,11 @@ function App() {
           {/* Productos */}
           <Route path="/productos" element={<CatalogoProductos />} />
           
+          {/* Pedidos y Fabricación */}
+          <Route path="/pedidos" element={<PedidosList />} />
+          <Route path="/fabricacion" element={<PedidosList />} />
+          
           {/* Rutas futuras */}
-          <Route path="/pedidos" element={<div>Módulo de Pedidos (En desarrollo)</div>} />
-          <Route path="/fabricacion" element={<div>Módulo de Fabricación (En desarrollo)</div>} />
           <Route path="/instalaciones" element={<div>Módulo de Instalaciones (En desarrollo)</div>} />
           <Route path="/postventa" element={<div>Módulo de Postventa (En desarrollo)</div>} />
           <Route path="/reportes" element={<div>Módulo de Reportes (En desarrollo)</div>} />
