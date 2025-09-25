@@ -30,11 +30,13 @@ import {
   GetApp,
   Delete,
   Payment,
-  CheckCircle
+  CheckCircle,
+  WhatsApp
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
 import AplicarAnticipoModal from '../Pedidos/AplicarAnticipoModal';
+import GeneradorWhatsApp from '../WhatsApp/GeneradorWhatsApp';
 
 const CotizacionesList = () => {
   const [cotizaciones, setCotizaciones] = useState([]);
@@ -44,6 +46,10 @@ const CotizacionesList = () => {
   const [anticipoModalOpen, setAnticipoModalOpen] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  
+  // Estados para WhatsApp
+  const [openWhatsApp, setOpenWhatsApp] = useState(false);
+  const [contextoWhatsApp, setContextoWhatsApp] = useState('');
 
   const navigate = useNavigate();
 
@@ -106,6 +112,32 @@ const CotizacionesList = () => {
   const puedeAplicarAnticipo = (cotizacion) => {
     if (!cotizacion || !cotizacion.estado) return false;
     return cotizacion.estado === 'enviada' || cotizacion.estado === 'vista' || cotizacion.estado === 'aprobada';
+  };
+
+  // Funciones para WhatsApp
+  const abrirGeneradorWhatsApp = (cotizacion, contexto) => {
+    setSelectedCotizacion(cotizacion);
+    setContextoWhatsApp(contexto);
+    setOpenWhatsApp(true);
+    handleMenuClose();
+  };
+
+  const obtenerContextoPorEstado = (estado) => {
+    const contextos = {
+      'borrador': 'cotizacion_enviada',
+      'enviada': 'cotizacion_enviada', 
+      'vista': 'seguimiento_cotizacion',
+      'aprobada': 'anticipo_confirmado',
+      'rechazada': 'seguimiento_cotizacion',
+      'vencida': 'cotizacion_vencimiento'
+    };
+    return contextos[estado] || 'cotizacion_enviada';
+  };
+
+  const handleMensajeWhatsAppGenerado = (mensaje, plantilla) => {
+    console.log('Mensaje WhatsApp generado:', mensaje);
+    console.log('Plantilla usada:', plantilla);
+    setOpenWhatsApp(false);
   };
 
   return (
@@ -253,6 +285,13 @@ const CotizacionesList = () => {
           <Send sx={{ mr: 1 }} />
           Enviar
         </MenuItem>
+        <MenuItem
+          onClick={() => abrirGeneradorWhatsApp(selectedCotizacion, obtenerContextoPorEstado(selectedCotizacion?.estado))}
+          sx={{ color: '#25D366', fontWeight: 'bold' }}
+        >
+          <WhatsApp sx={{ mr: 1 }} />
+          💬 Generar WhatsApp
+        </MenuItem>
         {selectedCotizacion && puedeAplicarAnticipo(selectedCotizacion) && (
           <MenuItem
             onClick={() => handleAplicarAnticipo(selectedCotizacion)}
@@ -309,6 +348,17 @@ const CotizacionesList = () => {
           {error}
         </Alert>
       </Snackbar>
+
+      {/* Modal Generador WhatsApp */}
+      {selectedCotizacion && (
+        <GeneradorWhatsApp
+          open={openWhatsApp}
+          onClose={() => setOpenWhatsApp(false)}
+          contexto={contextoWhatsApp}
+          datosCliente={selectedCotizacion.prospecto}
+          onMensajeGenerado={handleMensajeWhatsAppGenerado}
+        />
+      )}
     </Box>
   );
 };

@@ -112,6 +112,7 @@ app.use('/api/recordatorios', require('./routes/recordatorios'));
 app.use('/api/productos', require('./routes/productos'));
 app.use('/api/reportes', require('./routes/reportes'));
 app.use('/api/plantillas', require('./routes/plantillas'));
+app.use('/api/plantillas-whatsapp', require('./routes/plantillasWhatsApp'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/etapas', require('./routes/etapas'));
 app.use('/api/storage', require('./routes/storage'));

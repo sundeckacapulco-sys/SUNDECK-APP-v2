@@ -38,11 +38,13 @@ import {
   Schedule,
   Warning,
   Home,
-  Receipt
+  Receipt,
+  WhatsApp
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
 import GestionFabricacion from './GestionFabricacion';
+import GeneradorWhatsApp from '../WhatsApp/GeneradorWhatsApp';
 
 const PedidosList = () => {
   const [pedidos, setPedidos] = useState([]);
@@ -53,7 +55,11 @@ const PedidosList = () => {
   const [pagoSaldoModalOpen, setPagoSaldoModalOpen] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('todos');
+  
+  // Estados para WhatsApp
+  const [openWhatsApp, setOpenWhatsApp] = useState(false);
+  const [contextoWhatsApp, setContextoWhatsApp] = useState('');
 
   // Estados para pago de saldo
   const [pagoSaldoData, setPagoSaldoData] = useState({
@@ -178,6 +184,31 @@ const PedidosList = () => {
     { value: 'cheque', label: '📄 Cheque' },
     { value: 'deposito', label: '🏧 Depósito' }
   ];
+
+  // Funciones para WhatsApp
+  const abrirGeneradorWhatsApp = (pedido, contexto) => {
+    setSelectedPedido(pedido);
+    setContextoWhatsApp(contexto);
+    setOpenWhatsApp(true);
+    handleMenuClose();
+  };
+
+  const obtenerContextoPorEstado = (estado) => {
+    const contextos = {
+      'confirmado': 'anticipo_confirmado',
+      'en_fabricacion': 'fabricacion_iniciada',
+      'fabricado': 'producto_terminado',
+      'instalado': 'instalacion_completada',
+      'entregado': 'post_instalacion'
+    };
+    return contextos[estado] || 'fabricacion_iniciada';
+  };
+
+  const handleMensajeWhatsAppGenerado = (mensaje, plantilla) => {
+    console.log('Mensaje WhatsApp generado:', mensaje);
+    console.log('Plantilla usada:', plantilla);
+    setOpenWhatsApp(false);
+  };
 
   return (
     <Box>
@@ -413,6 +444,14 @@ const PedidosList = () => {
           Gestión Fabricación
         </MenuItem>
         
+        <MenuItem
+          onClick={() => abrirGeneradorWhatsApp(selectedPedido, obtenerContextoPorEstado(selectedPedido?.estado))}
+          sx={{ color: '#25D366', fontWeight: 'bold' }}
+        >
+          <WhatsApp sx={{ mr: 1 }} />
+          💬 Generar WhatsApp
+        </MenuItem>
+        
         {!selectedPedido?.saldo?.pagado && (
           <MenuItem
             onClick={() => handlePagarSaldo(selectedPedido)}
@@ -547,6 +586,17 @@ const PedidosList = () => {
           {error}
         </Alert>
       </Snackbar>
+
+      {/* Modal Generador WhatsApp */}
+      {selectedPedido && (
+        <GeneradorWhatsApp
+          open={openWhatsApp}
+          onClose={() => setOpenWhatsApp(false)}
+          contexto={contextoWhatsApp}
+          datosCliente={selectedPedido.prospecto}
+          onMensajeGenerado={handleMensajeWhatsAppGenerado}
+        />
+      )}
     </Box>
   );
 };

@@ -36,6 +36,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
 import AgregarEtapaModal from './AgregarEtapaModal';
+import GeneradorWhatsApp from '../WhatsApp/GeneradorWhatsApp';
 import { downloadFileFromBlob } from '../../utils/downloadUtils';
 
 const etapaLabels = {
@@ -132,6 +133,10 @@ const ProspectoDetalle = () => {
   const [registrandoVisita, setRegistrandoVisita] = useState(false);
   const [openLevantamientoModal, setOpenLevantamientoModal] = useState(false);
   const [levantamientoSeleccionado, setLevantamientoSeleccionado] = useState(null);
+  
+  // Estados para WhatsApp
+  const [openWhatsApp, setOpenWhatsApp] = useState(false);
+  const [contextoWhatsApp, setContextoWhatsApp] = useState('');
 
   // Comentarios y etapas (timeline)
   const [comentarios, setComentarios] = useState([]);
@@ -461,9 +466,36 @@ const ProspectoDetalle = () => {
   };
 
   // Función para crear cotización con datos del levantamiento
-  const handleCrearCotizacion = () => {
+  const handleGenerarCotizacion = () => {
     // Navegar a crear nueva cotización pasando el ID del prospecto
     navigate(`/cotizaciones/nueva?prospecto=${prospecto._id}`);
+  };
+
+  // Funciones para WhatsApp
+  const abrirGeneradorWhatsApp = (contexto) => {
+    setContextoWhatsApp(contexto);
+    setOpenWhatsApp(true);
+  };
+
+  const obtenerContextoPorEtapa = (etapa) => {
+    const contextos = {
+      'nuevo': 'recontacto',
+      'contactado': 'seguimiento_cotizacion',
+      'cita_agendada': 'seguimiento_cotizacion',
+      'cotizacion': 'cotizacion_enviada',
+      'pedido': 'anticipo_confirmado',
+      'fabricacion': 'fabricacion_iniciada',
+      'instalacion': 'instalacion_programada',
+      'entregado': 'post_instalacion',
+      'postventa': 'fidelizacion'
+    };
+    return contextos[etapa] || 'seguimiento_cotizacion';
+  };
+
+  const handleMensajeWhatsAppGenerado = (mensaje, plantilla) => {
+    console.log('Mensaje WhatsApp generado:', mensaje);
+    console.log('Plantilla usada:', plantilla);
+    setOpenWhatsApp(false);
   };
 
   const handleDescargarExcelEtapa = async (etapa) => {
@@ -558,10 +590,18 @@ const ProspectoDetalle = () => {
           <Button
             variant="contained"
             startIcon={<WhatsApp />}
-            onClick={abrirWhatsApp}
-            sx={{ backgroundColor: '#22c55e', '&:hover': { backgroundColor: '#16a34a' } }}
+            onClick={() => abrirGeneradorWhatsApp(obtenerContextoPorEtapa(prospecto.etapa))}
+            sx={{ backgroundColor: '#25D366', '&:hover': { backgroundColor: '#128C7E' } }}
           >
-            WhatsApp
+            💬 Generar WhatsApp
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<WhatsApp />}
+            onClick={abrirWhatsApp}
+            sx={{ borderColor: '#25D366', color: '#25D366', '&:hover': { backgroundColor: '#f0f7ff' } }}
+          >
+            📱 WhatsApp Directo
           </Button>
           <Button
             variant="contained"
@@ -920,7 +960,7 @@ const ProspectoDetalle = () => {
                 )}
                 <Button
                   variant="contained"
-                  onClick={handleCrearCotizacion}
+                  onClick={handleGenerarCotizacion}
                   sx={{ backgroundColor: '#16a34a', color: 'white', '&:hover': { backgroundColor: '#15803d' } }}
                   disabled={!prospecto}
                 >
@@ -1181,11 +1221,19 @@ const ProspectoDetalle = () => {
                 </Button>
                 <Button
                   variant="contained"
-                  color="success"
+                  startIcon={<WhatsApp />}
+                  onClick={() => abrirGeneradorWhatsApp(obtenerContextoPorEtapa(prospecto.etapa))}
+                  sx={{ backgroundColor: '#25D366', '&:hover': { backgroundColor: '#128C7E' } }}
+                >
+                  💬 Generar WhatsApp
+                </Button>
+                <Button
+                  variant="outlined"
                   startIcon={<WhatsApp />}
                   onClick={abrirWhatsApp}
+                  sx={{ borderColor: '#25D366', color: '#25D366' }}
                 >
-                  Abrir en WhatsApp
+                  📱 WhatsApp Directo
                 </Button>
                 <Button variant="outlined" startIcon={<Comment />} onClick={() => setOpenComentario(true)}>
                   Agregar comentario
@@ -1579,6 +1627,15 @@ const ProspectoDetalle = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal Generador WhatsApp */}
+      <GeneradorWhatsApp
+        open={openWhatsApp}
+        onClose={() => setOpenWhatsApp(false)}
+        contexto={contextoWhatsApp}
+        datosCliente={prospecto}
+        onMensajeGenerado={handleMensajeWhatsAppGenerado}
+      />
     </Box>
   );
 };
