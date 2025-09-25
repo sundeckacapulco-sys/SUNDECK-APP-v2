@@ -474,7 +474,7 @@ const CatalogoProductos = () => {
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                       {producto.nombre}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'normal', overflowWrap: 'break-word' }}>
                       {producto.descripcion}
                     </Typography>
                   </TableCell>
