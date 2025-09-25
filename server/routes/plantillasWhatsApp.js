@@ -253,14 +253,21 @@ router.get('/mejores', auth, verificarPermiso('plantillas', 'leer'), async (req,
   try {
     const plantillas = await PlantillaWhatsApp.find({ activa: true })
       .sort({ 
-        efectividad: -1, 
-        rating_promedio: -1, 
-        'metricas.veces_usada': -1 
+        createdAt: -1 // Por ahora ordenamos por fecha de creación
       })
       .limit(10)
-      .populate('creada_por', 'nombre apellido');
+      .populate('creada_por', 'nombre apellido')
+      .lean(); // Usar lean() para mejor performance
     
-    res.json({ plantillas });
+    // Agregar valores por defecto para métricas
+    const plantillasConMetricas = plantillas.map(plantilla => ({
+      ...plantilla,
+      efectividad: plantilla.efectividad || 0,
+      rating_promedio: plantilla.rating_promedio || 0,
+      veces_usada: plantilla.metricas?.veces_usada || 0
+    }));
+    
+    res.json({ plantillas: plantillasConMetricas });
   } catch (error) {
     console.error('Error obteniendo mejores plantillas:', error);
     res.status(500).json({ message: 'Error interno del servidor' });

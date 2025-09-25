@@ -15,6 +15,7 @@ import CotizacionDirecta from './components/Cotizaciones/CotizacionDirecta';
 import CatalogoProductos from './components/Productos/CatalogoProductos';
 import PedidosList from './components/Pedidos/PedidosList';
 import PlantillasWhatsAppAdmin from './components/Admin/PlantillasWhatsAppAdmin';
+import PapeleraProspectos from './components/Prospectos/PapeleraProspectos';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
           {/* Prospectos */}
           <Route path="/prospectos" element={<ProspectosList />} />
           <Route path="/prospectos/nuevo" element={<ProspectoForm />} />
+          <Route path="/prospectos/papelera" element={<PapeleraProspectos />} />
           <Route path="/prospectos/:id" element={<ProspectoDetalle />} />
           <Route path="/prospectos/:id/editar" element={<ProspectoForm />} />
           

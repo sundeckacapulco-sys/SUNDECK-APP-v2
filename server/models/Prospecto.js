@@ -140,6 +140,32 @@ const prospectoSchema = new mongoose.Schema({
   activo: {
     type: Boolean,
     default: true
+  },
+  archivado: {
+    type: Boolean,
+    default: false
+  },
+  fechaArchivado: {
+    type: Date,
+    default: null
+  },
+  motivoArchivado: {
+    type: String,
+    enum: ['perdido', 'no_interesado', 'sin_presupuesto', 'competencia', 'no_contacta', 'otro'],
+    required: false
+  },
+  enPapelera: {
+    type: Boolean,
+    default: false
+  },
+  fechaEliminacion: {
+    type: Date,
+    default: null
+  },
+  eliminadoPor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Usuario',
+    default: null
   }
 }, {
   timestamps: true
@@ -151,6 +177,8 @@ prospectoSchema.index({ email: 1 });
 prospectoSchema.index({ etapa: 1 });
 prospectoSchema.index({ vendedorAsignado: 1 });
 prospectoSchema.index({ fechaProximoSeguimiento: 1 });
+prospectoSchema.index({ archivado: 1 });
+prospectoSchema.index({ enPapelera: 1 });
 prospectoSchema.index({ createdAt: -1 });
 
 // Método para calcular score del prospecto

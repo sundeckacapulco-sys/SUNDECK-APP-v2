@@ -5,7 +5,7 @@ import {
   DialogTitle, DialogContent, DialogActions, TextField, FormControl,
   InputLabel, Select, MenuItem, Grid, Alert, LinearProgress, Tabs, Tab,
   Switch, FormControlLabel, Tooltip, Menu, ListItemIcon, ListItemText,
-  Divider, Paper, Avatar
+  Divider, Paper, Avatar, Popper, ClickAwayListener, MenuList
 } from '@mui/material';
 import {
   Add, Edit, Delete, MoreVert, WhatsApp, Analytics, TrendingUp,
@@ -36,19 +36,28 @@ const PlantillasWhatsAppAdmin = () => {
   });
   
   // Estados para menú de acciones
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [selectedPlantilla, setSelectedPlantilla] = useState(null);
   
   // Función para manejar el menú
   const handleMenuClick = (event, plantilla) => {
     event.preventDefault();
     event.stopPropagation();
+    
+    const buttonElement = event.currentTarget;
+    const rect = buttonElement.getBoundingClientRect();
+    
     setSelectedPlantilla(plantilla);
-    setAnchorEl(event.currentTarget);
+    setMenuPosition({
+      top: rect.bottom + window.scrollY,
+      left: rect.left + window.scrollX
+    });
+    setMenuOpen(true);
   };
   
   const handleMenuClose = () => {
-    setAnchorEl(null);
+    setMenuOpen(false);
     setSelectedPlantilla(null);
   };
   
@@ -83,13 +92,22 @@ const PlantillasWhatsAppAdmin = () => {
   const cargarDatos = async () => {
     try {
       setLoading(true);
-      await Promise.all([
-        cargarPlantillas(),
-        cargarEstadisticas(),
-        cargarMejoresPlantillas()
-      ]);
+      await cargarPlantillas();
+      
+      // Cargar estadísticas y mejores plantillas solo si estamos en el dashboard
+      if (tabValue === 0) {
+        try {
+          await Promise.all([
+            cargarEstadisticas(),
+            cargarMejoresPlantillas()
+          ]);
+        } catch (statsError) {
+          console.warn('Error cargando estadísticas:', statsError);
+          // No mostrar error al usuario, las estadísticas son opcionales
+        }
+      }
     } catch (error) {
-      setError('Error cargando datos');
+      setError('Error cargando plantillas');
     } finally {
       setLoading(false);
     }
@@ -104,13 +122,30 @@ const PlantillasWhatsAppAdmin = () => {
   };
 
   const cargarEstadisticas = async () => {
-    const response = await axiosConfig.get('/plantillas-whatsapp/estadisticas/resumen');
-    setEstadisticas(response.data);
+    try {
+      const response = await axiosConfig.get('/plantillas-whatsapp/estadisticas/resumen');
+      setEstadisticas(response.data);
+    } catch (error) {
+      console.error('Error cargando estadísticas:', error);
+      // Establecer estadísticas por defecto
+      setEstadisticas({
+        total_plantillas: 0,
+        plantillas_activas: 0,
+        efectividad_promedio: 0,
+        rating_promedio: 0,
+        por_categoria: []
+      });
+    }
   };
 
   const cargarMejoresPlantillas = async () => {
-    const response = await axiosConfig.get('/plantillas-whatsapp/mejores');
-    setMejoresPlantillas(response.data.plantillas || []);
+    try {
+      const response = await axiosConfig.get('/plantillas-whatsapp/mejores');
+      setMejoresPlantillas(response.data.plantillas || []);
+    } catch (error) {
+      console.error('Error cargando mejores plantillas:', error);
+      setMejoresPlantillas([]);
+    }
   };
 
   const cargarPlantillasIniciales = async () => {
@@ -167,44 +202,45 @@ const PlantillasWhatsAppAdmin = () => {
 
       {/* TAB 1: DASHBOARD */}
       <TabPanel value={tabValue} index={0}>
-        {estadisticas && (
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} md={3}>
-              <EstadisticasCard
-                titulo="Total Plantillas"
-                valor={estadisticas.total_plantillas}
-                color="#2196f3"
-                icono={<WhatsApp />}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <EstadisticasCard
-                titulo="En Uso Activo"
-                valor={estadisticas.plantillas_activas}
-                subtitulo={`${((estadisticas.plantillas_activas / estadisticas.total_plantillas) * 100).toFixed(1)}% del total`}
-                color="#4caf50"
-                icono={<TrendingUp />}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <EstadisticasCard
-                titulo="Efectividad Promedio"
-                valor={`${estadisticas.efectividad_promedio}%`}
-                color="#ff9800"
-                icono={<BarChart />}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <EstadisticasCard
-                titulo="Rating Promedio"
-                valor={`⭐ ${estadisticas.rating_promedio}`}
-                subtitulo="de 5 estrellas"
-                color="#9c27b0"
-                icono={<Star />}
-              />
-            </Grid>
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} md={3}>
+            <EstadisticasCard
+              titulo="Total Plantillas"
+              valor={estadisticas?.total_plantillas || 0}
+              color="#2196f3"
+              icono={<WhatsApp />}
+            />
           </Grid>
-        )}
+          <Grid item xs={12} md={3}>
+            <EstadisticasCard
+              titulo="En Uso Activo"
+              valor={estadisticas?.plantillas_activas || 0}
+              subtitulo={estadisticas?.total_plantillas > 0 ? 
+                `${((estadisticas.plantillas_activas / estadisticas.total_plantillas) * 100).toFixed(1)}% del total` : 
+                '0% del total'
+              }
+              color="#4caf50"
+              icono={<TrendingUp />}
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <EstadisticasCard
+              titulo="Efectividad Promedio"
+              valor={`${estadisticas?.efectividad_promedio || 0}%`}
+              color="#ff9800"
+              icono={<BarChart />}
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <EstadisticasCard
+              titulo="Rating Promedio"
+              valor={`⭐ ${estadisticas?.rating_promedio || 0}`}
+              subtitulo="de 5 estrellas"
+              color="#9c27b0"
+              icono={<Star />}
+            />
+          </Grid>
+        </Grid>
 
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
@@ -414,7 +450,7 @@ const PlantillasWhatsAppAdmin = () => {
                           onClick={(e) => handleMenuClick(e, plantilla)}
                           size="small"
                           aria-label="Acciones"
-                          aria-controls={anchorEl ? 'plantilla-menu' : undefined}
+                          aria-controls={menuOpen ? 'plantilla-menu' : undefined}
                           aria-haspopup="true"
                         >
                           <MoreVert />
@@ -439,69 +475,58 @@ const PlantillasWhatsAppAdmin = () => {
         </Alert>
       </TabPanel>
 
-      {/* Menú de acciones */}
-      <Menu
-        id="plantilla-menu"
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        MenuListProps={{
-          'aria-labelledby': 'plantilla-menu',
-        }}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'left',
-        }}
-        PaperProps={{
-          elevation: 3,
-          sx: {
-            minWidth: 150,
-            '& .MuiMenuItem-root': {
-              px: 2,
-              py: 1,
-            },
-          },
-        }}
-      >
-        <MenuItem onClick={() => { 
-          setModalMode('ver'); 
-          setPlantillaSeleccionada(selectedPlantilla); 
-          setOpenModal(true); 
-          handleMenuClose(); 
-        }}>
-          <ListItemIcon><Visibility /></ListItemIcon>
-          <ListItemText>Ver Detalles</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => { 
-          setModalMode('editar'); 
-          setPlantillaSeleccionada(selectedPlantilla); 
-          setFormData(selectedPlantilla); 
-          setOpenModal(true); 
-          handleMenuClose(); 
-        }}>
-          <ListItemIcon><Edit /></ListItemIcon>
-          <ListItemText>Editar</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => { 
-          duplicarPlantilla(selectedPlantilla._id); 
-          handleMenuClose(); 
-        }}>
-          <ListItemIcon><ContentCopy /></ListItemIcon>
-          <ListItemText>Duplicar</ListItemText>
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={() => { 
-          eliminarPlantilla(selectedPlantilla._id); 
-          handleMenuClose(); 
-        }} sx={{ color: 'error.main' }}>
-          <ListItemIcon><Delete color="error" /></ListItemIcon>
-          <ListItemText>Eliminar</ListItemText>
-        </MenuItem>
-      </Menu>
+      {/* Menú de acciones con posición absoluta */}
+      {menuOpen && (
+        <ClickAwayListener onClickAway={handleMenuClose}>
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              position: 'fixed',
+              top: menuPosition.top,
+              left: menuPosition.left,
+              minWidth: 150,
+              zIndex: 1300
+            }}
+          >
+            <MenuList>
+              <MenuItem onClick={() => { 
+                setModalMode('ver'); 
+                setPlantillaSeleccionada(selectedPlantilla); 
+                setOpenModal(true); 
+                handleMenuClose(); 
+              }}>
+                <ListItemIcon><Visibility /></ListItemIcon>
+                <ListItemText>Ver Detalles</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { 
+                setModalMode('editar'); 
+                setPlantillaSeleccionada(selectedPlantilla); 
+                setFormData(selectedPlantilla); 
+                setOpenModal(true); 
+                handleMenuClose(); 
+              }}>
+                <ListItemIcon><Edit /></ListItemIcon>
+                <ListItemText>Editar</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => { 
+                duplicarPlantilla(selectedPlantilla._id); 
+                handleMenuClose(); 
+              }}>
+                <ListItemIcon><ContentCopy /></ListItemIcon>
+                <ListItemText>Duplicar</ListItemText>
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={() => { 
+                eliminarPlantilla(selectedPlantilla._id); 
+                handleMenuClose(); 
+              }} sx={{ color: 'error.main' }}>
+                <ListItemIcon><Delete color="error" /></ListItemIcon>
+                <ListItemText>Eliminar</ListItemText>
+              </MenuItem>
+            </MenuList>
+          </Paper>
+        </ClickAwayListener>
+      )}
 
       {/* Modal de plantilla */}
       <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth>

@@ -16,11 +16,22 @@ router.get('/', auth, verificarPermiso('prospectos', 'leer'), async (req, res) =
       prioridad,
       busqueda,
       fechaDesde,
-      fechaHasta
+      fechaHasta,
+      archivado = 'false'
     } = req.query;
 
     // Construir filtros
-    const filtros = { activo: true };
+    const filtros = { 
+      activo: true,
+      enPapelera: { $ne: true } // Excluir los que están en papelera
+    };
+    
+    // Filtro de archivados
+    if (archivado === 'true') {
+      filtros.archivado = true;
+    } else {
+      filtros.archivado = { $ne: true }; // No archivados (incluyendo null/undefined)
+    }
     
     if (etapa) filtros.etapa = etapa;
     if (vendedor) filtros.vendedorAsignado = vendedor;
@@ -260,7 +271,8 @@ router.put('/:id', auth, verificarPermiso('prospectos', 'actualizar'), async (re
       'nombre', 'telefono', 'email', 'direccion', 'producto', 'tipoProducto',
       'descripcionNecesidad', 'presupuestoEstimado', 'fechaCita', 'horaCita',
       'estadoCita', 'etapa', 'prioridad', 'fechaProximoSeguimiento', 'calificacion',
-      'comoSeEntero', 'competencia', 'motivoCompra'
+      'comoSeEntero', 'competencia', 'motivoCompra', 'archivado', 'fechaArchivado', 
+      'motivoArchivado', 'enPapelera', 'fechaEliminacion', 'eliminadoPor'
     ];
 
     camposPermitidos.forEach(campo => {
@@ -268,6 +280,12 @@ router.put('/:id', auth, verificarPermiso('prospectos', 'actualizar'), async (re
         prospecto[campo] = req.body[campo];
       }
     });
+
+    // Limpiar campos relacionados cuando se desarchivar
+    if (req.body.archivado === false) {
+      prospecto.fechaArchivado = null;
+      prospecto.motivoArchivado = undefined; // Usar undefined para eliminar el campo
+    }
 
     // Actualizar fecha de último contacto si cambió la etapa
     if (req.body.etapa && req.body.etapa !== prospecto.etapa) {
@@ -411,20 +429,157 @@ router.get('/seguimiento/pendientes', auth, async (req, res) => {
   }
 });
 
-// Eliminar prospecto (soft delete)
-router.delete('/:id', auth, verificarPermiso('prospectos', 'eliminar'), async (req, res) => {
+// Mover a papelera
+router.put('/:id/papelera', auth, verificarPermiso('prospectos', 'actualizar'), async (req, res) => {
+  try {
+    console.log('Intentando mover a papelera:', req.params.id); // Debug
+    console.log('Usuario:', req.usuario.nombre, req.usuario.rol); // Debug
+    
+    const prospecto = await Prospecto.findById(req.params.id);
+    if (!prospecto) {
+      console.log('Prospecto no encontrado'); // Debug
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+
+    console.log('Prospecto encontrado:', prospecto.nombre); // Debug
+    
+    prospecto.enPapelera = true;
+    prospecto.fechaEliminacion = new Date();
+    prospecto.eliminadoPor = req.usuario._id;
+    await prospecto.save();
+
+    console.log('Prospecto movido a papelera exitosamente'); // Debug
+    res.json({ message: 'Prospecto movido a papelera exitosamente' });
+  } catch (error) {
+    console.error('Error moviendo a papelera:', error);
+    res.status(500).json({ message: 'Error interno del servidor', error: error.message });
+  }
+});
+
+// Restaurar de papelera
+router.put('/:id/restaurar', auth, verificarPermiso('prospectos', 'actualizar'), async (req, res) => {
   try {
     const prospecto = await Prospecto.findById(req.params.id);
     if (!prospecto) {
       return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
 
-    prospecto.activo = false;
+    prospecto.enPapelera = false;
+    prospecto.fechaEliminacion = null;
+    prospecto.eliminadoPor = null;
     await prospecto.save();
 
-    res.json({ message: 'Prospecto eliminado exitosamente' });
+    res.json({ message: 'Prospecto restaurado exitosamente' });
   } catch (error) {
-    console.error('Error eliminando prospecto:', error);
+    console.error('Error restaurando prospecto:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Obtener prospectos en papelera
+router.get('/papelera/listar', auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+
+    const filtros = { 
+      activo: true,
+      enPapelera: true 
+    };
+
+    // Si no es admin, solo ver sus prospectos eliminados
+    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente') {
+      filtros.eliminadoPor = req.usuario._id;
+    }
+
+    const options = {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      populate: [
+        { path: 'vendedorAsignado', select: 'nombre apellido' },
+        { path: 'eliminadoPor', select: 'nombre apellido' }
+      ],
+      sort: { fechaEliminacion: -1 }
+    };
+
+    const result = await Prospecto.paginate(filtros, options);
+    res.json(result);
+  } catch (error) {
+    console.error('Error obteniendo papelera:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Eliminar permanentemente
+router.delete('/:id/permanente', auth, verificarPermiso('prospectos', 'actualizar'), async (req, res) => {
+  try {
+    const prospecto = await Prospecto.findById(req.params.id);
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+
+    // Verificar permisos de acceso al prospecto
+    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' && 
+        prospecto.vendedorAsignado?.toString() !== req.usuario._id.toString()) {
+      return res.status(403).json({ message: 'No tienes acceso a este prospecto' });
+    }
+
+    // Solo permitir eliminar si está en papelera
+    if (!prospecto.enPapelera) {
+      return res.status(400).json({ message: 'El prospecto debe estar en papelera para eliminarlo permanentemente' });
+    }
+
+    await Prospecto.findByIdAndDelete(req.params.id);
+
+    res.json({ message: 'Prospecto eliminado permanentemente' });
+  } catch (error) {
+    console.error('Error eliminando permanentemente:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Eliminar directamente (sin papelera) - Solo para admins
+router.delete('/:id/forzar', auth, verificarPermiso('prospectos', 'actualizar'), async (req, res) => {
+  try {
+    const prospecto = await Prospecto.findById(req.params.id);
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+
+    // Solo admins pueden forzar eliminación
+    if (req.usuario.rol !== 'admin') {
+      return res.status(403).json({ message: 'Solo los administradores pueden eliminar directamente' });
+    }
+
+    await Prospecto.findByIdAndDelete(req.params.id);
+
+    res.json({ message: 'Prospecto eliminado permanentemente (forzado)' });
+  } catch (error) {
+    console.error('Error eliminando forzadamente:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Vaciar papelera (eliminar todos los prospectos en papelera)
+router.delete('/papelera/vaciar', auth, verificarPermiso('prospectos', 'actualizar'), async (req, res) => {
+  try {
+    const filtros = { 
+      activo: true,
+      enPapelera: true 
+    };
+
+    // Si no es admin, solo eliminar sus prospectos
+    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente') {
+      filtros.eliminadoPor = req.usuario._id;
+    }
+
+    const result = await Prospecto.deleteMany(filtros);
+
+    res.json({ 
+      message: `${result.deletedCount} prospectos eliminados permanentemente`,
+      eliminados: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Error vaciando papelera:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });

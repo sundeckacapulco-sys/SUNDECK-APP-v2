@@ -22,7 +22,19 @@ import {
   InputLabel,
   Select,
   Pagination,
-  Link
+  Link,
+  Switch,
+  FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  Snackbar,
+  Divider,
+  ListItemIcon,
+  ListItemText,
+  ClickAwayListener
 } from '@mui/material';
 import {
   Add,
@@ -33,7 +45,11 @@ import {
   Search,
   FilterList,
   Phone,
-  Email
+  Email,
+  Archive,
+  Unarchive,
+  Block,
+  DeleteForever
 } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
@@ -45,7 +61,8 @@ const ProspectosList = () => {
     busqueda: '',
     etapa: '',
     prioridad: '',
-    fuente: ''
+    fuente: '',
+    archivado: false // Nuevo filtro para mostrar archivados
   });
   const [paginacion, setPaginacion] = useState({
     page: 1,
@@ -53,8 +70,18 @@ const ProspectosList = () => {
     total: 0,
     totalPages: 0
   });
-  const [anchorEl, setAnchorEl] = useState(null);
+  
+  // Estados para menú de acciones
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [selectedProspecto, setSelectedProspecto] = useState(null);
+  
+  // Estados para modales y alertas
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openArchiveDialog, setOpenArchiveDialog] = useState(false);
+  const [actionType, setActionType] = useState(''); // 'archive', 'unarchive', 'delete'
+  const [prospectoParaEliminar, setProspectoParaEliminar] = useState(null); // Guardar prospecto para eliminar
+  const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
 
   const navigate = useNavigate();
 
@@ -122,13 +149,130 @@ const ProspectosList = () => {
   };
 
   const handleMenuClick = (event, prospecto) => {
-    setAnchorEl(event.currentTarget);
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const buttonElement = event.currentTarget;
+    const rect = buttonElement.getBoundingClientRect();
+    
     setSelectedProspecto(prospecto);
+    setMenuPosition({
+      top: rect.bottom + window.scrollY,
+      left: rect.left + window.scrollX
+    });
+    setMenuOpen(true);
   };
 
   const handleMenuClose = () => {
-    setAnchorEl(null);
+    setMenuOpen(false);
     setSelectedProspecto(null);
+  };
+
+  // Funciones para acciones de administración
+  const handleArchivar = async () => {
+    try {
+      // Solo enviar los campos que necesitamos actualizar
+      const updateData = {
+        archivado: true,
+        fechaArchivado: new Date().toISOString(),
+        motivoArchivado: 'perdido'
+      };
+      
+      await axiosConfig.put(`/prospectos/${selectedProspecto._id}`, updateData);
+      
+      setAlert({
+        open: true,
+        message: '✅ Prospecto archivado exitosamente',
+        severity: 'success'
+      });
+      
+      fetchProspectos();
+      handleMenuClose();
+    } catch (error) {
+      console.error('Error archivando:', error);
+      setAlert({
+        open: true,
+        message: '❌ Error al archivar prospecto',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleDesarchivar = async () => {
+    try {
+      const updateData = {
+        archivado: false
+      };
+      // No enviar fechaArchivado ni motivoArchivado como null
+      
+      await axiosConfig.put(`/prospectos/${selectedProspecto._id}`, updateData);
+      
+      setAlert({
+        open: true,
+        message: '✅ Prospecto desarchivado exitosamente',
+        severity: 'success'
+      });
+      
+      fetchProspectos();
+      handleMenuClose();
+    } catch (error) {
+      console.error('Error desarchivando:', error);
+      setAlert({
+        open: true,
+        message: '❌ Error al desarchivar prospecto',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleMoverAPapelera = async () => {
+    try {
+      if (!prospectoParaEliminar) {
+        setAlert({
+          open: true,
+          message: '❌ No hay prospecto seleccionado',
+          severity: 'error'
+        });
+        return;
+      }
+
+      if (actionType === 'forzar') {
+        // Eliminar permanentemente
+        console.log('Eliminando permanentemente:', prospectoParaEliminar._id);
+        const response = await axiosConfig.delete(`/prospectos/${prospectoParaEliminar._id}/forzar`);
+        console.log('Respuesta:', response.data);
+        
+        setAlert({
+          open: true,
+          message: '🗑️ Prospecto eliminado permanentemente',
+          severity: 'success'
+        });
+      } else {
+        // Mover a papelera (comportamiento normal)
+        console.log('Moviendo a papelera:', prospectoParaEliminar._id);
+        const response = await axiosConfig.put(`/prospectos/${prospectoParaEliminar._id}/papelera`);
+        console.log('Respuesta:', response.data);
+        
+        setAlert({
+          open: true,
+          message: '🗑️ Prospecto movido a papelera exitosamente',
+          severity: 'success'
+        });
+      }
+      
+      fetchProspectos();
+      setOpenDeleteDialog(false);
+      setProspectoParaEliminar(null);
+      setActionType('');
+    } catch (error) {
+      console.error('Error completo:', error);
+      console.error('Error response:', error.response?.data);
+      setAlert({
+        open: true,
+        message: `❌ Error: ${error.response?.data?.message || error.message}`,
+        severity: 'error'
+      });
+    }
   };
 
   const getEtapaInfo = (etapa) => {
@@ -145,13 +289,23 @@ const ProspectosList = () => {
         <Typography variant="h4" component="h1">
           Prospectos
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => navigate('/prospectos/nuevo')}
-        >
-          Nuevo Prospecto
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Delete />}
+            onClick={() => navigate('/prospectos/papelera')}
+            color="error"
+          >
+            Papelera
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => navigate('/prospectos/nuevo')}
+          >
+            Nuevo Prospecto
+          </Button>
+        </Box>
       </Box>
 
       {/* Filtros */}
@@ -221,13 +375,26 @@ const ProspectosList = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} md={2}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={filtros.archivado}
+                    onChange={(e) => handleFiltroChange('archivado', e.target.checked)}
+                    color="warning"
+                  />
+                }
+                label="Ver Archivados"
+              />
+            </Grid>
+            <Grid item xs={12} md={1}>
               <Button
                 variant="outlined"
                 startIcon={<FilterList />}
-                onClick={() => setFiltros({ busqueda: '', etapa: '', prioridad: '', fuente: '' })}
+                onClick={() => setFiltros({ busqueda: '', etapa: '', prioridad: '', fuente: '', archivado: false })}
+                size="small"
               >
-                Limpiar Filtros
+                Limpiar
               </Button>
             </Grid>
           </Grid>
@@ -271,18 +438,33 @@ const ProspectosList = () => {
                     key={prospecto._id}
                     hover
                     onClick={() => navigate(`/prospectos/${prospecto._id}`)}
-                    sx={{ cursor: 'pointer' }}
+                    sx={{ 
+                      cursor: 'pointer',
+                      backgroundColor: prospecto.archivado ? '#f5f5f5' : 'inherit',
+                      opacity: prospecto.archivado ? 0.7 : 1
+                    }}
                   >
                     <TableCell>
                       <Box>
-                        <Link
-                          component={RouterLink}
-                          to={`/prospectos/${prospecto._id}`}
-                          underline="hover"
-                          sx={{ fontWeight: 600, display: 'inline-flex' }}
-                        >
-                          {prospecto.nombre}
-                        </Link>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Link
+                            component={RouterLink}
+                            to={`/prospectos/${prospecto._id}`}
+                            underline="hover"
+                            sx={{ fontWeight: 600 }}
+                          >
+                            {prospecto.nombre}
+                          </Link>
+                          {prospecto.archivado && (
+                            <Chip 
+                              label="Archivado" 
+                              size="small" 
+                              color="warning" 
+                              variant="outlined"
+                              sx={{ fontSize: '0.7rem' }}
+                            />
+                          )}
+                        </Box>
                         <Typography variant="caption" color="text.secondary" display="block">
                           {prospecto.direccion?.ciudad}
                         </Typography>
@@ -362,31 +544,150 @@ const ProspectosList = () => {
         </Box>
       )}
 
-      {/* Menú de acciones */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
+      {/* Menú de acciones mejorado */}
+      {menuOpen && (
+        <ClickAwayListener onClickAway={handleMenuClose}>
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              position: 'fixed',
+              top: menuPosition.top,
+              left: menuPosition.left,
+              minWidth: 180,
+              zIndex: 1300
+            }}
+          >
+            <MenuItem onClick={() => {
+              navigate(`/prospectos/${selectedProspecto?._id}`);
+              handleMenuClose();
+            }}>
+              <ListItemIcon><Visibility /></ListItemIcon>
+              <ListItemText>Ver Detalles</ListItemText>
+            </MenuItem>
+            
+            <MenuItem onClick={() => {
+              navigate(`/prospectos/${selectedProspecto?._id}/editar`);
+              handleMenuClose();
+            }}>
+              <ListItemIcon><Edit /></ListItemIcon>
+              <ListItemText>Editar</ListItemText>
+            </MenuItem>
+            
+            <Divider />
+            
+            {selectedProspecto?.archivado ? (
+              <MenuItem onClick={() => {
+                handleDesarchivar();
+              }}>
+                <ListItemIcon><Unarchive color="success" /></ListItemIcon>
+                <ListItemText>Desarchivar</ListItemText>
+              </MenuItem>
+            ) : (
+              <MenuItem onClick={() => {
+                handleArchivar();
+              }}>
+                <ListItemIcon><Archive color="warning" /></ListItemIcon>
+                <ListItemText>Archivar</ListItemText>
+              </MenuItem>
+            )}
+            
+            <MenuItem 
+              onClick={() => {
+                setProspectoParaEliminar(selectedProspecto);
+                setOpenDeleteDialog(true);
+                handleMenuClose();
+              }}
+              sx={{ color: 'error.main' }}
+            >
+              <ListItemIcon><Delete color="error" /></ListItemIcon>
+              <ListItemText>Mover a Papelera</ListItemText>
+            </MenuItem>
+            
+            {/* Solo mostrar eliminación forzada para admins */}
+            {/* Aquí puedes agregar una verificación de rol si tienes acceso al contexto de usuario */}
+            <MenuItem 
+              onClick={() => {
+                setProspectoParaEliminar(selectedProspecto);
+                setActionType('forzar');
+                setOpenDeleteDialog(true);
+                handleMenuClose();
+              }}
+              sx={{ color: 'error.dark' }}
+            >
+              <ListItemIcon><DeleteForever color="error" /></ListItemIcon>
+              <ListItemText>Eliminar Permanentemente</ListItemText>
+            </MenuItem>
+          </Paper>
+        </ClickAwayListener>
+      )}
+
+      {/* Dialog de confirmación para mover a papelera */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={() => {
+          setOpenDeleteDialog(false);
+          setProspectoParaEliminar(null);
+          setActionType('');
+        }}
+        maxWidth="sm"
+        fullWidth
       >
-        <MenuItem
-          onClick={() => {
-            navigate(`/prospectos/${selectedProspecto?._id}`);
-            handleMenuClose();
-          }}
+        <DialogTitle>
+          {actionType === 'forzar' ? '⚠️ Eliminar Permanentemente' : '🗑️ Mover a Papelera'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            {actionType === 'forzar' ? (
+              <>¿Estás seguro de que deseas eliminar permanentemente el prospecto <strong>{prospectoParaEliminar?.nombre}</strong>?</>
+            ) : (
+              <>¿Estás seguro de que deseas mover el prospecto <strong>{prospectoParaEliminar?.nombre}</strong> a la papelera?</>
+            )}
+          </Typography>
+          <Typography 
+            variant="body2" 
+            color={actionType === 'forzar' ? 'error.main' : 'text.secondary'} 
+            sx={{ mt: 1, fontWeight: actionType === 'forzar' ? 'bold' : 'normal' }}
+          >
+            {actionType === 'forzar' ? (
+              '⚠️ Esta acción NO se puede deshacer. Se perderán todos los datos asociados permanentemente.'
+            ) : (
+              'El prospecto se moverá a la papelera y podrás restaurarlo más tarde si es necesario.'
+            )}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setOpenDeleteDialog(false);
+            setProspectoParaEliminar(null);
+            setActionType('');
+          }}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleMoverAPapelera} 
+            color="error" 
+            variant="contained"
+          >
+            {actionType === 'forzar' ? 'Eliminar Permanentemente' : 'Mover a Papelera'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar para alertas */}
+      <Snackbar
+        open={alert.open}
+        autoHideDuration={4000}
+        onClose={() => setAlert({ ...alert, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setAlert({ ...alert, open: false })} 
+          severity={alert.severity}
+          variant="filled"
         >
-          <Visibility sx={{ mr: 1 }} />
-          Ver Detalles
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            navigate(`/prospectos/${selectedProspecto?._id}/editar`);
-            handleMenuClose();
-          }}
-        >
-          <Edit sx={{ mr: 1 }} />
-          Editar
-        </MenuItem>
-      </Menu>
+          {alert.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
