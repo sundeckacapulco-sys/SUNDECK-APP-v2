@@ -45,7 +45,12 @@ const cotizacionSchema = new mongoose.Schema({
     descripcion: String,
     categoria: {
       type: String,
-      enum: ['ventana', 'puerta', 'cancel', 'domo', 'accesorio', 'motor', 'kit', 'control']
+      enum: [
+        'ventana', 'puerta', 'cancel', 'domo', 'accesorio', 
+        'motor', 'kit', 'control', 'galeria', 'persiana',
+        'cortina', 'toldo', 'mosquitero', 'cristal', 'herraje',
+        'instalacion', 'mantenimiento', 'otro'
+      ]
     },
     material: String, // aluminio, PVC, madera, etc.
     color: String,
@@ -153,19 +158,24 @@ const cotizacionSchema = new mongoose.Schema({
 
 // Generar número de cotización automáticamente (PRIMERO)
 cotizacionSchema.pre('save', async function(next) {
-  if (this.isNew && !this.numero) {
-    console.log('Generando número de cotización...');
-    const year = new Date().getFullYear();
-    const count = await this.constructor.countDocuments({
-      createdAt: {
-        $gte: new Date(year, 0, 1),
-        $lt: new Date(year + 1, 0, 1)
-      }
-    });
-    this.numero = `COT-${year}-${String(count + 1).padStart(4, '0')}`;
-    console.log('Número generado:', this.numero);
+  try {
+    if (this.isNew && !this.numero) {
+      console.log('Generando número de cotización...');
+      const year = new Date().getFullYear();
+      const count = await this.constructor.countDocuments({
+        createdAt: {
+          $gte: new Date(year, 0, 1),
+          $lt: new Date(year + 1, 0, 1)
+        }
+      });
+      this.numero = `COT-${year}-${String(count + 1).padStart(4, '0')}`;
+      console.log('Número generado:', this.numero);
+    }
+    next();
+  } catch (error) {
+    console.error('Error generando número de cotización:', error);
+    next(error);
   }
-  next();
 });
 
 // Middleware para calcular área automáticamente

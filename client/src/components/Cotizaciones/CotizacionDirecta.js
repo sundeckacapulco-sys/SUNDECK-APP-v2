@@ -224,7 +224,7 @@ const CotizacionDirecta = () => {
       // Paso final: crear prospecto y cotización
       const totales = calcularTotales();
 
-      // 1. Crear prospecto primero con información completa
+      // 1. Crear prospecto primero con información completa del cliente
       const prospectoData = {
         nombre: data.cliente.nombre,
         telefono: data.cliente.telefono,
@@ -248,14 +248,14 @@ const CotizacionDirecta = () => {
       const prospectoResponse = await axiosConfig.post('/prospectos', prospectoData);
       const prospecto = prospectoResponse.data.prospecto || prospectoResponse.data;
 
-      // 2. Crear cotización con el prospecto creado
+      // 2. Crear cotización usando el ID del prospecto creado
       const productosConSubtotal = data.productos.map(producto => ({
         ...producto,
         subtotal: (producto.medidas?.area || 0) * (producto.precioUnitario || 0) * (producto.cantidad || 1)
       }));
 
       const cotizacionData = {
-        prospecto: prospecto._id, // Cambiar de prospectoId a prospecto
+        prospectoId: prospecto._id, // ID del prospecto creado
         validoHasta: data.validoHasta,
         productos: productosConSubtotal,
         descuento: {
@@ -287,7 +287,7 @@ const CotizacionDirecta = () => {
         iva: incluirIVA ? totales.iva : 0,
         total: totales.total,
         fechaEntregaEstimada: new Date(Date.now() + (data.tiempoFabricacion || 15) * 24 * 60 * 60 * 1000),
-        // elaboradaPor se asignará automáticamente en el backend
+        // elaboradaPor se asignará automáticamente en el backend usando el usuario autenticado
         estado: 'enviada', // Cotización directa se considera enviada inmediatamente
         fechaEnvio: new Date(),
         observaciones: `Cotización directa generada. Cliente: ${data.cliente.nombre}. ${incluirIVA ? 'Con IVA' : 'Sin IVA'}. Descuento: ${tipoDescuento === 'porcentaje' ? (data.descuento?.porcentaje || 0) + '%' : '$' + (data.descuento?.monto || 0)}`
@@ -297,7 +297,7 @@ const CotizacionDirecta = () => {
       const cotizacionResponse = await axiosConfig.post('/cotizaciones', cotizacionData);
       const cotizacion = cotizacionResponse.data.cotizacion || cotizacionResponse.data;
 
-      // 3. Actualizar el prospecto con información adicional
+      // 3. Actualizar el prospecto con información de la cotización generada
       try {
         await axiosConfig.put(`/prospectos/${prospecto._id}`, {
           etapa: 'cotizacion',
@@ -320,7 +320,18 @@ const CotizacionDirecta = () => {
     } catch (error) {
       console.error('Error creando cotización directa:', error);
       console.error('Response data:', error.response?.data);
-      setError(error.response?.data?.message || 'Error creando la cotización');
+      console.error('Error details:', error.response?.data?.details);
+      console.error('Error errors:', error.response?.data?.errors);
+      
+      // Mostrar error detallado
+      let errorMessage = 'Error creando la cotización';
+      if (error.response?.data?.details) {
+        errorMessage = error.response.data.details.join(', ');
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
