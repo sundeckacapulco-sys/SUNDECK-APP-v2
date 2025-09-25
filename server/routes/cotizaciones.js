@@ -182,52 +182,13 @@ router.post('/', auth, verificarPermiso('cotizaciones', 'crear'), async (req, re
     console.log('ProspectoId recibido:', prospectoId);
     console.log('Productos recibidos:', productos?.length || 0);
 
-    // Verificar que el prospecto existe, si no existe crearlo automáticamente
-    let prospecto;
-    
-    // Si es cotización directa, buscar o crear prospecto automáticamente
-    if (prospectoId === 'cotizacion_directa') {
-      console.log('Cotización directa detectada...');
-      
-      // Buscar si ya existe un prospecto de cotización directa reciente (últimos 5 minutos)
-      prospecto = await Prospecto.findOne({
-        nombre: 'Cliente Cotización Directa',
-        fuente: 'cotizacion_directa',
-        createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) } // Últimos 5 minutos
-      }).sort({ createdAt: -1 }); // Más reciente primero
-      
-      if (prospecto) {
-        console.log('Usando prospecto existente:', prospecto._id);
-      } else {
-        console.log('Creando nuevo prospecto para cotización directa...');
-        prospecto = new Prospecto({
-          nombre: 'Cliente Cotización Directa',
-          telefono: '0000000000',
-          email: 'cliente@cotizacion.com',
-          direccion: {
-            calle: 'Por definir',
-            colonia: 'Por definir',
-            ciudad: 'Por definir',
-            codigoPostal: '00000',
-            referencias: 'Dirección por completar'
-          },
-          fuente: 'cotizacion_directa',
-          producto: 'Cotización directa',
-          tipoProducto: 'cotizacion',
-          descripcionNecesidad: 'Cotización directa generada automáticamente',
-          etapa: 'cotizacion',
-          prioridad: 'media'
-        });
-        
-        await prospecto.save();
-        console.log('Prospecto creado automáticamente con ID:', prospecto._id);
-      }
-    } else {
-      prospecto = await Prospecto.findById(prospectoId);
-      if (!prospecto) {
-        return res.status(404).json({ message: 'Prospecto no encontrado' });
-      }
+    // Verificar que el prospecto existe
+    const prospecto = await Prospecto.findById(prospectoId);
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
+    
+    console.log('Prospecto encontrado:', prospecto.nombre);
 
     const nuevaCotizacion = new Cotizacion({
       prospecto: prospecto._id,

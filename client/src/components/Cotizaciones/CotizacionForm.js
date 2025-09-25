@@ -688,7 +688,7 @@ const CotizacionForm = () => {
     }
   };
 
-  // El backend ahora maneja la creación automática de prospectos
+  // Las cotizaciones directas se manejan en el componente CotizacionDirecta.js
 
   const onSubmit = async (data) => {
     try {
@@ -712,14 +712,13 @@ const CotizacionForm = () => {
         return;
       }
 
-      // Si no hay prospecto seleccionado, usar un ID temporal
-      // El backend creará el prospecto automáticamente
-      let prospectoIdFinal = data.prospecto;
-      if (!prospectoIdFinal) {
-        console.log('No hay prospecto seleccionado, el backend creará uno automáticamente');
-        prospectoIdFinal = 'cotizacion_directa'; // ID temporal que el backend reconocerá
-        setSuccess('Creando cotización directa...');
+      // Validar que hay un prospecto seleccionado
+      if (!data.prospecto) {
+        setError('Debe seleccionar un prospecto. Para cotizaciones sin prospecto existente, use "Nueva Cotización Directa"');
+        return;
       }
+      
+      const prospectoIdFinal = data.prospecto;
 
       const totales = calcularTotales();
       
@@ -842,12 +841,13 @@ const CotizacionForm = () => {
                 <Controller
                   name="prospecto"
                   control={control}
+                  rules={{ required: 'Debe seleccionar un cliente' }}
                   render={({ field }) => (
                     <FormControl fullWidth>
-                      <InputLabel>Cliente (Opcional)</InputLabel>
-                      <Select {...field} label="Cliente (Opcional)" error={!!errors.prospecto}>
+                      <InputLabel>Cliente *</InputLabel>
+                      <Select {...field} label="Cliente *" error={!!errors.prospecto}>
                         <MenuItem value="">
-                          <em>💼 Cotización Directa (se creará prospecto automáticamente)</em>
+                          <em>Seleccionar cliente...</em>
                         </MenuItem>
                         {prospectos.map(prospecto => (
                           <MenuItem key={prospecto._id} value={prospecto._id}>
@@ -855,17 +855,20 @@ const CotizacionForm = () => {
                           </MenuItem>
                         ))}
                       </Select>
+                      {errors.prospecto && (
+                        <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                          {errors.prospecto.message}
+                        </Typography>
+                      )}
                     </FormControl>
                   )}
                 />
-                {/* Mensaje informativo para cotización directa */}
-                {!watchedProspecto && (
-                  <Box sx={{ mt: 1 }}>
-                    <Typography variant="caption" sx={{ color: '#6c757d', fontStyle: 'italic' }}>
-                      💡 Al crear la cotización sin seleccionar un cliente, se generará automáticamente un prospecto temporal que podrás editar después.
-                    </Typography>
-                  </Box>
-                )}
+                {/* Mensaje informativo */}
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="caption" sx={{ color: '#2563eb', fontStyle: 'italic' }}>
+                    💡 Para crear cotizaciones sin cliente existente, use "Nueva Cotización Directa" desde el menú principal.
+                  </Typography>
+                </Box>
               </Grid>
               
               <Grid item xs={12} md={6}>
