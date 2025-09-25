@@ -161,6 +161,10 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
 // Crear nueva cotización
 router.post('/', auth, verificarPermiso('cotizaciones', 'crear'), async (req, res) => {
   try {
+    console.log('=== CREAR COTIZACIÓN ===');
+    console.log('Body recibido:', JSON.stringify(req.body, null, 2));
+    console.log('Usuario:', req.usuario._id);
+    
     const {
       prospectoId,
       validoHasta,
@@ -174,15 +178,59 @@ router.post('/', auth, verificarPermiso('cotizaciones', 'crear'), async (req, re
       costoInstalacion,
       garantia
     } = req.body;
+    
+    console.log('ProspectoId recibido:', prospectoId);
+    console.log('Productos recibidos:', productos?.length || 0);
 
-    // Verificar que el prospecto existe
-    const prospecto = await Prospecto.findById(prospectoId);
-    if (!prospecto) {
-      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    // Verificar que el prospecto existe, si no existe crearlo automáticamente
+    let prospecto;
+    
+    // Si es cotización directa, buscar o crear prospecto automáticamente
+    if (prospectoId === 'cotizacion_directa') {
+      console.log('Cotización directa detectada...');
+      
+      // Buscar si ya existe un prospecto de cotización directa reciente (últimos 5 minutos)
+      prospecto = await Prospecto.findOne({
+        nombre: 'Cliente Cotización Directa',
+        fuente: 'cotizacion_directa',
+        createdAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) } // Últimos 5 minutos
+      }).sort({ createdAt: -1 }); // Más reciente primero
+      
+      if (prospecto) {
+        console.log('Usando prospecto existente:', prospecto._id);
+      } else {
+        console.log('Creando nuevo prospecto para cotización directa...');
+        prospecto = new Prospecto({
+          nombre: 'Cliente Cotización Directa',
+          telefono: '0000000000',
+          email: 'cliente@cotizacion.com',
+          direccion: {
+            calle: 'Por definir',
+            colonia: 'Por definir',
+            ciudad: 'Por definir',
+            codigoPostal: '00000',
+            referencias: 'Dirección por completar'
+          },
+          fuente: 'cotizacion_directa',
+          producto: 'Cotización directa',
+          tipoProducto: 'cotizacion',
+          descripcionNecesidad: 'Cotización directa generada automáticamente',
+          etapa: 'cotizacion',
+          prioridad: 'media'
+        });
+        
+        await prospecto.save();
+        console.log('Prospecto creado automáticamente con ID:', prospecto._id);
+      }
+    } else {
+      prospecto = await Prospecto.findById(prospectoId);
+      if (!prospecto) {
+        return res.status(404).json({ message: 'Prospecto no encontrado' });
+      }
     }
 
     const nuevaCotizacion = new Cotizacion({
-      prospecto: prospectoId,
+      prospecto: prospecto._id,
       validoHasta,
       mediciones,
       productos,
@@ -196,15 +244,20 @@ router.post('/', auth, verificarPermiso('cotizaciones', 'crear'), async (req, re
       elaboradaPor: req.usuario._id
     });
 
+    console.log('Intentando guardar cotización...');
     await nuevaCotizacion.save();
+    console.log('Cotización guardada exitosamente');
+    
     await nuevaCotizacion.populate([
       { path: 'prospecto', select: 'nombre telefono email' },
       { path: 'elaboradaPor', select: 'nombre apellido' }
     ]);
+    console.log('Cotización poblada exitosamente');
 
     // Actualizar etapa del prospecto
     prospecto.etapa = 'cotizacion';
     await prospecto.save();
+    console.log('Prospecto actualizado exitosamente');
 
     res.status(201).json({
       message: 'Cotización creada exitosamente',
@@ -212,7 +265,25 @@ router.post('/', auth, verificarPermiso('cotizaciones', 'crear'), async (req, re
     });
   } catch (error) {
     console.error('Error creando cotización:', error);
-    res.status(500).json({ message: 'Error interno del servidor' });
+    console.error('Stack trace:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    
+    // Si es un error de validación de Mongoose
+    if (error.name === 'ValidationError') {
+      console.error('Errores de validación:', error.errors);
+      return res.status(400).json({ 
+        message: 'Error de validación', 
+        errors: error.errors,
+        details: Object.keys(error.errors).map(key => `${key}: ${error.errors[key].message}`)
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Error interno del servidor',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

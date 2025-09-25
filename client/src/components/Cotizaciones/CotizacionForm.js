@@ -688,6 +688,8 @@ const CotizacionForm = () => {
     }
   };
 
+  // El backend ahora maneja la creación automática de prospectos
+
   const onSubmit = async (data) => {
     try {
       setLoading(true);
@@ -710,6 +712,15 @@ const CotizacionForm = () => {
         return;
       }
 
+      // Si no hay prospecto seleccionado, usar un ID temporal
+      // El backend creará el prospecto automáticamente
+      let prospectoIdFinal = data.prospecto;
+      if (!prospectoIdFinal) {
+        console.log('No hay prospecto seleccionado, el backend creará uno automáticamente');
+        prospectoIdFinal = 'cotizacion_directa'; // ID temporal que el backend reconocerá
+        setSuccess('Creando cotización directa...');
+      }
+
       const totales = calcularTotales();
       
       // Calcular subtotales de productos si no están calculados
@@ -718,8 +729,17 @@ const CotizacionForm = () => {
         subtotal: (producto.medidas?.area || 0) * (producto.precioUnitario || 0) * (producto.cantidad || 1)
       }));
 
+      // Validar que tenemos un prospectoId válido
+      if (!prospectoIdFinal) {
+        setError('No se pudo obtener un ID de prospecto válido');
+        return;
+      }
+
+      console.log('ProspectoId final a usar:', prospectoIdFinal);
+      console.log('Tipo de prospectoId:', typeof prospectoIdFinal);
+
       const cotizacionData = {
-        prospectoId: data.prospecto, // Campo correcto para la API
+        prospectoId: prospectoIdFinal, // Usar el ID final (existente o creado)
         validoHasta: data.validoHasta,
         productos: productosConSubtotal,
         descuento: data.descuento,
@@ -736,13 +756,16 @@ const CotizacionForm = () => {
         fechaEntregaEstimada: new Date(Date.now() + (data.tiempoFabricacion || 15) * 24 * 60 * 60 * 1000)
       };
 
-      console.log('Enviando cotización:', cotizacionData);
+      console.log('Enviando cotización con datos:', cotizacionData);
+      console.log('URL que se usará:', '/cotizaciones');
 
       if (isEdit) {
         const response = await axiosConfig.put(`/cotizaciones/${id}`, cotizacionData);
         setSuccess('Cotización actualizada exitosamente');
         console.log('Cotización actualizada:', response.data);
       } else {
+        // Crear cotización directamente
+        console.log('Creando cotización con prospectoId:', prospectoIdFinal);
         const response = await axiosConfig.post('/cotizaciones', cotizacionData);
         setSuccess('Cotización creada exitosamente');
         console.log('Cotización creada:', response.data);
@@ -819,11 +842,13 @@ const CotizacionForm = () => {
                 <Controller
                   name="prospecto"
                   control={control}
-                  rules={{ required: 'El prospecto es requerido' }}
                   render={({ field }) => (
                     <FormControl fullWidth>
-                      <InputLabel>Cliente *</InputLabel>
-                      <Select {...field} label="Cliente *" error={!!errors.prospecto}>
+                      <InputLabel>Cliente (Opcional)</InputLabel>
+                      <Select {...field} label="Cliente (Opcional)" error={!!errors.prospecto}>
+                        <MenuItem value="">
+                          <em>💼 Cotización Directa (se creará prospecto automáticamente)</em>
+                        </MenuItem>
                         {prospectos.map(prospecto => (
                           <MenuItem key={prospecto._id} value={prospecto._id}>
                             {prospecto.nombre} - {prospecto.telefono}
@@ -833,6 +858,14 @@ const CotizacionForm = () => {
                     </FormControl>
                   )}
                 />
+                {/* Mensaje informativo para cotización directa */}
+                {!watchedProspecto && (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="caption" sx={{ color: '#6c757d', fontStyle: 'italic' }}>
+                      💡 Al crear la cotización sin seleccionar un cliente, se generará automáticamente un prospecto temporal que podrás editar después.
+                    </Typography>
+                  </Box>
+                )}
               </Grid>
               
               <Grid item xs={12} md={6}>

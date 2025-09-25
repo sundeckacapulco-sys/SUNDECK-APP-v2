@@ -45,7 +45,7 @@ const cotizacionSchema = new mongoose.Schema({
     descripcion: String,
     categoria: {
       type: String,
-      enum: ['ventana', 'puerta', 'cancel', 'domo', 'accesorio']
+      enum: ['ventana', 'puerta', 'cancel', 'domo', 'accesorio', 'motor', 'kit', 'control']
     },
     material: String, // aluminio, PVC, madera, etc.
     color: String,
@@ -151,56 +151,10 @@ const cotizacionSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Middleware para calcular área automáticamente
-cotizacionSchema.pre('save', function(next) {
-  // Calcular área en mediciones
-  this.mediciones.forEach(medicion => {
-    if (medicion.ancho && medicion.alto) {
-      medicion.area = medicion.ancho * medicion.alto;
-    }
-  });
-  
-  // Calcular área en productos
-  this.productos.forEach(producto => {
-    if (producto.medidas.ancho && producto.medidas.alto) {
-      producto.medidas.area = producto.medidas.ancho * producto.medidas.alto;
-    }
-    
-    // Verificar regla R24 (si >2.50m requiere refuerzo)
-    if (producto.medidas.alto > 2.5 || producto.medidas.ancho > 2.5) {
-      producto.requiereR24 = true;
-    }
-    
-    // Calcular subtotal del producto
-    producto.subtotal = producto.precioUnitario * producto.cantidad;
-  });
-  
-  // Calcular totales
-  this.subtotal = this.productos.reduce((sum, prod) => sum + prod.subtotal, 0);
-  
-  if (this.descuento && this.descuento.porcentaje) {
-    this.descuento.monto = this.subtotal * (this.descuento.porcentaje / 100);
-  }
-  
-  const subtotalConDescuento = this.subtotal - (this.descuento?.monto || 0);
-  const subtotalConInstalacion = subtotalConDescuento + (this.costoInstalacion || 0);
-  this.iva = subtotalConInstalacion * 0.16; // IVA 16%
-  this.total = subtotalConInstalacion + this.iva;
-  
-  // Calcular montos de anticipo y saldo
-  if (this.formaPago?.anticipo?.porcentaje) {
-    this.formaPago.anticipo.monto = this.total * (this.formaPago.anticipo.porcentaje / 100);
-  }
-  if (this.formaPago?.saldo?.porcentaje) {
-    this.formaPago.saldo.monto = this.total * (this.formaPago.saldo.porcentaje / 100);
-  }
-  
-  next();
-});
-
-// Generar número de cotización automáticamente
+// Generar número de cotización automáticamente (PRIMERO)
 cotizacionSchema.pre('save', async function(next) {
   if (this.isNew && !this.numero) {
+    console.log('Generando número de cotización...');
     const year = new Date().getFullYear();
     const count = await this.constructor.countDocuments({
       createdAt: {
@@ -209,7 +163,63 @@ cotizacionSchema.pre('save', async function(next) {
       }
     });
     this.numero = `COT-${year}-${String(count + 1).padStart(4, '0')}`;
+    console.log('Número generado:', this.numero);
   }
+  next();
+});
+
+// Middleware para calcular área automáticamente
+cotizacionSchema.pre('save', function(next) {
+  // Calcular área en mediciones
+  if (this.mediciones) {
+    this.mediciones.forEach(medicion => {
+      if (medicion.ancho && medicion.alto) {
+        medicion.area = medicion.ancho * medicion.alto;
+      }
+    });
+  }
+  
+  // Calcular área en productos
+  if (this.productos) {
+    this.productos.forEach(producto => {
+      if (producto.medidas && producto.medidas.ancho && producto.medidas.alto) {
+        producto.medidas.area = producto.medidas.ancho * producto.medidas.alto;
+      }
+      
+      // Verificar regla R24 (si >2.50m requiere refuerzo)
+      if (producto.medidas && (producto.medidas.alto > 2.5 || producto.medidas.ancho > 2.5)) {
+        producto.requiereR24 = true;
+      }
+      
+      // Calcular subtotal del producto
+      if (producto.precioUnitario && producto.cantidad) {
+        producto.subtotal = producto.precioUnitario * producto.cantidad;
+      }
+    });
+  }
+  
+  // Calcular totales
+  if (this.productos && this.productos.length > 0) {
+    this.subtotal = this.productos.reduce((sum, prod) => sum + (prod.subtotal || 0), 0);
+  }
+  
+  if (this.descuento && this.descuento.porcentaje && this.subtotal) {
+    this.descuento.monto = this.subtotal * (this.descuento.porcentaje / 100);
+  }
+  
+  const subtotalConDescuento = (this.subtotal || 0) - (this.descuento?.monto || 0);
+  const subtotalConInstalacion = subtotalConDescuento + (this.costoInstalacion || 0);
+  this.iva = subtotalConInstalacion * 0.16; // IVA 16%
+  this.total = subtotalConInstalacion + this.iva;
+  
+  // Calcular montos de anticipo y saldo
+  if (this.formaPago?.anticipo?.porcentaje && this.total) {
+    this.formaPago.anticipo.monto = this.total * (this.formaPago.anticipo.porcentaje / 100);
+  }
+  if (this.formaPago?.saldo?.porcentaje && this.total) {
+    this.formaPago.saldo.monto = this.total * (this.formaPago.saldo.porcentaje / 100);
+  }
+  
   next();
 });
 
