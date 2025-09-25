@@ -31,7 +31,8 @@ import {
   AccountCircle,
   Logout,
   Settings,
-  Inventory
+  Inventory,
+  WhatsApp
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -48,6 +49,7 @@ const menuItems = [
   { text: 'Fabricación', icon: <Construction />, path: '/fabricacion' },
   { text: 'Instalaciones', icon: <Construction />, path: '/instalaciones' },
   { text: 'Postventa', icon: <RateReview />, path: '/postventa' },
+  { text: 'Plantillas WhatsApp', icon: <WhatsApp />, path: '/admin/plantillas-whatsapp' },
   { text: 'Reportes', icon: <Assessment />, path: '/reportes' }
 ];
 

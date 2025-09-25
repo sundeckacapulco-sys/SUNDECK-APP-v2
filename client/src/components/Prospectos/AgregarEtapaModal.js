@@ -25,6 +25,7 @@ import {
   Delete,
   Close
 } from '@mui/icons-material';
+import TextFieldConDictado from '../Common/TextFieldConDictado';
 import axiosConfig from '../../config/axios';
 
 const etapaOptions = [
@@ -2383,10 +2384,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                       )}
 
                       <Grid item xs={12}>
-                        <TextField
+                        <TextFieldConDictado
                           label="Observaciones"
-                          multiline
-                          rows={2}
+                          rows={3}
                           fullWidth
                           value={piezaForm.observaciones}
                           onChange={(e) => setPiezaForm(prev => ({ ...prev, observaciones: e.target.value }))}
@@ -3179,10 +3179,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         )}
 
         {/* Comentarios */}
-        <TextField
+        <TextFieldConDictado
           label="Observaciones"
-          multiline
-          rows={3}
+          rows={4}
           fullWidth
           value={comentarios}
           onChange={(e) => setComentarios(e.target.value)}

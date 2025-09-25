@@ -41,6 +41,7 @@ import {
   Engineering,
   Handyman
 } from '@mui/icons-material';
+import TextFieldConDictado from '../Common/TextFieldConDictado';
 import axiosConfig from '../../config/axios';
 
 const GestionFabricacion = ({ pedido, onUpdate }) => {
@@ -337,16 +338,15 @@ const GestionFabricacion = ({ pedido, onUpdate }) => {
             </Select>
           </FormControl>
 
-          <TextField
+          <TextFieldConDictado
             fullWidth
-            label="Observaciones"
-            multiline
+            label="Observaciones de Fabricación"
             rows={4}
             value={observaciones}
             onChange={(e) => setObservaciones(e.target.value)}
             placeholder="Describe el progreso, problemas encontrados, o cualquier información relevante..."
-            helperText="Información adicional sobre el cambio de estado"
           />
+          helperText="Información adicional sobre el cambio de estado"
 
           {estadoSeleccionado && (
             <Alert severity="info" sx={{ mt: 2 }}>

@@ -45,7 +45,8 @@ import CalculadoraRapida from '../Calculadoras/CalculadoraRapida';
 import CalculadoraDiasHabiles from '../Calculadoras/CalculadoraDiasHabiles';
 import CalculadoraMotores from '../Calculadoras/CalculadoraMotores';
 import CalcularYAgregar from '../Calculadoras/CalcularYAgregar';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import TextFieldConDictado from '../Common/TextFieldConDictado';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import axiosConfig from '../../config/axios';
 

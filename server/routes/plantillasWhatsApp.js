@@ -248,8 +248,27 @@ router.post('/tracking', auth, async (req, res) => {
   }
 });
 
-// Obtener estadísticas de plantillas
-router.get('/estadisticas/resumen', auth, verificarPermiso('reportes', 'leer'), async (req, res) => {
+// Obtener mejores plantillas
+router.get('/mejores', auth, verificarPermiso('plantillas', 'leer'), async (req, res) => {
+  try {
+    const plantillas = await PlantillaWhatsApp.find({ activa: true })
+      .sort({ 
+        efectividad: -1, 
+        rating_promedio: -1, 
+        'metricas.veces_usada': -1 
+      })
+      .limit(10)
+      .populate('creada_por', 'nombre apellido');
+    
+    res.json({ plantillas });
+  } catch (error) {
+    console.error('Error obteniendo mejores plantillas:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Obtener estadísticas generales
+router.get('/estadisticas/resumen', auth, verificarPermiso('plantillas', 'leer'), async (req, res) => {
   try {
     const { fecha_inicio, fecha_fin, categoria } = req.query;
     
@@ -282,13 +301,16 @@ router.get('/estadisticas/resumen', auth, verificarPermiso('reportes', 'leer'), 
     ]);
 
     res.json({
-      resumen: {
-        total_plantillas: totalPlantillas,
-        plantillas_usadas: plantillasUsadas,
-        porcentaje_uso: Math.round((plantillasUsadas / totalPlantillas) * 100)
-      },
-      mejores_plantillas: mejoresPlantillas,
-      estadisticas_por_categoria: estadisticasPorCategoria,
+      total_plantillas: totalPlantillas,
+      plantillas_activas: plantillasUsadas,
+      efectividad_promedio: Math.round(efectividadPromedio),
+      rating_promedio: Math.round(ratingPromedio * 10) / 10,
+      por_categoria: porCategoria.map(cat => ({
+        categoria: cat._id,
+        total: cat.total,
+        efectividad_promedio: Math.round(cat.efectividad_promedio || 0),
+        rating_promedio: Math.round((cat.rating_promedio || 0) * 10) / 10
+      })),
       periodo: {
         fecha_inicio: fechaInicio,
         fecha_fin: fechaFin

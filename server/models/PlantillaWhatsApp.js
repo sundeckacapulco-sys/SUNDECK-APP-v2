@@ -13,7 +13,11 @@ const plantillaWhatsAppSchema = new mongoose.Schema({
     enum: [
       'cotizacion_enviada',
       'seguimiento_cotizacion', 
+      'negociacion_hunter',
+      'negociacion_farmer',
+      'manejo_objeciones',
       'cotizacion_vencimiento',
+      'post_vencimiento',
       'anticipo_confirmado',
       'fabricacion_iniciada',
       'fabricacion_progreso',

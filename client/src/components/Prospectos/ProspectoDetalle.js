@@ -37,6 +37,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
 import AgregarEtapaModal from './AgregarEtapaModal';
 import GeneradorWhatsApp from '../WhatsApp/GeneradorWhatsApp';
+import TextFieldConDictado from '../Common/TextFieldConDictado';
 import { downloadFileFromBlob } from '../../utils/downloadUtils';
 
 const etapaLabels = {
@@ -838,27 +839,7 @@ const ProspectoDetalle = () => {
                   SelectProps={{ native: true }}
                   sx={{ width: 220 }}
                 >
-                  <option value="General">General</option>
-                  <option value="Puntualidad">Puntualidad</option>
-                  <option value="Calidad">Calidad</option>
-                  <option value="Cliente">Cliente</option>
                 </TextField>
-                <TextField
-                  fullWidth
-                  label="Escribe un comentario"
-                  multiline
-                  minRows={2}
-                  value={comentario}
-                  onChange={(e) => setComentario(e.target.value)}
-                />
-                <Button
-                  variant="contained"
-                  onClick={handleAgregarComentario}
-                  disabled={savingComentario || !comentario.trim()}
-                  sx={{ backgroundColor: '#D4AF37', color: '#0F172A', '&:hover': { backgroundColor: '#c39c2f' } }}
-                >
-                  {savingComentario ? 'Guardando...' : 'Agregar'}
-                </Button>
               </Box>
               {comentarios.length > 0 ? (
                 <List>
@@ -1247,15 +1228,15 @@ const ProspectoDetalle = () => {
       <Dialog open={openComentario} onClose={() => setOpenComentario(false)} fullWidth maxWidth="sm">
         <DialogTitle>Agregar comentario</DialogTitle>
         <DialogContent>
-          <TextField
+          <TextFieldConDictado
             autoFocus
-            margin="dense"
             label="Comentario"
             fullWidth
-            multiline
-            minRows={3}
+            rows={4}
             value={comentario}
             onChange={(event) => setComentario(event.target.value)}
+            placeholder="Escribe tu comentario aquí... (puedes usar dictado por voz)"
+            sx={{ mt: 1 }}
           />
           <TextField
             select

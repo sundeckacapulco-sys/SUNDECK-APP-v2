@@ -26,6 +26,7 @@ import {
   CheckCircle,
   Cancel
 } from '@mui/icons-material';
+import TextFieldConDictado from '../Common/TextFieldConDictado';
 import axiosConfig from '../../config/axios';
 
 const AplicarAnticipoModal = ({ open, onClose, cotizacion, onSuccess }) => {
@@ -260,15 +261,12 @@ const AplicarAnticipoModal = ({ open, onClose, cotizacion, onSuccess }) => {
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Observaciones"
+              <TextFieldConDictado
+                label="Observaciones del Pago"
                 value={formData.observaciones}
-                onChange={handleChange('observaciones')}
-                multiline
+                onChange={(e) => setFormData(prev => ({ ...prev, observaciones: e.target.value }))}
                 rows={3}
                 placeholder="Observaciones adicionales sobre el pago..."
-                helperText="Información adicional sobre el pago o instrucciones especiales"
               />
             </Grid>
           </Grid>

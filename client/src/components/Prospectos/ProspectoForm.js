@@ -18,6 +18,7 @@ import {
 import { ArrowBack, Save } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
+import TextFieldConDictado from '../Common/TextFieldConDictado';
 import axiosConfig from '../../config/axios';
 
 const ProspectoForm = () => {
@@ -523,12 +524,12 @@ const ProspectoForm = () => {
                   name="descripcionNecesidad"
                   control={control}
                   render={({ field }) => (
-                    <TextField
+                    <TextFieldConDictado
                       {...field}
                       fullWidth
                       label="Descripción de la Necesidad"
-                      multiline
-                      rows={3}
+                      rows={4}
+                      placeholder="Describe las necesidades específicas del cliente..."
                     />
                   )}
                 />

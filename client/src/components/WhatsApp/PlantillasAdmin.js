@@ -6,6 +6,7 @@ import {
   InputLabel, Select, MenuItem, Grid, Alert, LinearProgress
 } from '@mui/material';
 import { Add, Edit, Delete, MoreVert, WhatsApp } from '@mui/icons-material';
+import TextFieldConDictado from '../Common/TextFieldConDictado';
 import axiosConfig from '../../config/axios';
 
 const PlantillasAdmin = () => {
@@ -23,11 +24,17 @@ const PlantillasAdmin = () => {
 
   const categorias = [
     { value: 'cotizacion_enviada', label: '📋 Cotización Enviada' },
-    { value: 'seguimiento_cotizacion', label: '📞 Seguimiento' },
+    { value: 'seguimiento_cotizacion', label: '📞 Seguimiento General' },
+    { value: 'negociacion_hunter', label: '🎯 Negociación Hunter' },
+    { value: 'negociacion_farmer', label: '🌱 Negociación Farmer' },
+    { value: 'manejo_objeciones', label: '🛡️ Manejo Objeciones' },
+    { value: 'cotizacion_vencimiento', label: '⏰ Por Vencer' },
+    { value: 'post_vencimiento', label: '📅 Post-Vencimiento' },
     { value: 'anticipo_confirmado', label: '💰 Anticipo Confirmado' },
     { value: 'fabricacion_iniciada', label: '🔨 Fabricación' },
     { value: 'producto_terminado', label: '✅ Terminado' },
-    { value: 'cobranza_saldo', label: '💳 Cobranza' }
+    { value: 'cobranza_saldo', label: '💳 Cobranza' },
+    { value: 'recontacto', label: '🔄 Recontacto' }
   ];
 
   useEffect(() => {
@@ -174,14 +181,13 @@ const PlantillasAdmin = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12}>
-              <TextField
+              <TextFieldConDictado
                 fullWidth
-                multiline
                 rows={6}
-                label="Mensaje"
+                label="Mensaje de la Plantilla"
                 value={formData.mensaje}
                 onChange={(e) => setFormData({...formData, mensaje: e.target.value})}
-                helperText="Usa {nombre}, {telefono}, {total}, etc. para variables dinámicas"
+                placeholder="Escribe el mensaje de la plantilla... Usa {nombre}, {telefono}, {total}, etc. para variables dinámicas"
               />
             </Grid>
           </Grid>

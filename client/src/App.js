@@ -14,6 +14,7 @@ import CotizacionForm from './components/Cotizaciones/CotizacionForm';
 import CotizacionDirecta from './components/Cotizaciones/CotizacionDirecta';
 import CatalogoProductos from './components/Productos/CatalogoProductos';
 import PedidosList from './components/Pedidos/PedidosList';
+import PlantillasWhatsAppAdmin from './components/Admin/PlantillasWhatsAppAdmin';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 
 function App() {
@@ -55,6 +56,9 @@ function App() {
           {/* Pedidos y Fabricación */}
           <Route path="/pedidos" element={<PedidosList />} />
           <Route path="/fabricacion" element={<PedidosList />} />
+          
+          {/* Administración */}
+          <Route path="/admin/plantillas-whatsapp" element={<PlantillasWhatsAppAdmin />} />
           
           {/* Rutas futuras */}
           <Route path="/instalaciones" element={<div>Módulo de Instalaciones (En desarrollo)</div>} />

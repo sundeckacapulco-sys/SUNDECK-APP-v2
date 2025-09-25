@@ -47,18 +47,163 @@ Si tienes dudas o quieres ajustar algo, aquí estoy para apoyarte 😊
     activa: true
   },
 
-  // 🔹 RECONTACTO DESPUÉS DE VISITA/LEVANTAMIENTO
+  // 🔹 NEGOCIACIÓN POST-COTIZACIÓN (DÍAS 1-5 CRÍTICOS)
   {
-    nombre: "Seguimiento Post-Levantamiento - Formal",
+    nombre: "Negociación Día 1-2 - Hunter Agresivo",
     categoria: "seguimiento_cotizacion",
-    estilo: "formal_profesional", 
+    estilo: "breve_persuasivo",
+    mensaje: `¡Hola {nombre}! 🏗️
+
+¿Ya revisaste la cotización de {total}? 
+
+Sé que es una decisión importante, pero tengo excelentes noticias: si confirmamos esta semana, puedo ofrecerte:
+
+✅ 5% descuento adicional
+✅ Inicio de fabricación inmediato
+✅ Instalación en {tiempo_fabricacion} días
+
+¿Tienes 10 minutos para platicar? Te aseguro que vale la pena 💪
+
+¡Saludos!`,
+    variables: [
+      { nombre: 'nombre', descripcion: 'Nombre del cliente', tipo: 'texto', requerida: true },
+      { nombre: 'total', descripcion: 'Monto total', tipo: 'moneda', requerida: true },
+      { nombre: 'tiempo_fabricacion', descripcion: 'Tiempo de fabricación', tipo: 'numero', requerida: false }
+    ],
+    activa: true,
+    tags: ['hunter', 'urgente', 'descuento']
+  },
+  {
+    nombre: "Negociación Día 1-2 - Farmer Consultivo",
+    categoria: "seguimiento_cotizacion",
+    estilo: "formal_profesional",
     mensaje: `Estimado/a {nombre},
 
-Espero que se encuentre muy bien. Hace unos días realizamos el levantamiento de medidas en su propiedad y me da mucho gusto poder confirmarle que ya tenemos lista su cotización.
+Espero que haya tenido oportunidad de revisar la cotización que le envié por {total}.
 
-Los productos que levantamos suman un total de {total_m2} m² y el presupuesto final es de {total}.
+Entiendo que es una inversión importante y seguramente tiene algunas preguntas. Me gustaría agendar una llamada para:
 
-¿Cuándo sería un buen momento para presentarle los detalles y resolver cualquier duda que pueda tener?
+• Resolver cualquier duda técnica
+• Explicar nuestras opciones de financiamiento
+• Mostrarle referencias de trabajos similares
+• Discutir los beneficios a largo plazo
+
+¿Qué día de esta semana le viene mejor? Tengo disponibilidad mañana y pasado mañana.
+
+Quedo atento a su respuesta.
+
+Saludos cordiales,
+Sundeck Acapulco`,
+    variables: [
+      { nombre: 'nombre', descripcion: 'Nombre del cliente', tipo: 'texto', requerida: true },
+      { nombre: 'total', descripcion: 'Monto total', tipo: 'moneda', requerida: true }
+    ],
+    activa: true,
+    tags: ['farmer', 'consultivo', 'educativo']
+  },
+  {
+    nombre: "Negociación Día 3-4 - Hunter Urgencia",
+    categoria: "seguimiento_cotizacion",
+    estilo: "breve_persuasivo",
+    mensaje: `{nombre}, ¡momento clave! ⏰
+
+Tu cotización de {total} vence en 2 días y tengo una oportunidad única:
+
+🎯 OFERTA ESPECIAL:
+• Descuento del 8% (ahorras ${descuento_pesos})
+• Apartado con solo 30% de anticipo
+• Fabricación prioritaria
+
+Solo tengo 2 espacios disponibles este mes. 
+
+¿Nos vemos hoy o mañana para cerrar? 
+
+¡No dejes pasar esta oportunidad! 🚀`,
+    variables: [
+      { nombre: 'nombre', descripcion: 'Nombre del cliente', tipo: 'texto', requerida: true },
+      { nombre: 'total', descripcion: 'Monto total', tipo: 'moneda', requerida: true },
+      { nombre: 'descuento_pesos', descripcion: 'Descuento en pesos', tipo: 'moneda', requerida: false }
+    ],
+    activa: true,
+    tags: ['hunter', 'urgencia', 'oferta_especial']
+  },
+  {
+    nombre: "Negociación Día 3-4 - Farmer Valor",
+    categoria: "seguimiento_cotizacion",
+    estilo: "formal_profesional",
+    mensaje: `Estimado/a {nombre},
+
+He estado pensando en su proyecto y me gustaría compartirle algunos puntos importantes sobre su inversión de {total}:
+
+💰 VALOR A LARGO PLAZO:
+• Incremento del valor de su propiedad: 15-20%
+• Ahorro en mantenimiento vs. materiales tradicionales
+• Garantía de 10 años en estructura
+
+🏆 BENEFICIOS EXCLUSIVOS:
+• Financiamiento a 12 meses sin intereses
+• Mantenimiento gratuito el primer año
+• Servicio técnico especializado
+
+¿Le parece si nos reunimos para revisar estos beneficios en detalle? Puedo visitarlo mañana o pasado mañana.
+
+Su inversión merece la mejor decisión.
+
+Saludos cordiales,
+Sundeck Acapulco`,
+    variables: [
+      { nombre: 'nombre', descripcion: 'Nombre del cliente', tipo: 'texto', requerida: true },
+      { nombre: 'total', descripcion: 'Monto total', tipo: 'moneda', requerida: true }
+    ],
+    activa: true,
+    tags: ['farmer', 'valor', 'beneficios']
+  },
+  {
+    nombre: "Negociación Día 5 - Hunter Cierre Final",
+    categoria: "seguimiento_cotizacion",
+    estilo: "breve_persuasivo",
+    mensaje: `{nombre}, ¡ÚLTIMO DÍA! 🔥
+
+Tu cotización de {total} vence HOY.
+
+OFERTA FINAL:
+✅ 10% descuento (ahorras ${descuento_final})
+✅ Anticipo de solo 25%
+✅ Inicio INMEDIATO
+
+Tengo TODO listo para empezar tu proyecto mañana mismo.
+
+¿Cerramos AHORA? Solo necesito tu confirmación.
+
+¡Es tu momento! 💪`,
+    variables: [
+      { nombre: 'nombre', descripcion: 'Nombre del cliente', tipo: 'texto', requerida: true },
+      { nombre: 'total', descripcion: 'Monto total', tipo: 'moneda', requerida: true },
+      { nombre: 'descuento_final', descripcion: 'Descuento final en pesos', tipo: 'moneda', requerida: false }
+    ],
+    activa: true,
+    tags: ['hunter', 'cierre_final', 'ultimo_dia']
+  },
+  {
+    nombre: "Negociación Día 5 - Farmer Reflexión",
+    categoria: "seguimiento_cotizacion",
+    estilo: "formal_profesional",
+    mensaje: `Estimado/a {nombre},
+
+Su cotización por {total} vence hoy y quería contactarlo una última vez.
+
+Comprendo que es una decisión importante que requiere reflexión. Si necesita más tiempo, puedo extender la vigencia sin problema.
+
+Sin embargo, me gustaría ofrecerle una condición especial por la confianza que ha depositado en nosotros:
+
+🎁 OFERTA DE CORTESÍA:
+• Descuento del 7% sobre el total
+• Facilidades de pago personalizadas
+• Garantía extendida a 12 años
+
+Si decide proceder, podemos iniciar su proyecto la próxima semana.
+
+¿Qué le parece si conversamos 10 minutos para definir el siguiente paso?
 
 Quedo a sus órdenes.
 
@@ -66,30 +211,10 @@ Saludos cordiales,
 Sundeck Acapulco`,
     variables: [
       { nombre: 'nombre', descripcion: 'Nombre del cliente', tipo: 'texto', requerida: true },
-      { nombre: 'total_m2', descripcion: 'Total en metros cuadrados', tipo: 'numero', requerida: false },
       { nombre: 'total', descripcion: 'Monto total', tipo: 'moneda', requerida: true }
     ],
-    activa: true
-  },
-  {
-    nombre: "Seguimiento Post-Levantamiento - Breve",
-    categoria: "seguimiento_cotizacion",
-    estilo: "breve_persuasivo",
-    mensaje: `¡Hola {nombre}! 
-
-Ya está lista tu cotización después del levantamiento 📐✨
-
-Total: {total} para {total_m2} m²
-
-¿Te parece si la revisamos juntos? ¿Cuándo tienes un ratito libre?
-
-¡Saludos! 😊`,
-    variables: [
-      { nombre: 'nombre', descripcion: 'Nombre del cliente', tipo: 'texto', requerida: true },
-      { nombre: 'total_m2', descripcion: 'Total en metros cuadrados', tipo: 'numero', requerida: false },
-      { nombre: 'total', descripcion: 'Monto total', tipo: 'moneda', requerida: true }
-    ],
-    activa: true
+    activa: true,
+    tags: ['farmer', 'reflexion', 'extension']
   },
 
   // 🔹 PROSPECTO FRÍO (NO CONTESTÓ EL PRIMER MENSAJE)
@@ -281,6 +406,113 @@ Sundeck Acapulco`,
     ],
     activa: true,
     es_predeterminada: true
+  },
+
+  // 🔹 MANEJO DE OBJECIONES COMUNES
+  {
+    nombre: "Objeción Precio - Hunter",
+    categoria: "seguimiento_cotizacion",
+    estilo: "breve_persuasivo",
+    mensaje: `{nombre}, entiendo tu preocupación por el precio 💰
+
+Pero déjame mostrarte el VERDADERO valor:
+
+🏠 Tu casa vale 15% MÁS con Sundeck
+💸 Ahorras $50,000+ en mantenimiento (10 años)
+⚡ Instalación en solo {tiempo_fabricacion} días
+🛡️ Garantía de 10 años
+
+PLUS: Te doy facilidades de pago que se ajusten a tu presupuesto.
+
+¿Vemos las opciones? Te sorprenderás 😉`,
+    variables: [
+      { nombre: 'nombre', descripcion: 'Nombre del cliente', tipo: 'texto', requerida: true },
+      { nombre: 'tiempo_fabricacion', descripcion: 'Tiempo de fabricación', tipo: 'numero', requerida: false }
+    ],
+    activa: true,
+    tags: ['objecion', 'precio', 'hunter']
+  },
+  {
+    nombre: "Objeción Tiempo - Farmer",
+    categoria: "seguimiento_cotizacion",
+    estilo: "formal_profesional",
+    mensaje: `Estimado/a {nombre},
+
+Comprendo perfectamente que necesite tiempo para tomar esta decisión.
+
+Permítame compartirle por qué otros clientes que tomaron tiempo extra terminaron eligiendo Sundeck:
+
+✅ TRANQUILIDAD: Garantía respaldada por 15 años de experiencia
+✅ CALIDAD: Materiales premium con certificaciones internacionales  
+✅ SERVICIO: Acompañamiento completo desde el diseño hasta post-instalación
+
+No hay prisa. Su decisión debe ser la correcta para usted y su familia.
+
+¿Le parece si le envío algunas referencias de clientes que tuvieron dudas similares?
+
+Quedo a sus órdenes.
+
+Saludos cordiales,
+Sundeck Acapulco`,
+    variables: [
+      { nombre: 'nombre', descripcion: 'Nombre del cliente', tipo: 'texto', requerida: true }
+    ],
+    activa: true,
+    tags: ['objecion', 'tiempo', 'farmer']
+  },
+
+  // 🔹 SEGUIMIENTO POST-VENCIMIENTO
+  {
+    nombre: "Post-Vencimiento Semana 1 - Hunter",
+    categoria: "recontacto",
+    estilo: "breve_persuasivo",
+    mensaje: `{nombre}, ¡no todo está perdido! 🔥
+
+Sé que se venció tu cotización, pero tengo una SEGUNDA OPORTUNIDAD:
+
+🎯 OFERTA RESCATE:
+• Mismo precio que antes
+• Descuento del 6% adicional  
+• Inicio en 15 días máximo
+
+Solo por esta semana. Después ya no podré mantener estos precios.
+
+¿Le damos una segunda vuelta? 💪
+
+¡Saludos!`,
+    variables: [
+      { nombre: 'nombre', descripcion: 'Nombre del cliente', tipo: 'texto', requerida: true }
+    ],
+    activa: true,
+    tags: ['post_vencimiento', 'rescate', 'hunter']
+  },
+  {
+    nombre: "Post-Vencimiento Mes 1 - Farmer",
+    categoria: "recontacto",
+    estilo: "formal_profesional",
+    mensaje: `Estimado/a {nombre},
+
+Espero que se encuentre muy bien. Ha pasado un mes desde que conversamos sobre su proyecto Sundeck.
+
+Entiendo que las circunstancias pueden cambiar y quería contactarlo para saber si aún tiene interés en el proyecto.
+
+Si es así, me da mucho gusto informarle que:
+
+• Mantengo las mismas condiciones de precio
+• Tengo disponibilidad inmediata para fabricación
+• Puedo ofrecerle nuevas opciones de financiamiento
+
+Si prefiere que no lo contacte más sobre este tema, por favor házmelo saber y respetaré completamente su decisión.
+
+Quedo atento a sus comentarios.
+
+Saludos cordiales,
+Sundeck Acapulco`,
+    variables: [
+      { nombre: 'nombre', descripcion: 'Nombre del cliente', tipo: 'texto', requerida: true }
+    ],
+    activa: true,
+    tags: ['post_vencimiento', 'mes_1', 'farmer']
   },
 
   // 🔹 FABRICACIÓN INICIADA
