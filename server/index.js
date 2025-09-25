@@ -116,6 +116,7 @@ app.use('/api/plantillas-whatsapp', require('./routes/plantillasWhatsApp'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/etapas', require('./routes/etapas'));
 app.use('/api/storage', require('./routes/storage'));
+app.use('/api/backup', require('./routes/backup'));
 
 // Servir archivos estáticos desde uploads
 app.use('/uploads', express.static('uploads'));
