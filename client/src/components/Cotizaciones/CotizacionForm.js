@@ -1422,7 +1422,25 @@ const CotizacionForm = () => {
                                 '& .MuiOutlinedInput-root': {
                                   bgcolor: '#f8f9fa',
                                   borderRadius: 2,
-                                  fontSize: '1rem'
+                                  minHeight: '120px'
+                                },
+                                '& .MuiOutlinedInput-input': {
+                                  fontSize: '14px',
+                                  lineHeight: '1.6',
+                                  padding: '16px 14px',
+                                  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+                                  letterSpacing: '0.01em'
+                                },
+                                '& .MuiInputLabel-root': {
+                                  fontSize: '16px',
+                                  lineHeight: '1.4375em'
+                                },
+                                '& textarea': {
+                                  fontSize: '14px !important',
+                                  lineHeight: '1.6 !important',
+                                  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif !important',
+                                  letterSpacing: '0.01em !important',
+                                  resize: 'vertical'
                                 }
                               }}
                             />
