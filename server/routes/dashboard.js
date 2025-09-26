@@ -27,6 +27,7 @@ router.get('/', auth, async (req, res) => {
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'contactado', activo: true }),
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'cita_agendada', activo: true }),
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'cotizacion', activo: true }),
+      Prospecto.countDocuments({ ...filtroUsuario, etapa: 'venta_cerrada', activo: true }),
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'pedido', activo: true }),
       Fabricacion.countDocuments({ estado: { $in: ['pendiente', 'en_proceso'] } }),
       Instalacion.countDocuments({ estado: { $in: ['programada', 'en_proceso'] } }),
@@ -73,11 +74,12 @@ router.get('/', auth, async (req, res) => {
       contactados: contadoresPipeline[1],
       citasAgendadas: contadoresPipeline[2],
       cotizaciones: contadoresPipeline[3],
-      pedidos: contadoresPipeline[4],
-      fabricacion: contadoresPipeline[5],
-      instalacion: contadoresPipeline[6],
-      entregados: contadoresPipeline[7],
-      postventa: contadoresPipeline[8]
+      ventasCerradas: contadoresPipeline[4],
+      pedidos: contadoresPipeline[5],
+      fabricacion: contadoresPipeline[6],
+      instalacion: contadoresPipeline[7],
+      entregados: contadoresPipeline[8],
+      postventa: contadoresPipeline[9]
     };
 
     // Calcular tasas de conversión
@@ -96,8 +98,10 @@ router.get('/', auth, async (req, res) => {
     const [
       prospectosNuevos,
       cotizacionesEnviadas,
-      ventasCerradas,
-      montoVentas
+      ventasCerradasProspectos,
+      ventasCerradasPedidos,
+      montoVentasProspectos,
+      montoVentasPedidos
     ] = await Promise.all([
       Prospecto.countDocuments({
         ...filtroUsuario,
@@ -109,11 +113,57 @@ router.get('/', auth, async (req, res) => {
           { $exists: true } : req.usuario._id,
         createdAt: { $gte: fechaInicio }
       }),
+      // Contar prospectos en etapa "venta_cerrada" + pedidos (backstage)
+      Promise.all([
+        Prospecto.countDocuments({
+          ...filtroUsuario,
+          etapa: 'venta_cerrada',
+          updatedAt: { $gte: fechaInicio },
+          activo: true
+        }),
+        Prospecto.countDocuments({
+          ...filtroUsuario,
+          etapa: 'pedido',
+          updatedAt: { $gte: fechaInicio },
+          activo: true
+        })
+      ]).then(([ventasCerradas, pedidosEtapa]) => ventasCerradas + pedidosEtapa),
+      // Contar pedidos creados (solo para métricas internas)
       Pedido.countDocuments({
         vendedor: req.usuario.rol === 'admin' || req.usuario.rol === 'gerente' ? 
           { $exists: true } : req.usuario._id,
         createdAt: { $gte: fechaInicio }
       }),
+      // Monto de cotizaciones en prospectos venta_cerrada
+      Prospecto.aggregate([
+        {
+          $match: {
+            ...filtroUsuario,
+            etapa: 'venta_cerrada',
+            updatedAt: { $gte: fechaInicio },
+            activo: true,
+            'cotizaciones.0': { $exists: true }
+          }
+        },
+        {
+          $lookup: {
+            from: 'cotizaciones',
+            localField: 'cotizaciones',
+            foreignField: '_id',
+            as: 'cotizacionesData'
+          }
+        },
+        {
+          $unwind: '$cotizacionesData'
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$cotizacionesData.total' }
+          }
+        }
+      ]),
+      // Monto de pedidos
       Pedido.aggregate([
         {
           $match: {
@@ -130,6 +180,10 @@ router.get('/', auth, async (req, res) => {
         }
       ])
     ]);
+
+    // Ventas cerradas incluye venta_cerrada + pedido (backstage)
+    const ventasCerradas = ventasCerradasProspectos; // Ya incluye ambas etapas
+    const montoVentasTotal = (montoVentasProspectos[0]?.total || 0) + (montoVentasPedidos[0]?.total || 0);
 
     // Seguimientos pendientes
     const seguimientosPendientes = await Prospecto.find({
@@ -184,7 +238,7 @@ router.get('/', auth, async (req, res) => {
         prospectosNuevos,
         cotizacionesEnviadas,
         ventasCerradas,
-        montoVentas: montoVentas[0]?.total || 0,
+        montoVentas: montoVentasTotal,
         tasaConversion,
         // Nuevas métricas de cotizaciones y pedidos
         totalCotizaciones,
@@ -307,7 +361,7 @@ router.get('/embudo', auth, async (req, res) => {
 
     // Ordenar etapas según el flujo
     const ordenEtapas = [
-      'nuevo', 'contactado', 'cita_agendada', 'cotizacion', 
+      'nuevo', 'contactado', 'cita_agendada', 'cotizacion', 'venta_cerrada',
       'pedido', 'fabricacion', 'instalacion', 'entregado', 'postventa'
     ];
 

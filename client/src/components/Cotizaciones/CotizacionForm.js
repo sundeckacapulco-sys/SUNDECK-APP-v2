@@ -349,10 +349,10 @@ const CotizacionForm = () => {
       },
       formaPago: {
         anticipo: {
-          porcentaje: 50
+          porcentaje: 60
         },
         saldo: {
-          porcentaje: 50,
+          porcentaje: 40,
           condiciones: 'contra entrega'
         }
       },
@@ -423,11 +423,11 @@ const CotizacionForm = () => {
         },
         formaPago: {
           anticipo: {
-            porcentaje: cotizacion.formaPago?.anticipo?.porcentaje || 50,
+            porcentaje: cotizacion.formaPago?.anticipo?.porcentaje || 60,
             monto: cotizacion.formaPago?.anticipo?.monto || 0
           },
           saldo: {
-            porcentaje: cotizacion.formaPago?.saldo?.porcentaje || 50,
+            porcentaje: cotizacion.formaPago?.saldo?.porcentaje || 40,
             monto: cotizacion.formaPago?.saldo?.monto || 0,
             condiciones: cotizacion.formaPago?.saldo?.condiciones || 'contra entrega'
           }
@@ -705,12 +705,19 @@ const CotizacionForm = () => {
           alto: medidaRepresentativa.alto,
           area: areaTotal
         },
-        cantidad: pieza.medidas?.length || pieza.cantidad || 1,
+        cantidad: 1, // SIEMPRE 1 para levantamientos importados
         precioUnitario: pieza.precioM2 || 0,
-        subtotal: areaTotal * (pieza.precioM2 || 0)
+        subtotal: areaTotal * (pieza.precioM2 || 0) // Solo área × precio, sin multiplicar por cantidad
       };
       
-      console.log(`Agregando producto ${idx + 1}:`, productoImportado);
+      console.log(`=== PRODUCTO IMPORTADO ${idx + 1} ===`);
+      console.log('Área total calculada:', areaTotal);
+      console.log('Precio por m²:', pieza.precioM2);
+      console.log('Cantidad fija:', 1);
+      console.log('Subtotal calculado:', areaTotal * (pieza.precioM2 || 0));
+      console.log('Producto final:', productoImportado);
+      console.log('=== FIN PRODUCTO ===');
+      
       append(productoImportado);
     });
 
@@ -818,15 +825,32 @@ const CotizacionForm = () => {
         setSuccess('Cotización actualizada exitosamente');
         console.log('Cotización actualizada:', response.data);
       } else {
+        console.log('Enviando datos de cotización:', cotizacionData);
         response = await axiosConfig.post('/cotizaciones', cotizacionData);
+        console.log('Respuesta del servidor:', response.data);
         setSuccess('Cotización creada exitosamente');
-        console.log('Cotización creada:', response.data);
-        setTimeout(() => navigate('/cotizaciones'), 2000);
+        console.log('Navegando a /cotizaciones en 2 segundos...');
+        setTimeout(() => {
+          console.log('Ejecutando navegación...');
+          navigate('/cotizaciones');
+        }, 2000);
       }
     } catch (error) {
       console.error('Error guardando cotización:', error);
+      console.error('Response status:', error.response?.status);
       console.error('Response data:', error.response?.data);
-      setError(error.response?.data?.message || 'Error guardando la cotización');
+      console.error('Error message:', error.message);
+      
+      let errorMessage = 'Error guardando la cotización';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.details) {
+        errorMessage = `Error de validación: ${error.response.data.details.join(', ')}`;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

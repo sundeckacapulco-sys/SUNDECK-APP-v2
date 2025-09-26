@@ -98,6 +98,7 @@ const Dashboard = () => {
     { name: 'Contactados', value: pipeline.contactados, color: '#82ca9d' },
     { name: 'Citas', value: pipeline.citasAgendadas, color: '#ffc658' },
     { name: 'Cotizaciones', value: pipeline.cotizaciones, color: '#ff7300' },
+    { name: 'Ventas Cerradas', value: pipeline.ventasCerradas, color: '#2e7d32' },
     { name: 'Pedidos', value: pipeline.pedidos, color: '#00C49F' },
     { name: 'Fabricación', value: pipeline.fabricacion, color: '#0088FE' },
     { name: 'Instalación', value: pipeline.instalacion, color: '#FFBB28' },
@@ -170,7 +171,7 @@ const Dashboard = () => {
             value={metricas.ventasCerradas}
             icon={<CheckCircle />}
             color="success"
-            subtitle={`Últimos ${metricas.periodo} días`}
+            subtitle={`Incluye front + backstage • ${metricas.periodo} días`}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>

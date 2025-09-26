@@ -62,22 +62,28 @@ const KanbanBoard = () => {
       textColor: '#f9a825'
     },
     { 
-      id: 'pedido', 
-      title: 'Pedido', 
+      id: 'venta_cerrada', 
+      title: 'Venta Cerrada', 
       color: '#e8f5e8',
-      textColor: '#388e3c'
+      textColor: '#2e7d32'
     },
     { 
-      id: 'fabricacion', 
-      title: 'Fabricación', 
+      id: 'pedido', 
+      title: 'Pedido', 
       color: '#e1f5fe',
       textColor: '#0288d1'
     },
     { 
-      id: 'instalacion', 
-      title: 'Instalación', 
+      id: 'fabricacion', 
+      title: 'Fabricación', 
       color: '#f1f8e9',
       textColor: '#689f38'
+    },
+    { 
+      id: 'instalacion', 
+      title: 'Instalación', 
+      color: '#fff3e0',
+      textColor: '#f57c00'
     },
     { 
       id: 'entregado', 
@@ -281,7 +287,7 @@ const KanbanBoard = () => {
             const prospectosEtapa = getProspectosPorEtapa(etapa.id);
             
             return (
-              <Grid item xs={12} sm={6} md={3} lg={1.5} key={etapa.id}>
+              <Grid item xs={12} sm={6} md={4} lg={1.33} key={etapa.id}>
                 <Card 
                   sx={{ 
                     height: '80vh',

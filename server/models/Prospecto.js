@@ -52,7 +52,7 @@ const prospectoSchema = new mongoose.Schema({
   // Estado en el pipeline
   etapa: {
     type: String,
-    enum: ['nuevo', 'contactado', 'cita_agendada', 'cotizacion', 'pedido', 'fabricacion', 'instalacion', 'entregado', 'postventa', 'perdido'],
+    enum: ['nuevo', 'contactado', 'cita_agendada', 'cotizacion', 'venta_cerrada', 'pedido', 'fabricacion', 'instalacion', 'entregado', 'postventa', 'perdido'],
     default: 'nuevo'
   },
   

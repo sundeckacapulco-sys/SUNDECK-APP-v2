@@ -168,6 +168,28 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   
   // Estado para tipo de visita inicial
   const [tipoVisitaInicial, setTipoVisitaInicial] = useState('levantamiento'); // 'levantamiento' o 'cotizacion'
+  
+  // Estados para fecha y hora
+  const [fechaEtapa, setFechaEtapa] = useState('');
+  const [horaEtapa, setHoraEtapa] = useState('');
+
+  // Función para establecer fecha y hora actual
+  const establecerFechaHoraActual = () => {
+    const ahora = new Date();
+    const fecha = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+    const hora = ahora.toTimeString().slice(0, 5); // HH:MM
+    setFechaEtapa(fecha);
+    setHoraEtapa(hora);
+  };
+
+  // Función para manejar cambio de etapa
+  const handleCambioEtapa = (nuevaEtapa) => {
+    setNombreEtapa(nuevaEtapa);
+    // Si es Seguimiento, establecer fecha y hora automáticamente
+    if (nuevaEtapa === 'Seguimiento') {
+      establecerFechaHoraActual();
+    }
+  };
 
   const resetFormulario = () => {
     setNombreEtapa(etapaOptions[0]);
@@ -192,6 +214,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setMetodoPagoAnticipo('');
     setGuardandoPDF(false);
     setTipoVisitaInicial('levantamiento');
+    // Reset fecha y hora
+    setFechaEtapa('');
+    setHoraEtapa('');
   };
 
   useEffect(() => {
@@ -953,6 +978,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         unidadMedida: unidad,
         precioGeneral: Number(precioGeneral),
         totalM2: calcularTotalM2,
+        // Incluir fecha y hora si están definidas
+        fechaEtapa: fechaEtapa || undefined,
+        horaEtapa: horaEtapa || undefined,
         piezas: piezas.map((pieza) => {
           console.log(`🔍 Procesando pieza: ${pieza.ubicacion}, cantidad original: ${pieza.cantidad}`);
           return {
@@ -1271,7 +1299,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           <Select
             value={nombreEtapa}
             label="Etapa"
-            onChange={(e) => setNombreEtapa(e.target.value)}
+            onChange={(e) => handleCambioEtapa(e.target.value)}
           >
             {etapaOptions.map((etapa) => (
               <MenuItem key={etapa} value={etapa}>
@@ -1353,6 +1381,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
               <TextField
                 label="Fecha"
                 type="date"
+                value={fechaEtapa}
+                onChange={(e) => setFechaEtapa(e.target.value)}
                 fullWidth
                 InputLabelProps={{ shrink: true }}
               />
@@ -1361,6 +1391,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
               <TextField
                 label="Hora"
                 type="time"
+                value={horaEtapa}
+                onChange={(e) => setHoraEtapa(e.target.value)}
                 fullWidth
                 InputLabelProps={{ shrink: true }}
               />
@@ -3253,7 +3285,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
               variant="contained"
               sx={{ bgcolor: '#16A34A', '&:hover': { bgcolor: '#15803D' } }}
             >
-              {guardando ? 'Guardando...' : '💾 Guardar Levantamiento'}
+              {guardando ? 'Guardando...' : '💾 Guardar Etapa'}
             </Button>
           )}
           
