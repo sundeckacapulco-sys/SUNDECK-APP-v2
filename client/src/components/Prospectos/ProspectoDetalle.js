@@ -935,6 +935,15 @@ const ProspectoDetalle = () => {
                                     const key = archivo.url || `${nota._id || index}-archivo-${archivoIndex}`;
                                     const esImagen = archivo.tipo?.startsWith('image/');
 
+                                    const handleAbrirArchivo = (event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+
+                                      if (archivo.url) {
+                                        window.open(archivo.url, '_blank', 'noopener,noreferrer');
+                                      }
+                                    };
+
                                     if (esImagen) {
                                       return (
                                         <Box
@@ -954,6 +963,7 @@ const ProspectoDetalle = () => {
                                             display: 'block',
                                             '&:hover': { boxShadow: 3 }
                                           }}
+                                          onClick={handleAbrirArchivo}
                                         >
                                           <img
                                             src={archivo.url}
@@ -974,6 +984,7 @@ const ProspectoDetalle = () => {
                                         href={archivo.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        onClick={handleAbrirArchivo}
                                       >
                                         {archivo.nombre || `Archivo ${archivoIndex + 1}`}
                                       </Button>
