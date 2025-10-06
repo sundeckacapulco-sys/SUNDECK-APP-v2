@@ -83,7 +83,7 @@ const prioridadColors = {
   urgente: 'error'
 };
 
-const comentarioCategorias = ['General', 'Puntualidad', 'Calidad', 'Cliente'];
+const comentarioCategorias = ['General', 'Puntualidad', 'Calidad', 'Cliente', 'Reagendamiento'];
 
 const tipoProductoLabels = {
   ventana: 'Ventana',
@@ -373,18 +373,31 @@ const ProspectoDetalle = () => {
         formData.append(`evidencias`, archivo);
       });
       
-      await axiosConfig.put(`/prospectos/${id}`, formData, {
+      const evidenciasPrevias = prospecto?.evidenciasReagendamiento || [];
+
+      const { data: updateResponse } = await axiosConfig.put(`/prospectos/${id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
-      
+
+      const updatedProspecto = updateResponse?.prospecto || null;
+      if (updatedProspecto) {
+        setProspecto(updatedProspecto);
+      }
+
+      const evidenciasActuales = updatedProspecto?.evidenciasReagendamiento || [];
+      const nuevasEvidencias = evidenciasActuales.filter((archivo) =>
+        !evidenciasPrevias.some((prev) => prev.url === archivo.url)
+      );
+
       // Agregar comentario con el motivo del reagendamiento
       await axiosConfig.post(`/prospectos/${id}/comentarios`, {
         contenido: `📅 Cita reagendada - Motivo: ${motivoReagendamiento}`,
-        categoria: 'Reagendamiento'
+        categoria: 'Reagendamiento',
+        archivos: nuevasEvidencias
       });
-      
+
       // Limpiar formulario
       setMotivoReagendamiento('');
       setEvidenciasReagendamiento([]);
@@ -907,6 +920,67 @@ const ProspectoDetalle = () => {
                             </Typography>
                             {nota.categoria && (
                               <Chip label={nota.categoria} size="small" sx={{ mt: 0.5 }} />
+                            )}
+                            {Array.isArray(nota.archivos) && nota.archivos.length > 0 && (
+                              <Box sx={{ mt: 1 }}>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ display: 'block', fontWeight: 600, textTransform: 'uppercase', mb: 0.5 }}
+                                >
+                                  Evidencias
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                  {nota.archivos.map((archivo, archivoIndex) => {
+                                    const key = archivo.url || `${nota._id || index}-archivo-${archivoIndex}`;
+                                    const esImagen = archivo.tipo?.startsWith('image/');
+
+                                    if (esImagen) {
+                                      return (
+                                        <Box
+                                          component="a"
+                                          key={key}
+                                          href={archivo.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          sx={{
+                                            width: 100,
+                                            height: 72,
+                                            borderRadius: 1,
+                                            overflow: 'hidden',
+                                            border: '1px solid',
+                                            borderColor: 'divider',
+                                            cursor: 'pointer',
+                                            display: 'block',
+                                            '&:hover': { boxShadow: 3 }
+                                          }}
+                                        >
+                                          <img
+                                            src={archivo.url}
+                                            alt={archivo.nombre || `Evidencia ${archivoIndex + 1}`}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                          />
+                                        </Box>
+                                      );
+                                    }
+
+                                    return (
+                                      <Button
+                                        key={key}
+                                        size="small"
+                                        variant="outlined"
+                                        startIcon={<AttachFile fontSize="small" />}
+                                        component="a"
+                                        href={archivo.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        {archivo.nombre || `Archivo ${archivoIndex + 1}`}
+                                      </Button>
+                                    );
+                                  })}
+                                </Box>
+                              </Box>
                             )}
                           </>
                         }
