@@ -308,51 +308,15 @@ router.get('/mejores', async (req, res) => {
       return res.json({ plantillas: plantillasConMetricas });
     }
     
-    // Si no hay plantillas reales, enviar datos demo
-    console.log('No hay plantillas reales, enviando datos demo');
-    res.json({ 
-      plantillas: [
-        {
-          _id: 'demo1',
-          nombre: 'Plantilla Demo 1',
-          categoria: 'cotizacion_enviada',
-          estilo: 'formal_profesional',
-          efectividad: 85,
-          rating_promedio: 4.5,
-          veces_usada: 10,
-          fecha_creacion: new Date(),
-          activa: true
-        },
-        {
-          _id: 'demo2',
-          nombre: 'Plantilla Demo 2',
-          categoria: 'seguimiento_cotizacion',
-          estilo: 'breve_persuasivo',
-          efectividad: 75,
-          rating_promedio: 4.2,
-          veces_usada: 8,
-          fecha_creacion: new Date(),
-          activa: true
-        }
-      ]
-    });
+    // Si no hay plantillas reales, enviar array vacío
+    console.log('No hay plantillas reales, enviando array vacío');
+    res.json({ plantillas: [] });
     
   } catch (error) {
     console.error('Error en endpoint /mejores:', error);
     
-    // Fallback con datos demo
-    res.json({ 
-      plantillas: [
-        {
-          _id: 'demo1',
-          nombre: 'Plantilla Demo 1',
-          categoria: 'cotizacion_enviada',
-          efectividad: 85,
-          rating_promedio: 4.5,
-          veces_usada: 10
-        }
-      ]
-    });
+    // Solo datos reales - si hay error, array vacío
+    res.json({ plantillas: [] });
   }
 });
 
@@ -432,27 +396,14 @@ router.get('/estadisticas/resumen', async (req, res) => {
       });
     }
     
-    // Fallback con datos demo
-    console.log('No hay datos reales, enviando estadísticas demo');
+    // Si no hay datos reales, enviar estadísticas vacías
+    console.log('No hay datos reales, enviando estadísticas vacías');
     res.json({
-      total_plantillas: 5,
-      plantillas_activas: 3,
-      efectividad_promedio: 78,
-      rating_promedio: 4.2,
-      por_categoria: [
-        {
-          categoria: 'cotizacion_enviada',
-          total: 2,
-          efectividad_promedio: 85,
-          rating_promedio: 4.5
-        },
-        {
-          categoria: 'seguimiento_cotizacion',
-          total: 2,
-          efectividad_promedio: 75,
-          rating_promedio: 4.0
-        }
-      ],
+      total_plantillas: 0,
+      plantillas_activas: 0,
+      efectividad_promedio: 0,
+      rating_promedio: 0,
+      por_categoria: [],
       periodo: {
         fecha_inicio: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
         fecha_fin: new Date()

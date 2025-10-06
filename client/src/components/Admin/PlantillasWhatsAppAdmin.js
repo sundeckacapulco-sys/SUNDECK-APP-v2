@@ -127,26 +127,13 @@ const PlantillasWhatsAppAdmin = () => {
       setEstadisticas(response.data);
     } catch (error) {
       console.error('Error cargando estadísticas:', error);
-      // Fallback con datos demo si falla
+      // Solo datos reales - si falla, mostrar vacío
       setEstadisticas({
-        total_plantillas: 5,
-        plantillas_activas: 3,
-        efectividad_promedio: 78,
-        rating_promedio: 4.2,
-        por_categoria: [
-          {
-            categoria: 'cotizacion_enviada',
-            total: 2,
-            efectividad_promedio: 85,
-            rating_promedio: 4.5
-          },
-          {
-            categoria: 'seguimiento_cotizacion', 
-            total: 2,
-            efectividad_promedio: 75,
-            rating_promedio: 4.0
-          }
-        ]
+        total_plantillas: 0,
+        plantillas_activas: 0,
+        efectividad_promedio: 0,
+        rating_promedio: 0,
+        por_categoria: []
       });
     }
   };
@@ -157,25 +144,8 @@ const PlantillasWhatsAppAdmin = () => {
       setMejoresPlantillas(response.data.plantillas || []);
     } catch (error) {
       console.error('Error cargando mejores plantillas:', error);
-      // Fallback con datos demo si falla
-      setMejoresPlantillas([
-        {
-          _id: 'demo1',
-          nombre: 'Plantilla Demo 1',
-          categoria: 'cotizacion_enviada',
-          efectividad: 85,
-          rating_promedio: 4.5,
-          veces_usada: 10
-        },
-        {
-          _id: 'demo2', 
-          nombre: 'Plantilla Demo 2',
-          categoria: 'seguimiento_cotizacion',
-          efectividad: 75,
-          rating_promedio: 4.2,
-          veces_usada: 8
-        }
-      ]);
+      // Solo datos reales - si falla, mostrar vacío
+      setMejoresPlantillas([]);
     }
   };
 
