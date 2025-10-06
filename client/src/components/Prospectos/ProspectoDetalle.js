@@ -935,10 +935,23 @@ const ProspectoDetalle = () => {
                                     const key = archivo.url || `${nota._id || index}-archivo-${archivoIndex}`;
                                     const esImagen = archivo.tipo?.startsWith('image/');
 
+                                    const handleAbrirArchivo = (event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+
+                                      if (archivo.url) {
+                                        window.open(archivo.url, '_blank', 'noopener,noreferrer');
+                                      }
+                                    };
+
                                     if (esImagen) {
                                       return (
                                         <Box
+                                          component="a"
                                           key={key}
+                                          href={archivo.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
                                           sx={{
                                             width: 100,
                                             height: 72,
@@ -947,9 +960,10 @@ const ProspectoDetalle = () => {
                                             border: '1px solid',
                                             borderColor: 'divider',
                                             cursor: 'pointer',
+                                            display: 'block',
                                             '&:hover': { boxShadow: 3 }
                                           }}
-                                          onClick={() => window.open(archivo.url, '_blank', 'noopener,noreferrer')}
+                                          onClick={handleAbrirArchivo}
                                         >
                                           <img
                                             src={archivo.url}
@@ -966,7 +980,11 @@ const ProspectoDetalle = () => {
                                         size="small"
                                         variant="outlined"
                                         startIcon={<AttachFile fontSize="small" />}
-                                        onClick={() => window.open(archivo.url, '_blank', 'noopener,noreferrer')}
+                                        component="a"
+                                        href={archivo.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={handleAbrirArchivo}
                                       >
                                         {archivo.nombre || `Archivo ${archivoIndex + 1}`}
                                       </Button>
