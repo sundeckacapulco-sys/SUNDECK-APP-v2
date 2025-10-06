@@ -1431,7 +1431,7 @@ const ProspectoDetalle = () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
+              <TextFieldConDictado
                 margin="dense"
                 label="Motivo del reagendamiento (Requerido)"
                 fullWidth
@@ -1439,10 +1439,10 @@ const ProspectoDetalle = () => {
                 rows={3}
                 value={motivoReagendamiento}
                 onChange={(event) => setMotivoReagendamiento(event.target.value)}
-                placeholder="Especifica el motivo por el cual se reagenda la cita..."
+                placeholder="Especifica el motivo por el cual se reagenda la cita... (puedes usar dictado por voz)"
                 required
                 error={!motivoReagendamiento.trim() && savingReagendar}
-                helperText={!motivoReagendamiento.trim() && savingReagendar ? 'El motivo es obligatorio' : ''}
+                helperText={!motivoReagendamiento.trim() && savingReagendar ? 'El motivo es obligatorio' : 'Puedes usar el botón de micrófono para dictar el motivo'}
               />
             </Grid>
             <Grid item xs={12}>
