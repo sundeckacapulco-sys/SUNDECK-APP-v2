@@ -604,7 +604,10 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     // Cerrar el formulario de nuevo producto y limpiar
     setMostrarNuevoProducto(false);
     setNuevoProductoNombre('');
-    setErrorLocal('');
+    
+    // Mostrar mensaje de éxito
+    setErrorLocal(`✅ Producto personalizado "${nombreLimpio}" creado exitosamente`);
+    setTimeout(() => setErrorLocal(''), 3000);
     
     console.log('✅ Producto personalizado creado:', {
       value: customValue,
@@ -1590,7 +1593,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                 </Button>
               </Box>
 
-              {/* Formulario Agregar Pieza */}
+
+              {/* Agregar Partida */}
               {agregandoPieza && (
                 <Card sx={{ mb: 2 }}>
                   <CardContent>
@@ -1643,9 +1647,31 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                           label="Producto"
                           fullWidth
                           value={piezaForm.producto}
+                          SelectProps={{
+                            displayEmpty: true,
+                            renderValue: (selected) => {
+                              if (!selected) return '';
+                              
+                              // Si es un producto personalizado, mostrar su label
+                              if (selected.startsWith('custom_')) {
+                                return piezaForm.productoLabel || 'Producto personalizado';
+                              }
+                              
+                              // Si es un producto normal, buscar su label
+                              const option = productosOptions.find(opt => opt.value === selected);
+                              return option ? option.label : selected;
+                            }
+                          }}
                           onChange={(e) => {
                             const selectedOption = productosOptions.find(opt => opt.value === e.target.value);
                             const nuevoProducto = e.target.value;
+                            
+                            // Si selecciona "nuevo", mostrar formulario de producto personalizado
+                            if (nuevoProducto === 'nuevo') {
+                              setMostrarNuevoProducto(true);
+                              return;
+                            }
+                            
                             setPiezaForm(prev => ({ 
                               ...prev, 
                               producto: nuevoProducto,
@@ -2588,7 +2614,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                 </Card>
               )}
 
-              {/* Formulario Nuevo Producto */}
+              {/* Formulario Nuevo Producto - Fuera del Grid para ancho completo */}
               {mostrarNuevoProducto && (
                 <Card sx={{ mb: 2, bgcolor: 'warning.50', border: 2, borderColor: 'warning.200' }}>
                   <CardContent>
@@ -2626,17 +2652,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                             size="small"
                             variant="outlined"
                             onClick={() => setNuevoProductoNombre(sugerencia)}
-                            sx={{ 
-                              fontSize: '0.75rem', 
-                              py: 0.25, 
-                              px: 1,
-                              color: '#f59e0b',
-                              borderColor: '#f59e0b',
-                              '&:hover': {
-                                bgcolor: '#fef3c7',
-                                borderColor: '#f59e0b'
-                              }
-                            }}
+                            sx={{ fontSize: '0.75rem' }}
                           >
                             {sugerencia}
                           </Button>
@@ -2659,6 +2675,12 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                           setMostrarNuevoProducto(false);
                           setNuevoProductoNombre('');
                           setErrorLocal('');
+                          // Resetear el selector de producto al primer valor
+                          setPiezaForm(prev => ({ 
+                            ...prev, 
+                            producto: productosOptions[0].value,
+                            productoLabel: productosOptions[0].label
+                          }));
                         }}
                       >
                         Cancelar
