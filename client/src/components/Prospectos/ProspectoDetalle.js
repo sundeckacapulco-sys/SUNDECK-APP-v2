@@ -142,6 +142,14 @@ const ProspectoDetalle = () => {
   const [openWhatsApp, setOpenWhatsApp] = useState(false);
   const [contextoWhatsApp, setContextoWhatsApp] = useState('');
 
+  // Estado para modal de imagen
+  const [imagenModal, setImagenModal] = useState({
+    open: false,
+    url: '',
+    nombre: '',
+    loading: true
+  });
+
   // Comentarios y etapas (timeline)
   const [comentarios, setComentarios] = useState([]);
   const [etapas, setEtapas] = useState([]);
@@ -198,8 +206,12 @@ const ProspectoDetalle = () => {
     try {
       console.log('💾 Descargando evidencia usando axios:', archivo.url);
       
+      // Construir URL correcta (sin /api/ para archivos estáticos)
+      const urlCorrecta = archivo.url.replace('/api/uploads/', '/uploads/');
+      console.log('🔗 URL corregida para descarga:', urlCorrecta);
+      
       // Usar axios que respeta el proxy configurado
-      const response = await axiosConfig.get(archivo.url, {
+      const response = await axiosConfig.get(urlCorrecta, {
         responseType: 'blob',
         timeout: 30000 // 30 segundos de timeout
       });
@@ -258,91 +270,38 @@ const ProspectoDetalle = () => {
     }, segundos * 1000);
   };
   
-  // Función específica para abrir evidencias
+  // Función específica para abrir evidencias - SIMPLIFICADA
   const abrirEvidencia = async (archivo) => {
     try {
-      // Limpiar errores previos
-      setError('');
+      console.log('🖼️ Abriendo evidencia:', archivo);
       
-      // Primero verificar si el backend está disponible
-      const backendDisponible = await verificarBackend();
-      if (!backendDisponible) {
-        setError('El servidor backend no está disponible. Asegúrate de que esté ejecutándose en el puerto 5001.');
-        limpiarErrorDespues();
-        return;
-      }
+      // Construir URL correcta (sin /api/ para archivos estáticos)
+      const urlCorrecta = archivo.url.replace('/api/uploads/', '/uploads/');
       
-      // Debug: Listar evidencias disponibles
-      await debugEvidencias();
-      
-      const fullUrl = construirUrlCompleta(archivo.url);
-      console.log('🖼️ Intentando abrir evidencia:', {
-        archivo: archivo,
-        fullUrl: fullUrl,
-        currentLocation: window.location.href,
-        backendDisponible: backendDisponible
-      });
-      
-      // Método 1: Intentar verificar archivo con axios (respeta proxy)
-      try {
-        console.log('📡 Verificando archivo con axios:', archivo.url);
-        const response = await axiosConfig.head(archivo.url);
-        console.log('📡 Respuesta del servidor:', response.status, response.statusText);
-        
-        if (response.status === 200) {
-          console.log('✅ Archivo encontrado, procesando...');
-          
-          // Para imágenes, abrir en nueva pestaña
-          if (archivo.tipo?.startsWith('image/')) {
-            const proxyUrl = archivo.url; // axios ya maneja el proxy
-            console.log('🖼️ Abriendo imagen en nueva pestaña:', proxyUrl);
-            
-            const newWindow = window.open(proxyUrl, '_blank', 'noopener,noreferrer');
-            
-            if (!newWindow) {
-              console.warn('⚠️ No se pudo abrir la ventana (posible bloqueador de popups)');
-              // Solo mostrar error si realmente no se puede abrir
-            } else {
-              console.log('✅ Imagen abierta en nueva pestaña');
-            }
-          } else {
-            // Para otros archivos (PDF, documentos), también abrir en nueva pestaña
-            console.log('📄 Abriendo documento en nueva pestaña:', archivo.url);
-            const newWindow = window.open(archivo.url, '_blank', 'noopener,noreferrer');
-            
-            if (!newWindow) {
-              console.warn('⚠️ No se pudo abrir la ventana, iniciando descarga...');
-              // Solo descargar si realmente no se puede abrir
-              await descargarEvidencia(archivo);
-            } else {
-              console.log('✅ Documento abierto en nueva pestaña');
-            }
-          }
-          return;
-        }
-      } catch (axiosError) {
-        console.error('❌ Error en axios:', {
-          error: axiosError,
-          url: archivo.url,
-          message: axiosError.message,
-          response: axiosError.response?.status
+      // Decisión simple basada en tipo de archivo
+      if (archivo.tipo?.startsWith('image/')) {
+        // Para imágenes: SIEMPRE modal interno (sin intentos de popup)
+        console.log('🖼️ Abriendo imagen en modal interno:', urlCorrecta);
+        setImagenModal({
+          open: true,
+          url: urlCorrecta,
+          nombre: archivo.nombre || 'Evidencia',
+          loading: true
         });
-        console.warn('⚠️ Error en axios, intentando método alternativo:', axiosError);
-      }
-      
-      // Método 2: Intentar abrir directamente con URL completa
-      console.log('🔄 Intentando método alternativo...');
-      
-      const fallbackUrl = construirUrlCompleta(archivo.url);
-      console.log('🔗 Intentando abrir con URL completa:', fallbackUrl);
-      
-      const newWindow = window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
-      
-      if (!newWindow) {
-        console.warn('⚠️ Método alternativo falló - posible bloqueador de popups');
-        // No mostrar error aquí, solo log para debug
       } else {
-        console.log('✅ Archivo abierto con método alternativo');
+        // Para documentos: intentar nueva pestaña, si falla → descargar
+        console.log('📄 Abriendo documento:', urlCorrecta);
+        const newWindow = window.open(urlCorrecta, '_blank', 'noopener,noreferrer');
+        
+        // Dar tiempo para que se abra la ventana
+        setTimeout(() => {
+          if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+            console.log('📄 Popup bloqueado, iniciando descarga');
+            descargarEvidencia(archivo);
+          } else {
+            console.log('✅ Documento abierto en nueva pestaña');
+          }
+        }, 100);
       }
       
     } catch (error) {
@@ -2063,6 +2022,109 @@ const ProspectoDetalle = () => {
         datosCliente={prospecto}
         onMensajeGenerado={handleMensajeWhatsAppGenerado}
       />
+
+      {/* Modal para visualizar imágenes */}
+      <Dialog
+        open={imagenModal.open}
+        onClose={() => setImagenModal({ open: false, url: '', nombre: '' })}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: 'rgba(0, 0, 0, 0.9)',
+            backdropFilter: 'blur(10px)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: 'white', textAlign: 'center' }}>
+          {imagenModal.nombre}
+        </DialogTitle>
+        <DialogContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2, position: 'relative' }}>
+          {imagenModal.loading && (
+            <Box sx={{ 
+              position: 'absolute', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              gap: 2,
+              zIndex: 1
+            }}>
+              <CircularProgress sx={{ color: 'white' }} />
+              <Typography variant="body2" sx={{ color: 'white' }}>
+                Cargando imagen...
+              </Typography>
+            </Box>
+          )}
+          <img
+            src={imagenModal.url}
+            alt={imagenModal.nombre}
+            style={{
+              maxWidth: '100%',
+              maxHeight: '80vh',
+              objectFit: 'contain',
+              borderRadius: '8px',
+              opacity: imagenModal.loading ? 0.3 : 1,
+              transition: 'opacity 0.3s ease'
+            }}
+            onError={(e) => {
+              console.error('❌ Error cargando imagen en modal:', {
+                url: imagenModal.url,
+                error: e,
+                target: e.target
+              });
+              
+              // Intentar con URL completa si no la tiene
+              if (!imagenModal.url.startsWith('http')) {
+                const urlCompleta = `http://localhost:5001${imagenModal.url}`;
+                console.log('🔄 Intentando con URL completa:', urlCompleta);
+                e.target.src = urlCompleta;
+              } else {
+                // Si ya falló con URL completa, mostrar error
+                console.error('💥 Imagen no disponible:', imagenModal.url);
+                setImagenModal(prev => ({ ...prev, loading: false }));
+                setError(`No se pudo cargar la imagen: ${imagenModal.nombre}`);
+                limpiarErrorDespues(3);
+              }
+            }}
+            onLoad={() => {
+              console.log('✅ Imagen cargada correctamente en modal:', imagenModal.url);
+              setImagenModal(prev => ({ ...prev, loading: false }));
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
+          <Button
+            onClick={() => setImagenModal({ open: false, url: '', nombre: '', loading: true })}
+            variant="contained"
+            sx={{ bgcolor: 'white', color: 'black', '&:hover': { bgcolor: 'grey.200' } }}
+          >
+            Cerrar
+          </Button>
+          <Button
+            onClick={() => {
+              try {
+                // Construir URL completa para evitar redirección al dashboard
+                const urlCompleta = imagenModal.url.startsWith('http') 
+                  ? imagenModal.url 
+                  : `http://localhost:5001${imagenModal.url}`;
+                console.log('🔗 Abriendo URL completa en nueva pestaña:', urlCompleta);
+                
+                const newWindow = window.open(urlCompleta, '_blank', 'noopener,noreferrer');
+                if (!newWindow) {
+                  console.warn('⚠️ No se pudo abrir nueva pestaña (popup bloqueado)');
+                }
+              } catch (error) {
+                console.error('❌ Error abriendo nueva pestaña:', error);
+                // No mostrar error al usuario, es solo un problema técnico
+              }
+            }}
+            variant="outlined"
+            sx={{ color: 'white', borderColor: 'white', '&:hover': { borderColor: 'grey.300' } }}
+          >
+            Abrir en nueva pestaña
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

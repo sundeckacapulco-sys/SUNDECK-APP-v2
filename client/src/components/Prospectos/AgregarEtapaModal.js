@@ -1144,10 +1144,19 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   };
 
   const handleGenerarYGuardarPDF = async () => {
+    console.log('🎯 Iniciando generación de PDF...');
+    
     if (piezas.length === 0) {
       setErrorLocal('Debes agregar al menos una partida para generar el PDF');
       return;
     }
+
+    console.log('📋 Datos disponibles:', {
+      prospectoId,
+      piezasCount: piezas.length,
+      precioGeneral,
+      totalM2: calcularTotalM2
+    });
 
     setGuardandoPDF(true);
     setErrorLocal('');
@@ -1239,8 +1248,37 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         guardarPDF: true
       };
 
-      const response = await axiosConfig.post('/etapas/levantamiento-pdf', payload, {
-        responseType: 'blob'
+      console.log('📤 Enviando petición al servidor...', {
+        url: '/etapas/levantamiento-pdf',
+        payloadSize: JSON.stringify(payload).length
+      });
+
+      // Intentar primero el endpoint normal, si falla usar el de prueba
+      let response;
+      try {
+        response = await axiosConfig.post('/etapas/levantamiento-pdf', payload, {
+          responseType: 'blob',
+          timeout: 30000 // 30 segundos para generar PDF
+        });
+        console.log('✅ Endpoint normal funcionó correctamente');
+      } catch (normalError) {
+        console.warn('⚠️ Endpoint normal falló, intentando endpoint de prueba...', {
+          status: normalError.response?.status,
+          message: normalError.message
+        });
+        
+        // Intentar con endpoint de prueba
+        response = await axiosConfig.post('/etapas/levantamiento-pdf-test', payload, {
+          responseType: 'blob',
+          timeout: 30000
+        });
+        console.log('✅ Endpoint de prueba funcionó correctamente');
+      }
+
+      console.log('📥 Respuesta recibida:', {
+        status: response.status,
+        contentType: response.headers['content-type'],
+        dataSize: response.data?.size || 'unknown'
       });
       
       if (response.data) {
@@ -1255,12 +1293,23 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
         
+        console.log('✅ PDF descargado exitosamente');
         onSaved?.('PDF generado y guardado exitosamente');
       }
     } catch (error) {
-      console.error('Error al generar PDF:', error);
-      const mensaje = error.response?.data?.message || 'Error al generar el PDF';
-      setErrorLocal(mensaje);
+      console.error('❌ Error al generar PDF:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method
+        }
+      });
+      
+      const mensaje = error.response?.data?.message || error.message || 'Error al generar el PDF';
+      setErrorLocal(`Error: ${mensaje}`);
       onError?.(mensaje);
     } finally {
       setGuardandoPDF(false);
@@ -1281,9 +1330,14 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
         <Box>
           <Typography variant="h6">Agregar Nueva Etapa</Typography>
-          {nombreEtapa === 'Visita Inicial / Medición' && (
+          {nombreEtapa === 'Visita Inicial / Medición' && piezas.length === 0 && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               Captación del prospecto y levantamiento de medidas. Documentar medidas, necesidades y especificaciones.
+            </Typography>
+          )}
+          {nombreEtapa === 'Visita Inicial / Medición' && piezas.length > 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              📋 Resumen: {piezas.length} partida{piezas.length > 1 ? 's' : ''} medida{piezas.length > 1 ? 's' : ''} • Precio por m² de tela: ${precioGeneral.toLocaleString()}
             </Typography>
           )}
         </Box>

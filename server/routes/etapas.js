@@ -171,6 +171,33 @@ router.get('/levantamiento-pdf', authSimple, async (req, res) => {
   }
 });
 
+// Endpoint de prueba para PDF (sin permisos para debugging)
+router.post('/levantamiento-pdf-test', auth, async (req, res) => {
+  console.log('🧪 TEST: Iniciando generación de PDF de levantamiento...');
+  console.log('📋 TEST: Datos recibidos:', { 
+    prospectoId: req.body.prospectoId, 
+    piezasCount: req.body.piezas?.length || 0,
+    usuario: req.usuario?.nombre || 'Usuario desconocido'
+  });
+  
+  try {
+    const {
+      prospectoId,
+      piezas = [],
+      precioGeneral = 750,
+      totalM2 = 0,
+      unidadMedida = 'm'
+    } = req.body;
+    
+    console.log('🔍 TEST: Procesando datos...', { prospectoId, piezasCount: piezas.length });
+    
+    await generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGeneral, totalM2, unidadMedida });
+  } catch (error) {
+    console.error('❌ TEST: Error en PDF:', error);
+    res.status(500).json({ message: 'Error generando PDF (TEST)', error: error.message });
+  }
+});
+
 // Generar PDF de levantamiento de medidas (POST - mantener compatibilidad)
 router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
   console.log('🎯 Iniciando generación de PDF de levantamiento (POST)...');
@@ -194,15 +221,22 @@ router.post('/levantamiento-pdf', auth, verificarPermiso('prospectos', 'leer'), 
 
 // Función común para generar PDF
 async function generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGeneral, totalM2, unidadMedida }) {
+  try {
+    console.log('🔍 Validando prospectoId...', { prospectoId, isValid: mongoose.Types.ObjectId.isValid(prospectoId) });
 
     if (!prospectoId || !mongoose.Types.ObjectId.isValid(prospectoId)) {
+      console.error('❌ ProspectoId inválido:', prospectoId);
       return res.status(400).json({ message: 'prospectoId inválido' });
     }
 
+    console.log('🔍 Buscando prospecto en base de datos...');
     const prospecto = await Prospecto.findById(prospectoId);
     if (!prospecto) {
+      console.error('❌ Prospecto no encontrado:', prospectoId);
       return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
+
+    console.log('✅ Prospecto encontrado:', { nombre: prospecto.nombre, telefono: prospecto.telefono });
 
     // Crear objeto etapa temporal para el PDF
     const etapaTemp = {
@@ -216,7 +250,15 @@ async function generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGe
       piezas
     };
 
+    console.log('🔍 Generando PDF con pdfService...', { 
+      piezasCount: piezas.length, 
+      totalM2, 
+      precioGeneral,
+      unidadMedida 
+    });
+
     const pdf = await pdfService.generarLevantamientoPDF(etapaTemp, piezas, totalM2, precioGeneral);
+    console.log('✅ PDF generado exitosamente, tamaño:', pdf.length, 'bytes');
 
     // Crear nombre de archivo único pero más corto
     const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
@@ -239,6 +281,22 @@ async function generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGe
     res.send(pdf);
     
     console.log('✅ PDF enviado al cliente');
+  } catch (error) {
+    console.error('❌ Error en generarPDFLevantamiento:', {
+      message: error.message,
+      stack: error.stack,
+      prospectoId,
+      piezasCount: piezas?.length || 0
+    });
+    
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        message: 'Error interno generando PDF', 
+        error: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  }
 }
 
 // Manejar preflight para Excel (CORS ya maneja esto globalmente)

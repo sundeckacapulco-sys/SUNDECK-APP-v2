@@ -587,6 +587,13 @@ class PDFService {
 
   async generarLevantamientoPDF(etapa, piezas, totalM2, precioGeneral) {
     try {
+      console.log('🎨 Iniciando generación de PDF en pdfService...', {
+        piezasCount: piezas?.length || 0,
+        totalM2,
+        precioGeneral,
+        prospectoNombre: etapa?.prospecto?.nombre
+      });
+
       // Cargar logo como base64
       let logoBase64 = '';
       try {
@@ -1193,6 +1200,12 @@ class PDFService {
 
       await page.close();
       await browser.close();
+      
+      console.log('✅ PDF generado exitosamente en pdfService', {
+        size: pdf.length,
+        type: 'puppeteer'
+      });
+      
       return pdf;
 
     } catch (error) {
@@ -1352,6 +1365,11 @@ class PDFService {
 
       const file = { content: html };
       const pdf = await htmlPdf.generatePdf(file, options);
+      
+      console.log('✅ PDF generado exitosamente en pdfService', {
+        size: pdf.length,
+        type: 'html-pdf-node'
+      });
       
       return pdf;
 
