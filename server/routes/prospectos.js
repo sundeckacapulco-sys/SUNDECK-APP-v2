@@ -166,18 +166,36 @@ router.get('/:id/comentarios', auth, verificarPermiso('prospectos', 'leer'), asy
 // Agregar comentario
 router.post('/:id/comentarios', auth, verificarPermiso('prospectos', 'actualizar'), async (req, res) => {
   try {
-    const { contenido, categoria } = req.body;
+    const { contenido, categoria, archivos } = req.body;
 
     const prospecto = await Prospecto.findById(req.params.id);
     if (!prospecto) {
       return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
 
+    let archivosNota = [];
+
+    if (archivos) {
+      if (Array.isArray(archivos)) {
+        archivosNota = archivos;
+      } else if (typeof archivos === 'string') {
+        try {
+          const parsed = JSON.parse(archivos);
+          if (Array.isArray(parsed)) {
+            archivosNota = parsed;
+          }
+        } catch (parseError) {
+          console.warn('No se pudieron parsear los archivos del comentario:', parseError);
+        }
+      }
+    }
+
     prospecto.notas.push({
       usuario: req.usuario._id,
       contenido,
       tipo: 'nota',
-      categoria: categoria || 'General'
+      categoria: categoria || 'General',
+      archivos: archivosNota
     });
 
     prospecto.fechaUltimoContacto = new Date();
