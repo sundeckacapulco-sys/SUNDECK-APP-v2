@@ -79,7 +79,13 @@ const prospectoSchema = new mongoose.Schema({
       type: String,
       enum: ['General', 'Puntualidad', 'Calidad', 'Cliente', 'Reagendamiento'],
       default: 'General'
-    }
+    },
+    archivos: [{
+      nombre: String,
+      url: String,
+      tipo: String,
+      fechaSubida: Date
+    }]
   }],
   
   // Timeline de instalación / etapas
