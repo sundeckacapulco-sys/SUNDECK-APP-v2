@@ -49,6 +49,15 @@ const prospectoSchema = new mongoose.Schema({
     default: 'pendiente'
   },
   
+  // Información de reagendamiento
+  motivoReagendamiento: String,
+  evidenciasReagendamiento: [{
+    nombre: String,
+    url: String,
+    tipo: String,
+    fechaSubida: { type: Date, default: Date.now }
+  }],
+  
   // Estado en el pipeline
   etapa: {
     type: String,

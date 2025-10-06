@@ -31,7 +31,10 @@ import {
   LocationOn,
   Phone,
   WhatsApp,
-  CheckCircle
+  CheckCircle,
+  AttachFile,
+  Delete,
+  CloudUpload
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
@@ -129,6 +132,8 @@ const ProspectoDetalle = () => {
   const [savingComentario, setSavingComentario] = useState(false);
   const [reagendarFecha, setReagendarFecha] = useState('');
   const [reagendarHora, setReagendarHora] = useState('');
+  const [motivoReagendamiento, setMotivoReagendamiento] = useState('');
+  const [evidenciasReagendamiento, setEvidenciasReagendamiento] = useState([]);
   const [savingReagendar, setSavingReagendar] = useState(false);
   const [openAgregarEtapa, setOpenAgregarEtapa] = useState(false);
   const [mensajeEtapa, setMensajeEtapa] = useState('');
@@ -347,19 +352,59 @@ const ProspectoDetalle = () => {
     try {
       setSavingReagendar(true);
       setError('');
+      
+      // Validar que se haya proporcionado un motivo
+      if (!motivoReagendamiento.trim()) {
+        setError('El motivo del reagendamiento es obligatorio');
+        return;
+      }
+      
       const fechaISO = reagendarFecha ? new Date(reagendarFecha).toISOString() : null;
-      await axiosConfig.put(`/prospectos/${id}`, {
-        fechaCita: fechaISO,
-        horaCita: reagendarHora,
-        estadoCita: reagendarFecha ? 'reagendada' : prospecto?.estadoCita
+      
+      // Crear FormData para enviar archivos si hay evidencias
+      const formData = new FormData();
+      formData.append('fechaCita', fechaISO || '');
+      formData.append('horaCita', reagendarHora);
+      formData.append('estadoCita', reagendarFecha ? 'reagendada' : prospecto?.estadoCita);
+      formData.append('motivoReagendamiento', motivoReagendamiento);
+      
+      // Agregar archivos de evidencia
+      evidenciasReagendamiento.forEach((archivo, index) => {
+        formData.append(`evidencias`, archivo);
       });
+      
+      await axiosConfig.put(`/prospectos/${id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      // Agregar comentario con el motivo del reagendamiento
+      await axiosConfig.post(`/prospectos/${id}/comentarios`, {
+        contenido: `📅 Cita reagendada - Motivo: ${motivoReagendamiento}`,
+        categoria: 'Reagendamiento'
+      });
+      
+      // Limpiar formulario
+      setMotivoReagendamiento('');
+      setEvidenciasReagendamiento([]);
       setOpenReagendar(false);
       fetchProspecto();
+      fetchComentarios();
     } catch (err) {
       setError(err.response?.data?.message || 'Error al reagendar la cita');
     } finally {
       setSavingReagendar(false);
     }
+  };
+  
+  const handleAgregarEvidencia = (event) => {
+    const archivos = Array.from(event.target.files);
+    setEvidenciasReagendamiento(prev => [...prev, ...archivos]);
+  };
+  
+  const handleEliminarEvidencia = (index) => {
+    setEvidenciasReagendamiento(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleRegistrarVisita = async () => {
@@ -1274,32 +1319,115 @@ const ProspectoDetalle = () => {
       </Dialog>
 
 
-      <Dialog open={openReagendar} onClose={() => setOpenReagendar(false)} fullWidth maxWidth="xs">
+      <Dialog open={openReagendar} onClose={() => setOpenReagendar(false)} fullWidth maxWidth="md">
         <DialogTitle>Reagendar cita</DialogTitle>
         <DialogContent>
-          <TextField
-            margin="dense"
-            label="Fecha"
-            type="date"
-            fullWidth
-            value={reagendarFecha}
-            onChange={(event) => setReagendarFecha(event.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="Hora"
-            type="time"
-            fullWidth
-            value={reagendarHora}
-            onChange={(event) => setReagendarHora(event.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                margin="dense"
+                label="Fecha"
+                type="date"
+                fullWidth
+                value={reagendarFecha}
+                onChange={(event) => setReagendarFecha(event.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                margin="dense"
+                label="Hora"
+                type="time"
+                fullWidth
+                value={reagendarHora}
+                onChange={(event) => setReagendarHora(event.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                margin="dense"
+                label="Motivo del reagendamiento (Requerido)"
+                fullWidth
+                multiline
+                rows={3}
+                value={motivoReagendamiento}
+                onChange={(event) => setMotivoReagendamiento(event.target.value)}
+                placeholder="Especifica el motivo por el cual se reagenda la cita..."
+                required
+                error={!motivoReagendamiento.trim() && savingReagendar}
+                helperText={!motivoReagendamiento.trim() && savingReagendar ? 'El motivo es obligatorio' : ''}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Evidencias del reagendamiento
+                </Typography>
+                <input
+                  accept="image/*,application/pdf,.doc,.docx"
+                  style={{ display: 'none' }}
+                  id="evidencias-upload"
+                  multiple
+                  type="file"
+                  onChange={handleAgregarEvidencia}
+                />
+                <label htmlFor="evidencias-upload">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<CloudUpload />}
+                    size="small"
+                  >
+                    Subir evidencias
+                  </Button>
+                </label>
+              </Box>
+              
+              {evidenciasReagendamiento.length > 0 && (
+                <Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Archivos seleccionados:
+                  </Typography>
+                  <List dense>
+                    {evidenciasReagendamiento.map((archivo, index) => (
+                      <ListItem
+                        key={index}
+                        secondaryAction={
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => handleEliminarEvidencia(index)}
+                            startIcon={<Delete />}
+                          >
+                            Eliminar
+                          </Button>
+                        }
+                      >
+                        <ListItemText
+                          primary={archivo.name}
+                          secondary={`${(archivo.size / 1024 / 1024).toFixed(2)} MB`}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenReagendar(false)}>Cancelar</Button>
-          <Button onClick={handleReagendarCita} disabled={savingReagendar}>
+          <Button onClick={() => {
+            setOpenReagendar(false);
+            setMotivoReagendamiento('');
+            setEvidenciasReagendamiento([]);
+          }}>Cancelar</Button>
+          <Button 
+            onClick={handleReagendarCita} 
+            disabled={savingReagendar || !motivoReagendamiento.trim()}
+            variant="contained"
+          >
             {savingReagendar ? 'Guardando...' : 'Guardar'}
           </Button>
         </DialogActions>

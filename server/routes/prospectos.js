@@ -1,8 +1,52 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const Prospecto = require('../models/Prospecto');
 const { auth, verificarPermiso } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Configurar multer para subida de archivos de evidencias
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads/evidencias');
+    
+    // Crear directorio si no existe
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // Generar nombre único para el archivo
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const extension = path.extname(file.originalname);
+    cb(null, `evidencia-${uniqueSuffix}${extension}`);
+  }
+});
+
+// Filtro para validar tipos de archivo
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
+  
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Tipo de archivo no permitido. Solo se permiten imágenes, PDF y documentos de Word.'));
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB máximo
+  }
+});
 
 // Obtener todos los prospectos con filtros y paginación
 router.get('/', auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
@@ -253,7 +297,7 @@ router.post('/', auth, verificarPermiso('prospectos', 'crear'), async (req, res)
 });
 
 // Actualizar prospecto
-router.put('/:id', auth, verificarPermiso('prospectos', 'actualizar'), async (req, res) => {
+router.put('/:id', auth, verificarPermiso('prospectos', 'actualizar'), upload.array('evidencias', 10), async (req, res) => {
   try {
     const prospecto = await Prospecto.findById(req.params.id);
     
@@ -272,7 +316,7 @@ router.put('/:id', auth, verificarPermiso('prospectos', 'actualizar'), async (re
       'descripcionNecesidad', 'presupuestoEstimado', 'fechaCita', 'horaCita',
       'estadoCita', 'etapa', 'prioridad', 'fechaProximoSeguimiento', 'calificacion',
       'comoSeEntero', 'competencia', 'motivoCompra', 'archivado', 'fechaArchivado', 
-      'motivoArchivado', 'enPapelera', 'fechaEliminacion', 'eliminadoPor'
+      'motivoArchivado', 'enPapelera', 'fechaEliminacion', 'eliminadoPor', 'motivoReagendamiento'
     ];
 
     camposPermitidos.forEach(campo => {
@@ -287,8 +331,29 @@ router.put('/:id', auth, verificarPermiso('prospectos', 'actualizar'), async (re
       prospecto.motivoArchivado = undefined; // Usar undefined para eliminar el campo
     }
 
+    // Manejar archivos de evidencias del reagendamiento
+    if (req.files && req.files.length > 0) {
+      const evidencias = req.files.map(file => ({
+        nombre: file.originalname,
+        url: `/uploads/evidencias/${file.filename}`,
+        tipo: file.mimetype,
+        fechaSubida: new Date()
+      }));
+      
+      // Agregar nuevas evidencias a las existentes
+      if (!prospecto.evidenciasReagendamiento) {
+        prospecto.evidenciasReagendamiento = [];
+      }
+      prospecto.evidenciasReagendamiento.push(...evidencias);
+    }
+    
     // Actualizar fecha de último contacto si cambió la etapa
     if (req.body.etapa && req.body.etapa !== prospecto.etapa) {
+      prospecto.fechaUltimoContacto = new Date();
+    }
+    
+    // Si se está reagendando, actualizar fecha de último contacto
+    if (req.body.estadoCita === 'reagendada' && req.body.motivoReagendamiento) {
       prospecto.fechaUltimoContacto = new Date();
     }
 
