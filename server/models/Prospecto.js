@@ -77,7 +77,7 @@ const prospectoSchema = new mongoose.Schema({
     },
     categoria: {
       type: String,
-      enum: ['General', 'Puntualidad', 'Calidad', 'Cliente'],
+      enum: ['General', 'Puntualidad', 'Calidad', 'Cliente', 'Reagendamiento'],
       default: 'General'
     }
   }],
