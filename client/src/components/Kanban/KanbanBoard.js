@@ -21,7 +21,7 @@ import {
   Avatar
 } from '@mui/material';
 import { MoreVert, Phone, Email, Edit, Visibility, TrendingUp, Refresh, Schedule } from '@mui/icons-material';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable } from '../../utils/safeDnd';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
 
