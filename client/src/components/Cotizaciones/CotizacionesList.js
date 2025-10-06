@@ -140,6 +140,78 @@ const CotizacionesList = () => {
     setOpenWhatsApp(false);
   };
 
+  // Función para corregir totales de cotizaciones
+  const handleFixCotizaciones = async () => {
+    if (!window.confirm('¿Estás seguro de que quieres corregir los totales de todas las cotizaciones? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      setSuccess('');
+
+      console.log('🔧 Iniciando corrección de totales...');
+      
+      const response = await axiosConfig.post('/fix/cotizaciones');
+      
+      if (response.data.success) {
+        setSuccess('✅ Totales de cotizaciones corregidos exitosamente');
+        // Recargar la lista para ver los cambios
+        await fetchCotizaciones();
+      } else {
+        setError('Error corrigiendo totales: ' + response.data.message);
+      }
+      
+    } catch (error) {
+      console.error('Error corrigiendo totales:', error);
+      setError('Error corrigiendo totales: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para descargar PDF de cotización
+  const handleDescargarPDF = async (cotizacion) => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      console.log('📄 Descargando PDF de cotización:', cotizacion.numero);
+      
+      const response = await axiosConfig.get(`/cotizaciones/${cotizacion._id}/pdf`, {
+        responseType: 'blob'
+      });
+      
+      // Crear nombre de archivo
+      const nombreCliente = (cotizacion.prospecto?.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-');
+      const numeroCorto = cotizacion.numero || 'SIN-NUM';
+      const fecha = new Date().toISOString().split('T')[0];
+      const nombreArchivo = `Cotizacion-${numeroCorto}-${nombreCliente}-${fecha}.pdf`;
+      
+      // Crear blob y descargar
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      setSuccess(`✅ PDF descargado: ${nombreArchivo}`);
+      handleMenuClose();
+      
+    } catch (error) {
+      console.error('Error descargando PDF:', error);
+      setError('Error descargando PDF: ' + (error.response?.data?.message || error.message));
+      handleMenuClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -164,6 +236,22 @@ const CotizacionesList = () => {
             Cotización Directa
           </Button>
           <Button
+            variant="outlined"
+            onClick={handleFixCotizaciones}
+            disabled={loading}
+            sx={{
+              borderColor: '#dc3545',
+              color: '#dc3545',
+              '&:hover': {
+                borderColor: '#c82333',
+                color: '#c82333',
+                bgcolor: '#f8f9fa'
+              }
+            }}
+          >
+            🔧 Corregir Totales
+          </Button>
+          <Button
             variant="contained"
             startIcon={<Add />}
             onClick={() => navigate('/cotizaciones/nueva')}
@@ -179,6 +267,7 @@ const CotizacionesList = () => {
             <TableRow>
               <TableCell>Número</TableCell>
               <TableCell>Cliente</TableCell>
+              <TableCell>Productos</TableCell>
               <TableCell>Total</TableCell>
               <TableCell>Estado</TableCell>
               <TableCell>Fecha</TableCell>
@@ -189,13 +278,13 @@ const CotizacionesList = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={8} align="center">
                   Cargando...
                 </TableCell>
               </TableRow>
             ) : cotizaciones.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={8} align="center">
                   No se encontraron cotizaciones
                 </TableCell>
               </TableRow>
@@ -213,6 +302,17 @@ const CotizacionesList = () => {
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {cotizacion.prospecto?.telefono || ''}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#2563eb' }}>
+                      {cotizacion.productos?.length || 0} productos
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {(() => {
+                        const totalCantidad = (cotizacion.productos || []).reduce((sum, prod) => sum + (prod.cantidad || 1), 0);
+                        return `${totalCantidad} piezas total`;
+                      })()}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -284,6 +384,13 @@ const CotizacionesList = () => {
         >
           <Send sx={{ mr: 1 }} />
           Enviar
+        </MenuItem>
+        <MenuItem
+          onClick={() => handleDescargarPDF(selectedCotizacion)}
+          sx={{ color: '#2196f3' }}
+        >
+          <GetApp sx={{ mr: 1 }} />
+          Descargar PDF
         </MenuItem>
         <MenuItem
           onClick={() => abrirGeneradorWhatsApp(selectedCotizacion, obtenerContextoPorEstado(selectedCotizacion?.estado))}

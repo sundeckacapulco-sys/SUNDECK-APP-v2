@@ -298,11 +298,20 @@ router.get('/:id', auth, verificarPermiso('cotizaciones', 'leer'), async (req, r
 // Actualizar cotización
 router.put('/:id', auth, verificarPermiso('cotizaciones', 'actualizar'), async (req, res) => {
   try {
+    console.log('=== ACTUALIZAR COTIZACIÓN ===');
+    console.log('ID:', req.params.id);
+    console.log('Body completo:', JSON.stringify(req.body, null, 2));
+    
     const cotizacion = await Cotizacion.findById(req.params.id);
     
     if (!cotizacion) {
       return res.status(404).json({ message: 'Cotización no encontrada' });
     }
+    
+    console.log('Cotización antes de actualizar:');
+    console.log('- Total actual:', cotizacion.total);
+    console.log('- IVA actual:', cotizacion.iva);
+    console.log('- IncluirIVA actual:', cotizacion.incluirIVA);
 
     // Solo el creador o admin/gerente pueden modificar
     if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' && 
@@ -313,16 +322,27 @@ router.put('/:id', auth, verificarPermiso('cotizaciones', 'actualizar'), async (
     const camposPermitidos = [
       'validoHasta', 'mediciones', 'productos', 'descuento', 'formaPago',
       'tiempoFabricacion', 'tiempoInstalacion', 'requiereInstalacion',
-      'costoInstalacion', 'garantia', 'estado'
+      'costoInstalacion', 'garantia', 'estado', 'subtotal', 'iva', 'total', 'incluirIVA'
     ];
 
     camposPermitidos.forEach(campo => {
       if (req.body[campo] !== undefined) {
+        console.log(`Actualizando ${campo}:`, req.body[campo]);
         cotizacion[campo] = req.body[campo];
       }
     });
 
+    console.log('Cotización después de actualizar campos:');
+    console.log('- Total nuevo:', cotizacion.total);
+    console.log('- IVA nuevo:', cotizacion.iva);
+    console.log('- IncluirIVA nuevo:', cotizacion.incluirIVA);
+
     await cotizacion.save();
+    
+    console.log('Cotización guardada exitosamente');
+    console.log('- Total final:', cotizacion.total);
+    console.log('- IVA final:', cotizacion.iva);
+    console.log('- IncluirIVA final:', cotizacion.incluirIVA);
 
     res.json({
       message: 'Cotización actualizada exitosamente',

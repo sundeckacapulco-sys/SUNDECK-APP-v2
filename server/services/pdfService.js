@@ -165,6 +165,9 @@ class PDFService {
               color: #D4AF37;
               margin-bottom: 15px;
               font-size: 24px;
+              text-align: center;
+              text-transform: uppercase;
+              letter-spacing: 1px;
             }
             
             .info-grid {
@@ -207,9 +210,12 @@ class PDFService {
             }
             
             .productos-table th {
-              background-color: #D4AF37;
+              background-color: #1E40AF;
               color: white;
               font-weight: bold;
+              text-align: center;
+              font-size: 11px;
+              text-transform: uppercase;
             }
             
             .productos-table tr:nth-child(even) {
@@ -427,10 +433,17 @@ class PDFService {
                     <span>-{{descuento.monto}}</span>
                   </div>
                   {{/if}}
+                  {{#if incluirIVA}}
                   <div class="total-item">
                     <span>IVA (16%):</span>
                     <span>{{iva}}</span>
                   </div>
+                  {{else}}
+                  <div class="total-item" style="color: #dc3545;">
+                    <span>IVA (16%):</span>
+                    <span>No incluido</span>
+                  </div>
+                  {{/if}}
                   {{#if costoInstalacion}}
                   <div class="total-item">
                     <span>Instalación:</span>
@@ -509,6 +522,7 @@ class PDFService {
         subtotal: this.formatCurrency(cotizacion.subtotal),
         iva: this.formatCurrency(cotizacion.iva),
         total: this.formatCurrency(cotizacion.total),
+        incluirIVA: cotizacion.incluirIVA !== false, // Por defecto true si no está definido
         costoInstalacion: cotizacion.costoInstalacion ? this.formatCurrency(cotizacion.costoInstalacion) : null,
         productos: cotizacion.productos.map(producto => ({
           ...producto.toObject(),

@@ -78,6 +78,7 @@ const cotizacionSchema = new mongoose.Schema({
   },
   iva: Number,
   total: Number,
+  incluirIVA: { type: Boolean, default: true }, // Flag para indicar si incluye IVA
   
   // Condiciones comerciales
   formaPago: {
@@ -201,9 +202,20 @@ cotizacionSchema.pre('save', function(next) {
         producto.requiereR24 = true;
       }
       
-      // Calcular subtotal del producto
+      // Calcular subtotal del producto según su tipo
       if (producto.precioUnitario && producto.cantidad) {
-        producto.subtotal = producto.precioUnitario * producto.cantidad;
+        const precio = producto.precioUnitario || 0;
+        const cantidad = producto.cantidad || 1;
+        const unidadMedida = producto.unidadMedida;
+        
+        if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
+          // Productos por pieza: precio × cantidad
+          producto.subtotal = precio * cantidad;
+        } else {
+          // Productos por área o lineales: área × precio × cantidad
+          const area = producto.medidas?.area || 0;
+          producto.subtotal = area * precio * cantidad;
+        }
       }
     });
   }
@@ -219,8 +231,18 @@ cotizacionSchema.pre('save', function(next) {
   
   const subtotalConDescuento = (this.subtotal || 0) - (this.descuento?.monto || 0);
   const subtotalConInstalacion = subtotalConDescuento + (this.costoInstalacion || 0);
-  this.iva = subtotalConInstalacion * 0.16; // IVA 16%
-  this.total = subtotalConInstalacion + this.iva;
+  
+  // El IVA y total se envían desde el frontend ya calculados
+  // Solo calcular si no se proporcionan Y no es una actualización
+  if ((this.iva === undefined || this.iva === null) && this.isNew) {
+    this.iva = this.incluirIVA ? subtotalConInstalacion * 0.16 : 0;
+  }
+  if ((this.total === undefined || this.total === null) && this.isNew) {
+    this.total = subtotalConInstalacion + this.iva;
+  }
+  
+  // Si no es nuevo (es una actualización), no recalcular automáticamente
+  // Confiar en los valores enviados desde el frontend
   
   // Calcular montos de anticipo y saldo
   if (this.formaPago?.anticipo?.porcentaje && this.total) {

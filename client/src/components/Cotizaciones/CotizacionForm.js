@@ -460,6 +460,11 @@ const CotizacionForm = () => {
         setDiasValidez(Math.max(1, diffDays));
       }
       
+      // Configurar estado de IVA
+      if (cotizacion.incluirIVA !== undefined) {
+        setIncluirIVA(cotizacion.incluirIVA);
+      }
+      
       setSuccess('Cotización cargada exitosamente');
       
     } catch (error) {
@@ -470,11 +475,7 @@ const CotizacionForm = () => {
 
   const calcularTotales = () => {
     const subtotal = watchedProductos.reduce((sum, producto) => {
-      // Usar subtotal calculado o calcular según tipo de producto
-      if (producto.subtotal) {
-        return sum + producto.subtotal;
-      }
-      
+      // SIEMPRE recalcular el subtotal en tiempo real (no usar producto.subtotal guardado)
       const precio = producto.precioUnitario || 0;
       const cantidad = producto.cantidad || 1;
       const unidadMedida = producto?.unidadMedida;
@@ -784,11 +785,27 @@ const CotizacionForm = () => {
 
       const totales = calcularTotales();
       
-      // Calcular subtotales de productos si no están calculados
-      const productosConSubtotal = data.productos.map(producto => ({
-        ...producto,
-        subtotal: (producto.medidas?.area || 0) * (producto.precioUnitario || 0) * (producto.cantidad || 1)
-      }));
+      // Calcular subtotales de productos usando la misma lógica que calcularTotales()
+      const productosConSubtotal = data.productos.map(producto => {
+        const precio = producto.precioUnitario || 0;
+        const cantidad = producto.cantidad || 1;
+        const unidadMedida = producto?.unidadMedida;
+        
+        let subtotal = 0;
+        if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
+          // Productos por pieza: precio × cantidad
+          subtotal = precio * cantidad;
+        } else {
+          // Productos por área o lineales: área × precio × cantidad
+          const area = producto.medidas?.area || 0;
+          subtotal = area * precio * cantidad;
+        }
+        
+        return {
+          ...producto,
+          subtotal: subtotal
+        };
+      });
 
       // Validar que tenemos un prospectoId válido
       if (!prospectoIdFinal) {
@@ -798,6 +815,25 @@ const CotizacionForm = () => {
 
       console.log('ProspectoId final a usar:', prospectoIdFinal);
       console.log('Tipo de prospectoId:', typeof prospectoIdFinal);
+      
+      // Debug de totales para verificar consistencia
+      console.log('=== DEBUG TOTALES ===');
+      console.log('Totales calculados:', totales);
+      console.log('Incluir IVA:', incluirIVA);
+      console.log('Productos con subtotal:', productosConSubtotal.map(p => ({ 
+        nombre: p.nombre, 
+        subtotal: p.subtotal,
+        precio: p.precioUnitario,
+        cantidad: p.cantidad,
+        area: p.medidas?.area
+      })));
+      const sumaSubtotales = productosConSubtotal.reduce((sum, p) => sum + (p.subtotal || 0), 0);
+      console.log('Suma de subtotales productos:', sumaSubtotales);
+      console.log('Total calculado por función:', totales.subtotal);
+      console.log('IVA calculado:', totales.iva);
+      console.log('Total final:', totales.total);
+      console.log('¿Son iguales?', Math.abs(sumaSubtotales - totales.subtotal) < 0.01);
+      console.log('=== FIN DEBUG ===');
 
       const cotizacionData = {
         prospectoId: prospectoIdFinal, // Usar el ID final (existente o creado)
@@ -814,6 +850,7 @@ const CotizacionForm = () => {
         subtotal: totales.subtotal,
         iva: totales.iva,
         total: totales.total,
+        incluirIVA: incluirIVA, // Agregar flag de IVA
         fechaEntregaEstimada: new Date(Date.now() + (data.tiempoFabricacion || 15) * 24 * 60 * 60 * 1000)
       };
 
@@ -824,6 +861,10 @@ const CotizacionForm = () => {
         response = await axiosConfig.put(`/cotizaciones/${id}`, cotizacionData);
         setSuccess('Cotización actualizada exitosamente');
         console.log('Cotización actualizada:', response.data);
+        // Navegar de vuelta a la lista después de actualizar
+        setTimeout(() => {
+          navigate('/cotizaciones');
+        }, 2000);
       } else {
         console.log('Enviando datos de cotización:', cotizacionData);
         response = await axiosConfig.post('/cotizaciones', cotizacionData);
