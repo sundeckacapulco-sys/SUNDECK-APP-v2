@@ -251,13 +251,24 @@ const ProspectoDetalle = () => {
     }
   };
   
+  // Función para limpiar errores automáticamente
+  const limpiarErrorDespues = (segundos = 5) => {
+    setTimeout(() => {
+      setError('');
+    }, segundos * 1000);
+  };
+  
   // Función específica para abrir evidencias
   const abrirEvidencia = async (archivo) => {
     try {
+      // Limpiar errores previos
+      setError('');
+      
       // Primero verificar si el backend está disponible
       const backendDisponible = await verificarBackend();
       if (!backendDisponible) {
         setError('El servidor backend no está disponible. Asegúrate de que esté ejecutándose en el puerto 5001.');
+        limpiarErrorDespues();
         return;
       }
       
@@ -289,8 +300,8 @@ const ProspectoDetalle = () => {
             const newWindow = window.open(proxyUrl, '_blank', 'noopener,noreferrer');
             
             if (!newWindow) {
-              console.warn('⚠️ No se pudo abrir la ventana (bloqueador de popups)');
-              setError('No se pudo abrir la imagen. Verifica que no tengas bloqueado los popups.');
+              console.warn('⚠️ No se pudo abrir la ventana (posible bloqueador de popups)');
+              // Solo mostrar error si realmente no se puede abrir
             } else {
               console.log('✅ Imagen abierta en nueva pestaña');
             }
@@ -301,7 +312,7 @@ const ProspectoDetalle = () => {
             
             if (!newWindow) {
               console.warn('⚠️ No se pudo abrir la ventana, iniciando descarga...');
-              setError('No se pudo abrir el archivo en nueva pestaña. Descargando archivo...');
+              // Solo descargar si realmente no se puede abrir
               await descargarEvidencia(archivo);
             } else {
               console.log('✅ Documento abierto en nueva pestaña');
@@ -328,8 +339,8 @@ const ProspectoDetalle = () => {
       const newWindow = window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
       
       if (!newWindow) {
-        console.warn('⚠️ Método alternativo falló, archivo no se puede abrir');
-        setError('No se pudo abrir el archivo. Verifica que el servidor esté funcionando correctamente.');
+        console.warn('⚠️ Método alternativo falló - posible bloqueador de popups');
+        // No mostrar error aquí, solo log para debug
       } else {
         console.log('✅ Archivo abierto con método alternativo');
       }
@@ -337,6 +348,7 @@ const ProspectoDetalle = () => {
     } catch (error) {
       console.error('❌ Error al abrir evidencia:', error);
       setError(`Error al abrir el archivo: ${error.message}`);
+      limpiarErrorDespues();
     }
   };
 
