@@ -80,6 +80,8 @@ const prioridadColors = {
   urgente: 'error'
 };
 
+const comentarioCategorias = ['General', 'Puntualidad', 'Calidad', 'Cliente'];
+
 const tipoProductoLabels = {
   ventana: 'Ventana',
   puerta: 'Puerta',
@@ -812,6 +814,7 @@ const ProspectoDetalle = () => {
                             )}
                           </>
                         }
+                        secondaryTypographyProps={{ component: 'div' }}
                       />
                     </ListItem>
                   ))}
@@ -839,6 +842,11 @@ const ProspectoDetalle = () => {
                   SelectProps={{ native: true }}
                   sx={{ width: 220 }}
                 >
+                  {comentarioCategorias.map((categoria) => (
+                    <option key={categoria} value={categoria}>
+                      {categoria}
+                    </option>
+                  ))}
                 </TextField>
               </Box>
               {comentarios.length > 0 ? (
@@ -857,6 +865,7 @@ const ProspectoDetalle = () => {
                             )}
                           </>
                         }
+                        secondaryTypographyProps={{ component: 'div' }}
                       />
                     </ListItem>
                   ))}
@@ -1150,6 +1159,7 @@ const ProspectoDetalle = () => {
                             )}
                           </>
                         }
+                        secondaryTypographyProps={{ component: 'div' }}
                       />
                     </ListItem>
                   ))}
@@ -1248,10 +1258,11 @@ const ProspectoDetalle = () => {
             SelectProps={{ native: true }}
             sx={{ mt: 2 }}
           >
-            <option value="General">General</option>
-            <option value="Puntualidad">Puntualidad</option>
-            <option value="Calidad">Calidad</option>
-            <option value="Cliente">Cliente</option>
+            {comentarioCategorias.map((categoria) => (
+              <option key={categoria} value={categoria}>
+                {categoria}
+              </option>
+            ))}
           </TextField>
         </DialogContent>
         <DialogActions>
