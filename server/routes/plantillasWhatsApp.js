@@ -84,12 +84,103 @@ router.post('/', auth, verificarPermiso('plantillas', 'crear'), async (req, res)
   }
 });
 
+// Obtener mejores plantillas - FUNCIONAL CON DATOS REALES
+router.get('/mejores', async (req, res) => {
+  try {
+    console.log('=== OBTENIENDO MEJORES PLANTILLAS ===');
+
+    // Intentar obtener plantillas reales de la base de datos
+    const plantillas = await PlantillaWhatsApp.find({ activa: true })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean()
+      .catch(() => []);
+
+    console.log('Plantillas encontradas en BD:', plantillas.length);
+
+    // Si hay plantillas reales, procesarlas
+    if (plantillas.length > 0) {
+      const plantillasConMetricas = plantillas.map(plantilla => {
+        const metricas = plantilla.metricas || {};
+        const veces_usada = metricas.veces_usada || 0;
+        const respuestas_positivas = metricas.respuestas_positivas || 0;
+        const rating_total = metricas.rating_total || 0;
+        const rating_count = metricas.rating_count || 0;
+
+        const efectividad = veces_usada > 0 ? Math.round((respuestas_positivas / veces_usada) * 100) : 0;
+        const rating_promedio = rating_count > 0 ? Math.round((rating_total / rating_count) * 10) / 10 : 0;
+
+        return {
+          _id: plantilla._id,
+          nombre: plantilla.nombre || 'Sin nombre',
+          categoria: plantilla.categoria || 'general',
+          estilo: plantilla.estilo || 'formal_profesional',
+          efectividad,
+          rating_promedio,
+          veces_usada,
+          fecha_creacion: plantilla.fecha_creacion || plantilla.createdAt,
+          activa: plantilla.activa
+        };
+      });
+
+      console.log('Enviando plantillas reales:', plantillasConMetricas.length);
+      return res.json({ plantillas: plantillasConMetricas });
+    }
+
+    // Si no hay plantillas reales, enviar datos demo
+    console.log('No hay plantillas reales, enviando datos demo');
+    res.json({
+      plantillas: [
+        {
+          _id: 'demo1',
+          nombre: 'Plantilla Demo 1',
+          categoria: 'cotizacion_enviada',
+          estilo: 'formal_profesional',
+          efectividad: 85,
+          rating_promedio: 4.5,
+          veces_usada: 10,
+          fecha_creacion: new Date(),
+          activa: true
+        },
+        {
+          _id: 'demo2',
+          nombre: 'Plantilla Demo 2',
+          categoria: 'seguimiento_cotizacion',
+          estilo: 'breve_persuasivo',
+          efectividad: 75,
+          rating_promedio: 4.2,
+          veces_usada: 8,
+          fecha_creacion: new Date(),
+          activa: true
+        }
+      ]
+    });
+
+  } catch (error) {
+    console.error('Error en endpoint /mejores:', error);
+
+    // Fallback con datos demo
+    res.json({
+      plantillas: [
+        {
+          _id: 'demo1',
+          nombre: 'Plantilla Demo 1',
+          categoria: 'cotizacion_enviada',
+          efectividad: 85,
+          rating_promedio: 4.5,
+          veces_usada: 10
+        }
+      ]
+    });
+  }
+});
+
 // Obtener plantilla por ID
 router.get('/:id', auth, async (req, res) => {
   try {
     const plantilla = await PlantillaWhatsApp.findById(req.params.id)
       .populate('creada_por', 'nombre apellido');
-    
+
     if (!plantilla) {
       return res.status(404).json({ message: 'Plantilla no encontrada' });
     }
@@ -121,8 +212,8 @@ router.put('/:id', auth, verificarPermiso('plantillas', 'editar'), async (req, r
   } catch (error) {
     console.error('Error actualizando plantilla:', error);
     if (error.name === 'ValidationError') {
-      return res.status(400).json({ 
-        message: 'Datos inválidos', 
+      return res.status(400).json({
+        message: 'Datos inválidos',
         errors: Object.values(error.errors).map(e => e.message)
       });
     }
@@ -134,7 +225,7 @@ router.put('/:id', auth, verificarPermiso('plantillas', 'editar'), async (req, r
 router.delete('/:id', auth, verificarPermiso('plantillas', 'eliminar'), async (req, res) => {
   try {
     const plantilla = await PlantillaWhatsApp.findByIdAndDelete(req.params.id);
-    
+
     if (!plantilla) {
       return res.status(404).json({ message: 'Plantilla no encontrada' });
     }
@@ -153,7 +244,7 @@ router.delete('/:id', auth, verificarPermiso('plantillas', 'eliminar'), async (r
 router.post('/:id/generar', auth, async (req, res) => {
   try {
     const { datos } = req.body;
-    
+
     const plantilla = await PlantillaWhatsApp.findById(req.params.id);
     if (!plantilla) {
       return res.status(404).json({ message: 'Plantilla no encontrada' });
@@ -164,7 +255,7 @@ router.post('/:id/generar', auth, async (req, res) => {
     }
 
     const mensajeGenerado = plantilla.generarMensaje(datos);
-    
+
     // Registrar que se generó el mensaje
     const tracking = new WhatsAppTracking({
       plantilla: plantilla._id,
@@ -261,97 +352,6 @@ router.post('/tracking', auth, async (req, res) => {
       message: 'Error interno del servidor',
       error: error.message,
       details: error.stack
-    });
-  }
-});
-
-// Obtener mejores plantillas - FUNCIONAL CON DATOS REALES
-router.get('/mejores', async (req, res) => {
-  try {
-    console.log('=== OBTENIENDO MEJORES PLANTILLAS ===');
-    
-    // Intentar obtener plantillas reales de la base de datos
-    const plantillas = await PlantillaWhatsApp.find({ activa: true })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .lean()
-      .catch(() => []);
-    
-    console.log('Plantillas encontradas en BD:', plantillas.length);
-    
-    // Si hay plantillas reales, procesarlas
-    if (plantillas.length > 0) {
-      const plantillasConMetricas = plantillas.map(plantilla => {
-        const metricas = plantilla.metricas || {};
-        const veces_usada = metricas.veces_usada || 0;
-        const respuestas_positivas = metricas.respuestas_positivas || 0;
-        const rating_total = metricas.rating_total || 0;
-        const rating_count = metricas.rating_count || 0;
-        
-        const efectividad = veces_usada > 0 ? Math.round((respuestas_positivas / veces_usada) * 100) : 0;
-        const rating_promedio = rating_count > 0 ? Math.round((rating_total / rating_count) * 10) / 10 : 0;
-        
-        return {
-          _id: plantilla._id,
-          nombre: plantilla.nombre || 'Sin nombre',
-          categoria: plantilla.categoria || 'general',
-          estilo: plantilla.estilo || 'formal_profesional',
-          efectividad,
-          rating_promedio,
-          veces_usada,
-          fecha_creacion: plantilla.fecha_creacion || plantilla.createdAt,
-          activa: plantilla.activa
-        };
-      });
-      
-      console.log('Enviando plantillas reales:', plantillasConMetricas.length);
-      return res.json({ plantillas: plantillasConMetricas });
-    }
-    
-    // Si no hay plantillas reales, enviar datos demo
-    console.log('No hay plantillas reales, enviando datos demo');
-    res.json({ 
-      plantillas: [
-        {
-          _id: 'demo1',
-          nombre: 'Plantilla Demo 1',
-          categoria: 'cotizacion_enviada',
-          estilo: 'formal_profesional',
-          efectividad: 85,
-          rating_promedio: 4.5,
-          veces_usada: 10,
-          fecha_creacion: new Date(),
-          activa: true
-        },
-        {
-          _id: 'demo2',
-          nombre: 'Plantilla Demo 2',
-          categoria: 'seguimiento_cotizacion',
-          estilo: 'breve_persuasivo',
-          efectividad: 75,
-          rating_promedio: 4.2,
-          veces_usada: 8,
-          fecha_creacion: new Date(),
-          activa: true
-        }
-      ]
-    });
-    
-  } catch (error) {
-    console.error('Error en endpoint /mejores:', error);
-    
-    // Fallback con datos demo
-    res.json({ 
-      plantillas: [
-        {
-          _id: 'demo1',
-          nombre: 'Plantilla Demo 1',
-          categoria: 'cotizacion_enviada',
-          efectividad: 85,
-          rating_promedio: 4.5,
-          veces_usada: 10
-        }
-      ]
     });
   }
 });
