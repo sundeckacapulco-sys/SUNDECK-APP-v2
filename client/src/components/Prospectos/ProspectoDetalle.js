@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -16,9 +16,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  Step,
-  StepLabel,
-  Stepper,
   TextField,
   Tooltip,
   Typography
@@ -41,7 +38,6 @@ import axiosConfig from '../../config/axios';
 import AgregarEtapaModal from './AgregarEtapaModal';
 import GeneradorWhatsApp from '../WhatsApp/GeneradorWhatsApp';
 import TextFieldConDictado from '../Common/TextFieldConDictado';
-import { downloadFileFromBlob } from '../../utils/downloadUtils';
 
 const etapaLabels = {
   nuevo: 'Nuevo',
@@ -149,8 +145,202 @@ const ProspectoDetalle = () => {
   // Comentarios y etapas (timeline)
   const [comentarios, setComentarios] = useState([]);
   const [etapas, setEtapas] = useState([]);
+  
+  // Función para verificar si el backend está disponible
+  const verificarBackend = async () => {
+    try {
+      const backendUrl = 'http://localhost:5001/api/health';
+      console.log('🔍 Verificando backend en:', backendUrl);
+      const response = await fetch(backendUrl);
+      console.log('🔍 Estado del backend:', response.status, response.ok);
+      return response.ok;
+    } catch (error) {
+      console.error('❌ Backend no disponible:', error);
+      return false;
+    }
+  };
+  
+  // Función para debug - listar evidencias disponibles
+  const debugEvidencias = async () => {
+    try {
+      console.log('🔍 Obteniendo lista de evidencias...');
+      const response = await axiosConfig.get('/api/debug/evidencias');
+      console.log('📁 Evidencias disponibles:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error obteniendo evidencias:', error);
+      return null;
+    }
+  };
+  
+  // Función auxiliar para construir URLs completas - FORZAR PUERTO 5001
+  const construirUrlCompleta = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('blob:')) {
+      return url;
+    }
+    
+    // FORZAR siempre el puerto 5001 del backend
+    const backendUrl = 'http://localhost:5001';
+    const finalUrl = url.startsWith('/') ? `${backendUrl}${url}` : `${backendUrl}/${url}`;
+    
+    console.log('🔗 URL FORZADA:', {
+      original: url,
+      backendUrl,
+      finalUrl
+    });
+    
+    return finalUrl;
+  };
+  
+  // Función para descargar archivo directamente usando axios (respeta el proxy)
+  const descargarEvidencia = async (archivo) => {
+    try {
+      console.log('💾 Descargando evidencia usando axios:', archivo.url);
+      
+      // Usar axios que respeta el proxy configurado
+      const response = await axiosConfig.get(archivo.url, {
+        responseType: 'blob',
+        timeout: 30000 // 30 segundos de timeout
+      });
+      
+      const blob = response.data;
+      const url = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = archivo.nombre || `evidencia-${Date.now()}`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log('✅ Descarga iniciada exitosamente');
+    } catch (error) {
+      console.error('❌ Error descargando con axios:', error);
+      
+      // Fallback: intentar con fetch directo
+      try {
+        console.log('🔄 Intentando fallback con fetch directo...');
+        const fullUrl = construirUrlCompleta(archivo.url);
+        const response = await fetch(fullUrl);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = archivo.nombre || `evidencia-${Date.now()}`;
+        document.body.appendChild(link);
+        link.click();
+        
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        console.log('✅ Descarga fallback exitosa');
+      } catch (fallbackError) {
+        console.error('❌ Error en fallback:', fallbackError);
+        throw new Error(`No se pudo descargar el archivo: ${error.message}`);
+      }
+    }
+  };
+  
+  // Función específica para abrir evidencias
+  const abrirEvidencia = async (archivo) => {
+    try {
+      // Primero verificar si el backend está disponible
+      const backendDisponible = await verificarBackend();
+      if (!backendDisponible) {
+        setError('El servidor backend no está disponible. Asegúrate de que esté ejecutándose en el puerto 5001.');
+        return;
+      }
+      
+      // Debug: Listar evidencias disponibles
+      await debugEvidencias();
+      
+      const fullUrl = construirUrlCompleta(archivo.url);
+      console.log('🖼️ Intentando abrir evidencia:', {
+        archivo: archivo,
+        fullUrl: fullUrl,
+        currentLocation: window.location.href,
+        backendDisponible: backendDisponible
+      });
+      
+      // Método 1: Intentar verificar archivo con axios (respeta proxy)
+      try {
+        console.log('📡 Verificando archivo con axios:', archivo.url);
+        const response = await axiosConfig.head(archivo.url);
+        console.log('📡 Respuesta del servidor:', response.status, response.statusText);
+        
+        if (response.status === 200) {
+          console.log('✅ Archivo encontrado, procesando...');
+          
+          // Para imágenes, abrir en nueva pestaña
+          if (archivo.tipo?.startsWith('image/')) {
+            const proxyUrl = archivo.url; // axios ya maneja el proxy
+            console.log('🖼️ Abriendo imagen en nueva pestaña:', proxyUrl);
+            
+            const newWindow = window.open(proxyUrl, '_blank', 'noopener,noreferrer');
+            
+            if (!newWindow) {
+              console.warn('⚠️ No se pudo abrir la ventana (bloqueador de popups)');
+              setError('No se pudo abrir la imagen. Verifica que no tengas bloqueado los popups.');
+            } else {
+              console.log('✅ Imagen abierta en nueva pestaña');
+            }
+          } else {
+            // Para otros archivos (PDF, documentos), también abrir en nueva pestaña
+            console.log('📄 Abriendo documento en nueva pestaña:', archivo.url);
+            const newWindow = window.open(archivo.url, '_blank', 'noopener,noreferrer');
+            
+            if (!newWindow) {
+              console.warn('⚠️ No se pudo abrir la ventana, iniciando descarga...');
+              setError('No se pudo abrir el archivo en nueva pestaña. Descargando archivo...');
+              await descargarEvidencia(archivo);
+            } else {
+              console.log('✅ Documento abierto en nueva pestaña');
+            }
+          }
+          return;
+        }
+      } catch (axiosError) {
+        console.error('❌ Error en axios:', {
+          error: axiosError,
+          url: archivo.url,
+          message: axiosError.message,
+          response: axiosError.response?.status
+        });
+        console.warn('⚠️ Error en axios, intentando método alternativo:', axiosError);
+      }
+      
+      // Método 2: Intentar abrir directamente con URL completa
+      console.log('🔄 Intentando método alternativo...');
+      
+      const fallbackUrl = construirUrlCompleta(archivo.url);
+      console.log('🔗 Intentando abrir con URL completa:', fallbackUrl);
+      
+      const newWindow = window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+      
+      if (!newWindow) {
+        console.warn('⚠️ Método alternativo falló, archivo no se puede abrir');
+        setError('No se pudo abrir el archivo. Verifica que el servidor esté funcionando correctamente.');
+      } else {
+        console.log('✅ Archivo abierto con método alternativo');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error al abrir evidencia:', error);
+      setError(`Error al abrir el archivo: ${error.message}`);
+    }
+  };
 
-  const fetchProspecto = async () => {
+  const fetchProspecto = useCallback(async () => {
     try {
       setLoadingProspecto(true);
       setError('');
@@ -163,18 +353,18 @@ const ProspectoDetalle = () => {
     } finally {
       setLoadingProspecto(false);
     }
-  };
+  }, [id]);
 
-  const fetchComentarios = async () => {
+  const fetchComentarios = useCallback(async () => {
     try {
       const { data } = await axiosConfig.get(`/prospectos/${id}/comentarios`);
       setComentarios(data || []);
     } catch (err) {
       console.error('Error cargando comentarios:', err);
     }
-  };
+  }, [id]);
 
-  const fetchEtapas = async () => {
+  const fetchEtapas = useCallback(async () => {
     try {
       const { data } = await axiosConfig.get(`/etapas?prospectoId=${id}`);
       setEtapas(data.etapas || []);
@@ -182,9 +372,9 @@ const ProspectoDetalle = () => {
       console.error('Error cargando etapas:', error);
       setEtapas([]);
     }
-  };
+  }, [id]);
 
-  const fetchCotizaciones = async () => {
+  const fetchCotizaciones = useCallback(async () => {
     try {
       setLoadingCotizaciones(true);
       const { data } = await axiosConfig.get(`/cotizaciones?prospecto=${id}&page=1&limit=50`);
@@ -194,14 +384,14 @@ const ProspectoDetalle = () => {
     } finally {
       setLoadingCotizaciones(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchProspecto();
     fetchCotizaciones();
     fetchComentarios();
     fetchEtapas();
-  }, [id]);
+  }, [id, fetchProspecto, fetchCotizaciones, fetchComentarios, fetchEtapas]);
 
   const direccionTexto = useMemo(() => {
     if (!prospecto?.direccion) return 'Sin dirección registrada';
@@ -224,11 +414,6 @@ const ProspectoDetalle = () => {
       return prospecto.contacto.nombre || prospecto.contacto.email || 'Sin definir';
     }
     return prospecto.nombre;
-  }, [prospecto]);
-
-  const comentariosSupervision = useMemo(() => {
-    if (!prospecto?.notas) return [];
-    return prospecto.notas.filter((nota) => nota.tipo === 'nota' || nota.tipo === 'comentario');
   }, [prospecto]);
 
   const medidasTexto = useMemo(() => {
@@ -297,18 +482,6 @@ const ProspectoDetalle = () => {
     if (!prospecto?.etapa) return -1;
     return pipelineOrder.indexOf(prospecto.etapa);
   }, [prospecto]);
-
-  const activeTimelineStep = useMemo(() => {
-    if (etapaActualIndex === -1) return 0;
-    let lastCompleted = -1;
-    timelineSteps.forEach((step, index) => {
-      const stepIndex = pipelineOrder.indexOf(step.etapaClave);
-      if (stepIndex !== -1 && etapaActualIndex >= stepIndex) {
-        lastCompleted = index;
-      }
-    });
-    return lastCompleted === -1 ? 0 : lastCompleted;
-  }, [etapaActualIndex]);
 
   const abrirWhatsApp = () => {
     if (!prospecto?.telefono) {
@@ -935,42 +1108,82 @@ const ProspectoDetalle = () => {
                                     const key = archivo.url || `${nota._id || index}-archivo-${archivoIndex}`;
                                     const esImagen = archivo.tipo?.startsWith('image/');
 
-                                    const handleAbrirArchivo = (event) => {
+                                    const handleAbrirArchivo = async (event) => {
                                       event.preventDefault();
                                       event.stopPropagation();
 
                                       if (archivo.url) {
-                                        window.open(archivo.url, '_blank', 'noopener,noreferrer');
+                                        await abrirEvidencia(archivo);
                                       }
                                     };
 
                                     if (esImagen) {
                                       return (
-                                        <Box
-                                          component="a"
+                                        <Tooltip 
                                           key={key}
-                                          href={archivo.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          sx={{
-                                            width: 100,
-                                            height: 72,
-                                            borderRadius: 1,
-                                            overflow: 'hidden',
-                                            border: '1px solid',
-                                            borderColor: 'divider',
-                                            cursor: 'pointer',
-                                            display: 'block',
-                                            '&:hover': { boxShadow: 3 }
-                                          }}
-                                          onClick={handleAbrirArchivo}
+                                          title={`${archivo.nombre || 'Evidencia'} - Clic para ver en nueva pestaña`}
+                                          arrow
                                         >
-                                          <img
-                                            src={archivo.url}
-                                            alt={archivo.nombre || `Evidencia ${archivoIndex + 1}`}
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                          />
-                                        </Box>
+                                          <Box
+                                            sx={{
+                                              position: 'relative',
+                                              width: 100,
+                                              height: 72,
+                                              borderRadius: 1,
+                                              overflow: 'hidden',
+                                              border: '1px solid',
+                                              borderColor: 'divider',
+                                              cursor: 'pointer',
+                                              display: 'block',
+                                              '&:hover': { 
+                                                boxShadow: 3,
+                                                '& .download-overlay': {
+                                                  opacity: 1
+                                                }
+                                              }
+                                            }}
+                                            onClick={handleAbrirArchivo}
+                                          >
+                                            <img
+                                              src={construirUrlCompleta(archivo.url)}
+                                              alt={archivo.nombre || `Evidencia ${archivoIndex + 1}`}
+                                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                              onError={(e) => {
+                                                console.error('Error cargando imagen:', archivo.url);
+                                                e.target.style.display = 'none';
+                                              }}
+                                            />
+                                            {/* Overlay con botón de descarga */}
+                                            <Box
+                                              className="download-overlay"
+                                              sx={{
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                backgroundColor: 'rgba(0,0,0,0.5)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                opacity: 0,
+                                                transition: 'opacity 0.2s'
+                                              }}
+                                            >
+                                              <Button
+                                                size="small"
+                                                variant="contained"
+                                                sx={{ minWidth: 'auto', p: 0.5 }}
+                                                onClick={async (e) => {
+                                                  e.stopPropagation();
+                                                  await descargarEvidencia(archivo);
+                                                }}
+                                              >
+                                                📥
+                                              </Button>
+                                            </Box>
+                                          </Box>
+                                        </Tooltip>
                                       );
                                     }
 
@@ -980,11 +1193,8 @@ const ProspectoDetalle = () => {
                                         size="small"
                                         variant="outlined"
                                         startIcon={<AttachFile fontSize="small" />}
-                                        component="a"
-                                        href={archivo.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
                                         onClick={handleAbrirArchivo}
+                                        sx={{ mr: 1, mb: 1 }}
                                       >
                                         {archivo.nombre || `Archivo ${archivoIndex + 1}`}
                                       </Button>

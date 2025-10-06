@@ -7,6 +7,24 @@ const { auth, verificarPermiso } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Ruta de debug para verificar evidencias
+router.get('/:id/evidencias', auth, async (req, res) => {
+  try {
+    const prospecto = await Prospecto.findById(req.params.id);
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+    
+    res.json({
+      evidenciasReagendamiento: prospecto.evidenciasReagendamiento || [],
+      comentariosConArchivos: prospecto.notas.filter(nota => nota.archivos && nota.archivos.length > 0)
+    });
+  } catch (error) {
+    console.error('Error obteniendo evidencias:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
 // Configurar multer para subida de archivos de evidencias
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

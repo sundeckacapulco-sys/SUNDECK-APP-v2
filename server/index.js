@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -120,7 +121,8 @@ app.use('/api/backup', require('./routes/backup'));
 app.use('/api/fix', require('./routes/fix')); // Ruta temporal para correcciones
 
 // Servir archivos estáticos desde uploads
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+console.log('📁 Sirviendo archivos estáticos desde:', path.join(__dirname, 'uploads'));
 
 // Servir archivos estáticos públicos (imágenes, logos, etc.)
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
@@ -132,6 +134,24 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
+});
+
+// Debug: Listar archivos de evidencias
+app.get('/api/debug/evidencias', (req, res) => {
+  const evidenciasDir = path.join(__dirname, 'uploads/evidencias');
+  try {
+    const files = fs.readdirSync(evidenciasDir);
+    res.json({
+      directory: evidenciasDir,
+      files: files.map(file => ({
+        name: file,
+        url: `/uploads/evidencias/${file}`,
+        fullPath: path.join(evidenciasDir, file)
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Error handling middleware
