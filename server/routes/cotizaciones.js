@@ -54,6 +54,9 @@ router.get('/', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res)
 // Generar cotización desde visita inicial
 router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), async (req, res) => {
   try {
+    console.log('🔍 === ENDPOINT DESDE-VISITA ===');
+    console.log('Body recibido:', JSON.stringify(req.body, null, 2));
+    
     const {
       prospectoId,
       piezas,
@@ -64,11 +67,22 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       instalacionEspecial
     } = req.body;
 
+    console.log('📋 Datos extraídos:');
+    console.log('- ProspectoId:', prospectoId);
+    console.log('- Piezas count:', Array.isArray(piezas) ? piezas.length : 'No es array');
+    console.log('- Precio general:', precioGeneral);
+    console.log('- Total M2:', totalM2);
+    console.log('- Unidad medida:', unidadMedida);
+    console.log('- Comentarios length:', comentarios?.length || 0);
+    console.log('- Instalación especial:', instalacionEspecial);
+
     // Verificar que el prospecto existe
     const prospecto = await Prospecto.findById(prospectoId);
     if (!prospecto) {
+      console.error('❌ Prospecto no encontrado:', prospectoId);
       return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
+    console.log('✅ Prospecto encontrado:', prospecto.nombre);
 
     if (!Array.isArray(piezas) || piezas.length === 0) {
       return res.status(400).json({ message: 'Debes proporcionar al menos una partida para generar la cotización.' });
@@ -261,7 +275,18 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
 
     const tiempoInstalacionEstimado = Math.max(1, Math.ceil((totalArea || 1) / 10));
 
+    console.log('📊 Datos calculados para cotización:');
+    console.log('- Productos count:', productos.length);
+    console.log('- Mediciones count:', mediciones.length);
+    console.log('- Total área:', totalArea);
+    console.log('- Tiempo fabricación:', tiempoFabricacionEstimado);
+    console.log('- Tiempo instalación:', tiempoInstalacionEstimado);
+    console.log('- Requiere instalación:', requiereInstalacion);
+    console.log('- Costo instalación:', costoInstalacion);
+    console.log('- Subtotal productos:', productos.reduce((sum, prod) => sum + (prod.subtotal || 0), 0));
+
     // Convertir piezas a productos de cotización
+    console.log('🔨 Creando nueva cotización...');
     const nuevaCotizacion = new Cotizacion({
       prospecto: prospectoId,
       // El número se genera automáticamente por el middleware del modelo
@@ -286,7 +311,9 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       elaboradaPor: req.usuario._id
     });
 
+    console.log('✅ Cotización creada en memoria, guardando...');
     await nuevaCotizacion.save();
+    console.log('✅ Cotización guardada exitosamente');
     await nuevaCotizacion.populate([
       { path: 'prospecto', select: 'nombre telefono email' },
       { path: 'elaboradaPor', select: 'nombre apellido' }
@@ -307,8 +334,17 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       cotizacion: nuevaCotizacion
     });
   } catch (error) {
-    console.error('Error generando cotización desde visita:', error);
-    res.status(500).json({ message: 'Error interno del servidor' });
+    console.error('❌ Error generando cotización desde visita:', error);
+    console.error('Stack trace:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    
+    // Enviar información detallada del error para debugging
+    res.status(500).json({ 
+      message: 'Error interno del servidor al generar cotización',
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

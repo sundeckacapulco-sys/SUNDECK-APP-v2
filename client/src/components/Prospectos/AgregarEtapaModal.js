@@ -935,9 +935,17 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setErrorLocal('');
 
     try {
+      console.log('🔍 DEBUG COTIZACIÓN - Datos antes de enviar:');
+      console.log('- ProspectoId:', prospectoId);
+      console.log('- Cantidad de piezas:', piezas.length);
+      console.log('- Precio general:', precioGeneral);
+      console.log('- Total M2:', calcularTotalM2);
+      console.log('- Unidad:', unidad);
+      console.log('- Comentarios length:', comentarios?.length || 0);
+      
       const payload = {
         prospectoId,
-        piezas: piezas.map((pieza) => {
+        piezas: piezas.map((pieza, index) => {
           // Obtener medidas del formato nuevo o del formato anterior
           let ancho = 0, alto = 0;
           
@@ -951,6 +959,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             alto = pieza.alto !== '' ? Number(pieza.alto) : 0;
           }
           
+          console.log(`📦 Pieza ${index + 1}: ${pieza.ubicacion} - ${ancho}x${alto}m`);
+          
           return {
             ubicacion: pieza.ubicacion,
             cantidad: pieza.cantidad || 1,
@@ -961,7 +971,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             producto: pieza.producto,
             productoLabel: pieza.productoLabel,
             color: pieza.color,
-            precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : precioGeneral,
+            precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : Number(precioGeneral),
             observaciones: pieza.observaciones,
             fotoUrls: pieza.fotoUrls || [],
             videoUrl: pieza.videoUrl || '',
@@ -981,10 +991,10 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0
           };
         }),
-        precioGeneral: Number(precioGeneral),
-        totalM2: calcularTotalM2,
-        unidadMedida: unidad,
-        comentarios,
+        precioGeneral: Number(precioGeneral) || 0,
+        totalM2: calcularTotalM2 || 0,
+        unidadMedida: unidad || 'm',
+        comentarios: comentarios || '',
         // Información de instalación especial
         instalacionEspecial: cobraInstalacion ? {
           activa: true,
@@ -992,6 +1002,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           precio: Number(precioInstalacion) || 0
         } : { activa: false }
       };
+
+      console.log('📤 Payload completo a enviar:', JSON.stringify(payload, null, 2));
 
       const { data } = await axiosConfig.post('/cotizaciones/desde-visita', payload);
       
@@ -1002,8 +1014,12 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       cerrarModal();
     } catch (error) {
       console.error('Error generando cotización:', error);
-      const mensaje = error.response?.data?.message || 'No se pudo generar la cotización.';
-      setErrorLocal(mensaje);
+      console.error('Response data:', error.response?.data);
+      console.error('Response status:', error.response?.status);
+      console.error('Response headers:', error.response?.headers);
+      
+      const mensaje = error.response?.data?.message || error.response?.data?.error || 'No se pudo generar la cotización.';
+      setErrorLocal(`Error ${error.response?.status || 'desconocido'}: ${mensaje}`);
       onError?.(mensaje);
     } finally {
       setGenerandoCotizacion(false);
