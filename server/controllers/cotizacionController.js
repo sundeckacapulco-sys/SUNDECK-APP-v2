@@ -7,29 +7,46 @@ exports.crearCotizacion = async (req, res) => {
     console.log('Backend: req.body recibido:', JSON.stringify(req.body, null, 2));
 
     const {
-      prospecto: prospectoId, // frontend envía 'prospecto'
-      nombre, // nombre de la cotización
-      productos, // array de productos con detalles anidados
+      prospecto: prospectoBody,
+      prospectoId: prospectoIdBody,
+      nombre,
+      productos: productosBody = [],
       comentarios,
       precioGeneralM2,
       fechaCreacion,
       unidadMedida,
       incluyeInstalacion,
-      costoInstalacion,
+      costoInstalacion: costoInstalacionBody,
       tipoInstalacion,
-      descuento, // objeto {tipo: 'porcentaje'/'monto', valor: Number}
+      descuento,
       requiereFactura,
       metodoPagoAnticipo,
       tiempoEntrega,
       diasEntregaExpres,
-      incluirTerminos
+      incluirTerminos,
+      mediciones = [],
+      validoHasta,
+      formaPago,
+      tiempoFabricacion,
+      tiempoInstalacion,
+      requiereInstalacion,
+      garantia,
+      notas,
+      incluirIVA,
+      subtotal,
+      iva,
+      total,
+      numero
     } = req.body;
+
+    const prospectoId = prospectoBody || prospectoIdBody;
 
     if (!prospectoId) {
       console.error('Error: prospectoId no proporcionado.');
       return res.status(400).json({ message: 'Debes proporcionar el prospecto asociado a la cotización.' });
     }
-    if (!Array.isArray(productos) || productos.length === 0) {
+
+    if (!Array.isArray(productosBody) || productosBody.length === 0) {
       console.error('Error: No se proporcionaron productos o el formato es incorrecto.');
       return res.status(400).json({ message: 'Debes proporcionar al menos un producto para la cotización.' });
     }
@@ -40,96 +57,96 @@ exports.crearCotizacion = async (req, res) => {
       return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
 
-    // Calcular totales utilizando la función auxiliar
-    const { subtotal, montoDescuento, ivaCalculado, totalFinal, baseParaDescuento, debeIncluirIVA } = calcularTotalesCotizacion({
-      productos,
+    const totales = calcularTotalesCotizacion({
+      productos: productosBody,
       precioGeneralM2,
-      unidadMedida,
       incluyeInstalacion,
-      costoInstalacion,
+      requiereInstalacion,
+      costoInstalacion: costoInstalacionBody,
       descuento,
-      requiereFactura
+      requiereFactura,
+      incluirIVA,
+      subtotal,
+      iva,
+      total
     });
-    
-    const numeroCotizacion = await generarNumeroCotizacion();
+
+    const numeroCotizacion = numero || await generarNumeroCotizacion();
+
+    const productosNormalizados = productosBody.map((producto) => normalizarProducto(producto));
+    const requiereInstalacionFinal = obtenerBanderaInstalacion(incluyeInstalacion, requiereInstalacion);
+    const costoInstalacionNormalizado = requiereInstalacionFinal ? totales.costoInstalacion : 0;
 
     const nuevaCotizacion = new Cotizacion({
       numero: numeroCotizacion,
       prospecto: prospecto._id,
       nombre: nombre || `Cotización para ${prospecto.nombre}`,
       fecha: fechaCreacion ? new Date(fechaCreacion) : new Date(),
-      estado: 'Activa',
-      productos: productos.map(p => ({
-        // Asegúrate de que el esquema de Cotizacion.productos sea flexible o coincida con esta estructura
-        ubicacion: p.ubicacion,
-        cantidad: p.cantidad, // `cantidad` se gestiona a nivel de pieza en el frontend
-        medidas: p.medidas.map(m => ({
-          ancho: m.ancho,
-          alto: m.alto,
-          area: m.area,
-          productoId: m.productoId,
-          nombreProducto: m.nombreProducto,
-          color: m.color,
-          precioM2: m.precioM2,
-        })),
-        observaciones: p.observaciones,
-        fotoUrls: p.fotoUrls,
-        videoUrl: p.videoUrl,
-        esToldo: p.esToldo,
-        tipoToldo: p.tipoToldo,
-        kitModelo: p.kitModelo,
-        kitModeloManual: p.kitModeloManual,
-        kitPrecio: p.kitPrecio,
-        motorizado: p.motorizado,
-        motorModelo: p.motorModelo,
-        motorModeloManual: p.motorModeloManual,
-        motorPrecio: p.motorPrecio,
-        controlModelo: p.controlModelo,
-        controlModeloManual: p.controlModeloManual,
-        controlPrecio: p.controlPrecio,
-      })),
+      validoHasta: validarFecha(validoHasta),
+      estado: req.body.estado || 'borrador',
+      productos: productosNormalizados,
+      mediciones,
       comentarios,
       precioGeneralM2,
       unidadMedida,
+      subtotal: totales.subtotalBase,
+      descuento: totales.descuentoNormalizado ? {
+        porcentaje: totales.descuentoNormalizado.porcentaje,
+        monto: totales.descuentoNormalizado.monto,
+        motivo: totales.descuentoNormalizado.motivo
+      } : undefined,
+      iva: totales.ivaCalculado,
+      total: totales.totalFinal,
+      incluirIVA: totales.debeIncluirIVA,
+      formaPago,
+      tiempoFabricacion,
+      tiempoInstalacion,
+      requiereInstalacion: requiereInstalacionFinal,
+      costoInstalacion: costoInstalacionNormalizado,
+      garantia,
+      notas: prepararNotas({ notas, comentarios, usuarioId: req.usuario?._id }),
+      elaboradaPor: req.usuario?._id || req.body.elaboradaPor || prospecto.asignadoA || prospecto.usuarioAsignado,
       instalacion: {
-        incluye: incluyeInstalacion,
-        costo: costoInstalacion,
+        incluye: requiereInstalacionFinal,
+        costo: costoInstalacionBody,
         tipo: tipoInstalacion
       },
-      descuento: descuento ? { // Mapear el objeto de descuento
+      descuentoDetalle: descuento && typeof descuento === 'object' ? {
         tipo: descuento.tipo,
-        valor: descuento.valor,
-        monto: montoDescuento, // Guardar el monto calculado del descuento
+        valor: parseNumber(descuento.valor),
+        monto: totales.montoDescuento
       } : undefined,
       facturacion: {
         requiere: requiereFactura,
-        iva: ivaCalculado,
+        iva: totales.ivaCalculado
       },
       pago: {
-        metodoAnticipo: metodoPagoAnticipo,
-        // Aquí puedes calcular y guardar anticipo y saldo si tu modelo lo tiene
+        metodoAnticipo: metodoPagoAnticipo
       },
       entrega: {
         tipo: tiempoEntrega,
-        diasExpres: diasEntregaExpres,
-        // Puedes añadir la fecha estimada de entrega aquí si la calculas en el backend
+        diasExpres: diasEntregaExpres
       },
       terminos: {
         incluir: incluirTerminos
-      },
-      subtotal: subtotal,
-      iva: ivaCalculado,
-      total: totalFinal,
-      elaboradaPor: req.usuario?._id || null, // Asegúrate de tener req.usuario
-      validoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 días por defecto
+      }
     });
 
     const cotizacionGuardada = await nuevaCotizacion.save();
+    await cotizacionGuardada.populate([
+      { path: 'prospecto', select: 'nombre telefono email' },
+      { path: 'elaboradaPor', select: 'nombre apellido' }
+    ]);
     console.log('Backend: Cotización guardada exitosamente:', cotizacionGuardada._id);
 
-    // Actualizar el estado del prospecto
     prospecto.etapa = 'cotizacion';
     prospecto.fechaUltimoContacto = new Date();
+
+    if (!prospecto.producto || prospecto.producto.trim() === '') {
+      const primerProducto = productosBody[0] || {};
+      prospecto.producto = primerProducto.nombre || primerProducto.descripcion || 'Producto cotizado';
+    }
+
     await prospecto.save();
     console.log(`Backend: Prospecto ${prospectoId} actualizado a etapa 'cotizacion'.`);
 
@@ -137,7 +154,6 @@ exports.crearCotizacion = async (req, res) => {
       message: 'Cotización creada exitosamente',
       cotizacion: cotizacionGuardada
     });
-
   } catch (error) {
     console.error('Backend: Error creando cotización:', error);
 
@@ -156,6 +172,33 @@ exports.crearCotizacion = async (req, res) => {
   }
 };
 
+function parseNumber(value) {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  const num = Number(value);
+  return Number.isFinite(num) ? num : undefined;
+}
+
+function esVerdadero(valor) {
+  if (typeof valor === 'string') {
+    return valor.toLowerCase() === 'true' || valor === '1';
+  }
+  return Boolean(valor);
+}
+
+function validarFecha(fecha) {
+  if (!fecha) {
+    return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  }
+
+  const parsed = new Date(fecha);
+  return Number.isNaN(parsed.getTime())
+    ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    : parsed;
+}
+
 async function generarNumeroCotizacion() {
   try {
     const year = new Date().getFullYear();
@@ -172,62 +215,252 @@ async function generarNumeroCotizacion() {
   }
 }
 
-// Función auxiliar para calcular todos los totales
-function calcularTotalesCotizacion({ productos = [], precioGeneralM2, unidadMedida, incluyeInstalacion, costoInstalacion, descuento, requiereFactura }) {
+function calcularTotalesCotizacion({
+  productos = [],
+  precioGeneralM2,
+  incluyeInstalacion,
+  requiereInstalacion,
+  costoInstalacion,
+  descuento,
+  requiereFactura,
+  incluirIVA,
+  subtotal,
+  iva,
+  total
+}) {
+  const precioGeneral = parseNumber(precioGeneralM2);
   let subtotalProductos = 0;
 
   for (const pieza of productos) {
-    for (const medida of pieza.medidas) {
-      const area = medida.area || ((parseFloat(medida.ancho) || 0) * (parseFloat(medida.alto) || 0));
-      const precio = parseFloat(medida.precioM2) || parseFloat(precioGeneralM2) || 0;
-      subtotalProductos += area * precio;
+    const medidas = Array.isArray(pieza?.medidas)
+      ? pieza.medidas
+      : pieza?.medidas && typeof pieza.medidas === 'object'
+        ? [pieza.medidas]
+        : [];
+
+    if (medidas.length > 0) {
+      for (const medida of medidas) {
+        const area = parseNumber(medida?.area) ?? calcularAreaMedida(medida);
+        const precio = parseNumber(medida?.precioM2)
+          ?? parseNumber(pieza?.precioM2)
+          ?? precioGeneral;
+        subtotalProductos += (area ?? 0) * (precio ?? 0);
+      }
+    } else {
+      const subtotalProducto = parseNumber(pieza?.subtotal);
+      if (subtotalProducto !== undefined) {
+        subtotalProductos += subtotalProducto;
+      } else {
+        const cantidad = parseNumber(pieza?.cantidad) ?? 1;
+        const precioUnitario = parseNumber(pieza?.precioUnitario ?? pieza?.precio ?? pieza?.precioM2 ?? precioGeneral);
+        subtotalProductos += cantidad * (precioUnitario ?? 0);
+      }
     }
-    // Añadir precios de kit, motor y control si aplican por pieza
-    if (pieza.esToldo && pieza.kitPrecio) {
-      subtotalProductos += parseFloat(pieza.kitPrecio) * (pieza.medidas?.length || 1);
+
+    const medidasLength = medidas.length > 0 ? medidas.length : undefined;
+
+    if (esVerdadero(pieza?.esToldo) && parseNumber(pieza?.kitPrecio) !== undefined) {
+      const multiplicador = medidasLength ?? (parseNumber(pieza?.cantidad) ?? 1);
+      subtotalProductos += (parseNumber(pieza?.kitPrecio) ?? 0) * multiplicador;
     }
-    if (pieza.motorizado && pieza.motorPrecio) {
-      subtotalProductos += parseFloat(pieza.motorPrecio) * (pieza.medidas?.length || 1);
+    if (esVerdadero(pieza?.motorizado) && parseNumber(pieza?.motorPrecio) !== undefined) {
+      const multiplicador = medidasLength ?? (parseNumber(pieza?.cantidad) ?? 1);
+      subtotalProductos += (parseNumber(pieza?.motorPrecio) ?? 0) * multiplicador;
     }
-    if (pieza.motorizado && pieza.controlPrecio) {
-      subtotalProductos += parseFloat(pieza.controlPrecio); // Control es por partida, no por medida individual
+    if (esVerdadero(pieza?.motorizado) && parseNumber(pieza?.controlPrecio) !== undefined) {
+      subtotalProductos += parseNumber(pieza?.controlPrecio) ?? 0;
     }
   }
 
-  let baseParaDescuento = subtotalProductos;
-  if (incluyeInstalacion && costoInstalacion) {
-    baseParaDescuento += parseFloat(costoInstalacion);
-  }
+  const subtotalBase = parseNumber(subtotal) ?? subtotalProductos;
+  const incluyeInstalacionEfectiva = esVerdadero(incluyeInstalacion) || esVerdadero(requiereInstalacion);
+  const costoInstalacionNormalizado = incluyeInstalacionEfectiva ? (parseNumber(costoInstalacion) ?? 0) : 0;
 
-  let montoDescuento = 0;
-  if (descuento && descuento.tipo && descuento.valor) {
-    const valorDescuento = parseFloat(descuento.valor);
-    if (descuento.tipo === 'porcentaje') {
-      montoDescuento = (baseParaDescuento * valorDescuento) / 100;
-    } else if (descuento.tipo === 'monto') {
-      montoDescuento = valorDescuento;
-    }
-  }
+  const baseParaDescuento = subtotalBase + costoInstalacionNormalizado;
+
+  const descuentoNormalizado = normalizarDescuento(descuento, baseParaDescuento);
+  const montoDescuento = descuentoNormalizado?.monto ?? 0;
 
   const subtotalTrasDescuento = Math.max(baseParaDescuento - montoDescuento, 0);
 
-  let debeIncluirIVA = Boolean(requiereFactura); // Si requiere factura, siempre incluye IVA
-
-  let ivaCalculado = 0;
-  if (debeIncluirIVA) {
-    ivaCalculado = Number((subtotalTrasDescuento * 0.16).toFixed(2));
+  let debeIncluirIVA = true;
+  if (incluirIVA !== undefined) {
+    debeIncluirIVA = Boolean(incluirIVA);
+  }
+  if (requiereFactura) {
+    debeIncluirIVA = true;
   }
 
-  const totalFinal = Number((subtotalTrasDescuento + ivaCalculado).toFixed(2));
+  const ivaCalculado = debeIncluirIVA
+    ? (parseNumber(iva) ?? Number((subtotalTrasDescuento * 0.16).toFixed(2)))
+    : 0;
+
+  const totalFinal = parseNumber(total) ?? Number((subtotalTrasDescuento + ivaCalculado).toFixed(2));
 
   return {
-    subtotal: Number(subtotalProductos.toFixed(2)),
-    montoDescuento: Number(montoDescuento.toFixed(2)),
-    ivaCalculado: ivaCalculado,
-    totalFinal: totalFinal,
+    subtotalProductos: Number(subtotalProductos.toFixed(2)),
+    subtotalBase: Number(subtotalBase.toFixed(2)),
     baseParaDescuento: Number(baseParaDescuento.toFixed(2)),
-    debeIncluirIVA: debeIncluirIVA
+    montoDescuento: Number(montoDescuento.toFixed(2)),
+    subtotalTrasDescuento: Number(subtotalTrasDescuento.toFixed(2)),
+    ivaCalculado: Number(ivaCalculado.toFixed(2)),
+    totalFinal: Number(totalFinal.toFixed(2)),
+    debeIncluirIVA,
+    descuentoNormalizado,
+    costoInstalacion: costoInstalacionNormalizado
   };
+}
+
+function calcularAreaMedida(medida) {
+  const ancho = parseNumber(medida?.ancho);
+  const alto = parseNumber(medida?.alto);
+
+  if (ancho !== undefined && alto !== undefined) {
+    return Number((ancho * alto).toFixed(4));
+  }
+
+  return undefined;
+}
+
+function normalizarDescuento(descuento, base) {
+  if (!descuento) {
+    return undefined;
+  }
+
+  if (typeof descuento === 'object' && descuento.aplica === false) {
+    return undefined;
+  }
+
+  const baseMonto = parseNumber(base) ?? 0;
+  let monto;
+  let porcentaje;
+  let motivo;
+
+  if (typeof descuento === 'number' || typeof descuento === 'string') {
+    monto = parseNumber(descuento);
+  } else if (typeof descuento === 'object') {
+    motivo = descuento.motivo || descuento.motivoDescuento || descuento.descripcion || descuento.razon;
+
+    if (descuento.monto !== undefined) {
+      monto = parseNumber(descuento.monto);
+    }
+
+    if (descuento.porcentaje !== undefined) {
+      porcentaje = parseNumber(descuento.porcentaje);
+    }
+
+    if (descuento.valor !== undefined) {
+      const valor = parseNumber(descuento.valor);
+      if (descuento.tipo === 'porcentaje') {
+        porcentaje = porcentaje ?? valor;
+      } else if (descuento.tipo === 'monto') {
+        monto = monto ?? valor;
+      } else if (porcentaje === undefined && monto === undefined) {
+        monto = valor;
+      }
+    }
+  }
+
+  if (porcentaje !== undefined && monto === undefined) {
+    monto = baseMonto * (porcentaje / 100);
+  }
+
+  if (monto === undefined && porcentaje === undefined && !motivo) {
+    return undefined;
+  }
+
+  const montoNormalizado = monto !== undefined ? Number((monto).toFixed(2)) : undefined;
+
+  return {
+    porcentaje: porcentaje !== undefined ? Number(porcentaje) : undefined,
+    monto: montoNormalizado,
+    motivo
+  };
+}
+
+function normalizarProducto(producto) {
+  const medidas = Array.isArray(producto?.medidas)
+    ? producto.medidas.map((medida) => normalizarMedida(medida))
+    : producto?.medidas && typeof producto.medidas === 'object'
+      ? [normalizarMedida(producto.medidas)]
+      : [];
+
+  return {
+    ubicacion: producto?.ubicacion,
+    cantidad: parseNumber(producto?.cantidad),
+    medidas,
+    observaciones: producto?.observaciones,
+    fotoUrls: producto?.fotoUrls,
+    videoUrl: producto?.videoUrl,
+    esToldo: esVerdadero(producto?.esToldo),
+    tipoToldo: producto?.tipoToldo,
+    kitModelo: producto?.kitModelo,
+    kitModeloManual: producto?.kitModeloManual,
+    kitPrecio: parseNumber(producto?.kitPrecio),
+    motorizado: esVerdadero(producto?.motorizado),
+    motorModelo: producto?.motorModelo,
+    motorModeloManual: producto?.motorModeloManual,
+    motorPrecio: parseNumber(producto?.motorPrecio),
+    controlModelo: producto?.controlModelo,
+    controlModeloManual: producto?.controlModeloManual,
+    controlPrecio: parseNumber(producto?.controlPrecio),
+    nombre: producto?.nombre,
+    descripcion: producto?.descripcion,
+    categoria: producto?.categoria,
+    material: producto?.material,
+    color: producto?.color,
+    cristal: producto?.cristal,
+    herrajes: producto?.herrajes,
+    medidasResumen: producto?.medidasResumen,
+    subtotal: parseNumber(producto?.subtotal),
+    precioUnitario: parseNumber(producto?.precioUnitario)
+  };
+}
+
+function normalizarMedida(medida) {
+  if (!medida) {
+    return {};
+  }
+
+  const ancho = parseNumber(medida?.ancho);
+  const alto = parseNumber(medida?.alto);
+  const area = parseNumber(medida?.area) ?? (ancho !== undefined && alto !== undefined ? Number((ancho * alto).toFixed(4)) : undefined);
+
+  return {
+    ancho,
+    alto,
+    area,
+    productoId: medida?.productoId,
+    nombreProducto: medida?.nombreProducto || medida?.nombre,
+    color: medida?.color,
+    precioM2: parseNumber(medida?.precioM2)
+  };
+}
+
+function obtenerBanderaInstalacion(incluyeInstalacion, requiereInstalacion) {
+  if (incluyeInstalacion !== undefined) {
+    return esVerdadero(incluyeInstalacion);
+  }
+  if (requiereInstalacion !== undefined) {
+    return esVerdadero(requiereInstalacion);
+  }
+  return false;
+}
+
+function prepararNotas({ notas, comentarios, usuarioId }) {
+  if (Array.isArray(notas) && notas.length > 0) {
+    return notas;
+  }
+
+  if (!comentarios) {
+    return undefined;
+  }
+
+  return [{
+    contenido: comentarios,
+    usuario: usuarioId,
+    fecha: new Date()
+  }];
 }
 
 function extraerErroresValidacion(error) {
@@ -236,17 +469,4 @@ function extraerErroresValidacion(error) {
     errores[campo] = error.errors[campo].message;
   });
   return errores;
-}
-
-// Helper para convertir el campo 'comentarios' a un formato de 'notas' si es necesario
-// Adaptado para el nuevo payload de frontend
-function prepararNotas({ comentarios, usuarioId }) {
-  if (!comentarios) {
-    return [];
-  }
-  return [{
-    contenido: comentarios,
-    usuario: usuarioId, // Si el usuario está disponible en req.usuario
-    fecha: new Date()
-  }];
 }
