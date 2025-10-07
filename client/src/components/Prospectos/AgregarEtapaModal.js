@@ -921,106 +921,81 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   };
 
   const handleGenerarCotizacion = async () => {
-    if (!prospectoId) {
-      setErrorLocal('No se encontró el identificador del prospecto.');
-      return;
-    }
-
-    if (piezas.length === 0) {
-      setErrorLocal('Debes agregar al menos una partida para generar la cotización.');
-      return;
-    }
-
-    setGenerandoCotizacion(true);
     setErrorLocal('');
-
+    setGenerandoCotizacion(true);
     try {
-      console.log('🔍 DEBUG COTIZACIÓN - Datos antes de enviar:');
-      console.log('- ProspectoId:', prospectoId);
-      console.log('- Cantidad de piezas:', piezas.length);
-      console.log('- Precio general:', precioGeneral);
-      console.log('- Total M2:', calcularTotalM2);
-      console.log('- Unidad:', unidad);
-      console.log('- Comentarios length:', comentarios?.length || 0);
-      
-      const payload = {
-        prospectoId,
-        piezas: piezas.map((pieza, index) => {
-          // Obtener medidas del formato nuevo o del formato anterior
-          let ancho = 0, alto = 0;
-          
-          if (pieza.medidas && pieza.medidas.length > 0) {
-            // Formato nuevo: usar la primera medida como representativa
-            ancho = Number(pieza.medidas[0].ancho) || 0;
-            alto = Number(pieza.medidas[0].alto) || 0;
-          } else if (pieza.ancho !== undefined && pieza.alto !== undefined) {
-            // Formato anterior: usar campos directos
-            ancho = pieza.ancho !== '' ? Number(pieza.ancho) : 0;
-            alto = pieza.alto !== '' ? Number(pieza.alto) : 0;
-          }
-          
-          console.log(`📦 Pieza ${index + 1}: ${pieza.ubicacion} - ${ancho}x${alto}m`);
-          
+      if (!prospectoId) {
+        throw new Error('No se ha proporcionado un ID de prospecto.');
+      }
+
+      const productosCotizacion = piezas.map(pieza => {
+        // Asumiendo que `medidas` ahora contiene los detalles por cada "item" de la pieza
+        const medidasDetalle = (pieza.medidas || []).map(medida => {
+          const anchoNum = parseFloat(medida.ancho) || 0;
+          const altoNum = parseFloat(medida.alto) || 0;
+          const area = unidad === 'cm' ? (anchoNum * altoNum) / 10000 : anchoNum * altoNum;
+
           return {
-            ubicacion: pieza.ubicacion,
-            cantidad: pieza.cantidad || 1,
-            ancho: ancho,
-            alto: alto,
-            // Incluir también el array de medidas para compatibilidad completa
-            medidas: pieza.medidas || [{ ancho, alto }],
-            producto: pieza.producto,
-            productoLabel: pieza.productoLabel,
-            color: pieza.color,
-            precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : Number(precioGeneral),
-            observaciones: pieza.observaciones,
+            ubicacion: pieza.ubicacion, // La ubicación es para el conjunto de medidas de la pieza
+            ancho: anchoNum,
+            alto: altoNum,
+            area: area,
+            productoId: medida.producto, // ID del producto
+            nombreProducto: medida.productoLabel,
+            color: medida.color,
+            precioM2: parseFloat(medida.precioM2) || undefined, // Asegurar que sea número o undefined
+            observaciones: pieza.observaciones, // Observaciones de la pieza
             fotoUrls: pieza.fotoUrls || [],
             videoUrl: pieza.videoUrl || '',
-            // Información de toldos
             esToldo: pieza.esToldo || false,
             tipoToldo: pieza.tipoToldo || '',
             kitModelo: pieza.kitModelo || '',
             kitModeloManual: pieza.kitModeloManual || '',
-            kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
-            // Información de motorización
+            kitPrecio: parseFloat(pieza.kitPrecio) || undefined,
             motorizado: pieza.motorizado || false,
             motorModelo: pieza.motorModelo || '',
             motorModeloManual: pieza.motorModeloManual || '',
-            motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
+            motorPrecio: parseFloat(pieza.motorPrecio) || undefined,
             controlModelo: pieza.controlModelo || '',
             controlModeloManual: pieza.controlModeloManual || '',
-            controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0
+            controlPrecio: parseFloat(pieza.controlPrecio) || undefined,
           };
-        }),
-        precioGeneral: Number(precioGeneral) || 0,
-        totalM2: calcularTotalM2 || 0,
-        unidadMedida: unidad || 'm',
-        comentarios: comentarios || '',
-        // Información de instalación especial
-        instalacionEspecial: cobraInstalacion ? {
-          activa: true,
-          tipo: tipoInstalacion,
-          precio: Number(precioInstalacion) || 0
-        } : { activa: false }
+        });
+        return medidasDetalle;
+      }).flat(); // Aplanar el array de arrays de medidas
+
+      const payload = {
+        prospecto: prospectoId,
+        nombre: `Cotización ${new Date().toLocaleDateString('es-MX')}`,
+        productos: productosCotizacion,
+        comentarios: comentarios,
+        precioGeneralM2: parseFloat(precioGeneral), // Asegurar que sea número
+        fechaCreacion: new Date().toISOString(),
+        unidadMedida: unidad,
+        // Nuevos campos para la cotización
+        incluyeInstalacion: cobraInstalacion,
+        costoInstalacion: cobraInstalacion ? (parseFloat(precioInstalacion) || 0) : 0,
+        tipoInstalacion: cobraInstalacion ? tipoInstalacion : undefined,
+        descuento: aplicaDescuento ? {
+          tipo: tipoDescuento,
+          valor: parseFloat(valorDescuento) || 0
+        } : undefined,
+        requiereFactura: requiereFactura,
+        metodoPagoAnticipo: metodoPagoAnticipo || undefined, // Si no hay método, no lo envía
+        tiempoEntrega: tiempoEntrega,
+        diasEntregaExpres: tiempoEntrega === 'expres' ? (parseInt(diasExpres) || undefined) : undefined,
+        incluirTerminos: incluirTerminos
       };
 
-      console.log('📤 Payload completo a enviar:', JSON.stringify(payload, null, 2));
+      console.log('Payload de cotización a enviar:', payload);
 
-      const { data } = await axiosConfig.post('/cotizaciones/desde-visita', payload);
-      
-      onSaved?.(
-        `¡Cotización ${data.cotizacion.numero} generada exitosamente! El prospecto se movió a "Cotizaciones Activas".`,
-        data.cotizacion
-      );
-      cerrarModal();
+      const response = await axiosConfig.post('/cotizaciones', payload);
+      onSaved(`Cotización generada exitosamente: ${response.data.nombre}`);
+      onClose();
     } catch (error) {
-      console.error('Error generando cotización:', error);
-      console.error('Response data:', error.response?.data);
-      console.error('Response status:', error.response?.status);
-      console.error('Response headers:', error.response?.headers);
-      
-      const mensaje = error.response?.data?.message || error.response?.data?.error || 'No se pudo generar la cotización.';
-      setErrorLocal(`Error ${error.response?.status || 'desconocido'}: ${mensaje}`);
-      onError?.(mensaje);
+      console.error('Error al generar cotización:', error);
+      setErrorLocal(error.response?.data?.message || 'Error al generar la cotización. Revise los datos.');
+      onError(error.response?.data?.message || 'Error al generar la cotización.');
     } finally {
       setGenerandoCotizacion(false);
     }
