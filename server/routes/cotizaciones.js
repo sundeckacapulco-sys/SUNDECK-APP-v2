@@ -60,7 +60,8 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       precioGeneral,
       totalM2,
       unidadMedida,
-      comentarios
+      comentarios,
+      instalacionEspecial
     } = req.body;
 
     // Verificar que el prospecto existe
@@ -69,66 +70,219 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
 
-    // Convertir piezas a productos de cotización
-    const productos = piezas.map(pieza => {
-      const area = (pieza.ancho || 0) * (pieza.alto || 0);
-      const areaM2 = unidadMedida === 'cm' ? area / 10000 : area;
-      const precioUnitario = pieza.precioM2 || precioGeneral || 750;
-      
-      return {
-        nombre: pieza.productoLabel || pieza.producto || 'Producto personalizado',
-        descripcion: `Ubicación: ${pieza.ubicacion}${pieza.observaciones ? ` - ${pieza.observaciones}` : ''}`,
-        categoria: 'ventana',
-        material: 'Aluminio',
-        color: pieza.color || 'Natural',
-        medidas: {
-          ancho: pieza.ancho || 0,
-          alto: pieza.alto || 0,
-          area: areaM2
-        },
-        cantidad: 1,
-        precioUnitario: precioUnitario,
-        subtotal: areaM2 * precioUnitario,
-        requiereR24: (pieza.ancho > 2.5 || pieza.alto > 2.5),
-        tiempoFabricacion: (pieza.ancho > 2.5 || pieza.alto > 2.5) ? 15 : 10
-      };
+    if (!Array.isArray(piezas) || piezas.length === 0) {
+      return res.status(400).json({ message: 'Debes proporcionar al menos una partida para generar la cotización.' });
+    }
+
+    const unidadEsCm = unidadMedida === 'cm';
+    const piezasNormalizadas = piezas
+      .map((pieza, index) => {
+        if (!pieza) {
+          console.warn(`⚠️ Pieza inválida en índice ${index}, se omitirá en la cotización.`);
+          return null;
+        }
+
+        const medidasOrigen = Array.isArray(pieza.medidas) && pieza.medidas.length > 0
+          ? pieza.medidas
+          : [{
+            ancho: pieza.ancho,
+            alto: pieza.alto,
+            producto: pieza.producto,
+            productoLabel: pieza.productoLabel,
+            color: pieza.color,
+            precioM2: pieza.precioM2
+          }];
+
+        const medidasNormalizadas = medidasOrigen
+          .map((medida, medidaIndex) => {
+            if (!medida) {
+              console.warn(`⚠️ Medida inválida en pieza ${index}, posición ${medidaIndex}.`);
+              return null;
+            }
+
+            const anchoRaw = Number(medida.ancho ?? pieza.ancho ?? 0) || 0;
+            const altoRaw = Number(medida.alto ?? pieza.alto ?? 0) || 0;
+
+            if (anchoRaw <= 0 || altoRaw <= 0) {
+              return null;
+            }
+
+            const ancho = unidadEsCm ? anchoRaw / 100 : anchoRaw;
+            const alto = unidadEsCm ? altoRaw / 100 : altoRaw;
+            const area = ancho * alto;
+
+            return {
+              ancho,
+              alto,
+              area,
+              producto: medida.producto || pieza.producto,
+              productoLabel: medida.productoLabel || pieza.productoLabel,
+              color: medida.color || pieza.color,
+              precioM2: medida.precioM2 ?? pieza.precioM2
+            };
+          })
+          .filter(Boolean);
+
+        if (medidasNormalizadas.length === 0) {
+          console.warn(`⚠️ Pieza ${index} no tiene medidas válidas y será omitida.`);
+          return null;
+        }
+
+        return {
+          ...pieza,
+          medidas: medidasNormalizadas
+        };
+      })
+      .filter(Boolean);
+
+    if (piezasNormalizadas.length === 0) {
+      return res.status(400).json({ message: 'No se encontraron partidas con medidas válidas para generar la cotización.' });
+    }
+
+    const productos = [];
+    const mediciones = [];
+
+    piezasNormalizadas.forEach((pieza) => {
+      const precioBase = Number(pieza.precioM2) || Number(precioGeneral) || 750;
+      const cantidadPiezas = pieza.medidas.length;
+
+      pieza.medidas.forEach((medida, medidaIndex) => {
+        const precioUnitario = Number(medida.precioM2) || precioBase;
+        const subtotal = Number((medida.area * precioUnitario).toFixed(2));
+        const requiereRefuerzo = medida.ancho > 2.5 || medida.alto > 2.5;
+
+        productos.push({
+          nombre: medida.productoLabel || medida.producto || pieza.productoLabel || pieza.producto || 'Producto personalizado',
+          descripcion: `Ubicación: ${pieza.ubicacion}${pieza.observaciones ? ` - ${pieza.observaciones}` : ''}${cantidadPiezas > 1 ? ` (pieza ${medidaIndex + 1} de ${cantidadPiezas})` : ''}`,
+          categoria: pieza.esToldo ? 'toldo' : 'ventana',
+          material: pieza.material || 'Aluminio',
+          color: medida.color || 'Natural',
+          medidas: {
+            ancho: Number(medida.ancho.toFixed(3)),
+            alto: Number(medida.alto.toFixed(3)),
+            area: Number(medida.area.toFixed(3))
+          },
+          cantidad: 1,
+          precioUnitario,
+          subtotal,
+          requiereR24: requiereRefuerzo,
+          tiempoFabricacion: requiereRefuerzo ? 15 : 10
+        });
+
+        mediciones.push({
+          ambiente: pieza.ubicacion,
+          ancho: Number(medida.ancho.toFixed(3)),
+          alto: Number(medida.alto.toFixed(3)),
+          area: Number(medida.area.toFixed(3)),
+          cantidad: 1,
+          notas: pieza.observaciones || '',
+          fotos: Array.isArray(pieza.fotoUrls) && pieza.fotoUrls.length > 0
+            ? pieza.fotoUrls.map((url, indexFoto) => ({
+              url,
+              descripcion: `Foto ${indexFoto + 1} de ${pieza.ubicacion}`,
+              fechaToma: new Date()
+            }))
+            : []
+        });
+      });
+
+      const kitPrecio = Number(pieza.kitPrecio) || 0;
+      if (pieza.esToldo && kitPrecio > 0) {
+        productos.push({
+          nombre: pieza.kitModelo || pieza.kitModeloManual || 'Kit para toldo',
+          descripcion: `Accesorios para instalación en ${pieza.ubicacion}`,
+          categoria: 'kit',
+          material: 'Accesorio',
+          color: pieza.color || 'Natural',
+          medidas: { ancho: 0, alto: 0, area: 0 },
+          cantidad: cantidadPiezas,
+          precioUnitario: kitPrecio,
+          subtotal: Number((kitPrecio * cantidadPiezas).toFixed(2)),
+          requiereR24: false,
+          tiempoFabricacion: 7
+        });
+      }
+
+      const motorPrecio = Number(pieza.motorPrecio) || 0;
+      if (pieza.motorizado && motorPrecio > 0) {
+        productos.push({
+          nombre: pieza.motorModelo || pieza.motorModeloManual || 'Motor para toldo',
+          descripcion: `Motorización para ${pieza.ubicacion}`,
+          categoria: 'motor',
+          material: 'Accesorio',
+          color: 'N/A',
+          medidas: { ancho: 0, alto: 0, area: 0 },
+          cantidad: cantidadPiezas,
+          precioUnitario: motorPrecio,
+          subtotal: Number((motorPrecio * cantidadPiezas).toFixed(2)),
+          requiereR24: false,
+          tiempoFabricacion: 12
+        });
+      }
+
+      const controlPrecio = Number(pieza.controlPrecio) || 0;
+      if (pieza.motorizado && controlPrecio > 0) {
+        productos.push({
+          nombre: pieza.controlModelo || pieza.controlModeloManual || 'Control remoto',
+          descripcion: `Control para ${pieza.ubicacion}`,
+          categoria: 'control',
+          material: 'Accesorio',
+          color: 'N/A',
+          medidas: { ancho: 0, alto: 0, area: 0 },
+          cantidad: 1,
+          precioUnitario: controlPrecio,
+          subtotal: Number(controlPrecio.toFixed(2)),
+          requiereR24: false,
+          tiempoFabricacion: 7
+        });
+      }
     });
 
-    // Crear mediciones desde las piezas
-    const mediciones = piezas.map(pieza => ({
-      ambiente: pieza.ubicacion,
-      ancho: pieza.ancho || 0,
-      alto: pieza.alto || 0,
-      area: unidadMedida === 'cm' ? ((pieza.ancho || 0) * (pieza.alto || 0)) / 10000 : (pieza.ancho || 0) * (pieza.alto || 0),
-      cantidad: 1,
-      notas: pieza.observaciones || '',
-      fotos: (pieza.fotoUrls && pieza.fotoUrls.length > 0) ? 
-        pieza.fotoUrls.map((url, index) => ({
-          url: url,
-          descripcion: `Foto ${index + 1} de ${pieza.ubicacion}`,
-          fechaToma: new Date()
-        })) : []
-    }));
+    if (productos.length === 0) {
+      return res.status(400).json({ message: 'No fue posible generar productos válidos para la cotización.' });
+    }
 
+    const totalAreaMedida = piezasNormalizadas.reduce((suma, pieza) => {
+      return suma + pieza.medidas.reduce((subtotal, medida) => subtotal + (Number(medida.area) || 0), 0);
+    }, 0);
+
+    const totalAreaInput = Number(totalM2);
+    const totalAreaCalculado = Number(totalAreaMedida.toFixed(3));
+    const totalArea = totalAreaInput > 0 ? totalAreaInput : (totalAreaCalculado > 0 ? totalAreaCalculado : 0);
+
+    const requiereInstalacion = instalacionEspecial?.activa ? instalacionEspecial.precio > 0 : true;
+    const costoInstalacion = instalacionEspecial?.activa
+      ? Number(instalacionEspecial.precio) || 0
+      : Math.round(totalArea * 150);
+
+    const tiempoFabricacionEstimado = productos.reduce((max, prod) => {
+      return Math.max(max, prod.tiempoFabricacion || 0);
+    }, 10);
+
+    const tiempoInstalacionEstimado = Math.max(1, Math.ceil((totalArea || 1) / 10));
+
+    // Convertir piezas a productos de cotización
     const nuevaCotizacion = new Cotizacion({
       prospecto: prospectoId,
       // El número se genera automáticamente por el middleware del modelo
       validoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
       mediciones,
       productos,
+      subtotal: productos.reduce((sum, prod) => sum + (prod.subtotal || 0), 0),
       formaPago: {
         anticipo: { porcentaje: 50 },
         saldo: { porcentaje: 50, condiciones: 'contra entrega' }
       },
-      tiempoFabricacion: Math.max(...productos.map(p => p.tiempoFabricacion)),
-      tiempoInstalacion: Math.ceil(totalM2 / 10) || 1, // 1 día por cada 10m²
-      requiereInstalacion: true,
-      costoInstalacion: Math.round(totalM2 * 150), // $150 por m²
+      tiempoFabricacion: tiempoFabricacionEstimado,
+      tiempoInstalacion: tiempoInstalacionEstimado,
+      requiereInstalacion,
+      costoInstalacion,
       garantia: {
         fabricacion: 12,
         instalacion: 6,
         descripcion: 'Garantía completa en fabricación e instalación'
       },
+      notas: comentarios ? [{ contenido: comentarios, usuario: req.usuario._id }] : [],
       elaboradaPor: req.usuario._id
     });
 
