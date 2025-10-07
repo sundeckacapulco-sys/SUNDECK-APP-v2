@@ -823,29 +823,56 @@ class PDFService {
             }
             
             /* RESUMEN COMPACTO */
+            .resumen-financiero {
+              margin: 15px 0;
+              padding: 12px;
+              background: #f8f9fa;
+              border: 1px solid #e5e7eb;
+              border-radius: 6px;
+            }
+
+            .resumen-financiero h3 {
+              margin-bottom: 10px;
+              font-size: 13px;
+              color: #0F172A;
+            }
+
             .resumen-table {
               width: 100%;
               border-collapse: collapse;
-              margin: 15px 0;
               font-size: 11px;
             }
-            
+
             .resumen-table td {
               padding: 6px 10px;
               border: 1px solid #ddd;
-              text-align: center;
             }
-            
-            .resumen-table .header-cell {
-              background: #D4AF37;
-              color: white;
-              font-weight: bold;
+
+            .resumen-table td.label-cell {
+              background: #f9fafb;
+              font-weight: 600;
+              text-align: left;
             }
-            
+
+            .resumen-table td.value-cell {
+              text-align: right;
+              font-weight: 600;
+            }
+
             .resumen-table .total-cell {
               background: #fff3cd;
               font-weight: bold;
-              font-size: 14px;
+              font-size: 13px;
+            }
+
+            .metodo-pago-resumen {
+              margin-top: 10px;
+              font-size: 10px;
+              color: #334155;
+            }
+
+            .metodo-pago-resumen strong {
+              color: #0F172A;
             }
             
             /* PIE DE PÁGINA LIMPIO */
@@ -991,6 +1018,65 @@ class PDFService {
           <!-- RESUMEN COMPACTO -->
           <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 6px;">
             <strong style="color: #D4AF37; font-size: 12px;">📊 Resumen: {{piezas.length}} partidas medidas • Precio por m² de tela: {{precioGeneral}}</strong>
+          </div>
+
+          <!-- RESUMEN FINANCIERO -->
+          <div class="resumen-financiero no-break">
+            <h3>Resumen financiero</h3>
+            <table class="resumen-table">
+              <tr>
+                <td class="label-cell">Subtotal de productos</td>
+                <td class="value-cell">{{resumenCostos.subtotalProductos}}</td>
+              </tr>
+              {{#if instalacion.cobra}}
+              <tr>
+                <td class="label-cell">Instalación{{#if instalacion.tipo}} ({{instalacion.tipo}}){{/if}}</td>
+                <td class="value-cell">{{instalacion.precioFormateado}}</td>
+              </tr>
+              {{/if}}
+              <tr>
+                <td class="label-cell">Subtotal con instalación</td>
+                <td class="value-cell">{{resumenCostos.subtotalConInstalacion}}</td>
+              </tr>
+              {{#if descuento.aplica}}
+              <tr>
+                <td class="label-cell">{{descuento.etiqueta}}</td>
+                <td class="value-cell" style="color: #dc3545;">-{{descuento.monto}}</td>
+              </tr>
+              <tr>
+                <td class="label-cell">Subtotal con descuento</td>
+                <td class="value-cell">{{resumenCostos.subtotalConDescuento}}</td>
+              </tr>
+              {{/if}}
+              {{#if resumenCostos.requiereFactura}}
+              <tr>
+                <td class="label-cell">IVA (16%)</td>
+                <td class="value-cell">{{resumenCostos.iva}}</td>
+              </tr>
+              <tr>
+                <td class="label-cell total-cell">Total con IVA</td>
+                <td class="value-cell total-cell">{{resumenCostos.totalConIVA}}</td>
+              </tr>
+              {{else}}
+              <tr>
+                <td class="label-cell">IVA</td>
+                <td class="value-cell">No incluido (sin factura)</td>
+              </tr>
+              <tr>
+                <td class="label-cell total-cell">Total estimado</td>
+                <td class="value-cell total-cell">{{resumenCostos.totalFinal}}</td>
+              </tr>
+              {{/if}}
+            </table>
+
+            <div class="metodo-pago-resumen">
+              <strong>Propuesta de pago:</strong>
+              Anticipo ({{metodoPago.porcentajeAnticipo}}%): {{metodoPago.anticipo}} •
+              Saldo ({{metodoPago.porcentajeSaldo}}%): {{metodoPago.saldo}}
+              {{#if metodoPago.metodoPagoAnticipo}}
+                <br>Forma de pago sugerida: {{metodoPago.metodoPagoAnticipo}}
+              {{/if}}
+            </div>
           </div>
 
           <!-- PIE DE PÁGINA LIMPIO -->
@@ -1164,6 +1250,27 @@ class PDFService {
         }
       });
 
+      const subtotalProductosNumero = Number(datosAdicionales.subtotalProductos ?? totalGeneralReal) || 0;
+      const instalacionCobra = datosAdicionales.instalacion?.cobra === true;
+      const instalacionPrecioNumero = instalacionCobra ? Number(datosAdicionales.instalacion?.precio) || 0 : 0;
+      const subtotalConInstalacion = subtotalProductosNumero + instalacionPrecioNumero;
+
+      const descuentoAplica = datosAdicionales.descuento?.aplica === true;
+      const descuentoMontoNumero = descuentoAplica ? Number(datosAdicionales.descuento?.monto) || 0 : 0;
+      const subtotalConDescuento = subtotalConInstalacion - descuentoMontoNumero;
+
+      const requiereFactura = datosAdicionales.facturacion?.requiereFactura === true;
+      const ivaNumero = requiereFactura ? Number(datosAdicionales.facturacion?.iva) || (subtotalConDescuento * 0.16) : 0;
+
+      const totalFinalNumero = datosAdicionales.totalFinal ? Number(datosAdicionales.totalFinal) : (requiereFactura ? subtotalConDescuento + ivaNumero : subtotalConDescuento);
+
+      const anticipoNumero = datosAdicionales.metodoPago?.anticipo !== undefined
+        ? Number(datosAdicionales.metodoPago.anticipo) || 0
+        : Math.round(totalFinalNumero * 0.6 * 100) / 100;
+      const saldoNumero = datosAdicionales.metodoPago?.saldo !== undefined
+        ? Number(datosAdicionales.metodoPago.saldo) || 0
+        : Math.max(totalFinalNumero - anticipoNumero, 0);
+
       const templateData = {
         fecha: this.formatDate(new Date()),
         prospecto: etapa.prospecto || { nombre: 'Cliente', telefono: '' },
@@ -1173,17 +1280,53 @@ class PDFService {
         totalM2: totalAreaReal.toFixed(2),
         precioEstimado: this.formatCurrency(precioGeneral),
         totalAproximado: this.formatCurrency(totalGeneralReal),
-        totalEstimado: this.formatCurrency(totalGeneralReal), // Para el nuevo formato
+        totalEstimado: this.formatCurrency(totalFinalNumero),
         piezas: piezasExpandidas,
         company: companyConfig, // Datos dinámicos de la empresa
         logoBase64: logoBase64, // Logo en base64
         // Datos adicionales de facturación
-        subtotalProductos: datosAdicionales.subtotalProductos ? this.formatCurrency(datosAdicionales.subtotalProductos) : this.formatCurrency(totalGeneralReal),
-        instalacion: datosAdicionales.instalacion || { cobra: false, precio: 0 },
-        descuento: datosAdicionales.descuento || { aplica: false, monto: 0 },
-        facturacion: datosAdicionales.facturacion || { requiereFactura: false, iva: 0, totalConIVA: totalGeneralReal },
-        metodoPago: datosAdicionales.metodoPago || { anticipo: 0, saldo: 0 },
-        totalFinal: datosAdicionales.totalFinal ? this.formatCurrency(datosAdicionales.totalFinal) : this.formatCurrency(totalGeneralReal)
+        resumenCostos: {
+          subtotalProductos: this.formatCurrency(subtotalProductosNumero),
+          instalacion: instalacionCobra ? this.formatCurrency(instalacionPrecioNumero) : null,
+          subtotalConInstalacion: this.formatCurrency(subtotalConInstalacion),
+          descuentoAplica,
+          descuentoMonto: this.formatCurrency(descuentoMontoNumero),
+          subtotalConDescuento: this.formatCurrency(subtotalConDescuento),
+          requiereFactura,
+          iva: this.formatCurrency(ivaNumero),
+          totalConIVA: this.formatCurrency(subtotalConDescuento + ivaNumero),
+          totalFinal: this.formatCurrency(totalFinalNumero)
+        },
+        instalacion: {
+          cobra: instalacionCobra,
+          tipo: datosAdicionales.instalacion?.tipo || '',
+          precio: instalacionPrecioNumero,
+          precioFormateado: this.formatCurrency(instalacionPrecioNumero)
+        },
+        descuento: {
+          aplica: descuentoAplica,
+          tipo: datosAdicionales.descuento?.tipo || 'porcentaje',
+          valor: Number(datosAdicionales.descuento?.valor) || 0,
+          monto: this.formatCurrency(descuentoMontoNumero),
+          etiqueta: descuentoAplica
+            ? (datosAdicionales.descuento?.tipo === 'monto'
+              ? 'Descuento (monto fijo)'
+              : `Descuento (${Number(datosAdicionales.descuento?.valor) || 0}%)`)
+            : 'Descuento'
+        },
+        facturacion: {
+          requiereFactura,
+          iva: this.formatCurrency(ivaNumero),
+          totalConIVA: this.formatCurrency(requiereFactura ? subtotalConDescuento + ivaNumero : subtotalConDescuento)
+        },
+        metodoPago: {
+          anticipo: this.formatCurrency(anticipoNumero),
+          saldo: this.formatCurrency(saldoNumero),
+          porcentajeAnticipo: datosAdicionales.metodoPago?.porcentajeAnticipo || 60,
+          porcentajeSaldo: datosAdicionales.metodoPago?.porcentajeSaldo || 40,
+          metodoPagoAnticipo: datosAdicionales.metodoPago?.metodoPagoAnticipo || ''
+        },
+        totalFinal: this.formatCurrency(totalFinalNumero)
       };
 
       const template = handlebars.compile(htmlTemplate);
@@ -1323,6 +1466,27 @@ class PDFService {
         }
       });
 
+      const subtotalProductosNumero = Number(datosAdicionales.subtotalProductos ?? totalGeneralReal) || 0;
+      const instalacionCobra = datosAdicionales.instalacion?.cobra === true;
+      const instalacionPrecioNumero = instalacionCobra ? Number(datosAdicionales.instalacion?.precio) || 0 : 0;
+      const subtotalConInstalacion = subtotalProductosNumero + instalacionPrecioNumero;
+
+      const descuentoAplica = datosAdicionales.descuento?.aplica === true;
+      const descuentoMontoNumero = descuentoAplica ? Number(datosAdicionales.descuento?.monto) || 0 : 0;
+      const subtotalConDescuento = subtotalConInstalacion - descuentoMontoNumero;
+
+      const requiereFactura = datosAdicionales.facturacion?.requiereFactura === true;
+      const ivaNumero = requiereFactura ? Number(datosAdicionales.facturacion?.iva) || (subtotalConDescuento * 0.16) : 0;
+
+      const totalFinalNumero = datosAdicionales.totalFinal ? Number(datosAdicionales.totalFinal) : (requiereFactura ? subtotalConDescuento + ivaNumero : subtotalConDescuento);
+
+      const anticipoNumero = datosAdicionales.metodoPago?.anticipo !== undefined
+        ? Number(datosAdicionales.metodoPago.anticipo) || 0
+        : Math.round(totalFinalNumero * 0.6 * 100) / 100;
+      const saldoNumero = datosAdicionales.metodoPago?.saldo !== undefined
+        ? Number(datosAdicionales.metodoPago.saldo) || 0
+        : Math.max(totalFinalNumero - anticipoNumero, 0);
+
       const templateData = {
         fecha: this.formatDate(new Date()),
         prospecto: etapa.prospecto || { nombre: 'Cliente', telefono: '' },
@@ -1333,13 +1497,49 @@ class PDFService {
         totalM2: totalAreaReal.toFixed(2),
         precioEstimado: this.formatCurrency(precioGeneral),
         totalAproximado: this.formatCurrency(totalGeneralReal),
-        // Datos adicionales de facturación
-        subtotalProductos: datosAdicionales.subtotalProductos ? this.formatCurrency(datosAdicionales.subtotalProductos) : this.formatCurrency(totalGeneralReal),
-        instalacion: datosAdicionales.instalacion || { cobra: false, precio: 0 },
-        descuento: datosAdicionales.descuento || { aplica: false, monto: 0 },
-        facturacion: datosAdicionales.facturacion || { requiereFactura: false, iva: 0, totalConIVA: totalGeneralReal },
-        metodoPago: datosAdicionales.metodoPago || { anticipo: 0, saldo: 0 },
-        totalFinal: datosAdicionales.totalFinal ? this.formatCurrency(datosAdicionales.totalFinal) : this.formatCurrency(totalGeneralReal)
+        totalEstimado: this.formatCurrency(totalFinalNumero),
+        resumenCostos: {
+          subtotalProductos: this.formatCurrency(subtotalProductosNumero),
+          instalacion: instalacionCobra ? this.formatCurrency(instalacionPrecioNumero) : null,
+          subtotalConInstalacion: this.formatCurrency(subtotalConInstalacion),
+          descuentoAplica,
+          descuentoMonto: this.formatCurrency(descuentoMontoNumero),
+          subtotalConDescuento: this.formatCurrency(subtotalConDescuento),
+          requiereFactura,
+          iva: this.formatCurrency(ivaNumero),
+          totalConIVA: this.formatCurrency(subtotalConDescuento + ivaNumero),
+          totalFinal: this.formatCurrency(totalFinalNumero)
+        },
+        instalacion: {
+          cobra: instalacionCobra,
+          tipo: datosAdicionales.instalacion?.tipo || '',
+          precio: instalacionPrecioNumero,
+          precioFormateado: this.formatCurrency(instalacionPrecioNumero)
+        },
+        descuento: {
+          aplica: descuentoAplica,
+          tipo: datosAdicionales.descuento?.tipo || 'porcentaje',
+          valor: Number(datosAdicionales.descuento?.valor) || 0,
+          monto: this.formatCurrency(descuentoMontoNumero),
+          etiqueta: descuentoAplica
+            ? (datosAdicionales.descuento?.tipo === 'monto'
+              ? 'Descuento (monto fijo)'
+              : `Descuento (${Number(datosAdicionales.descuento?.valor) || 0}%)`)
+            : 'Descuento'
+        },
+        facturacion: {
+          requiereFactura,
+          iva: this.formatCurrency(ivaNumero),
+          totalConIVA: this.formatCurrency(requiereFactura ? subtotalConDescuento + ivaNumero : subtotalConDescuento)
+        },
+        metodoPago: {
+          anticipo: this.formatCurrency(anticipoNumero),
+          saldo: this.formatCurrency(saldoNumero),
+          porcentajeAnticipo: datosAdicionales.metodoPago?.porcentajeAnticipo || 60,
+          porcentajeSaldo: datosAdicionales.metodoPago?.porcentajeSaldo || 40,
+          metodoPagoAnticipo: datosAdicionales.metodoPago?.metodoPagoAnticipo || ''
+        },
+        totalFinal: this.formatCurrency(totalFinalNumero)
       };
 
       // Registrar helpers de Handlebars
