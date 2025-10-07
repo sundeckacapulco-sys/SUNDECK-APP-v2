@@ -3,6 +3,7 @@ const Cotizacion = require('../models/Cotizacion');
 const Prospecto = require('../models/Prospecto');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const pdfService = require('../services/pdfService');
+const cotizacionController = require('../controllers/cotizacionController');
 
 const router = express.Router();
 
@@ -349,112 +350,7 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
 });
 
 // Crear nueva cotización
-router.post('/', auth, verificarPermiso('cotizaciones', 'crear'), async (req, res) => {
-  try {
-    console.log('=== CREAR COTIZACIÓN ===');
-    console.log('Body recibido:', JSON.stringify(req.body, null, 2));
-    console.log('Usuario:', req.usuario._id);
-    
-    const {
-      prospectoId,
-      validoHasta,
-      mediciones,
-      productos,
-      descuento,
-      formaPago,
-      tiempoFabricacion,
-      tiempoInstalacion,
-      requiereInstalacion,
-      costoInstalacion,
-      garantia
-    } = req.body;
-    
-    console.log('ProspectoId recibido:', prospectoId);
-    console.log('Productos recibidos:', productos?.length || 0);
-
-    // Verificar que el prospecto existe
-    const prospecto = await Prospecto.findById(prospectoId);
-    if (!prospecto) {
-      return res.status(404).json({ message: 'Prospecto no encontrado' });
-    }
-    
-    console.log('Prospecto encontrado:', prospecto.nombre);
-
-    // Generar número de cotización manualmente si no existe
-    let numeroCotizacion;
-    try {
-      const year = new Date().getFullYear();
-      const count = await Cotizacion.countDocuments({
-        createdAt: {
-          $gte: new Date(year, 0, 1),
-          $lt: new Date(year + 1, 0, 1)
-        }
-      });
-      numeroCotizacion = `COT-${year}-${String(count + 1).padStart(4, '0')}`;
-      console.log('Número de cotización generado:', numeroCotizacion);
-    } catch (error) {
-      console.error('Error generando número:', error);
-      numeroCotizacion = `COT-${new Date().getFullYear()}-${Date.now()}`; // Fallback
-    }
-
-    const nuevaCotizacion = new Cotizacion({
-      numero: numeroCotizacion,
-      prospecto: prospecto._id,
-      validoHasta,
-      mediciones,
-      productos,
-      descuento,
-      formaPago,
-      tiempoFabricacion,
-      tiempoInstalacion,
-      requiereInstalacion,
-      costoInstalacion,
-      garantia,
-      elaboradaPor: req.usuario._id
-    });
-
-    console.log('Intentando guardar cotización...');
-    await nuevaCotizacion.save();
-    console.log('Cotización guardada exitosamente');
-    
-    await nuevaCotizacion.populate([
-      { path: 'prospecto', select: 'nombre telefono email' },
-      { path: 'elaboradaPor', select: 'nombre apellido' }
-    ]);
-    console.log('Cotización poblada exitosamente');
-
-    // Actualizar etapa del prospecto
-    prospecto.etapa = 'cotizacion';
-    await prospecto.save();
-    console.log('Prospecto actualizado exitosamente');
-
-    res.status(201).json({
-      message: 'Cotización creada exitosamente',
-      cotizacion: nuevaCotizacion
-    });
-  } catch (error) {
-    console.error('Error creando cotización:', error);
-    console.error('Stack trace:', error.stack);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    
-    // Si es un error de validación de Mongoose
-    if (error.name === 'ValidationError') {
-      console.error('Errores de validación:', error.errors);
-      return res.status(400).json({ 
-        message: 'Error de validación', 
-        errors: error.errors,
-        details: Object.keys(error.errors).map(key => `${key}: ${error.errors[key].message}`)
-      });
-    }
-    
-    res.status(500).json({ 
-      message: 'Error interno del servidor',
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-  }
-});
+router.post('/', auth, verificarPermiso('cotizaciones', 'crear'), cotizacionController.crearCotizacion);
 
 // Obtener cotización por ID
 router.get('/:id', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res) => {
