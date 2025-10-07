@@ -55,7 +55,7 @@ const productosOptions = [
   { label: "Cortina + Screen (combinado)", value: "cortina_screen" },
   { label: "Sistema Día/Noche", value: "dia_noche" },
   { label: "Cortinas Tradicionales", value: "cortina_tradicional" },
-  { label: "+ Agregar producto personalizado", value: "nuevo" }
+  { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
 ];
 
 // Modelos de toldos predefinidos
@@ -139,6 +139,12 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   // Estados para productos
   const [mostrarNuevoProducto, setMostrarNuevoProducto] = useState(false);
   const [nuevoProductoNombre, setNuevoProductoNombre] = useState('');
+  const [productosFromAPI, setProductosFromAPI] = useState([]);
+  const [cargandoProductos, setCargandoProductos] = useState(false);
+  const [productosPersonalizados, setProductosPersonalizados] = useState([]);
+  
+  // Estado para prevenir doble clic en PDF
+  const [ultimoClickPDF, setUltimoClickPDF] = useState(0);
   
   // Estados para subida de archivos
   const [subiendoFoto, setSubiendoFoto] = useState(false);
@@ -217,13 +223,60 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     // Reset fecha y hora
     setFechaEtapa('');
     setHoraEtapa('');
+    // Reset productos personalizados
+    setProductosPersonalizados([]);
   };
 
   useEffect(() => {
     if (!open) {
       resetFormulario();
+    } else {
+      // Cargar productos desde la API cuando se abre el modal
+      cargarProductosDesdeAPI();
     }
   }, [open]);
+
+  // Función para cargar productos desde la API
+  const cargarProductosDesdeAPI = async () => {
+    try {
+      setCargandoProductos(true);
+      const response = await axiosConfig.get('/productos');
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Convertir productos de la API al formato esperado
+        const productosAPI = response.data.map(producto => ({
+          label: producto.nombre,
+          value: producto._id,
+          precio: producto.precio,
+          categoria: producto.categoria
+        }));
+        
+        setProductosFromAPI(productosAPI);
+        console.log('✅ Productos cargados desde API:', productosAPI.length);
+      }
+    } catch (error) {
+      console.warn('⚠️ No se pudieron cargar productos desde API, usando productos estáticos:', error.message);
+      setProductosFromAPI([]);
+    } finally {
+      setCargandoProductos(false);
+    }
+  };
+
+  // Combinar productos estáticos con productos de la API y personalizados
+  const todosLosProductos = useMemo(() => {
+    const productosEstaticos = [...productosOptions];
+    
+    // Remover la opción de producto personalizado temporalmente
+    const sinPersonalizado = productosEstaticos.filter(p => p.value !== 'nuevo');
+    
+    // Combinar todos los tipos de productos
+    return [
+      ...sinPersonalizado,
+      ...productosFromAPI,
+      ...productosPersonalizados,
+      { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
+    ];
+  }, [productosFromAPI, productosPersonalizados]);
 
   const calcularTotalM2 = useMemo(() => {
     return piezas.reduce((total, pieza) => {
@@ -308,13 +361,15 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     if (!requiereFactura) return 0;
     const subtotalConInstalacion = calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0);
     const subtotalConDescuento = subtotalConInstalacion - calcularDescuento;
-    return subtotalConDescuento * 0.16; // 16% IVA
+    const iva = Math.round(subtotalConDescuento * 0.16 * 100) / 100; // Redondear a 2 decimales
+    return iva;
   }, [requiereFactura, calcularSubtotalProductos, cobraInstalacion, precioInstalacion, calcularDescuento]);
 
   const totalConIVA = useMemo(() => {
     const subtotalConInstalacion = calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0);
     const subtotalConDescuento = subtotalConInstalacion - calcularDescuento;
-    return subtotalConDescuento + calcularIVA;
+    const total = Math.round((subtotalConDescuento + calcularIVA) * 100) / 100; // Redondear a 2 decimales
+    return total;
   }, [calcularSubtotalProductos, cobraInstalacion, precioInstalacion, calcularDescuento, calcularIVA]);
 
   // Calcular total final (con o sin IVA)
@@ -324,11 +379,11 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
 
   // Calcular anticipo (60%) y saldo (40%)
   const anticipo = useMemo(() => {
-    return totalFinal * 0.6;
+    return Math.round(totalFinal * 0.6 * 100) / 100; // Redondear a 2 decimales
   }, [totalFinal]);
 
   const saldo = useMemo(() => {
-    return totalFinal * 0.4;
+    return Math.round(totalFinal * 0.4 * 100) / 100; // Redondear a 2 decimales
   }, [totalFinal]);
 
   // Calcular fecha de entrega
@@ -448,8 +503,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       }
     }
 
-    // Encontrar el label del producto seleccionado
-    const productoSeleccionado = productosOptions.find(p => p.value === piezaForm.producto);
+    // Encontrar el label del producto seleccionado (incluyendo productos personalizados)
+    const productoSeleccionado = todosLosProductos.find(p => p.value === piezaForm.producto);
     const productoLabel = productoSeleccionado ? productoSeleccionado.label : piezaForm.productoLabel || piezaForm.producto;
     
     // Procesar medidas individuales con productos específicos
@@ -594,6 +649,16 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     // Crear un value único para el producto personalizado
     const customValue = `custom_${Date.now()}`;
     
+    // Crear objeto del producto personalizado
+    const nuevoProductoPersonalizado = {
+      label: nombreLimpio,
+      value: customValue,
+      esPersonalizado: true
+    };
+    
+    // Agregar a la lista de productos personalizados
+    setProductosPersonalizados(prev => [...prev, nuevoProductoPersonalizado]);
+    
     // Seleccionar el nuevo producto en el formulario
     setPiezaForm(prev => ({ 
       ...prev, 
@@ -609,10 +674,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setErrorLocal(`✅ Producto personalizado "${nombreLimpio}" creado exitosamente`);
     setTimeout(() => setErrorLocal(''), 3000);
     
-    console.log('✅ Producto personalizado creado:', {
-      value: customValue,
-      label: nombreLimpio
-    });
+    console.log('✅ Producto personalizado creado:', nuevoProductoPersonalizado);
   };
 
   const handleFileUpload = async (event) => {
@@ -1146,8 +1208,22 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     }
   };
 
-  const handleGenerarYGuardarPDF = async () => {
+  const handleVerPDF = async () => {
     console.log('🎯 Iniciando generación de PDF...');
+    
+    // Prevenir múltiples ejecuciones simultáneas
+    if (guardandoPDF) {
+      console.log('⚠️ PDF ya se está generando, ignorando...');
+      return;
+    }
+    
+    // Prevenir doble clic (debounce de 2 segundos)
+    const ahora = Date.now();
+    if (ahora - ultimoClickPDF < 2000) {
+      console.log('⚠️ Clic muy rápido, ignorando...');
+      return;
+    }
+    setUltimoClickPDF(ahora);
     
     if (piezas.length === 0) {
       setErrorLocal('Debes agregar al menos una partida para generar el PDF');
@@ -1251,54 +1327,81 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         guardarPDF: true
       };
 
-      console.log('📤 Enviando petición al servidor...', {
-        url: '/etapas/levantamiento-pdf',
-        payloadSize: JSON.stringify(payload).length
-      });
+      console.log('📤 Usando formulario HTML para evitar interceptación IDM...');
 
-      // Intentar primero el endpoint normal, si falla usar el de prueba
-      let response;
-      try {
-        response = await axiosConfig.post('/etapas/levantamiento-pdf', payload, {
-          responseType: 'blob',
-          timeout: 30000 // 30 segundos para generar PDF
-        });
-        console.log('✅ Endpoint normal funcionó correctamente');
-      } catch (normalError) {
-        console.warn('⚠️ Endpoint normal falló, intentando endpoint de prueba...', {
-          status: normalError.response?.status,
-          message: normalError.message
-        });
-        
-        // Intentar con endpoint de prueba
-        response = await axiosConfig.post('/etapas/levantamiento-pdf-test', payload, {
-          responseType: 'blob',
-          timeout: 30000
-        });
-        console.log('✅ Endpoint de prueba funcionó correctamente');
+      // Crear formulario HTML que se envíe en nueva pestaña (evita IDM completamente)
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `${axiosConfig.defaults.baseURL}/etapas/levantamiento-pdf`;
+      form.target = '_blank';
+      form.style.display = 'none';
+
+      // Agregar token de autorización
+      const token = localStorage.getItem('token');
+      if (token) {
+        const tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = 'authorization';
+        tokenInput.value = `Bearer ${token}`;
+        form.appendChild(tokenInput);
       }
 
-      console.log('📥 Respuesta recibida:', {
-        status: response.status,
-        contentType: response.headers['content-type'],
-        dataSize: response.data?.size || 'unknown'
+      // Solo agregar los datos necesarios para el PDF (no guardar la etapa)
+      const pdfData = {
+        prospectoId,
+        piezas,
+        precioGeneral,
+        totalM2: calcularTotalM2,
+        subtotalProductos: calcularSubtotalProductos,
+        unidadMedida: unidad,
+        // Información de instalación
+        instalacion: {
+          cobra: cobraInstalacion,
+          tipo: tipoInstalacion,
+          precio: cobraInstalacion ? Number(precioInstalacion) || 0 : 0
+        },
+        // Información de descuentos
+        descuento: {
+          aplica: aplicaDescuento,
+          tipo: tipoDescuento,
+          valor: aplicaDescuento ? Number(valorDescuento) || 0 : 0,
+          monto: calcularDescuento
+        },
+        // Información de facturación
+        facturacion: {
+          requiereFactura,
+          iva: calcularIVA,
+          totalConIVA: requiereFactura ? totalConIVA : totalFinal
+        },
+        // Método de pago
+        metodoPago: {
+          anticipo: anticipo,
+          saldo: saldo,
+          porcentajeAnticipo: 60,
+          porcentajeSaldo: 40,
+          metodoPagoAnticipo: metodoPagoAnticipo
+        },
+        totalFinal: requiereFactura ? totalConIVA : totalFinal,
+        // NO incluir guardarPDF: true para evitar que se guarde la etapa
+        soloGenerarPDF: true // Flag para indicar que solo queremos el PDF
+      };
+
+      Object.keys(pdfData).forEach(key => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = typeof pdfData[key] === 'object' ? JSON.stringify(pdfData[key]) : pdfData[key];
+        form.appendChild(input);
       });
-      
-      if (response.data) {
-        // Crear URL del blob y descargar
-        const blob = new Blob([response.data], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `Cotizacion-${prospectoId}-${Date.now()}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        
-        console.log('✅ PDF descargado exitosamente');
-        onSaved?.('PDF generado y guardado exitosamente');
-      }
+
+      // Agregar al DOM, enviar y remover
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+
+      console.log('✅ Formulario enviado en nueva pestaña');
+      // NO llamar onSaved para PDF - solo es para mostrar el PDF, no para guardar datos
+      // onSaved?.('PDF generado y abierto en nueva pestaña');
     } catch (error) {
       console.error('❌ Error al generar PDF:', {
         message: error.message,
@@ -1658,12 +1761,12 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                               }
                               
                               // Si es un producto normal, buscar su label
-                              const option = productosOptions.find(opt => opt.value === selected);
+                              const option = todosLosProductos.find(opt => opt.value === selected);
                               return option ? option.label : selected;
                             }
                           }}
                           onChange={(e) => {
-                            const selectedOption = productosOptions.find(opt => opt.value === e.target.value);
+                            const selectedOption = todosLosProductos.find(opt => opt.value === e.target.value);
                             const nuevoProducto = e.target.value;
                             
                             // Si selecciona "nuevo", mostrar formulario de producto personalizado
@@ -1692,7 +1795,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                             }));
                           }}
                         >
-                          {productosOptions.map((producto) => (
+                          {todosLosProductos.map((producto) => (
                             <MenuItem 
                               key={producto.value} 
                               value={producto.value}
@@ -1766,7 +1869,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                 label={`Producto pieza ${index + 1}`}
                                 onChange={(e) => {
                                   const nuevasMedidas = [...(piezaForm.medidas || [])];
-                                  const productoSeleccionado = productosOptions.find(p => p.value === e.target.value);
+                                  const productoSeleccionado = todosLosProductos.find(p => p.value === e.target.value);
                                   
                                   // Si es la primera pieza (index 0), propagar a todas las demás
                                   if (index === 0) {
@@ -1795,7 +1898,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                   }
                                 }}
                               >
-                                {productosOptions.filter(p => p.value !== 'nuevo').map((producto) => (
+                                {todosLosProductos.filter(p => p.value !== 'nuevo').map((producto) => (
                                   <MenuItem key={producto.value} value={producto.value}>
                                     {producto.label}
                                   </MenuItem>
@@ -2614,7 +2717,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                 </Card>
               )}
 
-              {/* Formulario Nuevo Producto - Fuera del Grid para ancho completo */}
+              {/* Formulario Nuevo Producto */}
               {mostrarNuevoProducto && (
                 <Card sx={{ mb: 2, bgcolor: 'warning.50', border: 2, borderColor: 'warning.200' }}>
                   <CardContent>
@@ -2678,8 +2781,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                           // Resetear el selector de producto al primer valor
                           setPiezaForm(prev => ({ 
                             ...prev, 
-                            producto: productosOptions[0].value,
-                            productoLabel: productosOptions[0].label
+                            producto: todosLosProductos[0].value,
+                            productoLabel: todosLosProductos[0].label
                           }));
                         }}
                       >
@@ -2923,7 +3026,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                           {aplicaDescuento ? 'Total final:' : (cobraInstalacion ? 'Total con instalación:' : 'Total estimado:')}
                         </Typography>
                         <Typography variant="body1" fontWeight="bold" color="success.main">
-                          💵 ${totalFinal.toLocaleString()}
+                          💵 ${(requiereFactura ? totalConIVA : totalFinal).toLocaleString()}
                         </Typography>
                       </Grid>
                     </Grid>
@@ -3122,7 +3225,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: 1, borderColor: 'grey.300' }}>
                       <Typography variant="body1" fontWeight="bold">Total Final:</Typography>
                       <Typography variant="body1" fontWeight="bold" color="success.main">
-                        ${totalFinal.toLocaleString()}
+                        ${(requiereFactura ? totalConIVA : totalFinal).toLocaleString()}
                       </Typography>
                     </Box>
                   </Box>
@@ -3327,16 +3430,20 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             </Button>
           )}
           
-          {/* Botón Generar y Guardar PDF - Solo cuando hay piezas */}
+          {/* Botón Ver PDF - Solo cuando hay piezas */}
           {piezas.length > 0 && (
             <Button
-              onClick={handleGenerarYGuardarPDF}
+              onClick={handleVerPDF}
               disabled={guardandoPDF || guardando || generandoCotizacion || guardandoPedido}
               variant="contained"
-              startIcon={<span>📄</span>}
-              sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}
+              startIcon={guardandoPDF ? <span>⏳</span> : <span>📄</span>}
+              sx={{ 
+                bgcolor: guardandoPDF ? '#9CA3AF' : '#DC2626', 
+                '&:hover': { bgcolor: guardandoPDF ? '#9CA3AF' : '#B91C1C' },
+                '&:disabled': { bgcolor: '#9CA3AF', color: '#6B7280' }
+              }}
             >
-              {guardandoPDF ? 'Generando PDF...' : 'Guardar PDF'}
+              {guardandoPDF ? 'Generando PDF...' : 'Ver PDF'}
             </Button>
           )}
           

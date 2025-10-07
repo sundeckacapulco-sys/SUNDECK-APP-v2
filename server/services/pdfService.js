@@ -585,7 +585,7 @@ class PDFService {
     }
   }
 
-  async generarLevantamientoPDF(etapa, piezas, totalM2, precioGeneral) {
+  async generarLevantamientoPDF(etapa, piezas, totalM2, precioGeneral, datosAdicionales = {}) {
     try {
       console.log('🎨 Iniciando generación de PDF en pdfService...', {
         piezasCount: piezas?.length || 0,
@@ -616,7 +616,7 @@ class PDFService {
       
       // Si es alternativa (html-pdf-node)
       if (browserResult.isAlternative) {
-        return await this.generarPDFConHtmlPdfNode(browserResult.htmlPdf, etapa, piezas, totalM2, precioGeneral);
+        return await this.generarPDFConHtmlPdfNode(browserResult.htmlPdf, etapa, piezas, totalM2, precioGeneral, datosAdicionales);
       }
       
       // Si es puppeteer
@@ -990,7 +990,7 @@ class PDFService {
 
           <!-- RESUMEN COMPACTO -->
           <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-            <strong style="color: #D4AF37; font-size: 12px;">📊 Resumen: {{piezas.length}} partidas medidas • Precio promedio: {{precioGeneral}}</strong>
+            <strong style="color: #D4AF37; font-size: 12px;">📊 Resumen: {{piezas.length}} partidas medidas • Precio por m² de tela: {{precioGeneral}}</strong>
           </div>
 
           <!-- PIE DE PÁGINA LIMPIO -->
@@ -1176,7 +1176,14 @@ class PDFService {
         totalEstimado: this.formatCurrency(totalGeneralReal), // Para el nuevo formato
         piezas: piezasExpandidas,
         company: companyConfig, // Datos dinámicos de la empresa
-        logoBase64: logoBase64 // Logo en base64
+        logoBase64: logoBase64, // Logo en base64
+        // Datos adicionales de facturación
+        subtotalProductos: datosAdicionales.subtotalProductos ? this.formatCurrency(datosAdicionales.subtotalProductos) : this.formatCurrency(totalGeneralReal),
+        instalacion: datosAdicionales.instalacion || { cobra: false, precio: 0 },
+        descuento: datosAdicionales.descuento || { aplica: false, monto: 0 },
+        facturacion: datosAdicionales.facturacion || { requiereFactura: false, iva: 0, totalConIVA: totalGeneralReal },
+        metodoPago: datosAdicionales.metodoPago || { anticipo: 0, saldo: 0 },
+        totalFinal: datosAdicionales.totalFinal ? this.formatCurrency(datosAdicionales.totalFinal) : this.formatCurrency(totalGeneralReal)
       };
 
       const template = handlebars.compile(htmlTemplate);
@@ -1215,7 +1222,7 @@ class PDFService {
   }
 
   // Función alternativa usando html-pdf-node
-  async generarPDFConHtmlPdfNode(htmlPdf, etapa, piezas, totalM2, precioGeneral) {
+  async generarPDFConHtmlPdfNode(htmlPdf, etapa, piezas, totalM2, precioGeneral, datosAdicionales = {}) {
     try {
       // Procesar datos igual que en la función principal
       let totalPiezasReales = 0;
@@ -1325,7 +1332,14 @@ class PDFService {
         totalPiezas: totalPiezasReales,
         totalM2: totalAreaReal.toFixed(2),
         precioEstimado: this.formatCurrency(precioGeneral),
-        totalAproximado: this.formatCurrency(totalGeneralReal)
+        totalAproximado: this.formatCurrency(totalGeneralReal),
+        // Datos adicionales de facturación
+        subtotalProductos: datosAdicionales.subtotalProductos ? this.formatCurrency(datosAdicionales.subtotalProductos) : this.formatCurrency(totalGeneralReal),
+        instalacion: datosAdicionales.instalacion || { cobra: false, precio: 0 },
+        descuento: datosAdicionales.descuento || { aplica: false, monto: 0 },
+        facturacion: datosAdicionales.facturacion || { requiereFactura: false, iva: 0, totalConIVA: totalGeneralReal },
+        metodoPago: datosAdicionales.metodoPago || { anticipo: 0, saldo: 0 },
+        totalFinal: datosAdicionales.totalFinal ? this.formatCurrency(datosAdicionales.totalFinal) : this.formatCurrency(totalGeneralReal)
       };
 
       // Registrar helpers de Handlebars
