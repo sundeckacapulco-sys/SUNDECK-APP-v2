@@ -106,6 +106,15 @@ const cotizacionSchema = new mongoose.Schema({
     usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
     contenido: String
   }],
+  archivada: {
+    type: Boolean,
+    default: false
+  },
+  fechaArchivado: Date,
+  archivadaPor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Usuario'
+  }
 }, {
   timestamps: true
 });
@@ -134,6 +143,7 @@ cotizacionSchema.index({ prospecto: 1 });
 cotizacionSchema.index({ estado: 1 });
 cotizacionSchema.index({ fecha: 1 });
 cotizacionSchema.index({ elaboradaPor: 1 });
+cotizacionSchema.index({ archivada: 1 });
 
 cotizacionSchema.plugin(mongoosePaginate);
 
