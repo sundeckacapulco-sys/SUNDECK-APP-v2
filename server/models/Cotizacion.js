@@ -26,7 +26,7 @@ const cotizacionSchema = new mongoose.Schema({
   },
   estado: {
     type: String,
-    enum: ['borrador', 'enviada', 'vista', 'aprobada', 'rechazada', 'vencida', 'convertida'],
+    enum: ['borrador', 'enviada', 'Activa', 'vista', 'aprobada', 'rechazada', 'vencida', 'convertida'], // Añadido 'Activa'
     default: 'borrador'
   },
   comentarios: String,
