@@ -53,6 +53,149 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosConfig from '../../config/axios';
 
+const parseNumber = (value, fallback = 0) => {
+  if (value === null || value === undefined || value === '') {
+    return fallback;
+  }
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const obtenerUnidadMedidaNormalizada = (producto = {}, area = 0) => {
+  const unidad =
+    producto.unidadMedida ||
+    producto.medida ||
+    producto.medidas?.unidadMedida ||
+    (area > 0 ? 'm2' : 'pieza');
+
+  if (!unidad) {
+    return area > 0 ? 'm2' : 'pieza';
+  }
+
+  return unidad.toString().toLowerCase();
+};
+
+const calcularSubtotalProducto = (producto = {}) => {
+  if (!producto) return 0;
+
+  const precio = parseNumber(
+    producto.precioUnitario ?? producto.precioM2 ?? producto.precio,
+    0
+  );
+  const cantidad = parseNumber(producto.cantidad, 1) || 1;
+  const area = parseNumber(
+    producto.medidas?.area ??
+      producto.area ??
+      producto.metrosCuadrados ??
+      producto.metrosLineales ??
+      producto.longitud,
+    0
+  );
+
+  const unidadMedida = obtenerUnidadMedidaNormalizada(producto, area);
+
+  let subtotalCalculado = 0;
+  if (['pieza', 'par', 'juego', 'kit', 'unidad', 'ud'].includes(unidadMedida)) {
+    subtotalCalculado = precio * cantidad;
+  } else {
+    subtotalCalculado = area * precio * cantidad;
+  }
+
+  const subtotal = parseNumber(producto.subtotal, subtotalCalculado);
+
+  return subtotal;
+};
+
+const normalizarProductoCotizacion = (producto = {}) => {
+  const medidasOriginales = Array.isArray(producto.medidas)
+    ? (producto.medidas[0] || {})
+    : (producto.medidas || {});
+
+  const ancho = parseNumber(medidasOriginales.ancho ?? producto.ancho, 0);
+  const alto = parseNumber(medidasOriginales.alto ?? producto.alto, 0);
+  const largo = parseNumber(medidasOriginales.largo ?? producto.largo, medidasOriginales.profundidad ?? producto.profundidad ?? 0);
+  const cantidad = parseNumber(producto.cantidad, 1) || 1;
+
+  const areaCalculada = parseNumber(
+    medidasOriginales.area ?? producto.area ?? (ancho * alto),
+    0
+  );
+
+  const unidadMedida = obtenerUnidadMedidaNormalizada(
+    {
+      ...producto,
+      unidadMedida: producto.unidadMedida || medidasOriginales.unidadMedida
+    },
+    areaCalculada
+  );
+
+  const precioUnitario = parseNumber(
+    producto.precioUnitario ?? producto.precioM2 ?? producto.precio,
+    0
+  );
+
+  const subtotal = calcularSubtotalProducto({
+    ...producto,
+    precioUnitario,
+    cantidad,
+    unidadMedida,
+    medidas: {
+      ...(Array.isArray(producto.medidas) ? {} : (producto.medidas || {})),
+      ancho,
+      alto,
+      largo,
+      area: areaCalculada
+    }
+  });
+
+  return {
+    ...producto,
+    productoId: producto.productoId || producto.producto || producto.producto?._id || '',
+    nombre: producto.nombre || producto.nombreProducto || producto.descripcion || producto.ubicacion || 'Producto sin nombre',
+    descripcion: producto.descripcion || producto.ubicacion || '',
+    descripcionProducto: producto.descripcionProducto || producto.observaciones || '',
+    categoria: producto.categoria || '',
+    material: producto.material || producto.nombreProducto || '',
+    color: producto.color || '',
+    cristal: producto.cristal || '',
+    unidadMedida,
+    medidas: {
+      ...(Array.isArray(producto.medidas) ? {} : (producto.medidas || {})),
+      ancho,
+      alto,
+      largo,
+      area: areaCalculada
+    },
+    cantidad,
+    precioUnitario,
+    subtotal
+  };
+};
+
+const normalizarDescuento = (descuento = {}) => {
+  if (!descuento) {
+    return {
+      porcentaje: 0,
+      monto: 0,
+      motivo: ''
+    };
+  }
+
+  const tipo = descuento.tipo || (descuento.monto ? 'monto' : 'porcentaje');
+
+  return {
+    porcentaje:
+      tipo === 'porcentaje'
+        ? parseNumber(descuento.valor ?? descuento.porcentaje, 0)
+        : 0,
+    monto:
+      tipo === 'monto'
+        ? parseNumber(descuento.valor ?? descuento.monto, 0)
+        : parseNumber(descuento.monto, 0),
+    motivo: descuento.motivo || ''
+  };
+};
+
 // Componente para importar partidas del levantamiento
 const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fields, remove }) => {
   const [partidasSeleccionadas, setPartidasSeleccionadas] = useState([]);
@@ -113,14 +256,17 @@ const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fiel
   const calcularAreaPieza = (pieza) => {
     if (pieza.medidas && Array.isArray(pieza.medidas) && pieza.medidas.length > 0) {
       return pieza.medidas.reduce((sum, medida) => {
-        return sum + ((medida.ancho || 0) * (medida.alto || 0));
+        const anchoMedida = parseNumber(medida.ancho, 0);
+        const altoMedida = parseNumber(medida.alto, 0);
+        const cantidadMedida = parseNumber(medida.cantidad, 1) || 1;
+        return sum + anchoMedida * altoMedida * cantidadMedida;
       }, 0);
-    } else {
-      const ancho = pieza.ancho || 0;
-      const alto = pieza.alto || 0;
-      const cantidad = pieza.cantidad || 1;
-      return ancho * alto * cantidad;
     }
+
+    const ancho = parseNumber(pieza.ancho, 0);
+    const alto = parseNumber(pieza.alto, 0);
+    const cantidad = parseNumber(pieza.cantidad, 1) || 1;
+    return ancho * alto * cantidad;
   };
 
   // Debug del render
@@ -152,7 +298,7 @@ const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fiel
       <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
         {levantamientoData.piezas.map((pieza, index) => {
           const isSelected = partidasSeleccionadas.some(p => p.index === index);
-          const area = calcularAreaPieza(pieza);
+          const area = parseNumber(calcularAreaPieza(pieza), 0);
           
           return (
             <Card 
@@ -183,7 +329,7 @@ const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fiel
                         color="primary"
                         size="small"
                       />
-                      <Chip 
+                      <Chip
                         label={`${area.toFixed(2)} m²`}
                         color="success"
                         size="small"
@@ -408,50 +554,82 @@ const CotizacionForm = () => {
       console.log('Cargando cotización con ID:', id);
       const response = await axiosConfig.get(`/cotizaciones/${id}`);
       const cotizacion = response.data;
-      
+
       console.log('Cotización cargada:', cotizacion);
-      
-      // Resetear el formulario con los datos de la cotización
-      reset({
-        prospecto: cotizacion.prospecto?._id || '',
-        validoHasta: cotizacion.validoHasta ? new Date(cotizacion.validoHasta).toISOString().slice(0, 10) : '',
-        productos: cotizacion.productos || [],
-        descuento: {
-          porcentaje: cotizacion.descuento?.porcentaje || 0,
-          monto: cotizacion.descuento?.monto || 0,
-          motivo: cotizacion.descuento?.motivo || ''
+
+      const productosNormalizados = Array.isArray(cotizacion.productos)
+        ? cotizacion.productos.map(normalizarProductoCotizacion)
+        : [];
+
+      const descuentoNormalizado = normalizarDescuento(cotizacion.descuento);
+
+      const requiereInstalacion =
+        cotizacion.requiereInstalacion !== undefined
+          ? cotizacion.requiereInstalacion
+          : (cotizacion.instalacion?.incluye ?? true);
+
+      const costoInstalacion =
+        cotizacion.costoInstalacion !== undefined
+          ? cotizacion.costoInstalacion
+          : cotizacion.instalacion?.costo || 0;
+
+      const incluirIVAFlag =
+        cotizacion.incluirIVA !== undefined
+          ? cotizacion.incluirIVA
+          : (cotizacion.facturacion?.iva ?? 0) > 0;
+
+      const formaPagoNormalizada = cotizacion.formaPago || {
+        anticipo: {
+          porcentaje: 60,
+          monto: 0
         },
+        saldo: {
+          porcentaje: 40,
+          monto: 0,
+          condiciones: 'contra entrega'
+        }
+      };
+
+      reset({
+        prospecto: cotizacion.prospecto?._id || cotizacion.prospecto || '',
+        validoHasta: cotizacion.validoHasta
+          ? new Date(cotizacion.validoHasta).toISOString().slice(0, 10)
+          : '',
+        productos: productosNormalizados,
+        descuento: descuentoNormalizado,
         formaPago: {
           anticipo: {
-            porcentaje: cotizacion.formaPago?.anticipo?.porcentaje || 60,
-            monto: cotizacion.formaPago?.anticipo?.monto || 0
+            porcentaje: formaPagoNormalizada?.anticipo?.porcentaje ?? 60,
+            monto: formaPagoNormalizada?.anticipo?.monto ?? 0
           },
           saldo: {
-            porcentaje: cotizacion.formaPago?.saldo?.porcentaje || 40,
-            monto: cotizacion.formaPago?.saldo?.monto || 0,
-            condiciones: cotizacion.formaPago?.saldo?.condiciones || 'contra entrega'
+            porcentaje: formaPagoNormalizada?.saldo?.porcentaje ?? 40,
+            monto: formaPagoNormalizada?.saldo?.monto ?? 0,
+            condiciones: formaPagoNormalizada?.saldo?.condiciones || 'contra entrega'
           }
         },
-        tiempoFabricacion: cotizacion.tiempoFabricacion || 15,
-        tiempoInstalacion: cotizacion.tiempoInstalacion || 1,
-        requiereInstalacion: cotizacion.requiereInstalacion !== false,
-        costoInstalacion: cotizacion.costoInstalacion || 0,
+        tiempoFabricacion: cotizacion.tiempoFabricacion ?? 15,
+        tiempoInstalacion: cotizacion.tiempoInstalacion ?? 1,
+        requiereInstalacion,
+        costoInstalacion,
         garantia: {
-          fabricacion: cotizacion.garantia?.fabricacion || 12,
-          instalacion: cotizacion.garantia?.instalacion || 6,
-          descripcion: cotizacion.garantia?.descripcion || 'Garantía completa contra defectos de fabricación e instalación'
+          fabricacion: cotizacion.garantia?.fabricacion ?? 12,
+          instalacion: cotizacion.garantia?.instalacion ?? 6,
+          descripcion:
+            cotizacion.garantia?.descripcion ||
+            'Garantía completa contra defectos de fabricación e instalación'
         },
-        observaciones: cotizacion.observaciones || ''
+        observaciones: cotizacion.observaciones || cotizacion.comentarios || ''
       });
-      
-      // Configurar tipo de descuento según los datos
-      if (cotizacion.descuento?.monto && cotizacion.descuento?.monto > 0) {
+
+      if (descuentoNormalizado.monto && descuentoNormalizado.monto > 0) {
         setTipoDescuento('monto');
+      } else if (descuentoNormalizado.porcentaje && descuentoNormalizado.porcentaje > 0) {
+        setTipoDescuento('porcentaje');
       } else {
         setTipoDescuento('porcentaje');
       }
-      
-      // Configurar días de validez
+
       if (cotizacion.validoHasta) {
         const validoHasta = new Date(cotizacion.validoHasta);
         const hoy = new Date();
@@ -459,14 +637,11 @@ const CotizacionForm = () => {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         setDiasValidez(Math.max(1, diffDays));
       }
-      
-      // Configurar estado de IVA
-      if (cotizacion.incluirIVA !== undefined) {
-        setIncluirIVA(cotizacion.incluirIVA);
-      }
-      
+
+      setIncluirIVA(incluirIVAFlag);
+
       setSuccess('Cotización cargada exitosamente');
-      
+
     } catch (error) {
       console.error('Error cargando cotización:', error);
       setError('Error cargando la cotización: ' + (error.response?.data?.message || error.message));
@@ -475,31 +650,19 @@ const CotizacionForm = () => {
 
   const calcularTotales = () => {
     const subtotal = watchedProductos.reduce((sum, producto) => {
-      // SIEMPRE recalcular el subtotal en tiempo real (no usar producto.subtotal guardado)
-      const precio = producto.precioUnitario || 0;
-      const cantidad = producto.cantidad || 1;
-      const unidadMedida = producto?.unidadMedida;
-      
-      let subtotalProducto = 0;
-      if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
-        // Productos por pieza: precio × cantidad
-        subtotalProducto = precio * cantidad;
-      } else {
-        // Productos por área o lineales: área × precio × cantidad
-        const area = producto.medidas?.area || 0;
-        subtotalProducto = area * precio * cantidad;
-      }
-      
+      const subtotalProducto = calcularSubtotalProducto(producto);
       return sum + subtotalProducto;
     }, 0);
 
     let descuentoMonto = 0;
     if (tipoDescuento === 'porcentaje') {
-      const descuentoPorcentaje = watchedDescuento?.porcentaje || 0;
+      const descuentoPorcentaje = parseNumber(watchedDescuento?.porcentaje, 0);
       descuentoMonto = subtotal * (descuentoPorcentaje / 100);
     } else {
-      descuentoMonto = watchedDescuento?.monto || 0;
+      descuentoMonto = parseNumber(watchedDescuento?.monto, 0);
     }
+    descuentoMonto = Math.min(descuentoMonto, subtotal);
+
     const subtotalConDescuento = subtotal - descuentoMonto;
     const iva = incluirIVA ? subtotalConDescuento * 0.16 : 0;
     const total = subtotalConDescuento + iva;
@@ -529,6 +692,7 @@ const CotizacionForm = () => {
       },
       cantidad: 1,
       precioUnitario: 0,
+      unidadMedida: 'm2',
       subtotal: 0
     });
   };
@@ -708,9 +872,13 @@ const CotizacionForm = () => {
         },
         cantidad: 1, // SIEMPRE 1 para levantamientos importados
         precioUnitario: pieza.precioM2 || 0,
+        unidadMedida: obtenerUnidadMedidaNormalizada(
+          { unidadMedida: pieza.unidadMedida || pieza.medida },
+          areaTotal
+        ),
         subtotal: areaTotal * (pieza.precioM2 || 0) // Solo área × precio, sin multiplicar por cantidad
       };
-      
+
       console.log(`=== PRODUCTO IMPORTADO ${idx + 1} ===`);
       console.log('Área total calculada:', areaTotal);
       console.log('Precio por m²:', pieza.precioM2);
@@ -787,23 +955,26 @@ const CotizacionForm = () => {
       
       // Calcular subtotales de productos usando la misma lógica que calcularTotales()
       const productosConSubtotal = data.productos.map(producto => {
-        const precio = producto.precioUnitario || 0;
-        const cantidad = producto.cantidad || 1;
-        const unidadMedida = producto?.unidadMedida;
-        
-        let subtotal = 0;
-        if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
-          // Productos por pieza: precio × cantidad
-          subtotal = precio * cantidad;
-        } else {
-          // Productos por área o lineales: área × precio × cantidad
-          const area = producto.medidas?.area || 0;
-          subtotal = area * precio * cantidad;
-        }
-        
+        const subtotal = calcularSubtotalProducto(producto);
+        const cantidad = parseNumber(producto.cantidad, 1) || 1;
+        const precioUnitario = parseNumber(
+          producto.precioUnitario ?? producto.precioM2 ?? producto.precio,
+          0
+        );
+        const area = parseNumber(
+          producto.medidas?.area ?? producto.area ?? producto.metrosCuadrados,
+          0
+        );
+
         return {
           ...producto,
-          subtotal: subtotal
+          cantidad,
+          precioUnitario,
+          medidas: {
+            ...(producto.medidas || {}),
+            area
+          },
+          subtotal
         };
       });
 
@@ -820,8 +991,8 @@ const CotizacionForm = () => {
       console.log('=== DEBUG TOTALES ===');
       console.log('Totales calculados:', totales);
       console.log('Incluir IVA:', incluirIVA);
-      console.log('Productos con subtotal:', productosConSubtotal.map(p => ({ 
-        nombre: p.nombre, 
+      console.log('Productos con subtotal:', productosConSubtotal.map(p => ({
+        nombre: p.nombre,
         subtotal: p.subtotal,
         precio: p.precioUnitario,
         cantidad: p.cantidad,
@@ -1302,12 +1473,12 @@ const CotizacionForm = () => {
                               
                               // Productos lineales
                               if (['ml', 'metro'].includes(unidadMedida)) {
-                                const metrosLineales = producto.medidas?.area || 0;
+                                const metrosLineales = parseNumber(producto.medidas?.area, 0);
                                 return `${metrosLineales.toFixed(1)} m.l.`;
                               }
-                              
+
                               // Productos por m²
-                              const area = producto.medidas?.area || 0;
+                              const area = parseNumber(producto.medidas?.area, 0);
                               return `${area.toFixed(2)} m²`;
                             })()} 
                           </Typography>
@@ -1337,7 +1508,7 @@ const CotizacionForm = () => {
                                   subtotal = precio * cantidad;
                                 } else {
                                   // Productos por área o lineales: área × precio × cantidad
-                                  const area = producto?.medidas?.area || 0;
+                                  const area = parseNumber(producto?.medidas?.area, 0);
                                   subtotal = area * precio * cantidad;
                                 }
                                 setValue(`productos.${index}.subtotal`, subtotal);
@@ -1392,22 +1563,7 @@ const CotizacionForm = () => {
                       <TableCell>
                         ${(() => {
                           const producto = watchedProductos[index];
-                          if (!producto) return 0;
-                          
-                          const precio = producto.precioUnitario || 0;
-                          const cantidad = producto.cantidad || 1;
-                          const unidadMedida = producto?.unidadMedida;
-                          
-                          let subtotal = 0;
-                          if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
-                            // Productos por pieza: precio × cantidad
-                            subtotal = precio * cantidad;
-                          } else {
-                            // Productos por área o lineales: área × precio × cantidad
-                            const area = producto.medidas?.area || 0;
-                            subtotal = area * precio * cantidad;
-                          }
-                          
+                          const subtotal = calcularSubtotalProducto(producto);
                           return subtotal.toLocaleString();
                         })()}
                       </TableCell>
