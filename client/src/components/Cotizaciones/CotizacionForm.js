@@ -203,14 +203,17 @@ const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fiel
   const calcularAreaPieza = (pieza) => {
     if (pieza.medidas && Array.isArray(pieza.medidas) && pieza.medidas.length > 0) {
       return pieza.medidas.reduce((sum, medida) => {
-        return sum + ((medida.ancho || 0) * (medida.alto || 0));
+        const anchoMedida = parseNumber(medida.ancho, 0);
+        const altoMedida = parseNumber(medida.alto, 0);
+        const cantidadMedida = parseNumber(medida.cantidad, 1) || 1;
+        return sum + anchoMedida * altoMedida * cantidadMedida;
       }, 0);
-    } else {
-      const ancho = pieza.ancho || 0;
-      const alto = pieza.alto || 0;
-      const cantidad = pieza.cantidad || 1;
-      return ancho * alto * cantidad;
     }
+
+    const ancho = parseNumber(pieza.ancho, 0);
+    const alto = parseNumber(pieza.alto, 0);
+    const cantidad = parseNumber(pieza.cantidad, 1) || 1;
+    return ancho * alto * cantidad;
   };
 
   // Debug del render
@@ -242,7 +245,7 @@ const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fiel
       <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
         {levantamientoData.piezas.map((pieza, index) => {
           const isSelected = partidasSeleccionadas.some(p => p.index === index);
-          const area = calcularAreaPieza(pieza);
+          const area = parseNumber(calcularAreaPieza(pieza), 0);
           
           return (
             <Card 
@@ -273,7 +276,7 @@ const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fiel
                         color="primary"
                         size="small"
                       />
-                      <Chip 
+                      <Chip
                         label={`${area.toFixed(2)} m²`}
                         color="success"
                         size="small"
@@ -1421,12 +1424,12 @@ const CotizacionForm = () => {
                               
                               // Productos lineales
                               if (['ml', 'metro'].includes(unidadMedida)) {
-                                const metrosLineales = producto.medidas?.area || 0;
+                                const metrosLineales = parseNumber(producto.medidas?.area, 0);
                                 return `${metrosLineales.toFixed(1)} m.l.`;
                               }
-                              
+
                               // Productos por m²
-                              const area = producto.medidas?.area || 0;
+                              const area = parseNumber(producto.medidas?.area, 0);
                               return `${area.toFixed(2)} m²`;
                             })()} 
                           </Typography>
@@ -1456,7 +1459,7 @@ const CotizacionForm = () => {
                                   subtotal = precio * cantidad;
                                 } else {
                                   // Productos por área o lineales: área × precio × cantidad
-                                  const area = producto?.medidas?.area || 0;
+                                  const area = parseNumber(producto?.medidas?.area, 0);
                                   subtotal = area * precio * cantidad;
                                 }
                                 setValue(`productos.${index}.subtotal`, subtotal);
