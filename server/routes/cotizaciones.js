@@ -7,6 +7,24 @@ const cotizacionController = require('../controllers/cotizacionController');
 
 const router = express.Router();
 
+const verificarAccesoCotizacion = (cotizacion, usuario) => {
+  if (!cotizacion || !usuario) {
+    return { permitido: false };
+  }
+
+  if (usuario.rol === 'admin' || usuario.rol === 'gerente') {
+    return { permitido: true };
+  }
+
+  if (!cotizacion.elaboradaPor) {
+    return { permitido: true, asignarPropietario: true };
+  }
+
+  return {
+    permitido: cotizacion.elaboradaPor.toString() === usuario._id.toString()
+  };
+};
+
 // Obtener cotizaciones con filtros
 router.get('/', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res) => {
   try {
@@ -407,9 +425,13 @@ router.put('/:id', auth, verificarPermiso('cotizaciones', 'actualizar'), async (
     console.log('- IncluirIVA actual:', cotizacion.incluirIVA);
 
     // Solo el creador o admin/gerente pueden modificar
-    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' && 
-        cotizacion.elaboradaPor.toString() !== req.usuario._id.toString()) {
+    const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
+    if (!acceso.permitido) {
       return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
+    }
+
+    if (acceso.asignarPropietario) {
+      cotizacion.elaboradaPor = req.usuario._id;
     }
 
     const camposPermitidos = [
