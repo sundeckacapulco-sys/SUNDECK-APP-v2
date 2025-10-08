@@ -16,8 +16,6 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  TextField,
-  Grid,
   Alert,
   Snackbar
 } from '@mui/material';
@@ -31,7 +29,9 @@ import {
   Delete,
   Payment,
   CheckCircle,
-  WhatsApp
+  WhatsApp,
+  Archive,
+  Unarchive
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
@@ -40,6 +40,7 @@ import GeneradorWhatsApp from '../WhatsApp/GeneradorWhatsApp';
 
 const CotizacionesList = () => {
   const [cotizaciones, setCotizaciones] = useState([]);
+  const [cotizacionesArchivadas, setCotizacionesArchivadas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedCotizacion, setSelectedCotizacion] = useState(null);
@@ -70,17 +71,85 @@ const CotizacionesList = () => {
   const fetchCotizaciones = async () => {
     try {
       setLoading(true);
-      const response = await axiosConfig.get('/cotizaciones');
-      const cotizacionesData = response.data.docs || response.data || [];
-      // Filtrar cotizaciones válidas
-      const cotizacionesValidas = cotizacionesData.filter(cot => cot && cot._id);
-      setCotizaciones(cotizacionesValidas);
+      const paramsBase = { limit: 100 };
+      const [activasResponse, archivadasResponse] = await Promise.all([
+        axiosConfig.get('/cotizaciones', { params: { ...paramsBase, archivada: false } }),
+        axiosConfig.get('/cotizaciones', { params: { ...paramsBase, archivada: true } })
+      ]);
+
+      const cotizacionesActivas = (activasResponse.data.docs || activasResponse.data || [])
+        .filter(cot => cot && cot._id);
+      const cotizacionesArchivadasData = (archivadasResponse.data.docs || archivadasResponse.data || [])
+        .filter(cot => cot && cot._id);
+
+      setCotizaciones(cotizacionesActivas);
+      setCotizacionesArchivadas(cotizacionesArchivadasData);
     } catch (error) {
       console.error('Error fetching cotizaciones:', error);
       setError('Error cargando cotizaciones');
       setCotizaciones([]);
+      setCotizacionesArchivadas([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleArchivarCotizacion = async (cotizacion) => {
+    if (!cotizacion) return;
+
+    if (!window.confirm('¿Archivar esta cotización? Podrás consultarla después en el listado de archivadas.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axiosConfig.put(`/cotizaciones/${cotizacion._id}/archivar`);
+      setSuccess(response.data.message || 'Cotización archivada exitosamente');
+      await fetchCotizaciones();
+    } catch (error) {
+      console.error('Error archivando cotización:', error);
+      setError(error.response?.data?.message || 'Error archivando cotización');
+    } finally {
+      setLoading(false);
+      handleMenuClose();
+    }
+  };
+
+  const handleDesarchivarCotizacion = async (cotizacion) => {
+    if (!cotizacion) return;
+
+    try {
+      setLoading(true);
+      const response = await axiosConfig.put(`/cotizaciones/${cotizacion._id}/desarchivar`);
+      setSuccess(response.data.message || 'Cotización desarchivada exitosamente');
+      await fetchCotizaciones();
+    } catch (error) {
+      console.error('Error desarchivando cotización:', error);
+      setError(error.response?.data?.message || 'Error desarchivando cotización');
+    } finally {
+      setLoading(false);
+      handleMenuClose();
+    }
+  };
+
+  const handleEliminarCotizacion = async (cotizacion) => {
+    if (!cotizacion) return;
+
+    if (!window.confirm('¿Eliminar esta cotización? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axiosConfig.delete(`/cotizaciones/${cotizacion._id}`);
+      setSuccess(response.data.message || 'Cotización eliminada exitosamente');
+      await fetchCotizaciones();
+    } catch (error) {
+      console.error('Error eliminando cotización:', error);
+      setError(error.response?.data?.message || 'Error eliminando cotización');
+    } finally {
+      setLoading(false);
+      handleMenuClose();
     }
   };
 
@@ -352,6 +421,88 @@ const CotizacionesList = () => {
         </Table>
       </TableContainer>
 
+      <Box mt={4}>
+        <Card variant="outlined">
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Cotizaciones Archivadas
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Aquí encontrarás cotizaciones guardadas como referencia. Puedes desarchivarlas cuando las necesites nuevamente.
+            </Typography>
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Número</TableCell>
+                    <TableCell>Cliente</TableCell>
+                    <TableCell>Total</TableCell>
+                    <TableCell>Estado</TableCell>
+                    <TableCell>Archivada</TableCell>
+                    <TableCell>Acciones</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center">
+                        Cargando...
+                      </TableCell>
+                    </TableRow>
+                  ) : cotizacionesArchivadas.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center">
+                        No hay cotizaciones archivadas
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    cotizacionesArchivadas.map((cotizacion) => (
+                      <TableRow key={cotizacion._id} hover sx={{ backgroundColor: '#f9fafb' }}>
+                        <TableCell>
+                          <Typography variant="subtitle2">
+                            {cotizacion.numero || 'Sin número'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {cotizacion.prospecto?.nombre || 'Sin cliente'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {cotizacion.prospecto?.telefono || ''}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="subtitle2">
+                            ${(cotizacion.total || 0).toLocaleString()}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={cotizacion.estado || 'Sin estado'}
+                            color={estadoColors[cotizacion.estado] || 'default'}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {cotizacion.fechaArchivado ? new Date(cotizacion.fechaArchivado).toLocaleDateString() : '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <IconButton onClick={(e) => handleMenuClick(e, cotizacion)}>
+                            <MoreVert />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
+      </Box>
+
       {/* Menú de acciones */}
       <Menu
         anchorEl={anchorEl}
@@ -385,6 +536,23 @@ const CotizacionesList = () => {
           <Send sx={{ mr: 1 }} />
           Enviar
         </MenuItem>
+        {selectedCotizacion?.archivada ? (
+          <MenuItem
+            onClick={() => handleDesarchivarCotizacion(selectedCotizacion)}
+            sx={{ color: '#2e7d32' }}
+          >
+            <Unarchive sx={{ mr: 1 }} />
+            Desarchivar
+          </MenuItem>
+        ) : (
+          <MenuItem
+            onClick={() => handleArchivarCotizacion(selectedCotizacion)}
+            sx={{ color: '#fb8c00' }}
+          >
+            <Archive sx={{ mr: 1 }} />
+            Archivar
+          </MenuItem>
+        )}
         <MenuItem
           onClick={() => handleDescargarPDF(selectedCotizacion)}
           sx={{ color: '#2196f3' }}
@@ -420,6 +588,13 @@ const CotizacionesList = () => {
             Ver Pedido
           </MenuItem>
         )}
+        <MenuItem
+          onClick={() => handleEliminarCotizacion(selectedCotizacion)}
+          sx={{ color: '#d32f2f' }}
+        >
+          <Delete sx={{ mr: 1 }} />
+          Eliminar
+        </MenuItem>
       </Menu>
 
       {/* Modal para aplicar anticipo */}
