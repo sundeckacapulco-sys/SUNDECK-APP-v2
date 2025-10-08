@@ -33,14 +33,13 @@ const cotizacionSchema = new mongoose.Schema({
   precioGeneralM2: Number,
   unidadMedida: String,
 
-  // Productos cotizados con estructura aplanada, como se recibe del frontend
   productos: [{
     ubicacion: String,
     cantidad: { type: Number, default: 1 },
     ancho: Number,
     alto: Number,
     area: Number,
-    productoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Producto' },
+    productoId: { type: String }, // <-- CAMBIO AQUÍ: Ahora es String en lugar de ObjectId
     nombreProducto: String,
     color: String,
     precioM2: Number,
