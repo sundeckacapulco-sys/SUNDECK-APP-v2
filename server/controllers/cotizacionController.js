@@ -59,13 +59,12 @@ exports.crearCotizacion = async (req, res) => {
       fecha: fechaCreacion ? new Date(fechaCreacion) : new Date(),
       estado: 'Activa',
       productos: productos.map(p => ({
-        // Mapeo directo de campos de producto, ya que 'medidas' no es un array anidado aquí
         ubicacion: p.ubicacion,
-        cantidad: p.cantidad || 1, // Asegurarse de que cantidad sea al menos 1
+        cantidad: p.cantidad || 1,
         ancho: p.ancho,
         alto: p.alto,
         area: p.area,
-        productoId: p.productoId,
+        productoId: p.productoId, // Asegúrate de que p.productoId sea un ObjectId válido o String que mongoose pueda castear
         nombreProducto: p.nombreProducto,
         color: p.color,
         precioM2: p.precioM2,
@@ -115,7 +114,7 @@ exports.crearCotizacion = async (req, res) => {
       subtotal: subtotal,
       iva: ivaCalculado,
       total: totalFinal,
-      elaboradaPor: req.usuario?._id || null,
+      elaboradaPor: req.usuario?._id || null, // req.usuario?._id podría ser null/undefined si no hay autenticación
       validoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     });
 
@@ -136,7 +135,7 @@ exports.crearCotizacion = async (req, res) => {
     console.error('Backend: Error creando cotización:', error);
 
     if (error.name === 'ValidationError') {
-      console.error('Backend: Errores de validación:', error.errors);
+      console.error('Backend: Errores de validación detallados:', error.errors);
       return res.status(400).json({
         message: 'Datos inválidos para crear la cotización',
         errors: extraerErroresValidacion(error)
@@ -171,14 +170,12 @@ function calcularTotalesCotizacion({ productos = [], precioGeneralM2, incluyeIns
   let subtotalProductos = 0;
 
   for (const pieza of productos) {
-    // Acceder directamente a los campos de la pieza, ya que 'medidas' no es un array anidado
     const area = pieza.area || ((parseFloat(pieza.ancho) || 0) * (parseFloat(pieza.alto) || 0));
     const precio = parseFloat(pieza.precioM2) || parseFloat(precioGeneralM2) || 0;
     const cantidad = pieza.cantidad || 1;
     
-    subtotalProductos += (area * precio * cantidad); // Multiplicar por la cantidad de piezas
+    subtotalProductos += (area * precio * cantidad);
     
-    // Añadir precios de kit, motor y control si aplican
     if (pieza.esToldo && pieza.kitPrecio) {
       subtotalProductos += (parseFloat(pieza.kitPrecio) || 0) * cantidad;
     }
@@ -186,7 +183,7 @@ function calcularTotalesCotizacion({ productos = [], precioGeneralM2, incluyeIns
       subtotalProductos += (parseFloat(pieza.motorPrecio) || 0) * cantidad;
     }
     if (pieza.motorizado && pieza.controlPrecio) {
-      subtotalProductos += (parseFloat(pieza.controlPrecio) || 0); // Control es por partida
+      subtotalProductos += (parseFloat(pieza.controlPrecio) || 0);
     }
   }
 
@@ -228,9 +225,12 @@ function calcularTotalesCotizacion({ productos = [], precioGeneralM2, incluyeIns
 
 function extraerErroresValidacion(error) {
   const errores = {};
-  Object.keys(error.errors || {}).forEach((campo) => {
-    errores[campo] = error.errors[campo].message;
-  });
+  // Aquí se extraen los mensajes de error de validación de Mongoose
+  if (error.errors) {
+    Object.keys(error.errors).forEach((campo) => {
+      errores[campo] = error.errors[campo].message;
+    });
+  }
   return errores;
 }
 
