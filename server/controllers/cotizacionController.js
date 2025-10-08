@@ -177,7 +177,8 @@ function calcularTotalesCotizacion({ productos = [], precioGeneralM2, unidadMedi
   let subtotalProductos = 0;
 
   for (const pieza of productos) {
-    for (const medida of pieza.medidas) {
+    // AHORA PIEZA.MEDIDAS ES UN ARRAY, PERO ASEGURAMOS QUE NO SEA UNDEFINED O NULL
+    for (const medida of (pieza.medidas || [])) { // <-- CAMBIO AQUÍ
       const area = medida.area || ((parseFloat(medida.ancho) || 0) * (parseFloat(medida.alto) || 0));
       const precio = parseFloat(medida.precioM2) || parseFloat(precioGeneralM2) || 0;
       subtotalProductos += area * precio;
