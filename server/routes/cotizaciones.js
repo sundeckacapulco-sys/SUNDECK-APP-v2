@@ -478,9 +478,11 @@ router.put('/:id/archivar', auth, verificarPermiso('cotizaciones', 'actualizar')
       return res.status(404).json({ message: 'Cotización no encontrada' });
     }
 
-    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' &&
-        cotizacion.elaboradaPor.toString() !== req.usuario._id.toString()) {
-      return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
+    // Modificación: Asegurar que cotizacion.elaboradaPor existe antes de llamar a toString()
+    const isOwner = cotizacion.elaboradaPor && cotizacion.elaboradaPor.toString() === req.usuario._id.toString();
+
+    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' && !isOwner) {
+      return res.status(403).json({ message: 'No tienes acceso para archivar esta cotización' });
     }
 
     cotizacion.archivada = true;
@@ -495,7 +497,7 @@ router.put('/:id/archivar', auth, verificarPermiso('cotizaciones', 'actualizar')
     });
   } catch (error) {
     console.error('Error archivando cotización:', error);
-    res.status(500).json({ message: 'Error interno del servidor' });
+    res.status(500).json({ message: 'Error interno del servidor al archivar cotización' }); // Mensaje de error más específico
   }
 });
 
@@ -553,7 +555,7 @@ router.put('/:id/enviar', auth, verificarPermiso('cotizaciones', 'actualizar'), 
       message: 'Cotización enviada exitosamente',
       cotizacion
     });
-  } catch (error) {
+  } catch (error) => {
     console.error('Error enviando cotización:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
   }
