@@ -7,9 +7,9 @@ exports.crearCotizacion = async (req, res) => {
     console.log('Backend: req.body recibido:', JSON.stringify(req.body, null, 2));
 
     const {
-      prospecto: prospectoId, // frontend envía 'prospecto'
-      nombre, // nombre de la cotización
-      productos, // array de productos con detalles anidados
+      prospecto: prospectoId,
+      nombre,
+      productos,
       comentarios,
       precioGeneralM2,
       fechaCreacion,
@@ -17,7 +17,7 @@ exports.crearCotizacion = async (req, res) => {
       incluyeInstalacion,
       costoInstalacion,
       tipoInstalacion,
-      descuento, // objeto {tipo: 'porcentaje'/'monto', valor: Number}
+      descuento,
       requiereFactura,
       metodoPagoAnticipo,
       tiempoEntrega,
@@ -44,7 +44,6 @@ exports.crearCotizacion = async (req, res) => {
     const { subtotal, montoDescuento, ivaCalculado, totalFinal, baseParaDescuento, debeIncluirIVA } = calcularTotalesCotizacion({
       productos,
       precioGeneralM2,
-      unidadMedida,
       incluyeInstalacion,
       costoInstalacion,
       descuento,
@@ -60,21 +59,19 @@ exports.crearCotizacion = async (req, res) => {
       fecha: fechaCreacion ? new Date(fechaCreacion) : new Date(),
       estado: 'Activa',
       productos: productos.map(p => ({
-        // Asegúrate de que el esquema de Cotizacion.productos sea flexible o coincida con esta estructura
+        // Mapeo directo de campos de producto, ya que 'medidas' no es un array anidado aquí
         ubicacion: p.ubicacion,
-        cantidad: p.cantidad, // `cantidad` se gestiona a nivel de pieza en el frontend
-        medidas: p.medidas.map(m => ({
-          ancho: m.ancho,
-          alto: m.alto,
-          area: m.area,
-          productoId: m.productoId,
-          nombreProducto: m.nombreProducto,
-          color: m.color,
-          precioM2: m.precioM2,
-        })),
+        cantidad: p.cantidad || 1, // Asegurarse de que cantidad sea al menos 1
+        ancho: p.ancho,
+        alto: p.alto,
+        area: p.area,
+        productoId: p.productoId,
+        nombreProducto: p.nombreProducto,
+        color: p.color,
+        precioM2: p.precioM2,
         observaciones: p.observaciones,
-        fotoUrls: p.fotoUrls,
-        videoUrl: p.videoUrl,
+        fotoUrls: p.fotoUrls || [],
+        videoUrl: p.videoUrl || '',
         esToldo: p.esToldo,
         tipoToldo: p.tipoToldo,
         kitModelo: p.kitModelo,
@@ -96,10 +93,10 @@ exports.crearCotizacion = async (req, res) => {
         costo: costoInstalacion,
         tipo: tipoInstalacion
       },
-      descuento: descuento ? { // Mapear el objeto de descuento
+      descuento: descuento ? {
         tipo: descuento.tipo,
         valor: descuento.valor,
-        monto: montoDescuento, // Guardar el monto calculado del descuento
+        monto: montoDescuento,
       } : undefined,
       facturacion: {
         requiere: requiereFactura,
@@ -107,12 +104,10 @@ exports.crearCotizacion = async (req, res) => {
       },
       pago: {
         metodoAnticipo: metodoPagoAnticipo,
-        // Aquí puedes calcular y guardar anticipo y saldo si tu modelo lo tiene
       },
       entrega: {
         tipo: tiempoEntrega,
         diasExpres: diasEntregaExpres,
-        // Puedes añadir la fecha estimada de entrega aquí si la calculas en el backend
       },
       terminos: {
         incluir: incluirTerminos
@@ -120,14 +115,13 @@ exports.crearCotizacion = async (req, res) => {
       subtotal: subtotal,
       iva: ivaCalculado,
       total: totalFinal,
-      elaboradaPor: req.usuario?._id || null, // Asegúrate de tener req.usuario
-      validoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 días por defecto
+      elaboradaPor: req.usuario?._id || null,
+      validoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     });
 
     const cotizacionGuardada = await nuevaCotizacion.save();
     console.log('Backend: Cotización guardada exitosamente:', cotizacionGuardada._id);
 
-    // Actualizar el estado del prospecto
     prospecto.etapa = 'cotizacion';
     prospecto.fechaUltimoContacto = new Date();
     await prospecto.save();
@@ -173,25 +167,26 @@ async function generarNumeroCotizacion() {
 }
 
 // Función auxiliar para calcular todos los totales
-function calcularTotalesCotizacion({ productos = [], precioGeneralM2, unidadMedida, incluyeInstalacion, costoInstalacion, descuento, requiereFactura }) {
+function calcularTotalesCotizacion({ productos = [], precioGeneralM2, incluyeInstalacion, costoInstalacion, descuento, requiereFactura }) {
   let subtotalProductos = 0;
 
   for (const pieza of productos) {
-    // AHORA PIEZA.MEDIDAS ES UN ARRAY, PERO ASEGURAMOS QUE NO SEA UNDEFINED O NULL
-    for (const medida of (pieza.medidas || [])) { // <-- CAMBIO AQUÍ
-      const area = medida.area || ((parseFloat(medida.ancho) || 0) * (parseFloat(medida.alto) || 0));
-      const precio = parseFloat(medida.precioM2) || parseFloat(precioGeneralM2) || 0;
-      subtotalProductos += area * precio;
-    }
-    // Añadir precios de kit, motor y control si aplican por pieza
+    // Acceder directamente a los campos de la pieza, ya que 'medidas' no es un array anidado
+    const area = pieza.area || ((parseFloat(pieza.ancho) || 0) * (parseFloat(pieza.alto) || 0));
+    const precio = parseFloat(pieza.precioM2) || parseFloat(precioGeneralM2) || 0;
+    const cantidad = pieza.cantidad || 1;
+    
+    subtotalProductos += (area * precio * cantidad); // Multiplicar por la cantidad de piezas
+    
+    // Añadir precios de kit, motor y control si aplican
     if (pieza.esToldo && pieza.kitPrecio) {
-      subtotalProductos += parseFloat(pieza.kitPrecio) * (pieza.medidas?.length || 1);
+      subtotalProductos += (parseFloat(pieza.kitPrecio) || 0) * cantidad;
     }
     if (pieza.motorizado && pieza.motorPrecio) {
-      subtotalProductos += parseFloat(pieza.motorPrecio) * (pieza.medidas?.length || 1);
+      subtotalProductos += (parseFloat(pieza.motorPrecio) || 0) * cantidad;
     }
     if (pieza.motorizado && pieza.controlPrecio) {
-      subtotalProductos += parseFloat(pieza.controlPrecio); // Control es por partida, no por medida individual
+      subtotalProductos += (parseFloat(pieza.controlPrecio) || 0); // Control es por partida
     }
   }
 
@@ -212,7 +207,7 @@ function calcularTotalesCotizacion({ productos = [], precioGeneralM2, unidadMedi
 
   const subtotalTrasDescuento = Math.max(baseParaDescuento - montoDescuento, 0);
 
-  let debeIncluirIVA = Boolean(requiereFactura); // Si requiere factura, siempre incluye IVA
+  let debeIncluirIVA = Boolean(requiereFactura);
 
   let ivaCalculado = 0;
   if (debeIncluirIVA) {
@@ -239,15 +234,13 @@ function extraerErroresValidacion(error) {
   return errores;
 }
 
-// Helper para convertir el campo 'comentarios' a un formato de 'notas' si es necesario
-// Adaptado para el nuevo payload de frontend
 function prepararNotas({ comentarios, usuarioId }) {
   if (!comentarios) {
     return [];
   }
   return [{
     contenido: comentarios,
-    usuario: usuarioId, // Si el usuario está disponible en req.usuario
+    usuario: usuarioId,
     fecha: new Date()
   }];
 }
