@@ -478,13 +478,9 @@ router.put('/:id/archivar', auth, verificarPermiso('cotizaciones', 'actualizar')
       return res.status(404).json({ message: 'Cotización no encontrada' });
     }
 
-    const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
-    if (!acceso.permitido) {
+    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' &&
+        cotizacion.elaboradaPor.toString() !== req.usuario._id.toString()) {
       return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
-    }
-
-    if (acceso.asignarPropietario) {
-      cotizacion.elaboradaPor = req.usuario._id;
     }
 
     cotizacion.archivada = true;
@@ -512,13 +508,9 @@ router.put('/:id/desarchivar', auth, verificarPermiso('cotizaciones', 'actualiza
       return res.status(404).json({ message: 'Cotización no encontrada' });
     }
 
-    const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
-    if (!acceso.permitido) {
+    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' &&
+        cotizacion.elaboradaPor.toString() !== req.usuario._id.toString()) {
       return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
-    }
-
-    if (acceso.asignarPropietario) {
-      cotizacion.elaboradaPor = req.usuario._id;
     }
 
     cotizacion.archivada = false;
@@ -576,14 +568,9 @@ router.delete('/:id', auth, verificarPermiso('cotizaciones', 'eliminar'), async 
       return res.status(404).json({ message: 'Cotización no encontrada' });
     }
 
-    const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
-    if (!acceso.permitido) {
+    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' &&
+        cotizacion.elaboradaPor.toString() !== req.usuario._id.toString()) {
       return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
-    }
-
-    if (acceso.asignarPropietario) {
-      cotizacion.elaboradaPor = req.usuario._id;
-      await cotizacion.save();
     }
 
     await cotizacion.deleteOne();
