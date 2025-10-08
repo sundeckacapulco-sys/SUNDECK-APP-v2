@@ -61,51 +61,6 @@ const parseNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const obtenerUnidadMedidaNormalizada = (producto = {}, area = 0) => {
-  const unidad =
-    producto.unidadMedida ||
-    producto.medida ||
-    producto.medidas?.unidadMedida ||
-    (area > 0 ? 'm2' : 'pieza');
-
-  if (!unidad) {
-    return area > 0 ? 'm2' : 'pieza';
-  }
-
-  return unidad.toString().toLowerCase();
-};
-
-const calcularSubtotalProducto = (producto = {}) => {
-  if (!producto) return 0;
-
-  const precio = parseNumber(
-    producto.precioUnitario ?? producto.precioM2 ?? producto.precio,
-    0
-  );
-  const cantidad = parseNumber(producto.cantidad, 1) || 1;
-  const area = parseNumber(
-    producto.medidas?.area ??
-      producto.area ??
-      producto.metrosCuadrados ??
-      producto.metrosLineales ??
-      producto.longitud,
-    0
-  );
-
-  const unidadMedida = obtenerUnidadMedidaNormalizada(producto, area);
-
-  let subtotalCalculado = 0;
-  if (['pieza', 'par', 'juego', 'kit', 'unidad', 'ud'].includes(unidadMedida)) {
-    subtotalCalculado = precio * cantidad;
-  } else {
-    subtotalCalculado = area * precio * cantidad;
-  }
-
-  const subtotal = parseNumber(producto.subtotal, subtotalCalculado);
-
-  return subtotal;
-};
-
 const normalizarProductoCotizacion = (producto = {}) => {
   const medidasOriginales = Array.isArray(producto.medidas)
     ? (producto.medidas[0] || {})
@@ -121,32 +76,24 @@ const normalizarProductoCotizacion = (producto = {}) => {
     0
   );
 
-  const unidadMedida = obtenerUnidadMedidaNormalizada(
-    {
-      ...producto,
-      unidadMedida: producto.unidadMedida || medidasOriginales.unidadMedida
-    },
-    areaCalculada
-  );
+  const unidadMedida =
+    producto.unidadMedida ||
+    medidasOriginales.unidadMedida ||
+    (areaCalculada > 0 ? 'm2' : 'pieza');
 
   const precioUnitario = parseNumber(
     producto.precioUnitario ?? producto.precioM2 ?? producto.precio,
     0
   );
 
-  const subtotal = calcularSubtotalProducto({
-    ...producto,
-    precioUnitario,
-    cantidad,
-    unidadMedida,
-    medidas: {
-      ...(Array.isArray(producto.medidas) ? {} : (producto.medidas || {})),
-      ancho,
-      alto,
-      largo,
-      area: areaCalculada
-    }
-  });
+  let subtotalCalculado;
+  if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
+    subtotalCalculado = precioUnitario * cantidad;
+  } else {
+    subtotalCalculado = areaCalculada * precioUnitario * cantidad;
+  }
+
+  const subtotal = parseNumber(producto.subtotal, subtotalCalculado);
 
   return {
     ...producto,
