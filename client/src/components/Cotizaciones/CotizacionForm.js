@@ -597,31 +597,19 @@ const CotizacionForm = () => {
 
   const calcularTotales = () => {
     const subtotal = watchedProductos.reduce((sum, producto) => {
-      // SIEMPRE recalcular el subtotal en tiempo real (no usar producto.subtotal guardado)
-      const precio = producto.precioUnitario || 0;
-      const cantidad = producto.cantidad || 1;
-      const unidadMedida = producto?.unidadMedida;
-      
-      let subtotalProducto = 0;
-      if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
-        // Productos por pieza: precio × cantidad
-        subtotalProducto = precio * cantidad;
-      } else {
-        // Productos por área o lineales: área × precio × cantidad
-        const area = producto.medidas?.area || 0;
-        subtotalProducto = area * precio * cantidad;
-      }
-      
+      const subtotalProducto = calcularSubtotalProducto(producto);
       return sum + subtotalProducto;
     }, 0);
 
     let descuentoMonto = 0;
     if (tipoDescuento === 'porcentaje') {
-      const descuentoPorcentaje = watchedDescuento?.porcentaje || 0;
+      const descuentoPorcentaje = parseNumber(watchedDescuento?.porcentaje, 0);
       descuentoMonto = subtotal * (descuentoPorcentaje / 100);
     } else {
-      descuentoMonto = watchedDescuento?.monto || 0;
+      descuentoMonto = parseNumber(watchedDescuento?.monto, 0);
     }
+    descuentoMonto = Math.min(descuentoMonto, subtotal);
+
     const subtotalConDescuento = subtotal - descuentoMonto;
     const iva = incluirIVA ? subtotalConDescuento * 0.16 : 0;
     const total = subtotalConDescuento + iva;
@@ -651,6 +639,7 @@ const CotizacionForm = () => {
       },
       cantidad: 1,
       precioUnitario: 0,
+      unidadMedida: 'm2',
       subtotal: 0
     });
   };
@@ -830,9 +819,13 @@ const CotizacionForm = () => {
         },
         cantidad: 1, // SIEMPRE 1 para levantamientos importados
         precioUnitario: pieza.precioM2 || 0,
+        unidadMedida: obtenerUnidadMedidaNormalizada(
+          { unidadMedida: pieza.unidadMedida || pieza.medida },
+          areaTotal
+        ),
         subtotal: areaTotal * (pieza.precioM2 || 0) // Solo área × precio, sin multiplicar por cantidad
       };
-      
+
       console.log(`=== PRODUCTO IMPORTADO ${idx + 1} ===`);
       console.log('Área total calculada:', areaTotal);
       console.log('Precio por m²:', pieza.precioM2);
@@ -909,23 +902,26 @@ const CotizacionForm = () => {
       
       // Calcular subtotales de productos usando la misma lógica que calcularTotales()
       const productosConSubtotal = data.productos.map(producto => {
-        const precio = producto.precioUnitario || 0;
-        const cantidad = producto.cantidad || 1;
-        const unidadMedida = producto?.unidadMedida;
-        
-        let subtotal = 0;
-        if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
-          // Productos por pieza: precio × cantidad
-          subtotal = precio * cantidad;
-        } else {
-          // Productos por área o lineales: área × precio × cantidad
-          const area = producto.medidas?.area || 0;
-          subtotal = area * precio * cantidad;
-        }
-        
+        const subtotal = calcularSubtotalProducto(producto);
+        const cantidad = parseNumber(producto.cantidad, 1) || 1;
+        const precioUnitario = parseNumber(
+          producto.precioUnitario ?? producto.precioM2 ?? producto.precio,
+          0
+        );
+        const area = parseNumber(
+          producto.medidas?.area ?? producto.area ?? producto.metrosCuadrados,
+          0
+        );
+
         return {
           ...producto,
-          subtotal: subtotal
+          cantidad,
+          precioUnitario,
+          medidas: {
+            ...(producto.medidas || {}),
+            area
+          },
+          subtotal
         };
       });
 
@@ -942,8 +938,8 @@ const CotizacionForm = () => {
       console.log('=== DEBUG TOTALES ===');
       console.log('Totales calculados:', totales);
       console.log('Incluir IVA:', incluirIVA);
-      console.log('Productos con subtotal:', productosConSubtotal.map(p => ({ 
-        nombre: p.nombre, 
+      console.log('Productos con subtotal:', productosConSubtotal.map(p => ({
+        nombre: p.nombre,
         subtotal: p.subtotal,
         precio: p.precioUnitario,
         cantidad: p.cantidad,
@@ -1514,22 +1510,7 @@ const CotizacionForm = () => {
                       <TableCell>
                         ${(() => {
                           const producto = watchedProductos[index];
-                          if (!producto) return 0;
-                          
-                          const precio = producto.precioUnitario || 0;
-                          const cantidad = producto.cantidad || 1;
-                          const unidadMedida = producto?.unidadMedida;
-                          
-                          let subtotal = 0;
-                          if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
-                            // Productos por pieza: precio × cantidad
-                            subtotal = precio * cantidad;
-                          } else {
-                            // Productos por área o lineales: área × precio × cantidad
-                            const area = producto.medidas?.area || 0;
-                            subtotal = area * precio * cantidad;
-                          }
-                          
+                          const subtotal = calcularSubtotalProducto(producto);
                           return subtotal.toLocaleString();
                         })()}
                       </TableCell>
