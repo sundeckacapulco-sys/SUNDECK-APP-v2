@@ -472,32 +472,51 @@ router.put('/:id', auth, verificarPermiso('cotizaciones', 'actualizar'), async (
 // Archivar cotización
 router.put('/:id/archivar', auth, verificarPermiso('cotizaciones', 'actualizar'), async (req, res) => {
   try {
-    const cotizacion = await Cotizacion.findById(req.params.id);
+    console.log('=== INICIANDO ARCHIVADO DE COTIZACIÓN ===');
+    const { id } = req.params;
+    console.log('ID de cotización a archivar:', id);
+
+    const cotizacion = await Cotizacion.findById(id);
 
     if (!cotizacion) {
+      console.log('Cotización no encontrada con ID:', id);
       return res.status(404).json({ message: 'Cotización no encontrada' });
     }
+    console.log('Cotización encontrada:', cotizacion._id);
 
     // Modificación: Asegurar que cotizacion.elaboradaPor existe antes de llamar a toString()
     const isOwner = cotizacion.elaboradaPor && cotizacion.elaboradaPor.toString() === req.usuario._id.toString();
+    console.log('Usuario es admin/gerente:', req.usuario.rol === 'admin' || req.usuario.rol === 'gerente');
+    console.log('Usuario es el propietario:', isOwner);
 
     if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' && !isOwner) {
+      console.warn('Acceso denegado para archivar cotización a usuario:', req.usuario._id);
       return res.status(403).json({ message: 'No tienes acceso para archivar esta cotización' });
     }
+    console.log('Permiso para archivar concedido.');
 
     cotizacion.archivada = true;
     cotizacion.fechaArchivado = new Date();
     cotizacion.archivadaPor = req.usuario._id;
+    console.log('Campos de archivado establecidos.');
 
     await cotizacion.save();
+    console.log('Cotización guardada exitosamente después de archivar.');
 
     res.json({
       message: 'Cotización archivada exitosamente',
       cotizacion
     });
   } catch (error) {
-    console.error('Error archivando cotización:', error);
-    res.status(500).json({ message: 'Error interno del servidor al archivar cotización' }); // Mensaje de error más específico
+    console.error('❌ Error archivando cotización:', error);
+    console.error('Stack trace:', error.stack);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    res.status(500).json({ 
+      message: 'Error interno del servidor al archivar cotización',
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
