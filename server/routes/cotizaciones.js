@@ -7,6 +7,24 @@ const cotizacionController = require('../controllers/cotizacionController');
 
 const router = express.Router();
 
+const verificarAccesoCotizacion = (cotizacion, usuario) => {
+  if (!cotizacion || !usuario) {
+    return { permitido: false };
+  }
+
+  if (usuario.rol === 'admin' || usuario.rol === 'gerente') {
+    return { permitido: true };
+  }
+
+  if (!cotizacion.elaboradaPor) {
+    return { permitido: true, asignarPropietario: true };
+  }
+
+  return {
+    permitido: cotizacion.elaboradaPor.toString() === usuario._id.toString()
+  };
+};
+
 // Obtener cotizaciones con filtros
 router.get('/', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res) => {
   try {
@@ -16,13 +34,20 @@ router.get('/', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res)
       estado,
       prospecto,
       fechaDesde,
-      fechaHasta
+      fechaHasta,
+      archivada
     } = req.query;
 
     const filtros = {};
     if (estado) filtros.estado = estado;
     if (prospecto) filtros.prospecto = prospecto;
-    
+
+    if (archivada === 'true') {
+      filtros.archivada = true;
+    } else if (archivada === 'false') {
+      filtros.archivada = { $ne: true };
+    }
+
     if (fechaDesde || fechaHasta) {
       filtros.createdAt = {};
       if (fechaDesde) filtros.createdAt.$gte = new Date(fechaDesde);
@@ -400,9 +425,13 @@ router.put('/:id', auth, verificarPermiso('cotizaciones', 'actualizar'), async (
     console.log('- IncluirIVA actual:', cotizacion.incluirIVA);
 
     // Solo el creador o admin/gerente pueden modificar
-    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' && 
-        cotizacion.elaboradaPor.toString() !== req.usuario._id.toString()) {
+    const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
+    if (!acceso.permitido) {
       return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
+    }
+
+    if (acceso.asignarPropietario) {
+      cotizacion.elaboradaPor = req.usuario._id;
     }
 
     const camposPermitidos = [
@@ -440,6 +469,74 @@ router.put('/:id', auth, verificarPermiso('cotizaciones', 'actualizar'), async (
   }
 });
 
+// Archivar cotización
+router.put('/:id/archivar', auth, verificarPermiso('cotizaciones', 'actualizar'), async (req, res) => {
+  try {
+    const cotizacion = await Cotizacion.findById(req.params.id);
+
+    if (!cotizacion) {
+      return res.status(404).json({ message: 'Cotización no encontrada' });
+    }
+
+    const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
+    if (!acceso.permitido) {
+      return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
+    }
+
+    if (acceso.asignarPropietario) {
+      cotizacion.elaboradaPor = req.usuario._id;
+    }
+
+    cotizacion.archivada = true;
+    cotizacion.fechaArchivado = new Date();
+    cotizacion.archivadaPor = req.usuario._id;
+
+    await cotizacion.save();
+
+    res.json({
+      message: 'Cotización archivada exitosamente',
+      cotizacion
+    });
+  } catch (error) {
+    console.error('Error archivando cotización:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Desarchivar cotización
+router.put('/:id/desarchivar', auth, verificarPermiso('cotizaciones', 'actualizar'), async (req, res) => {
+  try {
+    const cotizacion = await Cotizacion.findById(req.params.id);
+
+    if (!cotizacion) {
+      return res.status(404).json({ message: 'Cotización no encontrada' });
+    }
+
+    const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
+    if (!acceso.permitido) {
+      return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
+    }
+
+    if (acceso.asignarPropietario) {
+      cotizacion.elaboradaPor = req.usuario._id;
+    }
+
+    cotizacion.archivada = false;
+    cotizacion.fechaArchivado = undefined;
+    cotizacion.archivadaPor = undefined;
+
+    await cotizacion.save();
+
+    res.json({
+      message: 'Cotización desarchivada exitosamente',
+      cotizacion
+    });
+  } catch (error) {
+    console.error('Error desarchivando cotización:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
 // Enviar cotización al cliente
 router.put('/:id/enviar', auth, verificarPermiso('cotizaciones', 'actualizar'), async (req, res) => {
   try {
@@ -466,6 +563,34 @@ router.put('/:id/enviar', auth, verificarPermiso('cotizaciones', 'actualizar'), 
     });
   } catch (error) {
     console.error('Error enviando cotización:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Eliminar cotización
+router.delete('/:id', auth, verificarPermiso('cotizaciones', 'eliminar'), async (req, res) => {
+  try {
+    const cotizacion = await Cotizacion.findById(req.params.id);
+
+    if (!cotizacion) {
+      return res.status(404).json({ message: 'Cotización no encontrada' });
+    }
+
+    const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
+    if (!acceso.permitido) {
+      return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
+    }
+
+    if (acceso.asignarPropietario) {
+      cotizacion.elaboradaPor = req.usuario._id;
+      await cotizacion.save();
+    }
+
+    await cotizacion.deleteOne();
+
+    res.json({ message: 'Cotización eliminada exitosamente' });
+  } catch (error) {
+    console.error('Error eliminando cotización:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
