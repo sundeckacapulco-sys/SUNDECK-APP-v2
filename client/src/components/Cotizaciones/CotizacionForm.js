@@ -62,6 +62,62 @@ const parseNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const obtenerUnidadMedidaNormalizada = ({ unidadMedida, medida } = {}, areaCalculada = 0) => {
+  const unidadRaw = (unidadMedida || medida || '').toString().trim().toLowerCase();
+
+  if (!unidadRaw) {
+    return areaCalculada > 0 ? 'm2' : 'pieza';
+  }
+
+  const normalizaciones = {
+    m2: ['m2', 'm^2', 'metro cuadrado', 'metros cuadrados', 'mt2', 'mts2', 'metro2', 'm2s'],
+    ml: ['ml', 'metro lineal', 'metros lineales', 'lineal'],
+    metro: ['metro', 'metros', 'm', 'mt', 'mts'],
+    pieza: ['pieza', 'pza', 'pz', 'pzas', 'piezas', 'unidad', 'unidades'],
+    par: ['par', 'pares'],
+    juego: ['juego', 'juegos'],
+    kit: ['kit', 'kits']
+  };
+
+  const encontrada = Object.entries(normalizaciones).find(([, alias]) =>
+    alias.some(valor => valor === unidadRaw)
+  );
+
+  if (encontrada) {
+    return encontrada[0];
+  }
+
+  if (unidadRaw.includes('cuadrad')) {
+    return 'm2';
+  }
+
+  if (unidadRaw.includes('lineal')) {
+    return 'ml';
+  }
+
+  if (unidadRaw.includes('metro')) {
+    return 'metro';
+  }
+
+  if (unidadRaw.includes('pieza') || unidadRaw.includes('unidad') || unidadRaw.includes('pz')) {
+    return 'pieza';
+  }
+
+  if (unidadRaw.includes('par')) {
+    return 'par';
+  }
+
+  if (unidadRaw.includes('juego')) {
+    return 'juego';
+  }
+
+  if (unidadRaw.includes('kit')) {
+    return 'kit';
+  }
+
+  return unidadRaw;
+};
+
 const normalizarProductoCotizacion = (producto = {}) => {
   const medidasOriginales = Array.isArray(producto.medidas)
     ? (producto.medidas[0] || {})
