@@ -43,6 +43,7 @@ import CalculadoraRapida from '../Calculadoras/CalculadoraRapida';
 import CalculadoraDiasHabiles from '../Calculadoras/CalculadoraDiasHabiles';
 import CalculadoraMotores from '../Calculadoras/CalculadoraMotores';
 import CalcularYAgregar from '../Calculadoras/CalcularYAgregar';
+import { calcularSubtotalProducto } from './calculadora';
 import {
   Checkbox,
   FormControlLabel,
