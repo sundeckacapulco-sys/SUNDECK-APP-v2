@@ -209,37 +209,6 @@ const CotizacionesList = () => {
     setOpenWhatsApp(false);
   };
 
-  // Función para corregir totales de cotizaciones
-  const handleFixCotizaciones = async () => {
-    if (!window.confirm('¿Estás seguro de que quieres corregir los totales de todas las cotizaciones? Esta acción no se puede deshacer.')) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError('');
-      setSuccess('');
-
-      console.log('🔧 Iniciando corrección de totales...');
-      
-      const response = await axiosConfig.post('/fix/cotizaciones');
-      
-      if (response.data.success) {
-        setSuccess('✅ Totales de cotizaciones corregidos exitosamente');
-        // Recargar la lista para ver los cambios
-        await fetchCotizaciones();
-      } else {
-        setError('Error corrigiendo totales: ' + response.data.message);
-      }
-      
-    } catch (error) {
-      console.error('Error corrigiendo totales:', error);
-      setError('Error corrigiendo totales: ' + (error.response?.data?.message || error.message));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Función para descargar PDF de cotización
   const handleDescargarPDF = async (cotizacion) => {
     try {
@@ -304,22 +273,7 @@ const CotizacionesList = () => {
           >
             Cotización Directa
           </Button>
-          <Button
-            variant="outlined"
-            onClick={handleFixCotizaciones}
-            disabled={loading}
-            sx={{
-              borderColor: '#dc3545',
-              color: '#dc3545',
-              '&:hover': {
-                borderColor: '#c82333',
-                color: '#c82333',
-                bgcolor: '#f8f9fa'
-              }
-            }}
-          >
-            🔧 Corregir Totales
-          </Button>
+          {/* Botón "Corregir Totales" ELIMINADO */}
           <Button
             variant="contained"
             startIcon={<Add />}
