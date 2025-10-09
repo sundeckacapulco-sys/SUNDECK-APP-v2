@@ -273,7 +273,6 @@ const CotizacionesList = () => {
           >
             Cotización Directa
           </Button>
-          {/* Botón "Corregir Totales" ELIMINADO */}
           <Button
             variant="contained"
             startIcon={<Add />}
