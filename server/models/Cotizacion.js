@@ -14,7 +14,8 @@ const cotizacionSchema = new mongoose.Schema({
   },
   nombre: {
     type: String,
-    required: true
+    // Cambiado de required: true a opcional para permitir el archivado de documentos antiguos/incompletos.
+    // La lógica de creación debe asegurar que este campo se establezca si es necesario para nuevas cotizaciones.
   },
   fecha: {
     type: Date,
