@@ -1,81 +1,88 @@
 const mongoose = require('mongoose');
 const Cotizacion = require('../models/Cotizacion');
 
-// Función que no conecta a la base de datos (asume que ya está conectada)
-// Se usa cuando se llama desde la API
-
 async function fixCotizaciones() {
   try {
     console.log('🔧 Iniciando corrección de cotizaciones...');
     
-    // Obtener todas las cotizaciones
-    const cotizaciones = await Cotizacion.find({}).populate('prospecto');
+    // Obtener todas las cotizaciones, usando .lean() para mayor rendimiento en lecturas masivas
+    const cotizaciones = await Cotizacion.find({}, {
+      _id: 1,
+      numero: 1,
+      productos: 1,
+      descuento: 1,
+      costoInstalacion: 1,
+      incluirIVA: 1,
+      formaPago: 1,
+      subtotal: 1, // Mantener para loguear el valor anterior
+      iva: 1,      // Mantener para loguear el valor anterior
+      total: 1     // Mantener para loguear el valor anterior
+    }).lean(); 
+
     console.log(`📋 Encontradas ${cotizaciones.length} cotizaciones`);
     
-    for (const cotizacion of cotizaciones) {
-      console.log(`\n🔍 Procesando cotización ${cotizacion.numero}...`);
+    for (const rawCotizacion of cotizaciones) { 
+      const cotizacion = { ...rawCotizacion }; // Crear una copia mutable ya que .lean() devuelve objetos JS planos
+
+      console.log(`\n🔍 Procesando cotización ${cotizacion.numero || cotizacion._id}...`); 
       
       let subtotalCorregido = 0;
       
       // Recalcular subtotales de productos
       if (cotizacion.productos && cotizacion.productos.length > 0) {
-        cotizacion.productos.forEach((producto, index) => {
+        cotizacion.productos = cotizacion.productos.map((producto, index) => {
           const precio = producto.precioUnitario || 0;
           const cantidad = producto.cantidad || 1;
           const unidadMedida = producto.unidadMedida;
           
           let subtotalProducto = 0;
           
+          const area = producto.medidas?.area || 0;
+
           if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
-            // Productos por pieza: precio × cantidad
             subtotalProducto = precio * cantidad;
           } else {
-            // Productos por área o lineales: área × precio × cantidad
-            const area = producto.medidas?.area || 0;
             subtotalProducto = area * precio * cantidad;
           }
           
-          console.log(`  📦 Producto ${index + 1}: ${producto.nombre}`);
-          console.log(`     Antes: $${producto.subtotal || 0}`);
-          console.log(`     Ahora: $${subtotalProducto} (área: ${producto.medidas?.area || 0}m², precio: $${precio}, cantidad: ${cantidad})`);
+          console.log(`  📦 Producto ${index + 1}: ${producto.nombreProducto || producto.nombre || 'Sin nombre'}`); 
+          console.log(`     Antes: $${producto.subtotal?.toFixed(2) || '0.00'}`);
+          console.log(`     Ahora: $${subtotalProducto.toFixed(2)} (área: ${area.toFixed(2)}m², precio: $${precio.toFixed(2)}, cantidad: ${cantidad})`);
           
-          // Actualizar subtotal del producto
-          producto.subtotal = subtotalProducto;
           subtotalCorregido += subtotalProducto;
+          return { ...producto, subtotal: subtotalProducto }; 
         });
       }
       
       // Calcular totales corregidos
-      const descuentoMonto = (cotizacion.descuento?.monto || 0) + 
-                            (cotizacion.subtotal * (cotizacion.descuento?.porcentaje || 0) / 100);
+      let descuentoPorcentajeMonto = 0;
+      if (cotizacion.descuento?.porcentaje) {
+        // Aplicar el porcentaje de descuento al subtotal corregido
+        descuentoPorcentajeMonto = subtotalCorregido * (cotizacion.descuento.porcentaje / 100);
+      }
+      const descuentoMontoTotal = (cotizacion.descuento?.monto || 0) + descuentoPorcentajeMonto;
       
-      const subtotalConDescuento = subtotalCorregido - descuentoMonto;
+      const subtotalConDescuento = subtotalCorregido - descuentoMontoTotal;
       const subtotalConInstalacion = subtotalConDescuento + (cotizacion.costoInstalacion || 0);
       
-      // Determinar si incluye IVA (si no está definido, asumir que sí)
-      const incluirIVA = cotizacion.incluirIVA !== false;
+      const incluirIVA = cotizacion.incluirIVA !== false; // Por defecto a true si no está definido
       const iva = incluirIVA ? subtotalConInstalacion * 0.16 : 0;
       const totalCorregido = subtotalConInstalacion + iva;
       
       console.log(`  💰 Totales:`);
-      console.log(`     Subtotal anterior: $${cotizacion.subtotal || 0}`);
-      console.log(`     Subtotal corregido: $${subtotalCorregido}`);
-      console.log(`     IVA: $${iva} (incluir: ${incluirIVA})`);
-      console.log(`     Total anterior: $${cotizacion.total || 0}`);
-      console.log(`     Total corregido: $${totalCorregido}`);
-      
-      // Actualizar cotización
-      cotizacion.subtotal = subtotalCorregido;
-      cotizacion.iva = iva;
-      cotizacion.total = totalCorregido;
-      cotizacion.incluirIVA = incluirIVA;
+      console.log(`     Subtotal anterior: $${rawCotizacion.subtotal?.toFixed(2) || '0.00'}`); 
+      console.log(`     Subtotal corregido: $${subtotalCorregido.toFixed(2)}`);
+      console.log(`     IVA: $${iva.toFixed(2)} (incluir: ${incluirIVA})`);
+      console.log(`     Total anterior: $${rawCotizacion.total?.toFixed(2) || '0.00'}`); 
+      console.log(`     Total corregido: $${totalCorregido.toFixed(2)}`);
       
       // Recalcular anticipo y saldo
+      let formaPagoUpdate = {};
       if (cotizacion.formaPago?.anticipo?.porcentaje) {
-        cotizacion.formaPago.anticipo.monto = totalCorregido * (cotizacion.formaPago.anticipo.porcentaje / 100);
+        formaPagoUpdate['formaPago.anticipo.monto'] = totalCorregido * (cotizacion.formaPago.anticipo.porcentaje / 100);
       }
       if (cotizacion.formaPago?.saldo?.porcentaje) {
-        cotizacion.formaPago.saldo.monto = totalCorregido * (cotizacion.formaPago.saldo.porcentaje / 100);
+        formaPagoUpdate['formaPago.saldo.monto'] = totalCorregido * (cotizacion.formaPago.saldo.porcentaje / 100);
       }
       
       // Guardar sin ejecutar middlewares (para evitar recálculos)
@@ -83,31 +90,25 @@ async function fixCotizaciones() {
         { _id: cotizacion._id },
         {
           $set: {
-            productos: cotizacion.productos,
-            subtotal: cotizacion.subtotal,
-            iva: cotizacion.iva,
-            total: cotizacion.total,
-            incluirIVA: cotizacion.incluirIVA,
-            'formaPago.anticipo.monto': cotizacion.formaPago?.anticipo?.monto,
-            'formaPago.saldo.monto': cotizacion.formaPago?.saldo?.monto
+            productos: cotizacion.productos, 
+            subtotal: subtotalCorregido,
+            iva: iva,
+            total: totalCorregido,
+            incluirIVA: incluirIVA,
+            ...formaPagoUpdate 
           }
         }
       );
       
-      console.log(`  ✅ Cotización ${cotizacion.numero} actualizada`);
+      console.log(`  ✅ Cotización ${cotizacion.numero || cotizacion._id} actualizada`);
     }
     
     console.log('\n🎉 ¡Todas las cotizaciones han sido corregidas!');
     
   } catch (error) {
     console.error('❌ Error corrigiendo cotizaciones:', error);
-    throw error; // Re-lanzar el error para que la API lo maneje
+    throw error; 
   }
-}
-
-// Ejecutar si se llama directamente
-if (require.main === module) {
-  fixCotizaciones();
 }
 
 module.exports = fixCotizaciones;
