@@ -78,8 +78,43 @@ class PDFService {
   }
 
   async generarCotizacionPDF(cotizacion) {
+    const cotizacionId =
+      typeof cotizacion?.toObject === 'function'
+        ? cotizacion?._id?.toString?.()
+        : cotizacion?._id || cotizacion?.id;
+
     try {
-      const browser = await this.initBrowser();
+      console.log('🧾 [PDF] Iniciando generación de cotización', {
+        cotizacionId,
+        numero: cotizacion?.numero,
+        productos: cotizacion?.productos?.length || 0,
+        incluirIVA: cotizacion?.incluirIVA,
+        total: cotizacion?.total,
+        prospecto: {
+          id: cotizacion?.prospecto?._id || cotizacion?.prospecto?.id,
+          nombre: cotizacion?.prospecto?.nombre
+        }
+      });
+
+      const browserInitResult = await this.initBrowser();
+      const isAlternative = Boolean(browserInitResult?.isAlternative);
+      const browser = browserInitResult?.browser || browserInitResult;
+
+      console.log('🧾 [PDF] Motor de render inicializado', {
+        cotizacionId,
+        isAlternative,
+        hasNewPageMethod: typeof browser?.newPage === 'function'
+      });
+
+      if (!browser || typeof browser.newPage !== 'function') {
+        console.error('❌ [PDF] Motor de render inválido para generar cotización', {
+          cotizacionId,
+          isAlternative,
+          availableKeys: browser ? Object.keys(browser) : null
+        });
+        throw new Error('Motor de generación de PDF no disponible para cotizaciones');
+      }
+
       const page = await browser.newPage();
       
       // Configurar página para mejor calidad de texto
@@ -581,6 +616,14 @@ class PDFService {
         } : null
       };
 
+      console.log('🧾 [PDF] Datos preparados para renderizar cotización', {
+        cotizacionId,
+        productos: templateData.productos?.length || 0,
+        incluyeIVA: templateData.incluirIVA,
+        subtotal: templateData.subtotal,
+        total: templateData.total
+      });
+
       // Compilar template
       const template = handlebars.compile(htmlTemplate);
       const html = template(templateData);
@@ -608,10 +651,22 @@ class PDFService {
       });
 
       await page.close();
+
+      console.log('✅ [PDF] Cotización generada correctamente', {
+        cotizacionId,
+        numero: cotizacion?.numero,
+        pdfSize: pdf?.length
+      });
+
       return pdf;
 
     } catch (error) {
-      console.error('Error generando PDF de cotización:', error);
+      console.error('❌ [PDF] Error generando PDF de cotización', {
+        cotizacionId,
+        numero: cotizacion?.numero,
+        message: error?.message,
+        stack: error?.stack
+      });
       throw new Error('No se pudo generar el PDF de la cotización');
     }
   }
