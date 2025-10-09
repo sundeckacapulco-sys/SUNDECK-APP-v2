@@ -407,6 +407,14 @@ class PDFService {
                     {{#if requiereR24}}
                     <span class="badge">R24</span>
                     {{/if}}
+                    {{#if kitModelo}}
+                    <div><small>Kit: {{kitModelo}}{{#if kitPrecio}} – {{kitPrecio}}{{/if}}</small></div>
+                    {{/if}}
+                    {{#if motorizado}}
+                    <div>
+                      <small>Motorizado{{#if motorModelo}} • Motor: {{motorModelo}}{{#if motorPrecio}} ({{motorPrecio}}){{/if}}{{/if}}{{#if controlModelo}} • Control: {{controlModelo}}{{#if controlPrecio}} ({{controlPrecio}}){{/if}}{{/if}}</small>
+                    </div>
+                    {{/if}}
                   </td>
                   <td>{{medidas.ancho}}m × {{medidas.alto}}m</td>
                   <td>{{medidas.area}}</td>
@@ -524,15 +532,38 @@ class PDFService {
         total: this.formatCurrency(cotizacion.total),
         incluirIVA: cotizacion.incluirIVA !== false, // Por defecto true si no está definido
         costoInstalacion: cotizacion.costoInstalacion ? this.formatCurrency(cotizacion.costoInstalacion) : null,
-        productos: cotizacion.productos.map(producto => ({
-          ...producto.toObject(),
-          precioUnitario: this.formatCurrency(producto.precioUnitario),
-          subtotal: this.formatCurrency(producto.subtotal),
-          medidas: {
-            ...producto.medidas,
-            area: producto.medidas.area?.toFixed(2)
-          }
-        })),
+        productos: cotizacion.productos.map(producto => {
+          const productoData = typeof producto.toObject === 'function' ? producto.toObject() : producto;
+          const medidas = productoData.medidas || {};
+
+          return {
+            ...productoData,
+            precioUnitario: this.formatCurrency(productoData.precioUnitario ?? productoData.precioM2),
+            subtotal: this.formatCurrency(productoData.subtotal),
+            medidas: {
+              ...medidas,
+              area: typeof medidas.area === 'number' ? medidas.area.toFixed(2) : medidas.area
+            },
+            esToldo: Boolean(productoData.esToldo),
+            kitModelo: productoData.kitModeloManual || productoData.kitModelo || null,
+            kitPrecio: productoData.kitPrecio !== undefined && productoData.kitPrecio !== null
+              ? this.formatCurrency(productoData.kitPrecio)
+              : null,
+            motorizado: Boolean(productoData.motorizado),
+            motorModelo: productoData.motorizado
+              ? (productoData.motorModeloManual || productoData.motorModelo || null)
+              : null,
+            motorPrecio: productoData.motorizado && productoData.motorPrecio !== undefined && productoData.motorPrecio !== null
+              ? this.formatCurrency(productoData.motorPrecio)
+              : null,
+            controlModelo: productoData.motorizado
+              ? (productoData.controlModeloManual || productoData.controlModelo || null)
+              : null,
+            controlPrecio: productoData.motorizado && productoData.controlPrecio !== undefined && productoData.controlPrecio !== null
+              ? this.formatCurrency(productoData.controlPrecio)
+              : null
+          };
+        }),
         formaPago: cotizacion.formaPago ? {
           ...cotizacion.formaPago,
           anticipo: {
@@ -786,7 +817,35 @@ class PDFService {
               border-bottom: 1px solid #eee;
               vertical-align: top;
             }
-            
+
+            .extras-container {
+              margin-top: 8px;
+              padding: 8px 12px;
+              background: #f9fafb;
+              border-left: 3px solid #1E40AF;
+              border-radius: 6px;
+              font-size: 9.5px;
+            }
+
+            .extras-title {
+              font-weight: 600;
+              color: #1E40AF;
+              margin-bottom: 4px;
+              display: block;
+              text-transform: uppercase;
+              letter-spacing: 0.3px;
+            }
+
+            .extras-list {
+              list-style: none;
+              padding-left: 0;
+              margin: 0;
+            }
+
+            .extras-list li + li {
+              margin-top: 2px;
+            }
+
             .partida-table .field-label {
               font-weight: bold;
               width: 20%;
@@ -1010,6 +1069,25 @@ class PDFService {
             {{#if observaciones}}
             <div class="observaciones">
               📝 Observaciones: {{observaciones}}
+            </div>
+            {{/if}}
+
+            {{#if (or esProductoToldo motorizado)}}
+            <div class="extras-container">
+              <span class="extras-title">Incluye</span>
+              <ul class="extras-list">
+                {{#if esProductoToldo}}
+                  <li><strong>Kit:</strong> {{kitModelo}}{{#if kitPrecio}} — {{kitPrecio}}{{/if}}</li>
+                {{/if}}
+                {{#if motorizado}}
+                  {{#if motorModelo}}
+                    <li><strong>Motor:</strong> {{motorModelo}}{{#if motorPrecio}} — {{motorPrecio}}{{/if}}</li>
+                  {{/if}}
+                  {{#if controlModelo}}
+                    <li><strong>Control:</strong> {{controlModelo}}{{#if controlPrecio}} — {{controlPrecio}}{{/if}}</li>
+                  {{/if}}
+                {{/if}}
+              </ul>
             </div>
             {{/if}}
           </div>
