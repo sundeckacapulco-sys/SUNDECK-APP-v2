@@ -210,25 +210,32 @@ const CotizacionesList = () => {
   };
 
   // Función para descargar PDF de cotización
+  const obtenerPDFCotizacion = async (cotizacion) => {
+    const response = await axiosConfig.get(`/cotizaciones/${cotizacion._id}/pdf`, {
+      responseType: 'blob'
+    });
+
+    const nombreCliente = (cotizacion.prospecto?.nombre || 'Cliente')
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .replace(/\s+/g, '-');
+    const numeroCorto = cotizacion.numero || 'SIN-NUM';
+    const fecha = new Date().toISOString().split('T')[0];
+    const nombreArchivo = `Cotizacion-${numeroCorto}-${nombreCliente}-${fecha}.pdf`;
+
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+
+    return { blob, nombreArchivo };
+  };
+
   const handleDescargarPDF = async (cotizacion) => {
     try {
       setLoading(true);
       setError('');
-      
+
       console.log('📄 Descargando PDF de cotización:', cotizacion.numero);
-      
-      const response = await axiosConfig.get(`/cotizaciones/${cotizacion._id}/pdf`, {
-        responseType: 'blob'
-      });
-      
-      // Crear nombre de archivo
-      const nombreCliente = (cotizacion.prospecto?.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-');
-      const numeroCorto = cotizacion.numero || 'SIN-NUM';
-      const fecha = new Date().toISOString().split('T')[0];
-      const nombreArchivo = `Cotizacion-${numeroCorto}-${nombreCliente}-${fecha}.pdf`;
-      
-      // Crear blob y descargar
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+
+      const { blob, nombreArchivo } = await obtenerPDFCotizacion(cotizacion);
+
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -237,13 +244,55 @@ const CotizacionesList = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       setSuccess(`✅ PDF descargado: ${nombreArchivo}`);
       handleMenuClose();
-      
     } catch (error) {
       console.error('Error descargando PDF:', error);
       setError('Error descargando PDF: ' + (error.response?.data?.message || error.message));
+      handleMenuClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerDetallesPDF = async (cotizacion) => {
+    let url;
+    try {
+      setLoading(true);
+      setError('');
+
+      console.log('📄 Abriendo PDF de cotización en ventana emergente:', cotizacion.numero);
+
+      const { blob, nombreArchivo } = await obtenerPDFCotizacion(cotizacion);
+
+      url = window.URL.createObjectURL(blob);
+      const nuevaVentana = window.open(url, '_blank', 'noopener,noreferrer');
+
+      if (!nuevaVentana) {
+        throw new Error('La ventana emergente fue bloqueada. Permite las ventanas emergentes para ver el PDF.');
+      }
+
+      try {
+        nuevaVentana.document.title = nombreArchivo;
+      } catch (e) {
+        console.warn('No se pudo establecer el título de la ventana del PDF:', e);
+      }
+
+      setSuccess('📄 PDF abierto en una nueva pestaña');
+      handleMenuClose();
+
+      setTimeout(() => {
+        if (url) {
+          window.URL.revokeObjectURL(url);
+        }
+      }, 60 * 1000);
+    } catch (error) {
+      console.error('Error abriendo PDF:', error);
+      setError('Error abriendo PDF: ' + (error.response?.data?.message || error.message));
+      if (url) {
+        window.URL.revokeObjectURL(url);
+      }
       handleMenuClose();
     } finally {
       setLoading(false);
@@ -464,8 +513,9 @@ const CotizacionesList = () => {
       >
         <MenuItem
           onClick={() => {
-            navigate(`/cotizaciones/${selectedCotizacion?._id}`);
-            handleMenuClose();
+            if (selectedCotizacion) {
+              handleVerDetallesPDF(selectedCotizacion);
+            }
           }}
         >
           <Visibility sx={{ mr: 1 }} />
