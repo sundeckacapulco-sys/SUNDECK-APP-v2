@@ -817,7 +817,35 @@ class PDFService {
               border-bottom: 1px solid #eee;
               vertical-align: top;
             }
-            
+
+            .extras-container {
+              margin-top: 8px;
+              padding: 8px 12px;
+              background: #f9fafb;
+              border-left: 3px solid #1E40AF;
+              border-radius: 6px;
+              font-size: 9.5px;
+            }
+
+            .extras-title {
+              font-weight: 600;
+              color: #1E40AF;
+              margin-bottom: 4px;
+              display: block;
+              text-transform: uppercase;
+              letter-spacing: 0.3px;
+            }
+
+            .extras-list {
+              list-style: none;
+              padding-left: 0;
+              margin: 0;
+            }
+
+            .extras-list li + li {
+              margin-top: 2px;
+            }
+
             .partida-table .field-label {
               font-weight: bold;
               width: 20%;
@@ -1041,6 +1069,25 @@ class PDFService {
             {{#if observaciones}}
             <div class="observaciones">
               📝 Observaciones: {{observaciones}}
+            </div>
+            {{/if}}
+
+            {{#if (or esProductoToldo motorizado)}}
+            <div class="extras-container">
+              <span class="extras-title">Incluye</span>
+              <ul class="extras-list">
+                {{#if esProductoToldo}}
+                  <li><strong>Kit:</strong> {{kitModelo}}{{#if kitPrecio}} — {{kitPrecio}}{{/if}}</li>
+                {{/if}}
+                {{#if motorizado}}
+                  {{#if motorModelo}}
+                    <li><strong>Motor:</strong> {{motorModelo}}{{#if motorPrecio}} — {{motorPrecio}}{{/if}}</li>
+                  {{/if}}
+                  {{#if controlModelo}}
+                    <li><strong>Control:</strong> {{controlModelo}}{{#if controlPrecio}} — {{controlPrecio}}{{/if}}</li>
+                  {{/if}}
+                {{/if}}
+              </ul>
             </div>
             {{/if}}
           </div>
