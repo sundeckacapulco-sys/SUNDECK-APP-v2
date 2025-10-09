@@ -407,6 +407,14 @@ class PDFService {
                     {{#if requiereR24}}
                     <span class="badge">R24</span>
                     {{/if}}
+                    {{#if kitModelo}}
+                    <div><small>Kit: {{kitModelo}}{{#if kitPrecio}} – {{kitPrecio}}{{/if}}</small></div>
+                    {{/if}}
+                    {{#if motorizado}}
+                    <div>
+                      <small>Motorizado{{#if motorModelo}} • Motor: {{motorModelo}}{{#if motorPrecio}} ({{motorPrecio}}){{/if}}{{/if}}{{#if controlModelo}} • Control: {{controlModelo}}{{#if controlPrecio}} ({{controlPrecio}}){{/if}}{{/if}}</small>
+                    </div>
+                    {{/if}}
                   </td>
                   <td>{{medidas.ancho}}m × {{medidas.alto}}m</td>
                   <td>{{medidas.area}}</td>
@@ -524,15 +532,38 @@ class PDFService {
         total: this.formatCurrency(cotizacion.total),
         incluirIVA: cotizacion.incluirIVA !== false, // Por defecto true si no está definido
         costoInstalacion: cotizacion.costoInstalacion ? this.formatCurrency(cotizacion.costoInstalacion) : null,
-        productos: cotizacion.productos.map(producto => ({
-          ...producto.toObject(),
-          precioUnitario: this.formatCurrency(producto.precioUnitario),
-          subtotal: this.formatCurrency(producto.subtotal),
-          medidas: {
-            ...producto.medidas,
-            area: producto.medidas.area?.toFixed(2)
-          }
-        })),
+        productos: cotizacion.productos.map(producto => {
+          const productoData = typeof producto.toObject === 'function' ? producto.toObject() : producto;
+          const medidas = productoData.medidas || {};
+
+          return {
+            ...productoData,
+            precioUnitario: this.formatCurrency(productoData.precioUnitario ?? productoData.precioM2),
+            subtotal: this.formatCurrency(productoData.subtotal),
+            medidas: {
+              ...medidas,
+              area: typeof medidas.area === 'number' ? medidas.area.toFixed(2) : medidas.area
+            },
+            esToldo: Boolean(productoData.esToldo),
+            kitModelo: productoData.kitModeloManual || productoData.kitModelo || null,
+            kitPrecio: productoData.kitPrecio !== undefined && productoData.kitPrecio !== null
+              ? this.formatCurrency(productoData.kitPrecio)
+              : null,
+            motorizado: Boolean(productoData.motorizado),
+            motorModelo: productoData.motorizado
+              ? (productoData.motorModeloManual || productoData.motorModelo || null)
+              : null,
+            motorPrecio: productoData.motorizado && productoData.motorPrecio !== undefined && productoData.motorPrecio !== null
+              ? this.formatCurrency(productoData.motorPrecio)
+              : null,
+            controlModelo: productoData.motorizado
+              ? (productoData.controlModeloManual || productoData.controlModelo || null)
+              : null,
+            controlPrecio: productoData.motorizado && productoData.controlPrecio !== undefined && productoData.controlPrecio !== null
+              ? this.formatCurrency(productoData.controlPrecio)
+              : null
+          };
+        }),
         formaPago: cotizacion.formaPago ? {
           ...cotizacion.formaPago,
           anticipo: {
