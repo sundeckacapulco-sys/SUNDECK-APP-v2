@@ -128,17 +128,35 @@ const cotizacionSchema = new mongoose.Schema({
 cotizacionSchema.pre('save', async function(next) {
   if (this.isNew && !this.numero) {
     try {
+      console.log('🔢 Generando número de cotización...');
       const year = new Date().getFullYear();
-      const count = await this.constructor.countDocuments({
-        createdAt: {
-          $gte: new Date(year, 0, 1),
-          $lt: new Date(year + 1, 0, 1)
-        }
-      });
+      
+      // Intentar contar por createdAt, si falla usar método alternativo
+      let count = 0;
+      try {
+        count = await this.constructor.countDocuments({
+          createdAt: {
+            $gte: new Date(year, 0, 1),
+            $lt: new Date(year + 1, 0, 1)
+          }
+        });
+        console.log('📊 Cotizaciones encontradas por createdAt:', count);
+      } catch (countError) {
+        console.warn('⚠️ Error contando por createdAt, usando método alternativo:', countError.message);
+        // Método alternativo: contar todas y usar timestamp
+        const totalCount = await this.constructor.countDocuments({});
+        count = totalCount;
+        console.log('📊 Total cotizaciones (método alternativo):', count);
+      }
+      
       this.numero = `COT-${year}-${String(count + 1).padStart(4, '0')}`;
+      console.log('✅ Número generado:', this.numero);
     } catch (error) {
-      console.error('Error generando número de cotización en pre-save:', error);
-      this.numero = `COT-${new Date().getFullYear()}-${Date.now()}`;
+      console.error('❌ Error generando número de cotización en pre-save:', error);
+      // Respaldo con timestamp para garantizar unicidad
+      const timestamp = Date.now().toString().slice(-6);
+      this.numero = `COT-${new Date().getFullYear()}-${timestamp}`;
+      console.log('🔄 Número de respaldo generado:', this.numero);
     }
   }
   next();

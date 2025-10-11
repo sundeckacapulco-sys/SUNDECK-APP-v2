@@ -249,16 +249,20 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
 
       const motorPrecio = Number(pieza.motorPrecio) || 0;
       if (pieza.motorizado && motorPrecio > 0) {
+        // Usar la nueva lógica de motores: numMotores o por defecto 1
+        const numMotores = pieza.numMotores || 1;
+        const subtotalMotores = motorPrecio * numMotores;
+        
         productos.push({
           nombre: pieza.motorModelo || pieza.motorModeloManual || 'Motor para toldo',
-          descripcion: `Motorización para ${pieza.ubicacion}`,
+          descripcion: `Motorización para ${pieza.ubicacion} (${numMotores} motor${numMotores > 1 ? 'es' : ''} para ${cantidadPiezas} pieza${cantidadPiezas > 1 ? 's' : ''})`,
           categoria: 'motor',
           material: 'Accesorio',
           color: 'N/A',
           medidas: { ancho: 0, alto: 0, area: 0 },
-          cantidad: cantidadPiezas,
+          cantidad: numMotores,
           precioUnitario: motorPrecio,
-          subtotal: Number((motorPrecio * cantidadPiezas).toFixed(2)),
+          subtotal: Number(subtotalMotores.toFixed(2)),
           requiereR24: false,
           tiempoFabricacion: 12
         });
@@ -266,16 +270,22 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
 
       const controlPrecio = Number(pieza.controlPrecio) || 0;
       if (pieza.motorizado && controlPrecio > 0) {
+        // Usar la nueva lógica de controles multicanal
+        const numMotores = pieza.numMotores || 1;
+        const cantidadControles = pieza.esControlMulticanal ? 1 : numMotores;
+        const subtotalControles = controlPrecio * cantidadControles;
+        const tipoControl = pieza.esControlMulticanal ? 'multicanal' : 'individual';
+        
         productos.push({
           nombre: pieza.controlModelo || pieza.controlModeloManual || 'Control remoto',
-          descripcion: `Control para ${pieza.ubicacion}`,
+          descripcion: `Control ${tipoControl} para ${pieza.ubicacion} (${cantidadControles} control${cantidadControles > 1 ? 'es' : ''} para ${cantidadPiezas} pieza${cantidadPiezas > 1 ? 's' : ''})`,
           categoria: 'control',
           material: 'Accesorio',
           color: 'N/A',
           medidas: { ancho: 0, alto: 0, area: 0 },
-          cantidad: 1,
+          cantidad: cantidadControles,
           precioUnitario: controlPrecio,
-          subtotal: Number(controlPrecio.toFixed(2)),
+          subtotal: Number(subtotalControles.toFixed(2)),
           requiereR24: false,
           tiempoFabricacion: 7
         });
@@ -313,18 +323,50 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
     console.log('- Tiempo instalación:', tiempoInstalacionEstimado);
     console.log('- Requiere instalación:', requiereInstalacion);
     console.log('- Costo instalación:', costoInstalacion);
-    console.log('- Subtotal productos:', productos.reduce((sum, prod) => sum + (prod.subtotal || 0), 0));
+    const subtotalProductos = productos.reduce((sum, prod) => sum + (prod.subtotal || 0), 0);
+    const totalFinal = subtotalProductos + costoInstalacion;
+    
+    console.log('- Subtotal productos:', subtotalProductos);
+    console.log('- Costo instalación:', costoInstalacion);
+    console.log('- TOTAL FINAL:', totalFinal);
+    
+    // Debug: Mostrar productos individuales
+    console.log('📦 Productos creados:');
+    productos.forEach((prod, index) => {
+      console.log(`  ${index + 1}. ${prod.nombre}: ${prod.cantidad} × $${prod.precioUnitario} = $${prod.subtotal}`);
+    });
+
+    // Generar número de cotización manualmente como respaldo
+    console.log('🔢 Generando número de cotización manualmente...');
+    let numeroCotizacion;
+    try {
+      const year = new Date().getFullYear();
+      const count = await Cotizacion.countDocuments({
+        createdAt: {
+          $gte: new Date(year, 0, 1),
+          $lt: new Date(year + 1, 0, 1)
+        }
+      });
+      numeroCotizacion = `COT-${year}-${String(count + 1).padStart(4, '0')}`;
+      console.log('✅ Número generado manualmente:', numeroCotizacion);
+    } catch (error) {
+      console.warn('⚠️ Error generando número, usando timestamp:', error.message);
+      const timestamp = Date.now().toString().slice(-6);
+      numeroCotizacion = `COT-${new Date().getFullYear()}-${timestamp}`;
+      console.log('🔄 Número con timestamp:', numeroCotizacion);
+    }
 
     // Convertir piezas a productos de cotización
     console.log('🔨 Creando nueva cotización...');
     const nuevaCotizacion = new Cotizacion({
       prospecto: prospectoId,
-      // El número se genera automáticamente por el middleware del modelo
+      numero: numeroCotizacion, // Asignar número manualmente
       validoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
       origen: origen || 'levantamiento', // Usar el origen enviado desde el frontend
       mediciones,
       productos,
-      subtotal: productos.reduce((sum, prod) => sum + (prod.subtotal || 0), 0),
+      subtotal: subtotalProductos,
+      total: totalFinal,
       formaPago: {
         anticipo: { porcentaje: 50 },
         saldo: { porcentaje: 50, condiciones: 'contra entrega' }
