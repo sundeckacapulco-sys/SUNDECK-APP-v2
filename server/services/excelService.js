@@ -19,30 +19,15 @@ class ExcelService {
   calcularPrecioControlReal(pieza, todasLasPiezas) {
     if (!pieza.motorizado || !pieza.controlPrecio) return 0;
     
-    const controlSeleccionado = this.modelosControles.find(c => c.value === pieza.controlModelo);
-    
-    // Si es control multicanal, solo cobrar una vez por grupo
-    if (controlSeleccionado?.esMulticanal) {
-      // Contar cuántas piezas motorizadas hay con el mismo control
-      const piezasConMismoControl = todasLasPiezas.filter(p => 
-        p.motorizado && 
-        p.controlModelo === pieza.controlModelo &&
-        p.controlPrecio
-      );
-      
-      // Si hay múltiples piezas con el mismo control multicanal, solo cobrar en la primera
-      const esPrimeraPiezaConEsteControl = todasLasPiezas.findIndex(p => 
-        p.motorizado && 
-        p.controlModelo === pieza.controlModelo &&
-        p.controlPrecio
-      ) === todasLasPiezas.findIndex(p => p === pieza);
-      
-      if (piezasConMismoControl.length > 1 && !esPrimeraPiezaConEsteControl) {
-        return 0; // No cobrar en piezas adicionales
-      }
+    // Usar la nueva lógica simplificada
+    if (pieza.esControlMulticanal) {
+      // Control multicanal: solo cobrar una vez por partida
+      return Number(pieza.controlPrecio) || 0;
+    } else {
+      // Control individual: cobrar por cada motor/pieza
+      const numMotores = pieza.numMotores || (pieza.medidas ? pieza.medidas.length : (pieza.cantidad || 1));
+      return (Number(pieza.controlPrecio) || 0) * numMotores;
     }
-    
-    return Number(pieza.controlPrecio) || 0;
   }
 
   async initExcelJS() {
@@ -206,8 +191,11 @@ class ExcelService {
             // Información de toldos y motorización
             const esProductoToldo = pieza.esToldo || (pieza.producto && pieza.producto.toLowerCase().includes('toldo'));
             const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) : 0;
-            const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) : 0;
-            const controlPrecio = this.calcularPrecioControlReal(pieza, piezas);
+            // Motor: solo cobrar en la primera medida de cada partida
+            const esPrimeraMedida = medidaIndex === 0;
+            const numMotores = pieza.numMotores || pieza.medidas.length;
+            const motorPrecio = (pieza.motorizado && pieza.motorPrecio && esPrimeraMedida) ? Number(pieza.motorPrecio) * numMotores : 0;
+            const controlPrecio = esPrimeraMedida ? this.calcularPrecioControlReal(pieza, piezas) : 0;
             
             const subtotalTotal = subtotalBase + kitPrecio + motorPrecio + controlPrecio;
             
@@ -285,7 +273,8 @@ class ExcelService {
           // Información de toldos y motorización
           const esProductoToldo = pieza.esToldo || (pieza.producto && pieza.producto.toLowerCase().includes('toldo'));
           const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) * cantidad : 0;
-          const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) * cantidad : 0;
+          const numMotores = pieza.numMotores || cantidad;
+          const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) * numMotores : 0;
           const controlPrecio = this.calcularPrecioControlReal(pieza, piezas);
           
           const subtotalTotal = subtotalBase + kitPrecio + motorPrecio + controlPrecio;

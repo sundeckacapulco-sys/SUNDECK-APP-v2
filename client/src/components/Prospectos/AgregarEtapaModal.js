@@ -88,9 +88,12 @@ const modelosMotores = [
 
 // Modelos de controles predefinidos
 const modelosControles = [
-  { label: "Monocanal", value: "monocanal" },
-  { label: "Multicanal", value: "multicanal" },
-  { label: "Otro (especificar)", value: "otro_manual" }
+  { label: "Control Monocanal (1 cortina)", value: "monocanal", canales: 1, esMulticanal: false },
+  { label: "Control 4 Canales", value: "multicanal_4", canales: 4, esMulticanal: true },
+  { label: "Control 5 Canales", value: "multicanal_5", canales: 5, esMulticanal: true },
+  { label: "Control 15 Canales", value: "multicanal_15", canales: 15, esMulticanal: true },
+  { label: "Control Multicanal Genérico", value: "multicanal", canales: 4, esMulticanal: true },
+  { label: "Otro (especificar)", value: "otro_manual", canales: 1, esMulticanal: false }
 ];
 
 const emptyPieza = {
@@ -345,32 +348,18 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       
       // Agregar motorización si aplica
       if (pieza.motorizado) {
-        // Motores: uno por pieza
-        subtotalPieza += (parseFloat(pieza.motorPrecio) || 0) * cantidadPiezasPartida;
-        // Control: uno por partida (no por pieza)
-        // Control: calcular considerando multicanal inline
+        // Motores: usar el número especificado, o por defecto 1 motor
+        const numMotores = pieza.numMotores || 1;
+        subtotalPieza += (parseFloat(pieza.motorPrecio) || 0) * numMotores;
+        
+        // Control: usar la lógica simplificada
         if (pieza.controlPrecio) {
-          const controlSeleccionado = modelosControles.find(c => c.value === pieza.controlModelo);
-          if (controlSeleccionado?.esMulticanal) {
-            const piezasConMismoControl = piezas.filter(p => 
-              p.motorizado && 
-              p.controlModelo === pieza.controlModelo &&
-              p.controlPrecio
-            );
-            const esPrimeraPiezaConEsteControl = piezas.findIndex(p => 
-              p.motorizado && 
-              p.controlModelo === pieza.controlModelo &&
-              p.controlPrecio
-            ) === piezas.findIndex(p => p === pieza);
-            
-            if (piezasConMismoControl.length > 1 && !esPrimeraPiezaConEsteControl) {
-              // No cobrar en piezas adicionales
-              subtotalPieza += 0;
-            } else {
-              subtotalPieza += parseFloat(pieza.controlPrecio) || 0;
-            }
-          } else {
+          if (pieza.esControlMulticanal) {
+            // Control multicanal: solo cobrar una vez
             subtotalPieza += parseFloat(pieza.controlPrecio) || 0;
+          } else {
+            // Control individual: cobrar por cada motor/pieza
+            subtotalPieza += (parseFloat(pieza.controlPrecio) || 0) * numMotores;
           }
         }
       }
@@ -1086,27 +1075,24 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       id: 'control_multicanal',
       tipo: 'etapa',
       condicion: (medidas, piezaForm) => {
-        if (!piezaForm?.motorizado || !piezaForm?.controlModelo) return false;
+        if (!piezaForm?.motorizado || !piezaForm?.esControlMulticanal) return false;
         
-        // Buscar el control seleccionado en los modelos
-        const controlSeleccionado = modelosControles.find(c => c.value === piezaForm.controlModelo);
-        
-        // Si es multicanal y hay múltiples piezas motorizadas
-        if (controlSeleccionado?.esMulticanal && medidas && medidas.length > 1) {
-          const piezasMotorizadas = medidas.filter(m => piezaForm.motorizado).length;
-          return piezasMotorizadas > 1 && piezasMotorizadas <= (controlSeleccionado.canales || 4);
+        // Si está marcado como control multicanal y hay múltiples piezas
+        if (piezaForm.esControlMulticanal && medidas && medidas.length > 1) {
+          const piezasControladas = piezaForm.piezasPorControl || medidas.length;
+          return piezasControladas > 1;
         }
         
         return false;
       },
       mensaje: (medidas, piezaForm) => {
         const controlSeleccionado = modelosControles.find(c => c.value === piezaForm.controlModelo);
-        const piezasMotorizadas = medidas ? medidas.filter(m => piezaForm.motorizado).length : 0;
+        const piezasControladas = piezaForm.piezasPorControl || (medidas ? medidas.length : 1);
         const canales = controlSeleccionado?.canales || 4;
         
-        return `⚠️ Control ${controlSeleccionado?.label || 'multicanal'} detectado. Solo se cobrará 1 control para las ${piezasMotorizadas} piezas motorizadas (capacidad: ${canales} canales). Verifica si es correcto.`;
+        return `✅ Control multicanal configurado correctamente. Se cobrará 1 control ${controlSeleccionado?.label || 'multicanal'} para ${piezasControladas} piezas (capacidad: ${canales} canales).`;
       },
-      severidad: 'warning'
+      severidad: 'success'
     }
   ];
 
@@ -1175,7 +1161,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       setSugerenciasPorPieza({});
       setSugerenciasEtapa([]);
     }
-  }, [piezaForm.medidas, piezaForm.motorizado, todosLosProductos]);
+  }, [piezaForm.medidas, piezaForm.motorizado, piezaForm.controlModelo, piezaForm.esControlMulticanal, piezaForm.piezasPorControl, todosLosProductos]);
 
   const handleGenerarCotizacion = async () => {
     setErrorLocal('');
@@ -2716,7 +2702,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                         </>
                       )}
 
-                      {/* Sección de Motorización - Para toldos, persianas y cortinas */}
+                      {/* Sección de Motorización Simplificada */}
                       {puedeSerMotorizado(piezaForm.producto) && (
                         <>
                           <Grid item xs={12}>
@@ -2724,6 +2710,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                               ⚡ Motorización (Opcional)
                             </Typography>
                           </Grid>
+                          
                           <Grid item xs={12} sm={3}>
                             <TextField
                               select
@@ -2741,7 +2728,12 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                   motorPrecio: esMotorizado ? prev.motorPrecio : '',
                                   controlModelo: esMotorizado ? prev.controlModelo : '',
                                   controlModeloManual: esMotorizado ? prev.controlModeloManual : '',
-                                  controlPrecio: esMotorizado ? prev.controlPrecio : ''
+                                  controlPrecio: esMotorizado ? prev.controlPrecio : '',
+                                  // Nuevos campos
+                                  numMotores: esMotorizado ? prev.numMotores || 1 : 1,
+                                  piezasPorMotor: esMotorizado ? prev.piezasPorMotor || 1 : 1,
+                                  esControlMulticanal: esMotorizado ? prev.esControlMulticanal || false : false,
+                                  piezasPorControl: esMotorizado ? prev.piezasPorControl || 1 : 1
                                 }));
                               }}
                             >
@@ -2752,92 +2744,215 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                           
                           {piezaForm.motorizado && (
                             <>
-                              <Grid item xs={12} sm={3}>
-                                <TextField
-                                  select
-                                  label="Modelo de Motor"
-                                  fullWidth
-                                  value={piezaForm.motorModelo}
-                                  onChange={(e) => {
-                                    setPiezaForm(prev => ({ 
-                                      ...prev, 
-                                      motorModelo: e.target.value,
-                                      motorModeloManual: e.target.value === 'otro_manual' ? '' : prev.motorModeloManual
-                                    }));
-                                  }}
-                                >
-                                  {modelosMotores.map(motor => (
-                                    <MenuItem key={motor.value} value={motor.value}>
-                                      {motor.label}
-                                    </MenuItem>
-                                  ))}
-                                </TextField>
+                              {/* Configuración de Motores */}
+                              <Grid item xs={12}>
+                                <Box sx={{ p: 2, bgcolor: 'primary.50', borderRadius: 1, border: '1px solid', borderColor: 'primary.200' }}>
+                                  <Typography variant="subtitle2" sx={{ mb: 2, color: 'primary.dark', fontWeight: 'bold' }}>
+                                    🔧 Configuración de Motores
+                                  </Typography>
+                                  
+                                  <Grid container spacing={2}>
+                                    <Grid item xs={12} sm={4}>
+                                      <TextField
+                                        select
+                                        label="Modelo de Motor"
+                                        fullWidth
+                                        value={piezaForm.motorModelo}
+                                        onChange={(e) => {
+                                          setPiezaForm(prev => ({ 
+                                            ...prev, 
+                                            motorModelo: e.target.value,
+                                            motorModeloManual: e.target.value === 'otro_manual' ? '' : prev.motorModeloManual
+                                          }));
+                                        }}
+                                      >
+                                        {modelosMotores.map(motor => (
+                                          <MenuItem key={motor.value} value={motor.value}>
+                                            {motor.label}
+                                          </MenuItem>
+                                        ))}
+                                      </TextField>
+                                    </Grid>
+                                    
+                                    {piezaForm.motorModelo === 'otro_manual' && (
+                                      <Grid item xs={12} sm={4}>
+                                        <TextField
+                                          label="Especificar motor"
+                                          fullWidth
+                                          value={piezaForm.motorModeloManual}
+                                          onChange={(e) => setPiezaForm(prev => ({ ...prev, motorModeloManual: e.target.value }))}
+                                          placeholder="Ej. Motor Nacional 28Nm"
+                                        />
+                                      </Grid>
+                                    )}
+                                    
+                                    <Grid item xs={12} sm={4}>
+                                      <TextField
+                                        label="Precio por Motor (MXN)"
+                                        type="number"
+                                        fullWidth
+                                        value={piezaForm.motorPrecio}
+                                        onChange={(e) => setPiezaForm(prev => ({ ...prev, motorPrecio: e.target.value }))}
+                                        placeholder="Ej. 9500"
+                                        inputProps={{ step: 0.01 }}
+                                      />
+                                    </Grid>
+                                    
+                                    <Grid item xs={12} sm={4}>
+                                      <TextField
+                                        label="Número de Motores"
+                                        type="number"
+                                        fullWidth
+                                        value={piezaForm.numMotores || 1}
+                                        onChange={(e) => setPiezaForm(prev => ({ ...prev, numMotores: parseInt(e.target.value) || 1 }))}
+                                        inputProps={{ min: 1, max: 20 }}
+                                        helperText="Cantidad total de motores"
+                                      />
+                                    </Grid>
+                                    
+                                    <Grid item xs={12} sm={4}>
+                                      <TextField
+                                        label="Piezas por Motor"
+                                        type="number"
+                                        fullWidth
+                                        value={piezaForm.piezasPorMotor || Math.ceil((piezaForm.medidas ? piezaForm.medidas.length : 1) / (piezaForm.numMotores || 1))}
+                                        onChange={(e) => setPiezaForm(prev => ({ ...prev, piezasPorMotor: parseInt(e.target.value) || 1 }))}
+                                        inputProps={{ min: 1, max: 10 }}
+                                        helperText="Cuántas piezas controla cada motor"
+                                      />
+                                    </Grid>
+                                  </Grid>
+                                </Box>
                               </Grid>
-                              {piezaForm.motorModelo === 'otro_manual' && (
-                                <Grid item xs={12} sm={3}>
-                                  <TextField
-                                    label="Especificar motor"
-                                    fullWidth
-                                    value={piezaForm.motorModeloManual}
-                                    onChange={(e) => setPiezaForm(prev => ({ ...prev, motorModeloManual: e.target.value }))}
-                                    placeholder="Ej. Motor Nacional 28Nm"
-                                  />
-                                </Grid>
-                              )}
-                              <Grid item xs={12} sm={3}>
-                                <TextField
-                                  label="Precio Motor (MXN)"
-                                  type="number"
-                                  fullWidth
-                                  value={piezaForm.motorPrecio}
-                                  onChange={(e) => setPiezaForm(prev => ({ ...prev, motorPrecio: e.target.value }))}
-                                  placeholder="Ej. 3800, 4500"
-                                  inputProps={{ step: 0.01 }}
-                                />
-                              </Grid>
-                              
-                              <Grid item xs={12} sm={3}>
-                                <TextField
-                                  select
-                                  label="Modelo de Control"
-                                  fullWidth
-                                  value={piezaForm.controlModelo}
-                                  onChange={(e) => {
-                                    setPiezaForm(prev => ({ 
-                                      ...prev, 
-                                      controlModelo: e.target.value,
-                                      controlModeloManual: e.target.value === 'otro_manual' ? '' : prev.controlModeloManual
-                                    }));
-                                  }}
-                                >
-                                  {modelosControles.map(control => (
-                                    <MenuItem key={control.value} value={control.value}>
-                                      {control.label}
-                                    </MenuItem>
-                                  ))}
-                                </TextField>
-                              </Grid>
-                              {piezaForm.controlModelo === 'otro_manual' && (
-                                <Grid item xs={12} sm={3}>
-                                  <TextField
-                                    label="Especificar control"
-                                    fullWidth
-                                    value={piezaForm.controlModeloManual}
-                                    onChange={(e) => setPiezaForm(prev => ({ ...prev, controlModeloManual: e.target.value }))}
-                                    placeholder="Ej. Control personalizado"
-                                  />
-                                </Grid>
-                              )}
-                              <Grid item xs={12} sm={3}>
-                                <TextField
-                                  label="Precio Control (MXN)"
-                                  type="number"
-                                  fullWidth
-                                  value={piezaForm.controlPrecio}
-                                  onChange={(e) => setPiezaForm(prev => ({ ...prev, controlPrecio: e.target.value }))}
-                                  placeholder="Ej. 950, 1200"
-                                  inputProps={{ step: 0.01 }}
-                                />
+
+                              {/* Configuración de Control */}
+                              <Grid item xs={12}>
+                                <Box sx={{ p: 2, bgcolor: 'secondary.50', borderRadius: 1, border: '1px solid', borderColor: 'secondary.200' }}>
+                                  <Typography variant="subtitle2" sx={{ mb: 2, color: 'secondary.dark', fontWeight: 'bold' }}>
+                                    🎛️ Configuración de Control
+                                  </Typography>
+                                  
+                                  <Grid container spacing={2}>
+                                    <Grid item xs={12} sm={6}>
+                                      <TextField
+                                        select
+                                        label="Tipo de Control"
+                                        fullWidth
+                                        value={piezaForm.esControlMulticanal ? 'multicanal' : 'individual'}
+                                        onChange={(e) => {
+                                          const esMulticanal = e.target.value === 'multicanal';
+                                          setPiezaForm(prev => ({ 
+                                            ...prev, 
+                                            esControlMulticanal: esMulticanal,
+                                            controlModelo: esMulticanal ? 'multicanal_4' : 'monocanal',
+                                            piezasPorControl: esMulticanal ? (piezaForm.medidas ? piezaForm.medidas.length : 1) : 1
+                                          }));
+                                        }}
+                                      >
+                                        <MenuItem value="individual">Control Individual (1 por pieza)</MenuItem>
+                                        <MenuItem value="multicanal">Control Multicanal (1 para varias piezas)</MenuItem>
+                                      </TextField>
+                                    </Grid>
+                                    
+                                    <Grid item xs={12} sm={6}>
+                                      <TextField
+                                        select
+                                        label="Modelo de Control"
+                                        fullWidth
+                                        value={piezaForm.controlModelo}
+                                        onChange={(e) => {
+                                          setPiezaForm(prev => ({ 
+                                            ...prev, 
+                                            controlModelo: e.target.value,
+                                            controlModeloManual: e.target.value === 'otro_manual' ? '' : prev.controlModeloManual
+                                          }));
+                                        }}
+                                      >
+                                        {piezaForm.esControlMulticanal ? (
+                                          // Solo controles multicanal
+                                          modelosControles.filter(c => c.esMulticanal).map(control => (
+                                            <MenuItem key={control.value} value={control.value}>
+                                              {control.label}
+                                            </MenuItem>
+                                          ))
+                                        ) : (
+                                          // Solo controles individuales
+                                          modelosControles.filter(c => !c.esMulticanal).map(control => (
+                                            <MenuItem key={control.value} value={control.value}>
+                                              {control.label}
+                                            </MenuItem>
+                                          ))
+                                        )}
+                                      </TextField>
+                                    </Grid>
+                                    
+                                    {piezaForm.controlModelo === 'otro_manual' && (
+                                      <Grid item xs={12} sm={6}>
+                                        <TextField
+                                          label="Especificar control"
+                                          fullWidth
+                                          value={piezaForm.controlModeloManual}
+                                          onChange={(e) => setPiezaForm(prev => ({ ...prev, controlModeloManual: e.target.value }))}
+                                          placeholder="Ej. Control personalizado"
+                                        />
+                                      </Grid>
+                                    )}
+                                    
+                                    <Grid item xs={12} sm={6}>
+                                      <TextField
+                                        label="Precio Control (MXN)"
+                                        type="number"
+                                        fullWidth
+                                        value={piezaForm.controlPrecio}
+                                        onChange={(e) => setPiezaForm(prev => ({ ...prev, controlPrecio: e.target.value }))}
+                                        placeholder={piezaForm.esControlMulticanal ? "Ej. 1800 (solo 1)" : "Ej. 950 (por pieza)"}
+                                        inputProps={{ step: 0.01 }}
+                                        helperText={piezaForm.esControlMulticanal ? "Solo se cobrará 1 control multicanal" : "Se cobrará 1 control por pieza"}
+                                      />
+                                    </Grid>
+                                    
+                                    {piezaForm.esControlMulticanal && (
+                                      <Grid item xs={12} sm={6}>
+                                        <TextField
+                                          label="Piezas controladas"
+                                          type="number"
+                                          fullWidth
+                                          value={piezaForm.piezasPorControl || (piezaForm.medidas ? piezaForm.medidas.length : 1)}
+                                          onChange={(e) => setPiezaForm(prev => ({ ...prev, piezasPorControl: parseInt(e.target.value) || 1 }))}
+                                          inputProps={{ min: 1, max: 15 }}
+                                          helperText="Cuántas piezas controla este control multicanal"
+                                        />
+                                      </Grid>
+                                    )}
+                                  </Grid>
+                                  
+                                  {/* Resumen de costos */}
+                                  {(piezaForm.motorPrecio || piezaForm.controlPrecio) && (
+                                    <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+                                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                        💰 Resumen de Costos de Motorización:
+                                      </Typography>
+                                      {piezaForm.motorPrecio && (
+                                        <Typography variant="body2">
+                                          • Motores: {piezaForm.numMotores || 1} × ${piezaForm.motorPrecio} = ${((piezaForm.numMotores || 1) * parseFloat(piezaForm.motorPrecio || 0)).toLocaleString()}
+                                          <br />
+                                          &nbsp;&nbsp;({piezaForm.piezasPorMotor || Math.ceil((piezaForm.medidas ? piezaForm.medidas.length : 1) / (piezaForm.numMotores || 1))} piezas por motor)
+                                        </Typography>
+                                      )}
+                                      {piezaForm.controlPrecio && (
+                                        <Typography variant="body2">
+                                          • Control: {piezaForm.esControlMulticanal ? '1' : (piezaForm.numMotores || 1)} × ${piezaForm.controlPrecio} = ${(piezaForm.esControlMulticanal ? parseFloat(piezaForm.controlPrecio || 0) : ((piezaForm.numMotores || 1) * parseFloat(piezaForm.controlPrecio || 0))).toLocaleString()}
+                                        </Typography>
+                                      )}
+                                      <Typography variant="body2" sx={{ fontWeight: 'bold', mt: 1 }}>
+                                        Total Motorización: ${(
+                                          ((piezaForm.numMotores || 1) * parseFloat(piezaForm.motorPrecio || 0)) +
+                                          (piezaForm.esControlMulticanal ? parseFloat(piezaForm.controlPrecio || 0) : ((piezaForm.numMotores || 1) * parseFloat(piezaForm.controlPrecio || 0)))
+                                        ).toLocaleString()}
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                </Box>
                               </Grid>
                             </>
                           )}
@@ -3213,10 +3328,14 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     // Calcular costos adicionales
                     const esProductoToldo = esToldo(pieza.producto) || pieza.esToldo;
                     const kitPrecio = esProductoToldo && pieza.kitPrecio ? parseFloat(pieza.kitPrecio) : 0;
-                    const motorPrecio = pieza.motorizado && pieza.motorPrecio ? parseFloat(pieza.motorPrecio) : 0;
-                    const controlPrecio = pieza.motorizado && pieza.controlPrecio ? parseFloat(pieza.controlPrecio) : 0;
                     
-                    const totalPartida = subtotalM2 + (kitPrecio * cantidadPiezas) + (motorPrecio * cantidadPiezas) + controlPrecio;
+                    // Motorización: usar la nueva lógica corregida
+                    const numMotores = pieza.numMotores || 1;
+                    const motorPrecio = pieza.motorizado && pieza.motorPrecio ? parseFloat(pieza.motorPrecio) * numMotores : 0;
+                    const controlPrecio = pieza.motorizado && pieza.controlPrecio ? 
+                      (pieza.esControlMulticanal ? parseFloat(pieza.controlPrecio) : parseFloat(pieza.controlPrecio) * numMotores) : 0;
+                    
+                    const totalPartida = subtotalM2 + (kitPrecio * cantidadPiezas) + motorPrecio + controlPrecio;
                     
                     return (
                       <Card key={index} sx={{ mb: 2, border: 1, borderColor: 'grey.200' }}>
@@ -3328,9 +3447,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                                     <Typography variant="body2" sx={{ minWidth: 20 }}>•</Typography>
                                     <Typography variant="body2">
-                                      {cantidadPiezas} Motor{cantidadPiezas > 1 ? 'es' : ''} ({pieza.motorModeloManual || pieza.motorModelo || 'Modelo estándar'}) 
-                                      → ${motorPrecio.toLocaleString()} c/u → 
-                                      <span style={{ fontWeight: 'bold', color: '#1976d2' }}> ${(motorPrecio * cantidadPiezas).toLocaleString()}</span>
+                                      {numMotores} Motor{numMotores > 1 ? 'es' : ''} ({pieza.motorModeloManual || pieza.motorModelo || 'Modelo estándar'}) 
+                                      → ${(parseFloat(pieza.motorPrecio) || 0).toLocaleString()} c/u → 
+                                      <span style={{ fontWeight: 'bold', color: '#1976d2' }}> ${motorPrecio.toLocaleString()}</span>
                                     </Typography>
                                   </Box>
                                 )}
