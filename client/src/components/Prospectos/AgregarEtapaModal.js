@@ -23,7 +23,9 @@ import {
   Add,
   CloudUpload,
   Delete,
-  Close
+  Close,
+  ContentCopy,
+  CheckCircle
 } from '@mui/icons-material';
 import TextFieldConDictado from '../Common/TextFieldConDictado';
 import axiosConfig from '../../config/axios';
@@ -153,6 +155,10 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const [cobraInstalacion, setCobraInstalacion] = useState(false);
   const [precioInstalacion, setPrecioInstalacion] = useState('');
   const [tipoInstalacion, setTipoInstalacion] = useState('estandar');
+  
+  // Estados para copiar medidas
+  const [copiandoMedidas, setCopiandoMedidas] = useState({});
+  const [medidaCopiada, setMedidaCopiada] = useState({});
   
   // Estados para edición de partidas
   const [editandoPieza, setEditandoPieza] = useState(false);
@@ -918,6 +924,69 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     } finally {
       setDescargandoExcel(false);
     }
+  };
+
+  // Función para copiar medidas de la pieza anterior
+  const copiarMedidasPiezaAnterior = (medidaIndex) => {
+    if (medidaIndex === 0) return; // No hay pieza anterior
+    
+    const nuevasMedidas = [...(piezaForm.medidas || [])];
+    const medidaAnterior = nuevasMedidas[medidaIndex - 1];
+    
+    if (medidaAnterior) {
+      // Copiar los valores de la medida anterior
+      nuevasMedidas[medidaIndex] = {
+        ...nuevasMedidas[medidaIndex],
+        ancho: medidaAnterior.ancho,
+        alto: medidaAnterior.alto,
+        producto: medidaAnterior.producto,
+        productoLabel: medidaAnterior.productoLabel,
+        color: medidaAnterior.color,
+        precioM2: medidaAnterior.precioM2
+      };
+      
+      setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+      
+      // Mostrar confirmación visual
+      setMedidaCopiada({ [`pieza-${medidaIndex}`]: true });
+      setTimeout(() => {
+        setMedidaCopiada(prev => ({ ...prev, [`pieza-${medidaIndex}`]: false }));
+      }, 2000);
+    }
+  };
+
+  // Función para copiar de pieza 1 a todas las demás
+  const copiarDePieza1ATodas = () => {
+    if (!piezaForm.medidas || piezaForm.medidas.length < 2) return;
+    
+    const nuevasMedidas = [...piezaForm.medidas];
+    const primeraMedida = nuevasMedidas[0];
+    
+    // Copiar valores de la primera medida a todas las demás
+    for (let i = 1; i < nuevasMedidas.length; i++) {
+      nuevasMedidas[i] = {
+        ...nuevasMedidas[i],
+        ancho: primeraMedida.ancho,
+        alto: primeraMedida.alto,
+        producto: primeraMedida.producto,
+        productoLabel: primeraMedida.productoLabel,
+        color: primeraMedida.color,
+        precioM2: primeraMedida.precioM2
+      };
+    }
+    
+    setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+    
+    // Mostrar confirmación visual para todas
+    const confirmaciones = {};
+    for (let i = 1; i < nuevasMedidas.length; i++) {
+      confirmaciones[`global-${i}`] = true;
+    }
+    setMedidaCopiada(confirmaciones);
+    
+    setTimeout(() => {
+      setMedidaCopiada({});
+    }, 2000);
   };
 
   const handleGenerarCotizacion = async () => {
@@ -2248,6 +2317,50 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                 </Box>
                               </Grid>
                             </>
+                          )}
+                          
+                          {/* Botón para copiar medidas de pieza anterior */}
+                          {index > 0 && (
+                            <Grid item xs={12}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  startIcon={medidaCopiada[`pieza-${index}`] ? <CheckCircle /> : <ContentCopy />}
+                                  onClick={() => copiarMedidasPiezaAnterior(index)}
+                                  sx={{
+                                    borderColor: medidaCopiada[`pieza-${index}`] ? 'success.main' : 'primary.main',
+                                    color: medidaCopiada[`pieza-${index}`] ? 'success.main' : 'primary.main',
+                                    '&:hover': {
+                                      borderColor: medidaCopiada[`pieza-${index}`] ? 'success.dark' : 'primary.dark',
+                                      backgroundColor: medidaCopiada[`pieza-${index}`] ? 'success.50' : 'primary.50'
+                                    }
+                                  }}
+                                >
+                                  {medidaCopiada[`pieza-${index}`] ? 'Copiado ✓' : 'Copiar medidas de pieza anterior'}
+                                </Button>
+                                
+                                {/* Botón global para copiar de pieza 1 a todas (solo mostrar en pieza 2) */}
+                                {index === 1 && piezaForm.medidas && piezaForm.medidas.length > 2 && (
+                                  <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={medidaCopiada[`global-${index}`] ? <CheckCircle /> : <ContentCopy />}
+                                    onClick={copiarDePieza1ATodas}
+                                    sx={{
+                                      borderColor: 'secondary.main',
+                                      color: 'secondary.main',
+                                      '&:hover': {
+                                        borderColor: 'secondary.dark',
+                                        backgroundColor: 'secondary.50'
+                                      }
+                                    }}
+                                  >
+                                    Copiar pieza 1 a todas
+                                  </Button>
+                                )}
+                              </Box>
+                            </Grid>
                           )}
                           
                           <Grid item xs={12} sm={4}>
