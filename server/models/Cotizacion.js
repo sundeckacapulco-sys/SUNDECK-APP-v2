@@ -30,6 +30,11 @@ const cotizacionSchema = new mongoose.Schema({
     enum: ['borrador', 'enviada', 'Activa', 'vista', 'aprobada', 'rechazada', 'vencida', 'convertida'],
     default: 'borrador'
   },
+  origen: {
+    type: String,
+    enum: ['levantamiento', 'cotizacion_vivo', 'directa', 'normal'],
+    default: 'normal'
+  },
   comentarios: String,
   precioGeneralM2: Number,
   unidadMedida: String,

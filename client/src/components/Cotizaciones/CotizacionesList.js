@@ -17,7 +17,10 @@ import {
   Menu,
   MenuItem,
   Alert,
-  Snackbar
+  Snackbar,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
 import {
   Add,
@@ -31,7 +34,8 @@ import {
   CheckCircle,
   WhatsApp,
   Archive,
-  Unarchive
+  Unarchive,
+  FilterList
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
@@ -51,6 +55,9 @@ const CotizacionesList = () => {
   // Estados para WhatsApp
   const [openWhatsApp, setOpenWhatsApp] = useState(false);
   const [contextoWhatsApp, setContextoWhatsApp] = useState('');
+  
+  // Estado para filtro de origen
+  const [filtroOrigen, setFiltroOrigen] = useState('');
 
   const navigate = useNavigate();
 
@@ -62,6 +69,20 @@ const CotizacionesList = () => {
     rechazada: 'error',
     vencida: 'warning',
     convertida: 'success'
+  };
+
+  const origenColors = {
+    levantamiento: 'info',
+    cotizacion_vivo: 'success', 
+    directa: 'warning',
+    normal: 'default'
+  };
+
+  const origenLabels = {
+    levantamiento: '📋 Levantamiento',
+    cotizacion_vivo: '💰 En Vivo',
+    directa: '🎯 Directa',
+    normal: '📝 Normal'
   };
 
   useEffect(() => {
@@ -299,6 +320,11 @@ const CotizacionesList = () => {
     }
   };
 
+  // Filtrar cotizaciones por origen
+  const cotizacionesFiltradas = filtroOrigen 
+    ? cotizaciones.filter(cotizacion => cotizacion.origen === filtroOrigen)
+    : cotizaciones;
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -332,6 +358,35 @@ const CotizacionesList = () => {
         </Box>
       </Box>
 
+      {/* Filtros */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
+        <FilterList sx={{ color: 'text.secondary' }} />
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel>Filtrar por Origen</InputLabel>
+          <Select
+            value={filtroOrigen}
+            label="Filtrar por Origen"
+            onChange={(e) => setFiltroOrigen(e.target.value)}
+          >
+            <MenuItem value="">
+              <em>Todos los orígenes</em>
+            </MenuItem>
+            <MenuItem value="levantamiento">📋 Levantamiento</MenuItem>
+            <MenuItem value="cotizacion_vivo">💰 En Vivo</MenuItem>
+            <MenuItem value="directa">🎯 Directa</MenuItem>
+            <MenuItem value="normal">📝 Normal</MenuItem>
+          </Select>
+        </FormControl>
+        {filtroOrigen && (
+          <Chip 
+            label={`Filtrado: ${origenLabels[filtroOrigen]}`}
+            onDelete={() => setFiltroOrigen('')}
+            color={origenColors[filtroOrigen]}
+            variant="outlined"
+          />
+        )}
+      </Box>
+
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -341,6 +396,7 @@ const CotizacionesList = () => {
               <TableCell>Productos</TableCell>
               <TableCell>Total</TableCell>
               <TableCell>Estado</TableCell>
+              <TableCell>Origen</TableCell>
               <TableCell>Fecha</TableCell>
               <TableCell>Válido Hasta</TableCell>
               <TableCell>Acciones</TableCell>
@@ -349,18 +405,18 @@ const CotizacionesList = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={9} align="center">
                   Cargando...
                 </TableCell>
               </TableRow>
-            ) : cotizaciones.length === 0 ? (
+            ) : cotizacionesFiltradas.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center">
+                <TableCell colSpan={9} align="center">
                   No se encontraron cotizaciones
                 </TableCell>
               </TableRow>
             ) : (
-              cotizaciones.filter(cotizacion => cotizacion && cotizacion._id).map((cotizacion) => (
+              cotizacionesFiltradas.filter(cotizacion => cotizacion && cotizacion._id).map((cotizacion) => (
                 <TableRow key={cotizacion._id} hover>
                   <TableCell>
                     <Typography variant="subtitle2">
@@ -396,6 +452,14 @@ const CotizacionesList = () => {
                       label={cotizacion.estado || 'Sin estado'}
                       color={estadoColors[cotizacion.estado] || 'default'}
                       size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={origenLabels[cotizacion.origen] || origenLabels.normal}
+                      color={origenColors[cotizacion.origen] || 'default'}
+                      size="small"
+                      variant="outlined"
                     />
                   </TableCell>
                   <TableCell>

@@ -90,7 +90,9 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       totalM2,
       unidadMedida,
       comentarios,
-      instalacionEspecial
+      instalacionEspecial,
+      origen,
+      tipoVisitaInicial
     } = req.body;
 
     console.log('📋 Datos extraídos:');
@@ -101,6 +103,8 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
     console.log('- Unidad medida:', unidadMedida);
     console.log('- Comentarios length:', comentarios?.length || 0);
     console.log('- Instalación especial:', instalacionEspecial);
+    console.log('- Origen:', origen);
+    console.log('- Tipo visita inicial:', tipoVisitaInicial);
 
     // Verificar que el prospecto existe
     const prospecto = await Prospecto.findById(prospectoId);
@@ -317,6 +321,7 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       prospecto: prospectoId,
       // El número se genera automáticamente por el middleware del modelo
       validoHasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 días
+      origen: origen || 'levantamiento', // Usar el origen enviado desde el frontend
       mediciones,
       productos,
       subtotal: productos.reduce((sum, prod) => sum + (prod.subtotal || 0), 0),

@@ -22,7 +22,8 @@ exports.crearCotizacion = async (req, res) => {
       metodoPagoAnticipo,
       tiempoEntrega,
       diasEntregaExpres,
-      incluirTerminos
+      incluirTerminos,
+      origen
     } = req.body;
 
     if (!prospectoId) {
@@ -58,6 +59,7 @@ exports.crearCotizacion = async (req, res) => {
       nombre: nombre || `Cotización para ${prospecto.nombre}`,
       fecha: fechaCreacion ? new Date(fechaCreacion) : new Date(),
       estado: 'Activa',
+      origen: origen || 'normal', // Usar el origen enviado o 'normal' por defecto
       productos: productos.map(p => ({
         ubicacion: p.ubicacion,
         cantidad: p.cantidad || 1,

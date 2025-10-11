@@ -928,69 +928,90 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         throw new Error('No se ha proporcionado un ID de prospecto.');
       }
 
-      const productosCotizacion = piezas.map(pieza => {
-        // Asumiendo que `medidas` ahora contiene los detalles por cada "item" de la pieza
-        const medidasDetalle = (pieza.medidas || []).map(medida => {
-          const anchoNum = parseFloat(medida.ancho) || 0;
-          const altoNum = parseFloat(medida.alto) || 0;
-          const area = unidad === 'cm' ? (anchoNum * altoNum) / 10000 : anchoNum * altoNum;
+      // Determinar el origen según el tipo de visita inicial
+      const origenCotizacion = tipoVisitaInicial === 'levantamiento' ? 'levantamiento' : 'cotizacion_vivo';
+      
+      console.log('🎯 Generando cotización desde visita inicial:');
+      console.log('- Tipo de visita:', tipoVisitaInicial);
+      console.log('- Origen asignado:', origenCotizacion);
 
+      // Preparar datos para el endpoint desde-visita
+      const payload = {
+        prospectoId: prospectoId,
+        piezas: piezas.map((pieza) => {
+          // Obtener medidas del formato nuevo o del formato anterior
+          let ancho = 0, alto = 0;
+          
+          if (pieza.medidas && pieza.medidas.length > 0) {
+            // Formato nuevo: usar la primera medida como representativa
+            ancho = Number(pieza.medidas[0].ancho) || 0;
+            alto = Number(pieza.medidas[0].alto) || 0;
+          } else if (pieza.ancho !== undefined && pieza.alto !== undefined) {
+            // Formato anterior: usar campos directos
+            ancho = pieza.ancho !== '' ? Number(pieza.ancho) : 0;
+            alto = pieza.alto !== '' ? Number(pieza.alto) : 0;
+          }
+          
           return {
-            ubicacion: pieza.ubicacion, // La ubicación es para el conjunto de medidas de la pieza
-            ancho: anchoNum,
-            alto: altoNum,
-            area: area,
-            productoId: medida.producto, // ID del producto
-            nombreProducto: medida.productoLabel,
-            color: medida.color,
-            precioM2: parseFloat(medida.precioM2) || undefined, // Asegurar que sea número o undefined
-            observaciones: pieza.observaciones, // Observaciones de la pieza
+            ubicacion: pieza.ubicacion,
+            cantidad: pieza.cantidad || 1,
+            // CAMPOS PLANOS PARA BACKEND (CRÍTICO)
+            ancho: ancho,
+            alto: alto,
+            // Array de medidas completo (para futuro)
+            medidas: pieza.medidas || [{ 
+              ancho: ancho,
+              alto: alto,
+              area: ancho * alto,
+              producto: pieza.producto,
+              productoLabel: pieza.productoLabel,
+              color: pieza.color,
+              precioM2: pieza.precioM2
+            }],
+            producto: pieza.producto,
+            productoLabel: pieza.productoLabel,
+            color: pieza.color,
+            precioM2: pieza.precioM2,
+            observaciones: pieza.observaciones,
             fotoUrls: pieza.fotoUrls || [],
             videoUrl: pieza.videoUrl || '',
+            
+            // Información de toldos
             esToldo: pieza.esToldo || false,
             tipoToldo: pieza.tipoToldo || '',
             kitModelo: pieza.kitModelo || '',
             kitModeloManual: pieza.kitModeloManual || '',
-            kitPrecio: parseFloat(pieza.kitPrecio) || undefined,
+            kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
+            
+            // Información de motorización
             motorizado: pieza.motorizado || false,
             motorModelo: pieza.motorModelo || '',
             motorModeloManual: pieza.motorModeloManual || '',
-            motorPrecio: parseFloat(pieza.motorPrecio) || undefined,
+            motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
             controlModelo: pieza.controlModelo || '',
             controlModeloManual: pieza.controlModeloManual || '',
-            controlPrecio: parseFloat(pieza.controlPrecio) || undefined,
+            controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0
           };
-        });
-        return medidasDetalle;
-      }).flat(); // Aplanar el array de arrays de medidas
-
-      const payload = {
-        prospecto: prospectoId,
-        nombre: `Cotización ${new Date().toLocaleDateString('es-MX')}`,
-        productos: productosCotizacion,
-        comentarios: comentarios,
-        precioGeneralM2: parseFloat(precioGeneral), // Asegurar que sea número
-        fechaCreacion: new Date().toISOString(),
+        }),
+        precioGeneral: precioGeneral ? Number(precioGeneral) : 0,
+        totalM2: calcularTotalM2,
         unidadMedida: unidad,
-        // Nuevos campos para la cotización
-        incluyeInstalacion: cobraInstalacion,
-        costoInstalacion: cobraInstalacion ? (parseFloat(precioInstalacion) || 0) : 0,
-        tipoInstalacion: cobraInstalacion ? tipoInstalacion : undefined,
-        descuento: aplicaDescuento ? {
-          tipo: tipoDescuento,
-          valor: parseFloat(valorDescuento) || 0
-        } : undefined,
-        requiereFactura: requiereFactura,
-        metodoPagoAnticipo: metodoPagoAnticipo || undefined, // Si no hay método, no lo envía
-        tiempoEntrega: tiempoEntrega,
-        diasEntregaExpres: tiempoEntrega === 'expres' ? (parseInt(diasExpres) || undefined) : undefined,
-        incluirTerminos: incluirTerminos
+        comentarios: comentarios,
+        instalacionEspecial: cobraInstalacion ? {
+          activa: true,
+          tipo: tipoInstalacion,
+          precio: Number(precioInstalacion) || 0
+        } : { activa: false },
+        // NUEVO: Enviar el origen de la cotización
+        origen: origenCotizacion,
+        tipoVisitaInicial: tipoVisitaInicial
       };
 
-      console.log('Payload de cotización a enviar:', payload);
+      console.log('📋 Payload para desde-visita:', payload);
 
-      const response = await axiosConfig.post('/cotizaciones', payload);
-      onSaved(`Cotización generada exitosamente: ${response.data.nombre}`);
+      // Usar el endpoint específico para cotizaciones desde visita inicial
+      const response = await axiosConfig.post('/cotizaciones/desde-visita', payload);
+      onSaved(`Cotización ${origenCotizacion === 'levantamiento' ? 'desde levantamiento técnico' : 'en vivo'} generada exitosamente: ${response.data.cotizacion.numero}`);
       onClose();
     } catch (error) {
       console.error('Error al generar cotización:', error);

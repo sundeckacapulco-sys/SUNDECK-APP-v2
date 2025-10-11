@@ -257,6 +257,7 @@ const CotizacionDirecta = () => {
       const cotizacionData = {
         prospectoId: prospecto._id, // ID del prospecto creado
         validoHasta: data.validoHasta,
+        origen: 'directa', // NUEVO: Marcar como cotización directa
         productos: productosConSubtotal,
         descuento: {
           porcentaje: tipoDescuento === 'porcentaje' ? (data.descuento?.porcentaje || 0) : 0,
