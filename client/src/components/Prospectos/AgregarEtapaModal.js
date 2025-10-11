@@ -25,7 +25,10 @@ import {
   Delete,
   Close,
   ContentCopy,
-  CheckCircle
+  CheckCircle,
+  Warning,
+  Info,
+  Error
 } from '@mui/icons-material';
 import TextFieldConDictado from '../Common/TextFieldConDictado';
 import axiosConfig from '../../config/axios';
@@ -159,6 +162,10 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   // Estados para copiar medidas
   const [copiandoMedidas, setCopiandoMedidas] = useState({});
   const [medidaCopiada, setMedidaCopiada] = useState({});
+  
+  // Estados para sugerencias automáticas
+  const [sugerenciasPorPieza, setSugerenciasPorPieza] = useState({});
+  const [sugerenciasEtapa, setSugerenciasEtapa] = useState([]);
   
   // Estados para edición de partidas
   const [editandoPieza, setEditandoPieza] = useState(false);
@@ -989,6 +996,137 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     }, 2000);
   };
 
+  // Sistema de Detección de Condiciones Especiales
+  const reglasDeteccion = [
+    {
+      id: 'ancho_minimo',
+      tipo: 'pieza',
+      condicion: (medida, producto) => {
+        const ancho = parseFloat(medida.ancho) || 0;
+        return ancho > 0 && ancho < 0.5; // Menor a 50 cm
+      },
+      mensaje: '⚠️ Cortinas menores a 50 cm no suben bien. Coméntalo al cliente y considera posible ajuste o cargo adicional por adaptación.',
+      severidad: 'warning'
+    },
+    {
+      id: 'altura_maxima',
+      tipo: 'pieza',
+      condicion: (medida, producto) => {
+        const alto = parseFloat(medida.alto) || 0;
+        return alto > 3.0; // Mayor a 3 metros
+      },
+      mensaje: '⚠️ Altura mayor a 3 m. Revisar si se requiere instalación en doble altura o con andamios.',
+      severidad: 'warning'
+    },
+    {
+      id: 'toldo_detectado',
+      tipo: 'pieza',
+      condicion: (medida, producto) => {
+        const productoLabel = producto?.productoLabel || producto?.label || '';
+        return productoLabel.toLowerCase().includes('toldo');
+      },
+      mensaje: '⚠️ Toldo detectado. ¿Requiere volado estructural o soporte especial? Verifica detalles técnicos y cobros adicionales.',
+      severidad: 'info'
+    },
+    {
+      id: 'motorizado_detectado',
+      tipo: 'pieza',
+      condicion: (medida, producto, piezaCompleta) => {
+        return piezaCompleta?.motorizado === true;
+      },
+      mensaje: '⚠️ Motorizado. Verifica si se requiere instalación eléctrica o canalización. Asegúrate de que esté contemplado en el costo.',
+      severidad: 'info'
+    },
+    {
+      id: 'muchas_piezas',
+      tipo: 'etapa',
+      condicion: (medidas) => {
+        return medidas && medidas.length > 5;
+      },
+      mensaje: '⚠️ Múltiples piezas. Considera si esta instalación requiere tiempo extendido, más personal o un cobro adicional.',
+      severidad: 'warning'
+    },
+    {
+      id: 'productos_mixtos',
+      tipo: 'etapa',
+      condicion: (medidas) => {
+        if (!medidas || medidas.length < 2) return false;
+        const productos = medidas.map(m => m.producto).filter(Boolean);
+        const productosUnicos = [...new Set(productos)];
+        return productosUnicos.length > 1;
+      },
+      mensaje: '⚠️ Combinación de sistemas. ¿Se requiere instalación especial o alineación visual? Verifica detalles.',
+      severidad: 'info'
+    }
+  ];
+
+  // Función para evaluar condiciones especiales
+  const evaluarCondicionesEspeciales = (medidas, piezaForm) => {
+    const sugerenciasPorPieza = {};
+    const sugerenciasEtapa = [];
+
+    // Evaluar reglas por pieza
+    medidas?.forEach((medida, index) => {
+      const sugerenciasPieza = [];
+      
+      reglasDeteccion.forEach(regla => {
+        if (regla.tipo === 'pieza') {
+          try {
+            const producto = todosLosProductos.find(p => p.value === medida.producto);
+            const cumpleCondicion = regla.condicion(medida, producto, piezaForm);
+            
+            if (cumpleCondicion) {
+              sugerenciasPieza.push({
+                id: regla.id,
+                mensaje: regla.mensaje,
+                severidad: regla.severidad
+              });
+            }
+          } catch (error) {
+            console.warn(`Error evaluando regla ${regla.id}:`, error);
+          }
+        }
+      });
+      
+      if (sugerenciasPieza.length > 0) {
+        sugerenciasPorPieza[index] = sugerenciasPieza;
+      }
+    });
+
+    // Evaluar reglas por etapa
+    reglasDeteccion.forEach(regla => {
+      if (regla.tipo === 'etapa') {
+        try {
+          const cumpleCondicion = regla.condicion(medidas, piezaForm);
+          
+          if (cumpleCondicion) {
+            sugerenciasEtapa.push({
+              id: regla.id,
+              mensaje: regla.mensaje,
+              severidad: regla.severidad
+            });
+          }
+        } catch (error) {
+          console.warn(`Error evaluando regla de etapa ${regla.id}:`, error);
+        }
+      }
+    });
+
+    return { sugerenciasPorPieza, sugerenciasEtapa };
+  };
+
+  // Efecto para evaluar condiciones cuando cambian las medidas
+  useEffect(() => {
+    if (piezaForm.medidas && piezaForm.medidas.length > 0) {
+      const { sugerenciasPorPieza, sugerenciasEtapa } = evaluarCondicionesEspeciales(piezaForm.medidas, piezaForm);
+      setSugerenciasPorPieza(sugerenciasPorPieza);
+      setSugerenciasEtapa(sugerenciasEtapa);
+    } else {
+      setSugerenciasPorPieza({});
+      setSugerenciasEtapa([]);
+    }
+  }, [piezaForm.medidas, piezaForm.motorizado, todosLosProductos]);
+
   const handleGenerarCotizacion = async () => {
     setErrorLocal('');
     setGenerandoCotizacion(true);
@@ -1690,73 +1828,6 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                 </Card>
               )}
 
-              {/* Instalación Manual - Solo para Cotización en Vivo */}
-              {tipoVisitaInicial === 'cotizacion' && (
-                <Card sx={{ mb: 2, bgcolor: 'info.50', border: 2, borderColor: 'info.200' }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                      <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        🔧 Instalación Especial
-                      </Typography>
-                      <Button
-                      variant={cobraInstalacion ? 'contained' : 'outlined'}
-                      size="small"
-                      onClick={() => setCobraInstalacion(!cobraInstalacion)}
-                      sx={{ 
-                        bgcolor: cobraInstalacion ? '#0ea5e9' : 'transparent',
-                        color: cobraInstalacion ? 'white' : '#0ea5e9',
-                        borderColor: '#0ea5e9',
-                        '&:hover': { 
-                          bgcolor: cobraInstalacion ? '#0284c7' : '#f0f9ff',
-                          borderColor: '#0284c7'
-                        }
-                      }}
-                    >
-                      {cobraInstalacion ? '✅ Activado' : '➕ Activar'}
-                    </Button>
-                  </Box>
-                  
-                  {cobraInstalacion && (
-                    <Box>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Para casos especiales como instalación eléctrica, estructural, o trabajos adicionales
-                      </Typography>
-                      
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            select
-                            label="Tipo de instalación"
-                            fullWidth
-                            value={tipoInstalacion}
-                            onChange={(e) => setTipoInstalacion(e.target.value)}
-                            SelectProps={{ native: true }}
-                          >
-                            <option value="estandar">Estándar</option>
-                            <option value="electrica">Eléctrica (motorizada)</option>
-                            <option value="estructural">Estructural (refuerzos)</option>
-                            <option value="altura">Altura especial</option>
-                            <option value="acceso">Acceso difícil</option>
-                            <option value="personalizada">Personalizada</option>
-                          </TextField>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <TextField
-                            label="💰 Precio instalación (MXN)"
-                            type="number"
-                            fullWidth
-                            value={precioInstalacion}
-                            onChange={(e) => setPrecioInstalacion(e.target.value)}
-                            placeholder="Ej. 2500, 5000, 8000..."
-                            helperText="Precio fijo total por instalación"
-                          />
-                        </Grid>
-                      </Grid>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-              )}
 
               {/* Unidad */}
               <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
@@ -2733,6 +2804,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                           placeholder="Notas adicionales sobre esta pieza..."
                         />
                       </Grid>
+
                       <Grid item xs={12}>
                         <TextField
                           label="Video URL (opcional)"
@@ -2913,6 +2985,151 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                       >
                         Cancelar
                       </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Módulo de Instalación Especial con Sugerencias Inteligentes */}
+              {tipoVisitaInicial === 'cotizacion' && (
+                <Card sx={{ mb: 3, bgcolor: 'info.50', border: 2, borderColor: 'info.200' }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        🔧 Instalación Especial & Sugerencias Inteligentes
+                      </Typography>
+                      <Button
+                        variant={cobraInstalacion ? 'contained' : 'outlined'}
+                        size="small"
+                        onClick={() => setCobraInstalacion(!cobraInstalacion)}
+                        sx={{ 
+                          bgcolor: cobraInstalacion ? '#0ea5e9' : 'transparent',
+                          color: cobraInstalacion ? 'white' : '#0ea5e9',
+                          borderColor: '#0ea5e9',
+                          '&:hover': { 
+                            bgcolor: cobraInstalacion ? '#0284c7' : '#f0f9ff',
+                            borderColor: '#0284c7'
+                          }
+                        }}
+                      >
+                        {cobraInstalacion ? '✅ Activado' : '➕ Activar'}
+                      </Button>
+                    </Box>
+
+                    {/* Sugerencias Inteligentes del Sistema */}
+                    {(sugerenciasEtapa.length > 0 || Object.keys(sugerenciasPorPieza).length > 0) && (
+                      <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold', color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+                          🤖 Sugerencias Inteligentes Detectadas
+                        </Typography>
+                        
+                        {/* Sugerencias por Etapa */}
+                        {sugerenciasEtapa.length > 0 && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: 'secondary.main' }}>
+                              📊 Análisis General de la Etapa:
+                            </Typography>
+                            {sugerenciasEtapa.map((sugerencia, index) => (
+                              <Alert 
+                                key={`etapa-${sugerencia.id}-${index}`}
+                                severity={sugerencia.severidad}
+                                icon={
+                                  sugerencia.severidad === 'warning' ? <Warning /> :
+                                  sugerencia.severidad === 'error' ? <Error /> : <Info />
+                                }
+                                sx={{ 
+                                  mb: 1.5,
+                                  fontSize: '0.875rem',
+                                  '& .MuiAlert-message': {
+                                    padding: '6px 0'
+                                  }
+                                }}
+                              >
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                  {sugerencia.mensaje}
+                                </Typography>
+                              </Alert>
+                            ))}
+                          </Box>
+                        )}
+
+                        {/* Sugerencias por Pieza */}
+                        {Object.keys(sugerenciasPorPieza).length > 0 && (
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: 'secondary.main' }}>
+                              🔍 Análisis por Pieza Individual:
+                            </Typography>
+                            {Object.entries(sugerenciasPorPieza).map(([piezaIndex, sugerencias]) => (
+                              <Box key={piezaIndex} sx={{ mb: 2 }}>
+                                <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.secondary', mb: 1, display: 'block' }}>
+                                  📏 Pieza {parseInt(piezaIndex) + 1}:
+                                </Typography>
+                                {sugerencias.map((sugerencia, sugIndex) => (
+                                  <Alert 
+                                    key={`${sugerencia.id}-${sugIndex}`}
+                                    severity={sugerencia.severidad}
+                                    icon={
+                                      sugerencia.severidad === 'warning' ? <Warning /> :
+                                      sugerencia.severidad === 'error' ? <Error /> : <Info />
+                                    }
+                                    sx={{ 
+                                      mb: 1,
+                                      fontSize: '0.875rem',
+                                      '& .MuiAlert-message': {
+                                        padding: '4px 0'
+                                      }
+                                    }}
+                                  >
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                      {sugerencia.mensaje}
+                                    </Typography>
+                                  </Alert>
+                                ))}
+                              </Box>
+                            ))}
+                          </Box>
+                        )}
+                      </Box>
+                    )}
+
+                    {/* Configuración de Instalación Especial */}
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Para casos especiales como instalación eléctrica, estructural, o trabajos adicionales
+                      </Typography>
+                      
+                      {cobraInstalacion && (
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              select
+                              label="Tipo de instalación"
+                              fullWidth
+                              value={tipoInstalacion}
+                              onChange={(e) => setTipoInstalacion(e.target.value)}
+                              SelectProps={{ native: true }}
+                            >
+                              <option value="estandar">Estándar</option>
+                              <option value="electrica">Eléctrica (motorizada)</option>
+                              <option value="estructural">Estructural (refuerzos)</option>
+                              <option value="altura">Altura especial</option>
+                              <option value="acceso">Acceso difícil</option>
+                              <option value="personalizada">Personalizada</option>
+                            </TextField>
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              label="💰 Precio instalación (MXN)"
+                              type="number"
+                              fullWidth
+                              value={precioInstalacion}
+                              onChange={(e) => setPrecioInstalacion(e.target.value)}
+                              placeholder="Ej. 2500, 5000, 8000..."
+                              helperText="Precio fijo total por instalación"
+                            />
+                          </Grid>
+                        </Grid>
+                      )}
                     </Box>
                   </CardContent>
                 </Card>
