@@ -4,6 +4,45 @@ let ExcelJSLib;
 class ExcelService {
   constructor() {
     this.workbook = null;
+    // Definición de controles multicanal
+    this.modelosControles = [
+      { label: "Control Monocanal (1 cortina)", value: "monocanal", canales: 1, esMulticanal: false },
+      { label: "Control 4 Canales", value: "multicanal_4", canales: 4, esMulticanal: true },
+      { label: "Control 5 Canales", value: "multicanal_5", canales: 5, esMulticanal: true },
+      { label: "Control 15 Canales", value: "multicanal_15", canales: 15, esMulticanal: true },
+      { label: "Control Multicanal Genérico", value: "multicanal", canales: 4, esMulticanal: true },
+      { label: "Otro (especificar)", value: "otro_manual", canales: 1, esMulticanal: false }
+    ];
+  }
+
+  // Función para calcular precio de control considerando multicanal
+  calcularPrecioControlReal(pieza, todasLasPiezas) {
+    if (!pieza.motorizado || !pieza.controlPrecio) return 0;
+    
+    const controlSeleccionado = this.modelosControles.find(c => c.value === pieza.controlModelo);
+    
+    // Si es control multicanal, solo cobrar una vez por grupo
+    if (controlSeleccionado?.esMulticanal) {
+      // Contar cuántas piezas motorizadas hay con el mismo control
+      const piezasConMismoControl = todasLasPiezas.filter(p => 
+        p.motorizado && 
+        p.controlModelo === pieza.controlModelo &&
+        p.controlPrecio
+      );
+      
+      // Si hay múltiples piezas con el mismo control multicanal, solo cobrar en la primera
+      const esPrimeraPiezaConEsteControl = todasLasPiezas.findIndex(p => 
+        p.motorizado && 
+        p.controlModelo === pieza.controlModelo &&
+        p.controlPrecio
+      ) === todasLasPiezas.findIndex(p => p === pieza);
+      
+      if (piezasConMismoControl.length > 1 && !esPrimeraPiezaConEsteControl) {
+        return 0; // No cobrar en piezas adicionales
+      }
+    }
+    
+    return Number(pieza.controlPrecio) || 0;
   }
 
   async initExcelJS() {
@@ -168,7 +207,7 @@ class ExcelService {
             const esProductoToldo = pieza.esToldo || (pieza.producto && pieza.producto.toLowerCase().includes('toldo'));
             const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) : 0;
             const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) : 0;
-            const controlPrecio = (pieza.motorizado && pieza.controlPrecio) ? Number(pieza.controlPrecio) : 0;
+            const controlPrecio = this.calcularPrecioControlReal(pieza, piezas);
             
             const subtotalTotal = subtotalBase + kitPrecio + motorPrecio + controlPrecio;
             
@@ -247,7 +286,7 @@ class ExcelService {
           const esProductoToldo = pieza.esToldo || (pieza.producto && pieza.producto.toLowerCase().includes('toldo'));
           const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) * cantidad : 0;
           const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) * cantidad : 0;
-          const controlPrecio = (pieza.motorizado && pieza.controlPrecio) ? Number(pieza.controlPrecio) * cantidad : 0;
+          const controlPrecio = this.calcularPrecioControlReal(pieza, piezas);
           
           const subtotalTotal = subtotalBase + kitPrecio + motorPrecio + controlPrecio;
           

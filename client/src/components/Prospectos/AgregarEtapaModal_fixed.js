@@ -88,9 +88,12 @@ const modelosMotores = [
 
 // Modelos de controles predefinidos
 const modelosControles = [
-  { label: "Monocanal", value: "monocanal" },
-  { label: "Multicanal", value: "multicanal" },
-  { label: "Otro (especificar)", value: "otro_manual" }
+  { label: "Control Monocanal (1 cortina)", value: "monocanal", canales: 1, esMulticanal: false },
+  { label: "Control 4 Canales", value: "multicanal_4", canales: 4, esMulticanal: true },
+  { label: "Control 5 Canales", value: "multicanal_5", canales: 5, esMulticanal: true },
+  { label: "Control 15 Canales", value: "multicanal_15", canales: 15, esMulticanal: true },
+  { label: "Control Multicanal Genérico", value: "multicanal", canales: 4, esMulticanal: true },
+  { label: "Otro (especificar)", value: "otro_manual", canales: 1, esMulticanal: false }
 ];
 
 const emptyPieza = {
@@ -311,6 +314,27 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   }, [piezas, unidad]);
 
   // Calcular subtotal de productos con precios específicos
+
+  // Funci�n para calcular precio de control considerando multicanal
+  const calcularPrecioControlReal = (pieza, todasLasPiezas) => {
+    if (!pieza.motorizado || !pieza.controlPrecio) return 0;
+    
+    const controlSeleccionado = modelosControles.find(c => c.value === pieza.controlModelo);
+    
+    // Si es control multicanal, solo cobrar una vez por grupo
+    if (controlSeleccionado?.esMulticanal) {
+      // Contar cuántas piezas motorizadas hay con el mismo control
+      const piezasConMismoControl = todasLasPiezas.filter(p => 
+        p.motorizado && 
+        p.controlModelo === pieza.controlModelo &&
+        p.controlPrecio
+      );
+      
+      // Si hay múltiples piezas con el mismo control multicanal, solo cobrar en la primera
+      const esPrimeraPiezaConEsteControl = todasLasPiezas.findIndex(p => 
+        p.motorizado && 
+        p.controlModelo === pieza.controlModelo &&
+
   const calcularSubtotalProductos = useMemo(() => {
     return piezas.reduce((total, pieza) => {
       let areaPieza = 0;
@@ -347,32 +371,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       if (pieza.motorizado) {
         // Motores: uno por pieza
         subtotalPieza += (parseFloat(pieza.motorPrecio) || 0) * cantidadPiezasPartida;
-        // Control: uno por partida (no por pieza)
-        // Control: calcular considerando multicanal inline
-        if (pieza.controlPrecio) {
-          const controlSeleccionado = modelosControles.find(c => c.value === pieza.controlModelo);
-          if (controlSeleccionado?.esMulticanal) {
-            const piezasConMismoControl = piezas.filter(p => 
-              p.motorizado && 
-              p.controlModelo === pieza.controlModelo &&
-              p.controlPrecio
-            );
-            const esPrimeraPiezaConEsteControl = piezas.findIndex(p => 
-              p.motorizado && 
-              p.controlModelo === pieza.controlModelo &&
-              p.controlPrecio
-            ) === piezas.findIndex(p => p === pieza);
-            
-            if (piezasConMismoControl.length > 1 && !esPrimeraPiezaConEsteControl) {
-              // No cobrar en piezas adicionales
-              subtotalPieza += 0;
-            } else {
-              subtotalPieza += parseFloat(pieza.controlPrecio) || 0;
-            }
-          } else {
-            subtotalPieza += parseFloat(pieza.controlPrecio) || 0;
-          }
-        }
+        // Control: usar función que considera multicanal
+        subtotalPieza += calcularPrecioControlReal(pieza, piezas);
       }
       
       return total + subtotalPieza;
@@ -1150,9 +1150,13 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           const cumpleCondicion = regla.condicion(medidas, piezaForm);
           
           if (cumpleCondicion) {
+            const mensaje = typeof regla.mensaje === 'function' 
+              ? regla.mensaje(medidas, piezaForm) 
+              : regla.mensaje;
+              
             sugerenciasEtapa.push({
               id: regla.id,
-              mensaje: regla.mensaje,
+              mensaje: mensaje,
               severidad: regla.severidad
             });
           }
@@ -1165,6 +1169,18 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     return { sugerenciasPorPieza, sugerenciasEtapa };
   };
 
+  // Función para calcular precio de control considerando multicanal
+        p.controlPrecio
+      ) === todasLasPiezas.findIndex(p => p === pieza);
+      
+      if (piezasConMismoControl.length > 1 && !esPrimeraPiezaConEsteControl) {
+        return 0; // No cobrar en piezas adicionales
+      }
+    }
+    
+    return parseFloat(pieza.controlPrecio) || 0;
+  };
+
   // Efecto para evaluar condiciones cuando cambian las medidas
   useEffect(() => {
     if (piezaForm.medidas && piezaForm.medidas.length > 0) {
@@ -1175,7 +1191,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       setSugerenciasPorPieza({});
       setSugerenciasEtapa([]);
     }
-  }, [piezaForm.medidas, piezaForm.motorizado, todosLosProductos]);
+  }, [piezaForm.medidas, piezaForm.motorizado, piezaForm.controlModelo, todosLosProductos]);
 
   const handleGenerarCotizacion = async () => {
     setErrorLocal('');
@@ -1247,7 +1263,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
             controlModelo: pieza.controlModelo || '',
             controlModeloManual: pieza.controlModeloManual || '',
-            controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0
+            controlPrecio: calcularPrecioControlReal(pieza, piezas)
           };
         }),
         precioGeneral: precioGeneral ? Number(precioGeneral) : 0,
@@ -3210,17 +3226,17 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     const precio = pieza.precioM2 || precioGeneral;
                     const subtotalM2 = areaTotal * precio;
                     
-                    // Calcular costos adicionales
+                    // Calcular precios de componentes
                     const esProductoToldo = esToldo(pieza.producto) || pieza.esToldo;
                     const kitPrecio = esProductoToldo && pieza.kitPrecio ? parseFloat(pieza.kitPrecio) : 0;
                     const motorPrecio = pieza.motorizado && pieza.motorPrecio ? parseFloat(pieza.motorPrecio) : 0;
-                    const controlPrecio = pieza.motorizado && pieza.controlPrecio ? parseFloat(pieza.controlPrecio) : 0;
+                    const controlPrecio = calcularPrecioControlReal(pieza, piezas);
                     
                     const totalPartida = subtotalM2 + (kitPrecio * cantidadPiezas) + (motorPrecio * cantidadPiezas) + controlPrecio;
                     
                     return (
                       <Card key={index} sx={{ mb: 2, border: 1, borderColor: 'grey.200' }}>
-                        <CardContent sx={{ p: 2 }}>
+                        <CardContent>
                           {/* Encabezado de la partida */}
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                             <Box>
@@ -3336,12 +3352,35 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                 )}
                                 
                                 {/* Controles */}
-                                {pieza.motorizado && controlPrecio > 0 && (
+                                {pieza.motorizado && pieza.controlPrecio && (
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                                     <Typography variant="body2" sx={{ minWidth: 20 }}>•</Typography>
                                     <Typography variant="body2">
-                                      1 Control ({pieza.controlModeloManual || pieza.controlModelo || 'Modelo estándar'}) 
-                                      → <span style={{ fontWeight: 'bold', color: '#1976d2' }}>${controlPrecio.toLocaleString()}</span>
+                                      {(() => {
+                                        const controlSeleccionado = modelosControles.find(c => c.value === pieza.controlModelo);
+                                        const esMulticanal = controlSeleccionado?.esMulticanal;
+                                        const precioOriginal = parseFloat(pieza.controlPrecio) || 0;
+                                        
+                                        if (esMulticanal && controlPrecio === 0) {
+                                          return (
+                                            <>
+                                              1 Control Multicanal ({pieza.controlModeloManual || pieza.controlModelo || 'Modelo estándar'}) 
+                                              → <span style={{ color: '#ff9800', fontWeight: 'bold' }}>Incluido en otra pieza</span>
+                                              <span style={{ color: '#666', fontSize: '0.8em' }}> (${precioOriginal.toLocaleString()} no duplicado)</span>
+                                            </>
+                                          );
+                                        } else {
+                                          return (
+                                            <>
+                                              1 Control ({pieza.controlModeloManual || pieza.controlModelo || 'Modelo estándar'}) 
+                                              → <span style={{ fontWeight: 'bold', color: '#1976d2' }}>${controlPrecio.toLocaleString()}</span>
+                                              {esMulticanal && (
+                                                <span style={{ color: '#4caf50', fontSize: '0.8em', fontWeight: 'bold' }}> ⚡ Multicanal</span>
+                                              )}
+                                            </>
+                                          );
+                                        }
+                                      })()}
                                     </Typography>
                                   </Box>
                                 )}
