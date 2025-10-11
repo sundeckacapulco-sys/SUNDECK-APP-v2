@@ -20,7 +20,13 @@ import {
   Snackbar,
   FormControl,
   InputLabel,
-  Select
+  Select,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  Divider
 } from '@mui/material';
 import {
   Add,
@@ -58,6 +64,10 @@ const CotizacionesList = () => {
   
   // Estado para filtro de origen
   const [filtroOrigen, setFiltroOrigen] = useState('');
+  
+  // Estados para modal de detalles
+  const [detallesModalOpen, setDetallesModalOpen] = useState(false);
+  const [cotizacionDetalle, setCotizacionDetalle] = useState(null);
 
   const navigate = useNavigate();
 
@@ -271,6 +281,25 @@ const CotizacionesList = () => {
     } catch (error) {
       console.error('Error descargando PDF:', error);
       setError('Error descargando PDF: ' + (error.response?.data?.message || error.message));
+      handleMenuClose();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerDetalles = async (cotizacion) => {
+    try {
+      setLoading(true);
+      console.log('🔍 Obteniendo detalles de cotización:', cotizacion._id);
+      
+      // Obtener detalles completos de la cotización
+      const response = await axiosConfig.get(`/cotizaciones/${cotizacion._id}`);
+      setCotizacionDetalle(response.data);
+      setDetallesModalOpen(true);
+      handleMenuClose();
+    } catch (error) {
+      console.error('Error obteniendo detalles:', error);
+      setError('Error obteniendo detalles: ' + (error.response?.data?.message || error.message));
       handleMenuClose();
     } finally {
       setLoading(false);
@@ -578,12 +607,22 @@ const CotizacionesList = () => {
         <MenuItem
           onClick={() => {
             if (selectedCotizacion) {
-              handleVerDetallesPDF(selectedCotizacion);
+              handleVerDetalles(selectedCotizacion);
             }
           }}
         >
           <Visibility sx={{ mr: 1 }} />
           Ver Detalles
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            if (selectedCotizacion) {
+              handleVerDetallesPDF(selectedCotizacion);
+            }
+          }}
+        >
+          <GetApp sx={{ mr: 1 }} />
+          Ver PDF
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -676,6 +715,224 @@ const CotizacionesList = () => {
           onSuccess={handleAnticipoSuccess}
         />
       )}
+
+      {/* Modal de Detalles de Cotización */}
+      <Dialog
+        open={detallesModalOpen}
+        onClose={() => setDetallesModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h6">
+              Detalles de Cotización {cotizacionDetalle?.numero}
+            </Typography>
+            <Typography variant="subtitle2" color="text.secondary">
+              {cotizacionDetalle?.prospecto?.nombre}
+            </Typography>
+          </Box>
+          <Chip
+            label={origenLabels[cotizacionDetalle?.origen] || origenLabels.normal}
+            color={origenColors[cotizacionDetalle?.origen] || 'default'}
+            variant="outlined"
+          />
+        </DialogTitle>
+        <DialogContent>
+          {cotizacionDetalle && (
+            <Grid container spacing={2}>
+              {/* Información General */}
+              <Grid item xs={12}>
+                <Typography variant="h6" gutterBottom>
+                  📋 Información General
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary">Estado</Typography>
+                <Chip
+                  label={cotizacionDetalle.estado || 'Sin estado'}
+                  color={estadoColors[cotizacionDetalle.estado] || 'default'}
+                  size="small"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary">Origen</Typography>
+                <Chip
+                  label={origenLabels[cotizacionDetalle.origen] || origenLabels.normal}
+                  color={origenColors[cotizacionDetalle.origen] || 'default'}
+                  size="small"
+                  variant="outlined"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary">Fecha de Creación</Typography>
+                <Typography variant="body1">
+                  {cotizacionDetalle.createdAt ? new Date(cotizacionDetalle.createdAt).toLocaleDateString() : 'Sin fecha'}
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary">Válido Hasta</Typography>
+                <Typography variant="body1">
+                  {cotizacionDetalle.validoHasta ? new Date(cotizacionDetalle.validoHasta).toLocaleDateString() : 'Sin fecha'}
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" color="text.secondary">Elaborada Por</Typography>
+                <Typography variant="body1">
+                  {cotizacionDetalle.elaboradaPor?.nombre} {cotizacionDetalle.elaboradaPor?.apellido}
+                </Typography>
+              </Grid>
+
+              {/* Productos */}
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  📦 Productos ({cotizacionDetalle.productos?.length || 0})
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Producto</TableCell>
+                        <TableCell>Medidas</TableCell>
+                        <TableCell>Cantidad</TableCell>
+                        <TableCell>Precio/m²</TableCell>
+                        <TableCell>Subtotal</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {cotizacionDetalle.productos?.map((producto, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight="bold">
+                              {producto.nombre}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {producto.descripcion}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {producto.medidas ? (
+                              <Typography variant="body2">
+                                {producto.medidas.ancho}m × {producto.medidas.alto}m
+                                <br />
+                                <Typography variant="caption" color="text.secondary">
+                                  Área: {producto.medidas.area}m²
+                                </Typography>
+                              </Typography>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                Sin medidas
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>{producto.cantidad || 1}</TableCell>
+                          <TableCell>${(producto.precioUnitario || 0).toLocaleString()}</TableCell>
+                          <TableCell>${(producto.subtotal || 0).toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+
+              {/* Totales */}
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  💰 Totales
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+              </Grid>
+              
+              <Grid item xs={12} sm={4}>
+                <Typography variant="body2" color="text.secondary">Subtotal</Typography>
+                <Typography variant="h6">
+                  ${(cotizacionDetalle.subtotal || 0).toLocaleString()}
+                </Typography>
+              </Grid>
+              
+              {cotizacionDetalle.iva > 0 && (
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="body2" color="text.secondary">IVA (16%)</Typography>
+                  <Typography variant="h6">
+                    ${(cotizacionDetalle.iva || 0).toLocaleString()}
+                  </Typography>
+                </Grid>
+              )}
+              
+              <Grid item xs={12} sm={4}>
+                <Typography variant="body2" color="text.secondary">Total</Typography>
+                <Typography variant="h6" color="primary">
+                  ${(cotizacionDetalle.total || 0).toLocaleString()}
+                </Typography>
+              </Grid>
+
+              {/* Información adicional según el origen */}
+              {cotizacionDetalle.origen === 'levantamiento' && (
+                <Grid item xs={12} sx={{ mt: 2 }}>
+                  <Alert severity="info">
+                    <Typography variant="body2">
+                      <strong>📋 Cotización desde Levantamiento Técnico</strong><br />
+                      Esta cotización fue generada a partir de un levantamiento técnico realizado en campo.
+                      Los precios fueron aplicados posteriormente en oficina.
+                    </Typography>
+                  </Alert>
+                </Grid>
+              )}
+
+              {cotizacionDetalle.origen === 'cotizacion_vivo' && (
+                <Grid item xs={12} sx={{ mt: 2 }}>
+                  <Alert severity="success">
+                    <Typography variant="body2">
+                      <strong>💰 Cotización en Vivo</strong><br />
+                      Esta cotización fue generada en tiempo real durante la visita al cliente,
+                      con precios y condiciones definidos en el momento.
+                    </Typography>
+                  </Alert>
+                </Grid>
+              )}
+
+              {cotizacionDetalle.origen === 'directa' && (
+                <Grid item xs={12} sx={{ mt: 2 }}>
+                  <Alert severity="warning">
+                    <Typography variant="body2">
+                      <strong>🎯 Cotización Directa</strong><br />
+                      Esta cotización fue creada directamente desde el sistema,
+                      típicamente para clientes que proporcionaron medidas por teléfono.
+                    </Typography>
+                  </Alert>
+                </Grid>
+              )}
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetallesModalOpen(false)}>
+            Cerrar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (cotizacionDetalle) {
+                handleVerDetallesPDF(cotizacionDetalle);
+                setDetallesModalOpen(false);
+              }
+            }}
+            startIcon={<GetApp />}
+          >
+            Descargar PDF
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Notificaciones */}
       <Snackbar

@@ -382,6 +382,9 @@ class PDFService {
                   <div class="info-item">
                     <span class="info-label">Válida hasta:</span> {{validoHasta}}
                   </div>
+                  <div class="info-item">
+                    <span class="info-label">Origen:</span> {{origenLabel}}
+                  </div>
                 </div>
                 <div>
                   <div class="info-item">
@@ -390,6 +393,11 @@ class PDFService {
                   <div class="info-item">
                     <span class="info-label">Tiempo de instalación:</span> {{tiempoInstalacion}} días
                   </div>
+                  {{#if elaboradaPor.nombre}}
+                  <div class="info-item">
+                    <span class="info-label">Elaborada por:</span> {{elaboradaPor.nombre}} {{elaboradaPor.apellido}}
+                  </div>
+                  {{/if}}
                 </div>
               </div>
             </div>
@@ -558,6 +566,13 @@ class PDFService {
       `;
 
       // Preparar datos para el template
+      const origenLabels = {
+        levantamiento: '📋 Levantamiento Técnico',
+        cotizacion_vivo: '💰 Cotización en Vivo',
+        directa: '🎯 Cotización Directa',
+        normal: '📝 Cotización Normal'
+      };
+
       const templateData = {
         ...cotizacion.toObject(),
         fecha: this.formatDate(cotizacion.fecha),
@@ -567,6 +582,7 @@ class PDFService {
         total: this.formatCurrency(cotizacion.total),
         incluirIVA: cotizacion.incluirIVA !== false, // Por defecto true si no está definido
         costoInstalacion: cotizacion.costoInstalacion ? this.formatCurrency(cotizacion.costoInstalacion) : null,
+        origenLabel: origenLabels[cotizacion.origen] || origenLabels.normal,
         productos: cotizacion.productos.map(producto => {
           const productoData = typeof producto.toObject === 'function' ? producto.toObject() : producto;
           const medidas = productoData.medidas || {};
