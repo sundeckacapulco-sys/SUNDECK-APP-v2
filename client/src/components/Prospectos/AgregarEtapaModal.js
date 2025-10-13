@@ -32,6 +32,12 @@ import {
 } from '@mui/icons-material';
 import TextFieldConDictado from '../Common/TextFieldConDictado';
 import axiosConfig from '../../config/axios';
+import {
+  mapearPiezaParaDocumento,
+  crearResumenEconomico,
+  crearMetodoPago,
+  crearInfoFacturacion
+} from '../../utils/cotizacionEnVivo';
 
 const etapaOptions = [
   'Visita Inicial / Medición',
@@ -412,6 +418,47 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     return Math.round(totalFinal * 0.4 * 100) / 100; // Redondear a 2 decimales
   }, [totalFinal]);
 
+  const resumenEconomico = useMemo(() => {
+    return crearResumenEconomico({
+      precioGeneral,
+      totalM2: calcularTotalM2,
+      subtotalProductos: calcularSubtotalProductos,
+      unidadMedida: unidad,
+      cobraInstalacion,
+      tipoInstalacion,
+      precioInstalacion,
+      aplicaDescuento,
+      tipoDescuento,
+      valorDescuento,
+      montoDescuento: calcularDescuento
+    });
+  }, [
+    precioGeneral,
+    calcularTotalM2,
+    calcularSubtotalProductos,
+    unidad,
+    cobraInstalacion,
+    tipoInstalacion,
+    precioInstalacion,
+    aplicaDescuento,
+    tipoDescuento,
+    valorDescuento,
+    calcularDescuento
+  ]);
+
+  const infoFacturacion = useMemo(() => {
+    return crearInfoFacturacion({
+      requiereFactura,
+      iva: calcularIVA,
+      totalConIVA,
+      totalSinIVA: totalFinal
+    });
+  }, [requiereFactura, calcularIVA, totalConIVA, totalFinal]);
+
+  const metodoPagoInfo = useMemo(() => {
+    return crearMetodoPago({ anticipo, saldo, metodoPagoAnticipo });
+  }, [anticipo, saldo, metodoPagoAnticipo]);
+
   // Calcular fecha de entrega
   const calcularFechaEntrega = useMemo(() => {
     const hoy = new Date();
@@ -765,62 +812,17 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setErrorLocal('');
 
     try {
+      const piezasNormalizadas = piezas.map((pieza) =>
+        mapearPiezaParaDocumento(pieza, { incluirExtras: true })
+      );
+
       const payload = {
         prospectoId,
-        piezas: piezas.map((pieza) => ({
-          ubicacion: pieza.ubicacion,
-          cantidad: pieza.cantidad || 1,
-          medidas: pieza.medidas || [{ 
-            ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
-            alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
-            area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
-            producto: pieza.producto,
-            productoLabel: pieza.productoLabel,
-            color: pieza.color,
-            precioM2: pieza.precioM2
-          }],
-          producto: pieza.producto,
-          productoLabel: pieza.productoLabel,
-          color: pieza.color,
-          precioM2: pieza.precioM2,
-          observaciones: pieza.observaciones,
-          // Información de toldos
-          esToldo: pieza.esToldo || false,
-          tipoToldo: pieza.tipoToldo || '',
-          kitModelo: pieza.kitModelo || '',
-          kitModeloManual: pieza.kitModeloManual || '',
-          kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
-          // Información de motorización
-          motorizado: pieza.motorizado || false,
-          motorModelo: pieza.motorModelo || '',
-          motorModeloManual: pieza.motorModeloManual || '',
-          motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
-          controlModelo: pieza.controlModelo || '',
-          controlModeloManual: pieza.controlModeloManual || '',
-          controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
-          // Compatibilidad con formato anterior
-          ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
-          alto: pieza.alto !== '' ? Number(pieza.alto) : 0
-        })),
-        precioGeneral: Number(precioGeneral),
-        totalM2: calcularTotalM2,
-        subtotalProductos: calcularSubtotalProductos,
-        unidadMedida: unidad,
-        // Información de instalación
-        instalacion: {
-          cobra: cobraInstalacion,
-          tipo: tipoInstalacion,
-          precio: cobraInstalacion ? Number(precioInstalacion) || 0 : 0
-        },
-        // Información de descuentos
-        descuento: {
-          aplica: aplicaDescuento,
-          tipo: tipoDescuento,
-          valor: aplicaDescuento ? Number(valorDescuento) || 0 : 0,
-          monto: calcularDescuento
-        },
-        // Totales finales
-        totalFinal: calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0) - calcularDescuento
+        piezas: piezasNormalizadas,
+        ...resumenEconomico,
+        facturacion: infoFacturacion,
+        metodoPago: metodoPagoInfo,
+        totalFinal
       };
 
       const response = await axiosConfig.post('/etapas/levantamiento-pdf', payload, {
@@ -862,64 +864,17 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setErrorLocal('');
 
     try {
+      const piezasNormalizadas = piezas.map((pieza) =>
+        mapearPiezaParaDocumento(pieza, { incluirExtras: true, precioComoNumero: true })
+      );
+
       const payload = {
         prospectoId,
-        piezas: piezas.map((pieza) => ({
-          ubicacion: pieza.ubicacion,
-          cantidad: pieza.cantidad || 1,
-          medidas: pieza.medidas || [{ 
-            ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
-            alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
-            area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
-            producto: pieza.producto,
-            productoLabel: pieza.productoLabel,
-            color: pieza.color,
-            precioM2: pieza.precioM2
-          }],
-          producto: pieza.producto,
-          productoLabel: pieza.productoLabel,
-          color: pieza.color,
-          precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : undefined,
-          observaciones: pieza.observaciones,
-          fotoUrls: pieza.fotoUrls || [],
-          videoUrl: pieza.videoUrl || '',
-          // Información de toldos
-          esToldo: pieza.esToldo || false,
-          tipoToldo: pieza.tipoToldo || '',
-          kitModelo: pieza.kitModelo || '',
-          kitModeloManual: pieza.kitModeloManual || '',
-          kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
-          // Información de motorización
-          motorizado: pieza.motorizado || false,
-          motorModelo: pieza.motorModelo || '',
-          motorModeloManual: pieza.motorModeloManual || '',
-          motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
-          controlModelo: pieza.controlModelo || '',
-          controlModeloManual: pieza.controlModeloManual || '',
-          controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
-          // Compatibilidad con formato anterior
-          ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
-          alto: pieza.alto !== '' ? Number(pieza.alto) : 0
-        })),
-        precioGeneral: Number(precioGeneral),
-        totalM2: calcularTotalM2,
-        subtotalProductos: calcularSubtotalProductos,
-        unidadMedida: unidad,
-        // Información de instalación
-        instalacion: {
-          cobra: cobraInstalacion,
-          tipo: tipoInstalacion,
-          precio: cobraInstalacion ? Number(precioInstalacion) || 0 : 0
-        },
-        // Información de descuentos
-        descuento: {
-          aplica: aplicaDescuento,
-          tipo: tipoDescuento,
-          valor: aplicaDescuento ? Number(valorDescuento) || 0 : 0,
-          monto: calcularDescuento
-        },
-        // Totales finales
-        totalFinal: calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0) - calcularDescuento
+        piezas: piezasNormalizadas,
+        ...resumenEconomico,
+        facturacion: infoFacturacion,
+        metodoPago: metodoPagoInfo,
+        totalFinal
       };
 
       const response = await axiosConfig.post('/etapas/levantamiento-excel', payload, {
@@ -1178,76 +1133,43 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       console.log('- Tipo de visita:', tipoVisitaInicial);
       console.log('- Origen asignado:', origenCotizacion);
 
-      // Preparar datos para el endpoint desde-visita
-      const payload = {
-        prospectoId: prospectoId,
-        piezas: piezas.map((pieza) => {
-          // Obtener medidas del formato nuevo o del formato anterior
-          let ancho = 0, alto = 0;
-          
-          if (pieza.medidas && pieza.medidas.length > 0) {
-            // Formato nuevo: usar la primera medida como representativa
-            ancho = Number(pieza.medidas[0].ancho) || 0;
-            alto = Number(pieza.medidas[0].alto) || 0;
-          } else if (pieza.ancho !== undefined && pieza.alto !== undefined) {
-            // Formato anterior: usar campos directos
-            ancho = pieza.ancho !== '' ? Number(pieza.ancho) : 0;
-            alto = pieza.alto !== '' ? Number(pieza.alto) : 0;
+      const piezasNormalizadas = piezas.map((pieza) =>
+        mapearPiezaParaDocumento(pieza, { incluirExtras: true })
+      );
+
+      const {
+        precioGeneral: precioGeneralNormalizado,
+        totalM2,
+        unidadMedida,
+        subtotalProductos,
+        instalacion,
+        descuento
+      } = resumenEconomico;
+
+      const instalacionEspecial = instalacion.cobra
+        ? {
+            activa: true,
+            tipo: instalacion.tipo,
+            precio: instalacion.precio
           }
-          
-          return {
-            ubicacion: pieza.ubicacion,
-            cantidad: pieza.cantidad || 1,
-            // CAMPOS PLANOS PARA BACKEND (CRÍTICO)
-            ancho: ancho,
-            alto: alto,
-            // Array de medidas completo (para futuro)
-            medidas: pieza.medidas || [{ 
-              ancho: ancho,
-              alto: alto,
-              area: ancho * alto,
-              producto: pieza.producto,
-              productoLabel: pieza.productoLabel,
-              color: pieza.color,
-              precioM2: pieza.precioM2
-            }],
-            producto: pieza.producto,
-            productoLabel: pieza.productoLabel,
-            color: pieza.color,
-            precioM2: pieza.precioM2,
-            observaciones: pieza.observaciones,
-            fotoUrls: pieza.fotoUrls || [],
-            videoUrl: pieza.videoUrl || '',
-            
-            // Información de toldos
-            esToldo: pieza.esToldo || false,
-            tipoToldo: pieza.tipoToldo || '',
-            kitModelo: pieza.kitModelo || '',
-            kitModeloManual: pieza.kitModeloManual || '',
-            kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
-            
-            // Información de motorización
-            motorizado: pieza.motorizado || false,
-            motorModelo: pieza.motorModelo || '',
-            motorModeloManual: pieza.motorModeloManual || '',
-            motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
-            controlModelo: pieza.controlModelo || '',
-            controlModeloManual: pieza.controlModeloManual || '',
-            controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0
-          };
-        }),
-        precioGeneral: precioGeneral ? Number(precioGeneral) : 0,
-        totalM2: calcularTotalM2,
-        unidadMedida: unidad,
-        comentarios: comentarios,
-        instalacionEspecial: cobraInstalacion ? {
-          activa: true,
-          tipo: tipoInstalacion,
-          precio: Number(precioInstalacion) || 0
-        } : { activa: false },
-        // NUEVO: Enviar el origen de la cotización
+        : { activa: false };
+
+      const payload = {
+        prospectoId,
+        piezas: piezasNormalizadas,
+        precioGeneral: precioGeneralNormalizado,
+        totalM2,
+        unidadMedida,
+        subtotalProductos,
+        comentarios,
+        instalacionEspecial,
+        descuento,
         origen: origenCotizacion,
-        tipoVisitaInicial: tipoVisitaInicial
+        tipoVisitaInicial,
+        requiereFactura,
+        facturacion: infoFacturacion,
+        metodoPago: metodoPagoInfo,
+        totalFinal
       };
 
       console.log('📋 Payload para desde-visita:', payload);
@@ -1291,40 +1213,32 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       piezas.forEach((partida, index) => {
         console.log(`📦 Partida ${index + 1}: ${partida.ubicacion} - ${partida.cantidad || 1} piezas`);
       });
+      const piezasNormalizadas = piezas.map((pieza) => {
+        console.log(`🔍 Procesando pieza: ${pieza.ubicacion}, cantidad original: ${pieza.cantidad}`);
+        return mapearPiezaParaDocumento(pieza, { precioComoNumero: true });
+      });
+
+      const instalacionEspecial = resumenEconomico.instalacion.cobra
+        ? {
+            activa: true,
+            tipo: resumenEconomico.instalacion.tipo,
+            precio: resumenEconomico.instalacion.precio
+          }
+        : { activa: false };
+
       let payload = {
         prospectoId,
         nombreEtapa,
         comentarios,
-        unidadMedida: unidad,
-        precioGeneral: Number(precioGeneral),
-        totalM2: calcularTotalM2,
+        unidadMedida: resumenEconomico.unidadMedida,
+        precioGeneral: resumenEconomico.precioGeneral,
+        totalM2: resumenEconomico.totalM2,
         // Incluir fecha y hora si están definidas
         fechaEtapa: fechaEtapa || undefined,
         horaEtapa: horaEtapa || undefined,
-        piezas: piezas.map((pieza) => {
-          console.log(`🔍 Procesando pieza: ${pieza.ubicacion}, cantidad original: ${pieza.cantidad}`);
-          return {
-            ubicacion: pieza.ubicacion,
-            cantidad: pieza.cantidad || 1,
-            ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
-            alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
-            producto: pieza.producto,
-            productoLabel: pieza.productoLabel,
-            color: pieza.color,
-            precioM2: pieza.precioM2 !== '' ? Number(pieza.precioM2) : undefined,
-            observaciones: pieza.observaciones,
-            fotoUrls: pieza.fotoUrls || [],
-            videoUrl: pieza.videoUrl || '',
-            // Incluir medidas individuales para levantamiento técnico
-            medidas: pieza.medidas || []
-          };
-        }),
+        piezas: piezasNormalizadas,
         // Información de instalación especial
-        instalacionEspecial: cobraInstalacion ? {
-          activa: true,
-          tipo: tipoInstalacion,
-          precio: Number(precioInstalacion) || 0
-        } : { activa: false }
+        instalacionEspecial
       };
 
       // Si es levantamiento técnico, agregar información específica
@@ -1334,10 +1248,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           tipoVisita: 'levantamiento',
           datosLevantamiento: {
             personaVisita: piezaForm.personaVisita || '',
-            piezas: piezas.map((pieza) => ({
-              ...pieza,
-              medidas: pieza.medidas || []
-            }))
+            piezas: piezasNormalizadas
           }
         };
       }
@@ -1365,74 +1276,16 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setErrorLocal('');
 
     try {
+      const piezasNormalizadas = piezas.map((pieza) =>
+        mapearPiezaParaDocumento(pieza, { incluirExtras: true })
+      );
+
       const payload = {
         prospectoId,
-        piezas: piezas.map((pieza) => ({
-          ubicacion: pieza.ubicacion,
-          cantidad: pieza.cantidad || 1,
-          medidas: pieza.medidas || [{ 
-            ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
-            alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
-            area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
-            producto: pieza.producto,
-            productoLabel: pieza.productoLabel,
-            color: pieza.color,
-            precioM2: pieza.precioM2
-          }],
-          producto: pieza.producto,
-          productoLabel: pieza.productoLabel,
-          color: pieza.color,
-          precioM2: pieza.precioM2,
-          observaciones: pieza.observaciones,
-          // Información de toldos
-          esToldo: pieza.esToldo || false,
-          tipoToldo: pieza.tipoToldo || '',
-          kitModelo: pieza.kitModelo || '',
-          kitModeloManual: pieza.kitModeloManual || '',
-          kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
-          // Información de motorización
-          motorizado: pieza.motorizado || false,
-          motorModelo: pieza.motorModelo || '',
-          motorModeloManual: pieza.motorModeloManual || '',
-          motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
-          controlModelo: pieza.controlModelo || '',
-          controlModeloManual: pieza.controlModeloManual || '',
-          controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
-          // Compatibilidad con formato anterior
-          ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
-          alto: pieza.alto !== '' ? Number(pieza.alto) : 0
-        })),
-        precioGeneral: Number(precioGeneral),
-        totalM2: calcularTotalM2,
-        subtotalProductos: calcularSubtotalProductos,
-        unidadMedida: unidad,
-        // Información de instalación
-        instalacion: {
-          cobra: cobraInstalacion,
-          tipo: tipoInstalacion,
-          precio: cobraInstalacion ? Number(precioInstalacion) || 0 : 0
-        },
-        // Información de descuentos
-        descuento: {
-          aplica: aplicaDescuento,
-          tipo: tipoDescuento,
-          valor: aplicaDescuento ? Number(valorDescuento) || 0 : 0,
-          monto: calcularDescuento
-        },
-        // Nueva información para pedidos
-        facturacion: {
-          requiereFactura,
-          iva: calcularIVA,
-          totalConIVA: requiereFactura ? totalConIVA : totalFinal
-        },
-        // Método de pago
-        metodoPago: {
-          anticipo: anticipo,
-          saldo: saldo,
-          porcentajeAnticipo: 60,
-          porcentajeSaldo: 40,
-          metodoPagoAnticipo: metodoPagoAnticipo
-        },
+        piezas: piezasNormalizadas,
+        ...resumenEconomico,
+        facturacion: infoFacturacion,
+        metodoPago: metodoPagoInfo,
         entrega: {
           tipo: tiempoEntrega,
           diasExpres: tiempoEntrega === 'expres' ? Number(diasExpres) : null,
@@ -1496,92 +1349,6 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setErrorLocal('');
 
     try {
-      const payload = {
-        prospectoId,
-        piezas: piezas.map((pieza) => ({
-          ubicacion: pieza.ubicacion,
-          cantidad: pieza.cantidad || 1,
-          medidas: pieza.medidas || [{ 
-            ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
-            alto: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].alto) || 0 : (pieza.alto !== '' ? Number(pieza.alto) : 0),
-            area: pieza.ancho && pieza.alto ? Number(pieza.ancho) * Number(pieza.alto) : 0,
-            producto: pieza.producto,
-            productoLabel: pieza.productoLabel,
-            color: pieza.color,
-            precioM2: pieza.precioM2
-          }],
-          producto: pieza.producto,
-          productoLabel: pieza.productoLabel,
-          color: pieza.color,
-          precioM2: pieza.precioM2,
-          observaciones: pieza.observaciones,
-          // Información de toldos
-          esToldo: pieza.esToldo || false,
-          tipoToldo: pieza.tipoToldo || '',
-          kitModelo: pieza.kitModelo || '',
-          kitModeloManual: pieza.kitModeloManual || '',
-          kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
-          // Información de motorización
-          motorizado: pieza.motorizado || false,
-          motorModelo: pieza.motorModelo || '',
-          motorModeloManual: pieza.motorModeloManual || '',
-          motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
-          controlModelo: pieza.controlModelo || '',
-          controlModeloManual: pieza.controlModeloManual || '',
-          controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0,
-          // Compatibilidad con formato anterior
-          ancho: (pieza.medidas && pieza.medidas.length > 0) ? Number(pieza.medidas[0].ancho) || 0 : (pieza.ancho !== '' ? Number(pieza.ancho) : 0),
-          alto: pieza.alto !== '' ? Number(pieza.alto) : 0
-        })),
-        precioGeneral: Number(precioGeneral),
-        totalM2: calcularTotalM2,
-        subtotalProductos: calcularSubtotalProductos,
-        unidadMedida: unidad,
-        // Información de instalación
-        instalacion: {
-          cobra: cobraInstalacion,
-          tipo: tipoInstalacion,
-          precio: cobraInstalacion ? Number(precioInstalacion) || 0 : 0
-        },
-        // Información de descuentos
-        descuento: {
-          aplica: aplicaDescuento,
-          tipo: tipoDescuento,
-          valor: aplicaDescuento ? Number(valorDescuento) || 0 : 0,
-          monto: calcularDescuento
-        },
-        // Información de facturación
-        facturacion: {
-          requiereFactura,
-          iva: calcularIVA,
-          totalConIVA: requiereFactura ? totalConIVA : totalFinal
-        },
-        // Método de pago
-        metodoPago: {
-          anticipo: anticipo,
-          saldo: saldo,
-          porcentajeAnticipo: 60,
-          porcentajeSaldo: 40,
-          metodoPagoAnticipo: metodoPagoAnticipo
-        },
-        // Información de entrega
-        entrega: {
-          tipo: tiempoEntrega,
-          diasExpres: tiempoEntrega === 'expres' ? Number(diasExpres) : null,
-          fechaEstimada: calcularFechaEntrega.toISOString().split('T')[0]
-        },
-        // Términos comerciales
-        terminos: {
-          incluir: incluirTerminos
-        },
-        totalFinal: totalFinal,
-        comentarios,
-        fotoUrls: [],
-        videoUrl: '',
-        // Indicar que es para guardar PDF
-        guardarPDF: true
-      };
-
       console.log('📤 Usando formulario HTML para evitar interceptación IDM...');
 
       // Crear formulario HTML que se envíe en nueva pestaña (evita IDM completamente)
@@ -1601,42 +1368,18 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         form.appendChild(tokenInput);
       }
 
+      const piezasNormalizadas = piezas.map((pieza) =>
+        mapearPiezaParaDocumento(pieza, { incluirExtras: true })
+      );
+
       // Solo agregar los datos necesarios para el PDF (no guardar la etapa)
       const pdfData = {
         prospectoId,
-        piezas,
-        precioGeneral,
-        totalM2: calcularTotalM2,
-        subtotalProductos: calcularSubtotalProductos,
-        unidadMedida: unidad,
-        // Información de instalación
-        instalacion: {
-          cobra: cobraInstalacion,
-          tipo: tipoInstalacion,
-          precio: cobraInstalacion ? Number(precioInstalacion) || 0 : 0
-        },
-        // Información de descuentos
-        descuento: {
-          aplica: aplicaDescuento,
-          tipo: tipoDescuento,
-          valor: aplicaDescuento ? Number(valorDescuento) || 0 : 0,
-          monto: calcularDescuento
-        },
-        // Información de facturación
-        facturacion: {
-          requiereFactura,
-          iva: calcularIVA,
-          totalConIVA: requiereFactura ? totalConIVA : totalFinal
-        },
-        // Método de pago
-        metodoPago: {
-          anticipo: anticipo,
-          saldo: saldo,
-          porcentajeAnticipo: 60,
-          porcentajeSaldo: 40,
-          metodoPagoAnticipo: metodoPagoAnticipo
-        },
-        totalFinal: requiereFactura ? totalConIVA : totalFinal,
+        piezas: piezasNormalizadas,
+        ...resumenEconomico,
+        facturacion: infoFacturacion,
+        metodoPago: metodoPagoInfo,
+        totalFinal,
         // NO incluir guardarPDF: true para evitar que se guarde la etapa
         soloGenerarPDF: true // Flag para indicar que solo queremos el PDF
       };
