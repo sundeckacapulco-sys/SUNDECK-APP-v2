@@ -80,7 +80,9 @@ export const mapearPiezaParaDocumento = (
     motorPrecio: toNumber(pieza.motorPrecio, { defaultValue: 0 }),
     controlModelo: pieza.controlModelo || '',
     controlModeloManual: pieza.controlModeloManual || '',
-    controlPrecio: toNumber(pieza.controlPrecio, { defaultValue: 0 })
+    controlPrecio: toNumber(pieza.controlPrecio, { defaultValue: 0 }),
+    // CORREGIR: Forzar numMotores a 1 para evitar multiplicación incorrecta en PDF
+    numMotores: 1
   };
 };
 
@@ -92,27 +94,47 @@ export const crearResumenEconomico = ({
   cobraInstalacion,
   tipoInstalacion,
   precioInstalacion,
+  precioInstalacionPorPieza,
+  totalPiezas,
   aplicaDescuento,
   tipoDescuento,
   valorDescuento,
   montoDescuento
-}) => ({
-  precioGeneral: toNumber(precioGeneral),
-  totalM2,
-  subtotalProductos,
-  unidadMedida,
-  instalacion: {
-    cobra: cobraInstalacion,
-    tipo: tipoInstalacion,
-    precio: cobraInstalacion ? toNumber(precioInstalacion) : 0
-  },
-  descuento: {
-    aplica: aplicaDescuento,
-    tipo: tipoDescuento,
-    valor: aplicaDescuento ? toNumber(valorDescuento) : 0,
-    monto: montoDescuento
+}) => {
+  // Calcular precio de instalación según el modelo
+  let precioInstalacionCalculado = 0;
+  
+  if (cobraInstalacion && precioInstalacion) {
+    if (tipoInstalacion === 'fijo') {
+      precioInstalacionCalculado = toNumber(precioInstalacion);
+    } else if (tipoInstalacion === 'por_pieza') {
+      precioInstalacionCalculado = toNumber(precioInstalacion) * (totalPiezas || 1);
+    } else if (tipoInstalacion === 'base_mas_pieza') {
+      const precioBase = toNumber(precioInstalacion);
+      const precioPorPieza = toNumber(precioInstalacionPorPieza);
+      const piezasAdicionales = Math.max(0, (totalPiezas || 1) - 1);
+      precioInstalacionCalculado = precioBase + (precioPorPieza * piezasAdicionales);
+    }
   }
-});
+
+  return {
+    precioGeneral: toNumber(precioGeneral),
+    totalM2,
+    subtotalProductos,
+    unidadMedida,
+    instalacion: {
+      cobra: cobraInstalacion,
+      tipo: tipoInstalacion,
+      precio: precioInstalacionCalculado
+    },
+    descuento: {
+      aplica: aplicaDescuento,
+      tipo: tipoDescuento,
+      valor: aplicaDescuento ? toNumber(valorDescuento) : 0,
+      monto: montoDescuento
+    }
+  };
+};
 
 export const crearMetodoPago = ({ anticipo, saldo, metodoPagoAnticipo }) => ({
   anticipo,

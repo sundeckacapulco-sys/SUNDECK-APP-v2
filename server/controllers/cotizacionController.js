@@ -210,7 +210,8 @@ function calcularTotalesCotizacion({ productos = [], precioGeneralM2, incluyeIns
 
   let ivaCalculado = 0;
   if (debeIncluirIVA) {
-    ivaCalculado = Number((subtotalTrasDescuento * 0.16).toFixed(2));
+    // IVA se calcula sobre el subtotal con instalación, antes del descuento
+    ivaCalculado = Number((baseParaDescuento * 0.16).toFixed(2));
   }
 
   const totalFinal = Number((subtotalTrasDescuento + ivaCalculado).toFixed(2));

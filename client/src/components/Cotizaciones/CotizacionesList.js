@@ -185,8 +185,12 @@ const CotizacionesList = () => {
   };
 
   const handleMenuClick = (event, cotizacion) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedCotizacion(cotizacion);
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.currentTarget) {
+      setAnchorEl(event.currentTarget);
+      setSelectedCotizacion(cotizacion);
+    }
   };
 
   const handleMenuClose = () => {
@@ -294,6 +298,13 @@ const CotizacionesList = () => {
       
       // Obtener detalles completos de la cotización
       const response = await axiosConfig.get(`/cotizaciones/${cotizacion._id}`);
+      console.log('📊 Datos recibidos del backend:', response.data);
+      console.log('📦 Productos en respuesta:', response.data.productos);
+      console.log('💰 Totales en respuesta:', {
+        subtotal: response.data.subtotal,
+        iva: response.data.iva,
+        total: response.data.total
+      });
       setCotizacionDetalle(response.data);
       setDetallesModalOpen(true);
       handleMenuClose();
@@ -601,8 +612,16 @@ const CotizacionesList = () => {
       {/* Menú de acciones */}
       <Menu
         anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
+        open={Boolean(anchorEl && selectedCotizacion)}
         onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
       >
         <MenuItem
           onClick={() => {
@@ -810,28 +829,32 @@ const CotizacionesList = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {cotizacionDetalle.productos?.map((producto, index) => (
+                      {cotizacionDetalle.productos?.map((producto, index) => {
+                        console.log(`🔍 Producto ${index}:`, producto);
+                        return (
                         <TableRow key={index}>
                           <TableCell>
                             <Typography variant="body2" fontWeight="bold">
-                              {producto.nombre}
+                              {producto.nombre || 'Sin nombre'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {producto.descripcion}
+                              {producto.descripcion || 'Sin descripción'}
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            {producto.medidas ? (
+                            {producto.medidas && (producto.medidas.ancho || producto.medidas.alto) ? (
                               <Typography variant="body2">
                                 {producto.medidas.ancho}m × {producto.medidas.alto}m
                                 <br />
                                 <Typography variant="caption" color="text.secondary">
-                                  Área: {producto.medidas.area}m²
+                                  Área: {producto.medidas.area || (producto.medidas.ancho * producto.medidas.alto).toFixed(2)}m²
                                 </Typography>
                               </Typography>
                             ) : (
                               <Typography variant="body2" color="text.secondary">
-                                Sin medidas
+                                {producto.categoria === 'kit' || producto.categoria === 'motor' || producto.categoria === 'control' 
+                                  ? 'Accesorio' 
+                                  : 'Sin medidas'}
                               </Typography>
                             )}
                           </TableCell>
@@ -839,7 +862,8 @@ const CotizacionesList = () => {
                           <TableCell>${(producto.precioUnitario || 0).toLocaleString()}</TableCell>
                           <TableCell>${(producto.subtotal || 0).toLocaleString()}</TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </TableContainer>

@@ -28,15 +28,18 @@ import {
   CheckCircle,
   Warning,
   Info,
-  Error
+  Error,
+  BugReport
 } from '@mui/icons-material';
 import TextFieldConDictado from '../Common/TextFieldConDictado';
+import CapturaModal from '../Common/CapturaModal';
 import axiosConfig from '../../config/axios';
 import {
   mapearPiezaParaDocumento,
+  calcularTotales,
   crearResumenEconomico,
-  crearMetodoPago,
-  crearInfoFacturacion
+  crearInfoFacturacion,
+  crearMetodoPago
 } from '../../utils/cotizacionEnVivo';
 
 const etapaOptions = [
@@ -166,7 +169,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   // Estados para instalación manual
   const [cobraInstalacion, setCobraInstalacion] = useState(false);
   const [precioInstalacion, setPrecioInstalacion] = useState('');
-  const [tipoInstalacion, setTipoInstalacion] = useState('estandar');
+  const [precioInstalacionPorPieza, setPrecioInstalacionPorPieza] = useState('');
+  const [tipoInstalacion, setTipoInstalacion] = useState('fijo');
   
   // Estados para copiar medidas
   const [copiandoMedidas, setCopiandoMedidas] = useState({});
@@ -200,6 +204,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   // Estados para fecha y hora
   const [fechaEtapa, setFechaEtapa] = useState('');
   const [horaEtapa, setHoraEtapa] = useState('');
+  
+  // Estado para captura de pantalla
+  const [capturaModalOpen, setCapturaModalOpen] = useState(false);
 
   // Función para establecer fecha y hora actual
   const establecerFechaHoraActual = () => {
@@ -391,23 +398,140 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   // Calcular IVA y total con factura
   const calcularIVA = useMemo(() => {
     if (!requiereFactura) return 0;
-    const subtotalConInstalacion = calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0);
+    
+    // Calcular instalación según el tipo
+    let costoInstalacion = 0;
+    if (cobraInstalacion && precioInstalacion) {
+      if (tipoInstalacion === 'fijo' || tipoInstalacion === 'personalizada') {
+        costoInstalacion = parseFloat(precioInstalacion) || 0;
+      } else if (tipoInstalacion === 'por_pieza') {
+        const totalPiezasCompleto = (() => {
+          const piezasExistentes = piezas.reduce((total, pieza) => {
+            if (pieza.medidas && Array.isArray(pieza.medidas)) {
+              return total + pieza.medidas.length;
+            } else {
+              return total + (parseInt(pieza.cantidad) || 1);
+            }
+          }, 0);
+          const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) ? piezaForm.medidas.length : 0;
+          return piezasExistentes + piezasFormulario;
+        })();
+        costoInstalacion = (parseFloat(precioInstalacion) || 0) * totalPiezasCompleto;
+      } else if (tipoInstalacion === 'base_mas_pieza') {
+        const totalPiezasCompleto = (() => {
+          const piezasExistentes = piezas.reduce((total, pieza) => {
+            if (pieza.medidas && Array.isArray(pieza.medidas)) {
+              return total + pieza.medidas.length;
+            } else {
+              return total + (parseInt(pieza.cantidad) || 1);
+            }
+          }, 0);
+          const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) ? piezaForm.medidas.length : 0;
+          return piezasExistentes + piezasFormulario;
+        })();
+        const precioBase = parseFloat(precioInstalacion) || 0;
+        const precioPorPieza = parseFloat(precioInstalacionPorPieza) || 0;
+        const piezasAdicionales = Math.max(0, totalPiezasCompleto - 1);
+        costoInstalacion = precioBase + (precioPorPieza * piezasAdicionales);
+      }
+    }
+    
+    // IVA se calcula sobre el subtotal con instalación, DESPUÉS del descuento
+    const subtotalConInstalacion = calcularSubtotalProductos + costoInstalacion;
     const subtotalConDescuento = subtotalConInstalacion - calcularDescuento;
     const iva = Math.round(subtotalConDescuento * 0.16 * 100) / 100; // Redondear a 2 decimales
     return iva;
-  }, [requiereFactura, calcularSubtotalProductos, cobraInstalacion, precioInstalacion, calcularDescuento]);
+  }, [requiereFactura, calcularSubtotalProductos, cobraInstalacion, precioInstalacion, tipoInstalacion, precioInstalacionPorPieza, piezas, piezaForm.medidas, calcularDescuento]);
 
   const totalConIVA = useMemo(() => {
-    const subtotalConInstalacion = calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0);
+    // Calcular instalación según el tipo
+    let costoInstalacion = 0;
+    if (cobraInstalacion && precioInstalacion) {
+      if (tipoInstalacion === 'fijo' || tipoInstalacion === 'personalizada') {
+        costoInstalacion = parseFloat(precioInstalacion) || 0;
+      } else if (tipoInstalacion === 'por_pieza') {
+        const totalPiezasCompleto = (() => {
+          const piezasExistentes = piezas.reduce((total, pieza) => {
+            if (pieza.medidas && Array.isArray(pieza.medidas)) {
+              return total + pieza.medidas.length;
+            } else {
+              return total + (parseInt(pieza.cantidad) || 1);
+            }
+          }, 0);
+          const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) ? piezaForm.medidas.length : 0;
+          return piezasExistentes + piezasFormulario;
+        })();
+        costoInstalacion = (parseFloat(precioInstalacion) || 0) * totalPiezasCompleto;
+      } else if (tipoInstalacion === 'base_mas_pieza') {
+        const totalPiezasCompleto = (() => {
+          const piezasExistentes = piezas.reduce((total, pieza) => {
+            if (pieza.medidas && Array.isArray(pieza.medidas)) {
+              return total + pieza.medidas.length;
+            } else {
+              return total + (parseInt(pieza.cantidad) || 1);
+            }
+          }, 0);
+          const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) ? piezaForm.medidas.length : 0;
+          return piezasExistentes + piezasFormulario;
+        })();
+        const precioBase = parseFloat(precioInstalacion) || 0;
+        const precioPorPieza = parseFloat(precioInstalacionPorPieza) || 0;
+        const piezasAdicionales = Math.max(0, totalPiezasCompleto - 1);
+        costoInstalacion = precioBase + (precioPorPieza * piezasAdicionales);
+      }
+    }
+    
+    const subtotalConInstalacion = calcularSubtotalProductos + costoInstalacion;
     const subtotalConDescuento = subtotalConInstalacion - calcularDescuento;
     const total = Math.round((subtotalConDescuento + calcularIVA) * 100) / 100; // Redondear a 2 decimales
     return total;
-  }, [calcularSubtotalProductos, cobraInstalacion, precioInstalacion, calcularDescuento, calcularIVA]);
+  }, [calcularSubtotalProductos, cobraInstalacion, precioInstalacion, tipoInstalacion, precioInstalacionPorPieza, piezas, piezaForm.medidas, calcularDescuento, calcularIVA]);
 
   // Calcular total final (con o sin IVA)
   const totalFinal = useMemo(() => {
-    return requiereFactura ? totalConIVA : (calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0) - calcularDescuento);
-  }, [requiereFactura, totalConIVA, calcularSubtotalProductos, cobraInstalacion, precioInstalacion, calcularDescuento]);
+    if (requiereFactura) {
+      return totalConIVA;
+    } else {
+      // Calcular instalación según el tipo
+      let costoInstalacion = 0;
+      if (cobraInstalacion && precioInstalacion) {
+        if (tipoInstalacion === 'fijo' || tipoInstalacion === 'personalizada') {
+          costoInstalacion = parseFloat(precioInstalacion) || 0;
+        } else if (tipoInstalacion === 'por_pieza') {
+          const totalPiezasCompleto = (() => {
+            const piezasExistentes = piezas.reduce((total, pieza) => {
+              if (pieza.medidas && Array.isArray(pieza.medidas)) {
+                return total + pieza.medidas.length;
+              } else {
+                return total + (parseInt(pieza.cantidad) || 1);
+              }
+            }, 0);
+            const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) ? piezaForm.medidas.length : 0;
+            return piezasExistentes + piezasFormulario;
+          })();
+          costoInstalacion = (parseFloat(precioInstalacion) || 0) * totalPiezasCompleto;
+        } else if (tipoInstalacion === 'base_mas_pieza') {
+          const totalPiezasCompleto = (() => {
+            const piezasExistentes = piezas.reduce((total, pieza) => {
+              if (pieza.medidas && Array.isArray(pieza.medidas)) {
+                return total + pieza.medidas.length;
+              } else {
+                return total + (parseInt(pieza.cantidad) || 1);
+              }
+            }, 0);
+            const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) ? piezaForm.medidas.length : 0;
+            return piezasExistentes + piezasFormulario;
+          })();
+          const precioBase = parseFloat(precioInstalacion) || 0;
+          const precioPorPieza = parseFloat(precioInstalacionPorPieza) || 0;
+          const piezasAdicionales = Math.max(0, totalPiezasCompleto - 1);
+          costoInstalacion = precioBase + (precioPorPieza * piezasAdicionales);
+        }
+      }
+      
+      return calcularSubtotalProductos + costoInstalacion - calcularDescuento;
+    }
+  }, [requiereFactura, totalConIVA, calcularSubtotalProductos, cobraInstalacion, precioInstalacion, tipoInstalacion, precioInstalacionPorPieza, piezas, piezaForm.medidas, calcularDescuento]);
 
   // Calcular anticipo (60%) y saldo (40%)
   const anticipo = useMemo(() => {
@@ -427,6 +551,20 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       cobraInstalacion,
       tipoInstalacion,
       precioInstalacion,
+      precioInstalacionPorPieza,
+      totalPiezas: (() => {
+        const piezasExistentes = piezas.reduce((total, pieza) => {
+          if (pieza.medidas && Array.isArray(pieza.medidas)) {
+            return total + pieza.medidas.length;
+          } else {
+            return total + (parseInt(pieza.cantidad) || 1);
+          }
+        }, 0);
+        const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) 
+          ? piezaForm.medidas.length 
+          : 0;
+        return piezasExistentes + piezasFormulario;
+      })(),
       aplicaDescuento,
       tipoDescuento,
       valorDescuento,
@@ -440,6 +578,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     cobraInstalacion,
     tipoInstalacion,
     precioInstalacion,
+    precioInstalacionPorPieza,
+    piezas,
+    piezaForm.medidas,
     aplicaDescuento,
     tipoDescuento,
     valorDescuento,
@@ -456,7 +597,11 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   }, [requiereFactura, calcularIVA, totalConIVA, totalFinal]);
 
   const metodoPagoInfo = useMemo(() => {
-    return crearMetodoPago({ anticipo, saldo, metodoPagoAnticipo });
+    return crearMetodoPago({
+      anticipo,
+      saldo,
+      metodoPagoAnticipo
+    });
   }, [anticipo, saldo, metodoPagoAnticipo]);
 
   // Calcular fecha de entrega
@@ -1445,9 +1590,19 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             </Typography>
           )}
         </Box>
-        <IconButton onClick={cerrarModal} size="small">
-          <Close />
-        </IconButton>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <IconButton 
+            onClick={() => setCapturaModalOpen(true)} 
+            size="small"
+            color="secondary"
+            title="Capturar pantalla para soporte"
+          >
+            <BugReport />
+          </IconButton>
+          <IconButton onClick={cerrarModal} size="small">
+            <Close />
+          </IconButton>
+        </Box>
       </DialogTitle>
       
       <DialogContent sx={{ p: 3 }}>
@@ -1706,24 +1861,35 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                               return;
                             }
                             
-                            setPiezaForm(prev => ({ 
-                              ...prev, 
-                              producto: nuevoProducto,
-                              productoLabel: selectedOption ? selectedOption.label : nuevoProducto,
-                              // Detectar automáticamente si es toldo
-                              esToldo: esToldo(nuevoProducto),
-                              // Reset campos específicos al cambiar producto
-                              kitModelo: '',
-                              kitModeloManual: '',
-                              kitPrecio: '',
-                              motorizado: false,
-                              motorModelo: '',
-                              motorModeloManual: '',
-                              motorPrecio: '',
-                              controlModelo: '',
-                              controlModeloManual: '',
-                              controlPrecio: ''
-                            }));
+                            setPiezaForm(prev => {
+                              // Actualizar todas las medidas individuales con el nuevo producto
+                              const medidasActualizadas = (prev.medidas || []).map(medida => ({
+                                ...medida,
+                                producto: nuevoProducto,
+                                productoLabel: selectedOption ? selectedOption.label : nuevoProducto
+                              }));
+
+                              return { 
+                                ...prev, 
+                                producto: nuevoProducto,
+                                productoLabel: selectedOption ? selectedOption.label : nuevoProducto,
+                                // Propagar a todas las medidas individuales
+                                medidas: medidasActualizadas,
+                                // Detectar automáticamente si es toldo
+                                esToldo: esToldo(nuevoProducto),
+                                // Reset campos específicos al cambiar producto
+                                kitModelo: '',
+                                kitModeloManual: '',
+                                kitPrecio: '',
+                                motorizado: false,
+                                motorModelo: '',
+                                motorModeloManual: '',
+                                motorPrecio: '',
+                                controlModelo: '',
+                                controlModeloManual: '',
+                                controlPrecio: ''
+                              };
+                            });
                           }}
                         >
                           {todosLosProductos.map((producto) => (
@@ -2925,7 +3091,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     </Box>
 
                     {/* Sugerencias Inteligentes del Sistema */}
-                    {(sugerenciasEtapa.length > 0 || Object.keys(sugerenciasPorPieza).length > 0) && (
+                    {true && (
                       <Box sx={{ mb: 3 }}>
                         <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold', color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
                           🤖 Sugerencias Inteligentes Detectadas
@@ -2958,6 +3124,122 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                 </Typography>
                               </Alert>
                             ))}
+                          </Box>
+                        )}
+
+                        {/* Análisis General - Siempre visible */}
+                        {sugerenciasEtapa.length === 0 && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: 'secondary.main' }}>
+                              📊 Análisis General de la Etapa:
+                            </Typography>
+                            <Alert 
+                              severity="info"
+                              icon={<Info />}
+                              sx={{ 
+                                mb: 1.5,
+                                fontSize: '0.875rem',
+                                bgcolor: 'info.50',
+                                '& .MuiAlert-message': {
+                                  padding: '6px 0'
+                                }
+                              }}
+                            >
+                              <Typography variant="body2" sx={{ fontWeight: 500, color: 'info.dark', mb: 1 }}>
+                                ⏱️ Estimación de Tiempos de Instalación:
+                              </Typography>
+                              <Box sx={{ ml: 2 }}>
+                                {(() => {
+                                  // Calcular tiempos basado en productos y características
+                                  const todasLasPiezas = [...piezas];
+                                  if (piezaForm.medidas && piezaForm.medidas.length > 0) {
+                                    todasLasPiezas.push({
+                                      ...piezaForm,
+                                      medidas: piezaForm.medidas
+                                    });
+                                  }
+                                  
+                                  let tiempoTotal = 0;
+                                  let desglose = [];
+                                  let requiereAndamios = false;
+                                  
+                                  todasLasPiezas.forEach(pieza => {
+                                    const medidas = pieza.medidas || [pieza];
+                                    const producto = (pieza.producto || '').toLowerCase();
+                                    const esMotorizado = pieza.motorizado;
+                                    
+                                    medidas.forEach(medida => {
+                                      const ancho = parseFloat(medida.ancho) || 0;
+                                      const alto = parseFloat(medida.alto) || 0;
+                                      
+                                      // Detectar si requiere andamios (altura > 4m)
+                                      if (alto > 4) {
+                                        requiereAndamios = true;
+                                      }
+                                      
+                                      // Calcular tiempo según tipo de producto
+                                      if (producto.includes('toldo')) {
+                                        // Toldos: 1-2 horas por toldo
+                                        tiempoTotal += 90; // 1.5 horas promedio
+                                        desglose.push('Toldo: 1.5h');
+                                      } else if (esMotorizado) {
+                                        // Cortinas motorizadas: 30 min por cortina
+                                        tiempoTotal += 30;
+                                        desglose.push('Cortina motorizada: 30min');
+                                      } else {
+                                        // Persianas manuales: 15-20 min (hasta 3m ancho, altura estándar)
+                                        let tiempoPieza = 17.5; // 17.5 min promedio
+                                        
+                                        // Ajustar por ancho (si > 3m, más tiempo)
+                                        if (ancho > 3) {
+                                          tiempoPieza += 10; // +10 min por ancho extra
+                                        }
+                                        
+                                        // Ajustar por altura (si > 2.5m, más tiempo)
+                                        if (alto > 2.5) {
+                                          tiempoPieza += 5; // +5 min por altura extra
+                                        }
+                                        
+                                        tiempoTotal += tiempoPieza;
+                                        desglose.push(`Persiana manual: ${Math.round(tiempoPieza)}min`);
+                                      }
+                                    });
+                                  });
+                                  
+                                  // Agregar tiempo de andamios si es necesario
+                                  if (requiereAndamios) {
+                                    tiempoTotal += 50; // 40-60 min promedio para armar andamios
+                                    desglose.unshift('⚠️ Armado de andamios: 50min');
+                                  }
+                                  
+                                  // Convertir a horas y minutos
+                                  const horas = Math.floor(tiempoTotal / 60);
+                                  const minutos = Math.round(tiempoTotal % 60);
+                                  
+                                  const tiempoFormateado = horas > 0 
+                                    ? `${horas}h ${minutos > 0 ? minutos + 'min' : ''}`
+                                    : `${minutos}min`;
+                                  
+                                  return (
+                                    <>
+                                      <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'info.dark' }}>
+                                        Tiempo total estimado: {tiempoFormateado}
+                                      </Typography>
+                                      {desglose.length > 0 && (
+                                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
+                                          Desglose: {desglose.join(' • ')}
+                                        </Typography>
+                                      )}
+                                      {requiereAndamios && (
+                                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'warning.dark', fontWeight: 'bold' }}>
+                                          ⚠️ Instalación requiere andamios por altura superior a 4m
+                                        </Typography>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </Box>
+                            </Alert>
                           </Box>
                         )}
 
@@ -3007,36 +3289,161 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                       </Typography>
                       
                       {cobraInstalacion && (
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              select
-                              label="Tipo de instalación"
-                              fullWidth
-                              value={tipoInstalacion}
-                              onChange={(e) => setTipoInstalacion(e.target.value)}
-                              SelectProps={{ native: true }}
-                            >
-                              <option value="estandar">Estándar</option>
-                              <option value="electrica">Eléctrica (motorizada)</option>
-                              <option value="estructural">Estructural (refuerzos)</option>
-                              <option value="altura">Altura especial</option>
-                              <option value="acceso">Acceso difícil</option>
-                              <option value="personalizada">Personalizada</option>
-                            </TextField>
+                        <>
+                        {/* Calculadora de instalación */}
+                        <Box sx={{ mb: 3, p: 2, bgcolor: 'warning.50', borderRadius: 2, border: '1px solid', borderColor: 'warning.200' }}>
+                          <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 'bold', color: 'warning.dark' }}>
+                            🧮 Calculadora de Instalación
+                          </Typography>
+                          
+                          {/* Mostrar total de piezas detectadas */}
+                          <Box sx={{ mb: 2, p: 1.5, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'info.dark' }}>
+                              📊 Piezas detectadas: {(() => {
+                                // Contar piezas ya agregadas
+                                const piezasExistentes = piezas.reduce((total, pieza) => {
+                                  if (pieza.medidas && Array.isArray(pieza.medidas)) {
+                                    return total + pieza.medidas.length;
+                                  } else {
+                                    return total + (parseInt(pieza.cantidad) || 1);
+                                  }
+                                }, 0);
+                                
+                                // Contar piezas del formulario actual (si hay medidas)
+                                const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) 
+                                  ? piezaForm.medidas.length 
+                                  : 0;
+                                
+                                return piezasExistentes + piezasFormulario;
+                              })()}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Incluye piezas agregadas + piezas del formulario actual
+                            </Typography>
+                          </Box>
+
+                          {/* Opciones de cálculo */}
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} sm={4}>
+                              <TextField
+                                select
+                                label="Modelo de precio"
+                                fullWidth
+                                value={tipoInstalacion}
+                                onChange={(e) => setTipoInstalacion(e.target.value)}
+                                SelectProps={{ native: true }}
+                              >
+                                <option value="fijo">Precio fijo total</option>
+                                <option value="por_pieza">Precio por pieza</option>
+                                <option value="base_mas_pieza">Base + precio por pieza</option>
+                                <option value="personalizada">Personalizada</option>
+                              </TextField>
+                            </Grid>
+                            
+                            {tipoInstalacion === 'fijo' && (
+                              <Grid item xs={12} sm={8}>
+                                <TextField
+                                  label="💰 Precio fijo total (MXN)"
+                                  type="number"
+                                  fullWidth
+                                  value={precioInstalacion}
+                                  onChange={(e) => setPrecioInstalacion(e.target.value)}
+                                  placeholder="Ej. 2500, 5000, 8000..."
+                                  helperText="Precio fijo independiente del número de piezas"
+                                />
+                              </Grid>
+                            )}
+                            
+                            {tipoInstalacion === 'por_pieza' && (
+                              <Grid item xs={12} sm={8}>
+                                <TextField
+                                  label="💰 Precio por pieza (MXN)"
+                                  type="number"
+                                  fullWidth
+                                  value={precioInstalacion}
+                                  onChange={(e) => setPrecioInstalacion(e.target.value)}
+                                  placeholder="Ej. 500, 800, 1200..."
+                                  helperText={`Total estimado: $${(parseFloat(precioInstalacion || 0) * (() => {
+                                    const piezasExistentes = piezas.reduce((total, pieza) => {
+                                      if (pieza.medidas && Array.isArray(pieza.medidas)) {
+                                        return total + pieza.medidas.length;
+                                      } else {
+                                        return total + (parseInt(pieza.cantidad) || 1);
+                                      }
+                                    }, 0);
+                                    const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) ? piezaForm.medidas.length : 0;
+                                    return piezasExistentes + piezasFormulario;
+                                  })()).toLocaleString()}`}
+                                />
+                              </Grid>
+                            )}
+                            
+                            {tipoInstalacion === 'base_mas_pieza' && (
+                              <>
+                                <Grid item xs={12} sm={4}>
+                                  <TextField
+                                    label="💰 Precio base (MXN)"
+                                    type="number"
+                                    fullWidth
+                                    value={precioInstalacion}
+                                    onChange={(e) => setPrecioInstalacion(e.target.value)}
+                                    placeholder="Ej. 1500, 2000..."
+                                    helperText="Precio base fijo"
+                                  />
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                  <TextField
+                                    label="💰 Precio por pieza adicional"
+                                    type="number"
+                                    fullWidth
+                                    value={precioInstalacionPorPieza}
+                                    onChange={(e) => setPrecioInstalacionPorPieza(e.target.value)}
+                                    placeholder="Ej. 300, 500..."
+                                    helperText={`Total: $${(parseFloat(precioInstalacion || 0) + (parseFloat(precioInstalacionPorPieza || 0) * Math.max(0, (() => {
+                                      const piezasExistentes = piezas.reduce((total, pieza) => {
+                                        if (pieza.medidas && Array.isArray(pieza.medidas)) {
+                                          return total + pieza.medidas.length;
+                                        } else {
+                                          return total + (parseInt(pieza.cantidad) || 1);
+                                        }
+                                      }, 0);
+                                      const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) ? piezaForm.medidas.length : 0;
+                                      return piezasExistentes + piezasFormulario - 1;
+                                    })()))).toLocaleString()}`}
+                                  />
+                                </Grid>
+                              </>
+                            )}
+                            
+                            {tipoInstalacion === 'personalizada' && (
+                              <Grid item xs={12}>
+                                <TextField
+                                  label="💰 Precio personalizado (MXN)"
+                                  type="number"
+                                  fullWidth
+                                  value={precioInstalacion}
+                                  onChange={(e) => setPrecioInstalacion(e.target.value)}
+                                  placeholder="Ingresa el precio personalizado..."
+                                  helperText="Precio total personalizado para este proyecto específico"
+                                />
+                              </Grid>
+                            )}
                           </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              label="💰 Precio instalación (MXN)"
-                              type="number"
+                          
+                          {/* Campo de comentarios para instalación */}
+                          <Box sx={{ mt: 2 }}>
+                            <TextFieldConDictado
+                              label="📝 Comentarios de instalación"
                               fullWidth
-                              value={precioInstalacion}
-                              onChange={(e) => setPrecioInstalacion(e.target.value)}
-                              placeholder="Ej. 2500, 5000, 8000..."
-                              helperText="Precio fijo total por instalación"
+                              rows={3}
+                              value={comentarios}
+                              onChange={(e) => setComentarios(e.target.value)}
+                              placeholder="Ej. Instalación requiere andamios, acceso vehicular limitado, horario especial..."
+                              helperText="Notas especiales para el equipo de instalación"
                             />
-                          </Grid>
-                        </Grid>
+                          </Box>
+                        </Box>
+                        </>
                       )}
                     </Box>
                   </CardContent>
@@ -3289,7 +3696,40 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     {cobraInstalacion && precioInstalacion && (
                       <Box sx={{ mt: 2, p: 2, bgcolor: 'warning.50', borderRadius: 1, border: '1px solid', borderColor: 'warning.200' }}>
                         <Typography variant="body2" fontWeight="medium" color="warning.dark">
-                          🔧 Instalación {tipoInstalacion}: +${parseFloat(precioInstalacion).toLocaleString()}
+                          🔧 Instalación {(() => {
+                            const totalPiezas = piezas.reduce((total, pieza) => {
+                              if (pieza.medidas && Array.isArray(pieza.medidas)) {
+                                return total + pieza.medidas.length;
+                              } else {
+                                return total + (parseInt(pieza.cantidad) || 1);
+                              }
+                            }, 0);
+                            
+                            const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) 
+                              ? piezaForm.medidas.length 
+                              : 0;
+                            
+                            const totalPiezasCompleto = totalPiezas + piezasFormulario;
+                            
+                            let precioTotal = 0;
+                            let descripcion = '';
+                            
+                            if (tipoInstalacion === 'fijo') {
+                              precioTotal = parseFloat(precioInstalacion || 0);
+                              descripcion = 'fijo total';
+                            } else if (tipoInstalacion === 'por_pieza') {
+                              precioTotal = parseFloat(precioInstalacion || 0) * totalPiezasCompleto;
+                              descripcion = `por pieza (${totalPiezasCompleto} pzs)`;
+                            } else if (tipoInstalacion === 'base_mas_pieza') {
+                              const precioBase = parseFloat(precioInstalacion || 0);
+                              const precioPorPieza = parseFloat(precioInstalacionPorPieza || 0);
+                              const piezasAdicionales = Math.max(0, totalPiezasCompleto - 1);
+                              precioTotal = precioBase + (precioPorPieza * piezasAdicionales);
+                              descripcion = `base + ${piezasAdicionales} pzs adicionales`;
+                            }
+                            
+                            return `${descripcion}: +$${precioTotal.toLocaleString()}`;
+                          })()}
                         </Typography>
                       </Box>
                     )}
@@ -3453,7 +3893,42 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                         <Typography variant="body2">Instalación:</Typography>
                         <Typography variant="body2" fontWeight="bold">
-                          ${parseFloat(precioInstalacion).toLocaleString()}
+                          ${(() => {
+                            if (tipoInstalacion === 'fijo') {
+                              return parseFloat(precioInstalacion || 0).toLocaleString();
+                            } else if (tipoInstalacion === 'por_pieza') {
+                              const totalPiezasCompleto = (() => {
+                                const piezasExistentes = piezas.reduce((total, pieza) => {
+                                  if (pieza.medidas && Array.isArray(pieza.medidas)) {
+                                    return total + pieza.medidas.length;
+                                  } else {
+                                    return total + (parseInt(pieza.cantidad) || 1);
+                                  }
+                                }, 0);
+                                const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) ? piezaForm.medidas.length : 0;
+                                return piezasExistentes + piezasFormulario;
+                              })();
+                              return (parseFloat(precioInstalacion || 0) * totalPiezasCompleto).toLocaleString();
+                            } else if (tipoInstalacion === 'base_mas_pieza') {
+                              const totalPiezasCompleto = (() => {
+                                const piezasExistentes = piezas.reduce((total, pieza) => {
+                                  if (pieza.medidas && Array.isArray(pieza.medidas)) {
+                                    return total + pieza.medidas.length;
+                                  } else {
+                                    return total + (parseInt(pieza.cantidad) || 1);
+                                  }
+                                }, 0);
+                                const piezasFormulario = (piezaForm.medidas && Array.isArray(piezaForm.medidas)) ? piezaForm.medidas.length : 0;
+                                return piezasExistentes + piezasFormulario;
+                              })();
+                              const precioBase = parseFloat(precioInstalacion || 0);
+                              const precioPorPieza = parseFloat(precioInstalacionPorPieza || 0);
+                              const piezasAdicionales = Math.max(0, totalPiezasCompleto - 1);
+                              return (precioBase + (precioPorPieza * piezasAdicionales)).toLocaleString();
+                            } else {
+                              return parseFloat(precioInstalacion || 0).toLocaleString();
+                            }
+                          })()}
                         </Typography>
                       </Box>
                     )}
@@ -3739,6 +4214,13 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           )}
         </Box>
       </DialogActions>
+
+      {/* Modal de Captura de Pantalla */}
+      <CapturaModal
+        open={capturaModalOpen}
+        onClose={() => setCapturaModalOpen(false)}
+        titulo="Captura para Soporte - Agregar Etapa"
+      />
     </Dialog>
   );
 };

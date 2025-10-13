@@ -1252,6 +1252,34 @@ class PDFService {
             </div>
           </div>
 
+          <!-- SUGERENCIAS INTELIGENTES -->
+          <div class="sugerencias-section no-break" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #28a745;">
+            <h3 style="color: #28a745; margin-bottom: 10px; font-size: 14px;">🤖 Sugerencias Inteligentes Detectadas</h3>
+            {{#if sugerencias}}
+              <ul style="margin: 0; padding-left: 20px;">
+                {{#each sugerencias}}
+                <li style="margin-bottom: 5px;">{{this}}</li>
+                {{/each}}
+              </ul>
+            {{else}}
+              <p style="margin: 0; color: #666; font-style: italic;">No se detectaron sugerencias automáticas para esta cotización.</p>
+            {{/if}}
+          </div>
+
+          <!-- ANÁLISIS GENERAL -->
+          <div class="analisis-section no-break" style="margin: 20px 0; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin-bottom: 10px; font-size: 14px;">📊 Análisis General de la Etapa</h3>
+            {{#if analisisGeneral}}
+              <div style="margin: 0;">
+                <p><strong>Complejidad del proyecto:</strong> {{analisisGeneral.complejidad}}</p>
+                <p><strong>Tiempo estimado:</strong> {{analisisGeneral.tiempoEstimado}}</p>
+                <p><strong>Recomendaciones:</strong> {{analisisGeneral.recomendaciones}}</p>
+              </div>
+            {{else}}
+              <p style="margin: 0; color: #666; font-style: italic;">Análisis automático en desarrollo.</p>
+            {{/if}}
+          </div>
+
           <!-- PIE DE PÁGINA LIMPIO -->
           <div class="footer">
             <div class="footer-logo">🏠 {{company.fullName}}</div>
@@ -1503,7 +1531,87 @@ class PDFService {
           porcentajeSaldo: datosAdicionales.metodoPago?.porcentajeSaldo || 40,
           metodoPagoAnticipo: datosAdicionales.metodoPago?.metodoPagoAnticipo || ''
         },
-        totalFinal: this.formatCurrency(totalFinalNumero)
+        totalFinal: this.formatCurrency(totalFinalNumero),
+        // Sugerencias inteligentes basadas en análisis de productos
+        sugerencias: (() => {
+          const sugerencias = [];
+          let requiereAndamios = false;
+          let tieneToldos = false;
+          let tieneMotorizados = false;
+          
+          // Analizar todas las piezas
+          piezasExpandidas.forEach(pieza => {
+            const producto = (pieza.producto || '').toLowerCase();
+            const alto = parseFloat(pieza.alto) || 0;
+            
+            if (alto > 4) requiereAndamios = true;
+            if (producto.includes('toldo')) tieneToldos = true;
+            if (pieza.motorizado) tieneMotorizados = true;
+          });
+          
+          // Generar sugerencias específicas
+          if (requiereAndamios) {
+            sugerencias.push("⚠️ Instalación requiere andamios por altura superior a 4m");
+            sugerencias.push("Considerar acceso vehicular para equipo de andamios");
+          }
+          
+          if (tieneToldos) {
+            sugerencias.push("Verificar estructura de soporte para toldos antes de instalación");
+            sugerencias.push("Instalación de toldos requiere condiciones climáticas favorables");
+          }
+          
+          if (tieneMotorizados) {
+            sugerencias.push("Verificar disponibilidad de toma eléctrica cercana para motores");
+            sugerencias.push("Programar configuración de controles después de instalación");
+          }
+          
+          // Sugerencias generales
+          sugerencias.push("Se recomienda instalación en horario matutino para mejor iluminación");
+          sugerencias.push("Verificar medidas finales antes de la fabricación");
+          
+          return sugerencias;
+        })(),
+        // Análisis general con cálculo inteligente de tiempos
+        analisisGeneral: (() => {
+          let tiempoTotal = 0;
+          let requiereAndamios = false;
+          
+          piezasExpandidas.forEach(pieza => {
+            const producto = (pieza.producto || '').toLowerCase();
+            const esMotorizado = pieza.motorizado;
+            const ancho = parseFloat(pieza.ancho) || 0;
+            const alto = parseFloat(pieza.alto) || 0;
+            
+            // Detectar andamios
+            if (alto > 4) requiereAndamios = true;
+            
+            // Calcular tiempo por tipo
+            if (producto.includes('toldo')) {
+              tiempoTotal += 90; // 1.5h por toldo
+            } else if (esMotorizado) {
+              tiempoTotal += 30; // 30min por cortina motorizada
+            } else {
+              let tiempoPieza = 17.5; // 17.5min base para persiana manual
+              if (ancho > 3) tiempoPieza += 10;
+              if (alto > 2.5) tiempoPieza += 5;
+              tiempoTotal += tiempoPieza;
+            }
+          });
+          
+          if (requiereAndamios) tiempoTotal += 50;
+          
+          const horas = Math.floor(tiempoTotal / 60);
+          const minutos = Math.round(tiempoTotal % 60);
+          const tiempoFormateado = horas > 0 ? `${horas}h ${minutos > 0 ? minutos + 'min' : ''}` : `${minutos}min`;
+          
+          return {
+            complejidad: requiereAndamios ? "Alta" : totalPiezasReales > 5 ? "Media" : "Baja",
+            tiempoEstimado: tiempoFormateado,
+            recomendaciones: requiereAndamios 
+              ? "Instalación requiere andamios por altura superior a 4m" 
+              : "Proyecto con condiciones estándar de instalación"
+          };
+        })()
       };
 
       const template = handlebars.compile(htmlTemplate);
