@@ -87,7 +87,7 @@ const PlantillasWhatsAppAdmin = () => {
 
   useEffect(() => {
     cargarDatos();
-  }, [filtros]);
+  }, [filtros, tabValue]);
 
   const cargarDatos = async () => {
     try {
