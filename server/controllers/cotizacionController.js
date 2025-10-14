@@ -60,32 +60,62 @@ exports.crearCotizacion = async (req, res) => {
       fecha: fechaCreacion ? new Date(fechaCreacion) : new Date(),
       estado: 'Activa',
       origen: origen || 'normal', // Usar el origen enviado o 'normal' por defecto
-      productos: productos.map(p => ({
-        ubicacion: p.ubicacion,
-        cantidad: p.cantidad || 1,
-        ancho: p.ancho,
-        alto: p.alto,
-        area: p.area,
-        productoId: p.productoId, // Asegúrate de que p.productoId sea un ObjectId válido o String que mongoose pueda castear
-        nombreProducto: p.nombreProducto,
-        color: p.color,
-        precioM2: p.precioM2,
-        observaciones: p.observaciones,
-        fotoUrls: p.fotoUrls || [],
-        videoUrl: p.videoUrl || '',
-        esToldo: p.esToldo,
-        tipoToldo: p.tipoToldo,
-        kitModelo: p.kitModelo,
-        kitModeloManual: p.kitModeloManual,
-        kitPrecio: p.kitPrecio,
-        motorizado: p.motorizado,
-        motorModelo: p.motorModelo,
-        motorModeloManual: p.motorModeloManual,
-        motorPrecio: p.motorPrecio,
-        controlModelo: p.controlModelo,
-        controlModeloManual: p.controlModeloManual,
-        controlPrecio: p.controlPrecio,
-      })),
+      productos: productos.map((p) => {
+        const cantidad = p.cantidad || 1;
+        const ancho = parseFloat(p.medidas?.ancho ?? p.ancho) || 0;
+        const alto = parseFloat(p.medidas?.alto ?? p.alto) || 0;
+        const area = parseFloat(p.medidas?.area ?? p.area) || (ancho * alto);
+        const precioUnitario = Number(
+          p.precioUnitario ?? p.precioM2 ?? precioGeneralM2 ?? 0
+        );
+        const subtotalCalculado = Number(
+          p.subtotal ?? (area * precioUnitario * cantidad)
+        );
+
+        const nombreBase = p.nombre || p.nombreProducto || p.productoLabel || p.producto || '';
+        const descripcionBase = p.descripcion || p.observaciones || '';
+
+        return {
+          ubicacion: p.ubicacion,
+          cantidad,
+          ancho,
+          alto,
+          area,
+          nombre: nombreBase,
+          nombreProducto: p.nombreProducto || nombreBase,
+          productoLabel: p.productoLabel || nombreBase,
+          descripcion: descripcionBase,
+          categoria: p.categoria,
+          material: p.material,
+          productoId: p.productoId, // Asegúrate de que p.productoId sea un ObjectId válido o String que mongoose pueda castear
+          color: p.color,
+          precioM2: Number(p.precioM2 ?? precioUnitario),
+          precioUnitario,
+          subtotal: subtotalCalculado,
+          observaciones: p.observaciones,
+          fotoUrls: p.fotoUrls || [],
+          videoUrl: p.videoUrl || '',
+          medidas: {
+            ancho,
+            alto,
+            area
+          },
+          requiereR24: Boolean(p.requiereR24),
+          tiempoFabricacion: p.tiempoFabricacion,
+          esToldo: p.esToldo,
+          tipoToldo: p.tipoToldo,
+          kitModelo: p.kitModelo,
+          kitModeloManual: p.kitModeloManual,
+          kitPrecio: p.kitPrecio,
+          motorizado: p.motorizado,
+          motorModelo: p.motorModelo,
+          motorModeloManual: p.motorModeloManual,
+          motorPrecio: p.motorPrecio,
+          controlModelo: p.controlModelo,
+          controlModeloManual: p.controlModeloManual,
+          controlPrecio: p.controlPrecio,
+        };
+      }),
       comentarios,
       precioGeneralM2,
       unidadMedida,
