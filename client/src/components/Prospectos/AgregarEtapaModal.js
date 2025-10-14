@@ -19,7 +19,7 @@ import {
   IconButton,
   Chip
 } from '@mui/material';
-import { 
+import {
   Add,
   CloudUpload,
   Delete,
@@ -41,110 +41,19 @@ import {
   crearInfoFacturacion,
   crearMetodoPago
 } from '../../utils/cotizacionEnVivo';
-
-const etapaOptions = [
-  'Visita Inicial / Medición',
-  'Seguimiento',
-  'Presentación de Propuesta',
-  'Negociación',
-  'Cierre',
-  'Entrega',
-  'Postventa'
-];
-
-const productosOptions = [
-  { label: "Persianas Screen 3%", value: "screen_3" },
-  { label: "Persianas Screen 5%", value: "screen_5" },
-  { label: "Persianas Screen 10%", value: "screen_10" },
-  { label: "Persianas Blackout", value: "blackout" },
-  { label: "Persianas Duo / Sheer Elegance", value: "duo" },
-  { label: "Toldos Verticales (Screen, Soltis, etc.)", value: "toldo_vertical" },
-  { label: "Toldos Retráctiles", value: "toldo_retractil" },
-  { label: "Cortinas Motorizadas", value: "motorizadas" },
-  { label: "Cortinas Manuales", value: "manuales" },
-  { label: "Sistemas Antihuracán (paneles, rollos, reforzados)", value: "antihuracan" },
-  { label: "Pérgolas y Sombras", value: "pergolas" },
-  // Opciones comunes para casos especiales
-  { label: "Doble Cortina (2 en 1 ventana)", value: "doble_cortina" },
-  { label: "Cortina + Screen (combinado)", value: "cortina_screen" },
-  { label: "Sistema Día/Noche", value: "dia_noche" },
-  { label: "Cortinas Tradicionales", value: "cortina_tradicional" },
-  { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
-];
-
-// Modelos de toldos predefinidos
-const modelosToldos = {
-  caida_vertical: [
-    { label: "Padova", value: "padova" },
-    { label: "Contempo", value: "contempo" },
-    { label: "Otro (especificar)", value: "otro_manual" }
-  ],
-  proyeccion: [
-    { label: "Europa", value: "europa" },
-    { label: "Cofre", value: "cofre" },
-    { label: "Sunset", value: "sunset" },
-    { label: "Otro (especificar)", value: "otro_manual" }
-  ]
-};
-
-// Modelos de motores predefinidos
-const modelosMotores = [
-  { label: "Somfy 25 Nm", value: "somfy_25nm" },
-  { label: "Somfy 35 Nm", value: "somfy_35nm" },
-  { label: "Somfy RTS", value: "somfy_rts" },
-  { label: "Otro (especificar)", value: "otro_manual" }
-];
-
-// Modelos de controles predefinidos
-const modelosControles = [
-  { label: "Control Monocanal (1 cortina)", value: "monocanal", canales: 1, esMulticanal: false },
-  { label: "Control 4 Canales", value: "multicanal_4", canales: 4, esMulticanal: true },
-  { label: "Control 5 Canales", value: "multicanal_5", canales: 5, esMulticanal: true },
-  { label: "Control 15 Canales", value: "multicanal_15", canales: 15, esMulticanal: true },
-  { label: "Control Multicanal Genérico", value: "multicanal", canales: 4, esMulticanal: true },
-  { label: "Otro (especificar)", value: "otro_manual", canales: 1, esMulticanal: false }
-];
-
-const emptyPieza = {
-  ubicacion: '',
-  cantidad: 1, // Nueva propiedad para cantidad de piezas
-  medidas: [{ 
-    ancho: '', 
-    alto: '',
-    producto: productosOptions[0].value, // Producto específico por pieza
-    productoLabel: productosOptions[0].label, // Label específico por pieza
-    color: 'Blanco', // Color específico por pieza
-    precioM2: '' // Precio específico por pieza
-  }], // Array de medidas individuales con productos específicos
-  producto: productosOptions[0].value, // Producto base (para compatibilidad)
-  productoLabel: productosOptions[0].label, // Label base (para compatibilidad)
-  color: 'Blanco', // Color base (para compatibilidad)
-  precioM2: '', // Precio base (para compatibilidad)
-  observaciones: '',
-  fotoUrls: [], // Cambio a array para múltiples fotos
-  videoUrl: '',
-  // Nuevos campos para toldos
-  esToldo: false,
-  tipoToldo: 'caida_vertical', // 'caida_vertical' o 'proyeccion'
-  kitModelo: '',
-  kitModeloManual: '',
-  kitPrecio: '',
-  // Nuevos campos para motorización
-  motorizado: false,
-  motorModelo: '',
-  motorModeloManual: '',
-  motorPrecio: '',
-  controlModelo: '',
-  controlModeloManual: '',
-  controlPrecio: ''
-};
+import {
+  etapaOptions,
+  productosOptions,
+  modelosToldos,
+  modelosMotores,
+  modelosControles
+} from './AgregarEtapaModal.constants';
+import usePiezasManager from './hooks/usePiezasManager';
+import { esProductoMotorizable, esProductoToldo } from './utils/piezaUtils';
 
 const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => {
   const [nombreEtapa, setNombreEtapa] = useState(etapaOptions[0]);
   const [unidad, setUnidad] = useState('m');
-  const [piezas, setPiezas] = useState([]);
-  const [agregandoPieza, setAgregandoPieza] = useState(false);
-  const [piezaForm, setPiezaForm] = useState(emptyPieza);
   const [comentarios, setComentarios] = useState('');
   const [precioGeneral, setPrecioGeneral] = useState(750);
   const [guardando, setGuardando] = useState(false);
@@ -179,10 +88,6 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   // Estados para sugerencias automáticas
   const [sugerenciasPorPieza, setSugerenciasPorPieza] = useState({});
   const [sugerenciasEtapa, setSugerenciasEtapa] = useState([]);
-  
-  // Estados para edición de partidas
-  const [editandoPieza, setEditandoPieza] = useState(false);
-  const [indiceEditando, setIndiceEditando] = useState(-1);
   
   // Estados para descuentos
   const [aplicaDescuento, setAplicaDescuento] = useState(false);
@@ -229,11 +134,10 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const resetFormulario = () => {
     setNombreEtapa(etapaOptions[0]);
     setUnidad('m');
-    setPiezas([]);
+    resetPiezas();
     setComentarios('');
     setPrecioGeneral(750);
     setErrorLocal('');
-    setAgregandoPieza(false);
     setCobraInstalacion(false);
     setPrecioInstalacion('');
     setTipoInstalacion('estandar');
@@ -294,10 +198,10 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   // Combinar productos estáticos con productos de la API y personalizados
   const todosLosProductos = useMemo(() => {
     const productosEstaticos = [...productosOptions];
-    
+
     // Remover la opción de producto personalizado temporalmente
     const sinPersonalizado = productosEstaticos.filter(p => p.value !== 'nuevo');
-    
+
     // Combinar todos los tipos de productos
     return [
       ...sinPersonalizado,
@@ -306,6 +210,28 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
     ];
   }, [productosFromAPI, productosPersonalizados]);
+
+  const {
+    piezas,
+    piezaForm,
+    agregandoPieza,
+    editandoPieza,
+    indiceEditando,
+    setAgregandoPieza,
+    setPiezaForm,
+    resetPiezas,
+    sincronizarColores,
+    actualizarMedidas,
+    handleAgregarPieza,
+    handleEliminarPieza,
+    handleEditarPieza,
+    handleCancelarEdicion
+  } = usePiezasManager({
+    unidad,
+    todosLosProductos,
+    precioGeneral,
+    setErrorLocal
+  });
 
   const calcularTotalM2 = useMemo(() => {
     return piezas.reduce((total, pieza) => {
@@ -641,214 +567,6 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const cerrarModal = () => {
     resetFormulario();
     onClose();
-  };
-
-  // Función para sincronizar colores individuales con el campo general
-  const sincronizarColores = () => {
-    if (piezaForm.medidas && piezaForm.medidas.length > 0) {
-      // Obtener colores únicos de las piezas
-      const coloresUnicos = [...new Set(piezaForm.medidas.map(m => m.color).filter(c => c))];
-      
-      if (coloresUnicos.length === 1) {
-        // Si todas las piezas tienen el mismo color, usar ese
-        setPiezaForm(prev => ({ ...prev, color: coloresUnicos[0] }));
-      } else if (coloresUnicos.length > 1) {
-        // Si hay colores diferentes, mostrar "Mixto"
-        setPiezaForm(prev => ({ ...prev, color: `Mixto (${coloresUnicos.join(', ')})` }));
-      }
-    }
-  };
-
-  // Función para detectar si un producto es toldo
-  const esToldo = (producto) => {
-    return producto && (producto.includes('toldo') || producto === 'toldo_vertical' || producto === 'toldo_retractil');
-  };
-
-  // Función para detectar si un producto puede ser motorizado
-  const puedeSerMotorizado = (producto) => {
-    const productosMotorizables = [
-      'toldo_vertical', 'toldo_retractil', 'screen_3', 'screen_5', 'screen_10', 
-      'blackout', 'duo', 'motorizadas', 'cortina_tradicional'
-    ];
-    return productosMotorizables.includes(producto);
-  };
-
-  // Función para actualizar las medidas cuando cambie la cantidad
-  const actualizarMedidas = (nuevaCantidad) => {
-    const cantidad = parseInt(nuevaCantidad) || 1;
-    const medidasActuales = piezaForm.medidas || [];
-    
-    // Crear array de medidas según la nueva cantidad
-    const nuevasMedidas = [];
-    for (let i = 0; i < cantidad; i++) {
-      // Mantener medidas existentes o crear nuevas con valores base
-      nuevasMedidas.push(medidasActuales[i] || { 
-        ancho: '', 
-        alto: '',
-        producto: piezaForm.producto || productosOptions[0].value,
-        productoLabel: piezaForm.productoLabel || productosOptions[0].label,
-        color: piezaForm.color || 'Blanco',
-        precioM2: piezaForm.precioM2 || ''
-      });
-    }
-    
-    setPiezaForm(prev => ({
-      ...prev,
-      cantidad: cantidad,
-      medidas: nuevasMedidas
-    }));
-  };
-
-  const handleAgregarPieza = () => {
-    if (!piezaForm.ubicacion) {
-      setErrorLocal('Completa la ubicación para agregar la partida.');
-      return;
-    }
-
-    const cantidad = parseInt(piezaForm.cantidad) || 1;
-    if (cantidad < 1 || cantidad > 20) {
-      setErrorLocal('La cantidad de piezas debe ser entre 1 y 20.');
-      return;
-    }
-
-    // Validar que todas las medidas estén completas
-    const medidas = piezaForm.medidas || [];
-    for (let i = 0; i < cantidad; i++) {
-      const medida = medidas[i];
-      if (!medida || !medida.ancho || !medida.alto) {
-        setErrorLocal(`Completa las medidas de la pieza ${i + 1}.`);
-        return;
-      }
-    }
-
-    // Encontrar el label del producto seleccionado (incluyendo productos personalizados)
-    const productoSeleccionado = todosLosProductos.find(p => p.value === piezaForm.producto);
-    const productoLabel = productoSeleccionado ? productoSeleccionado.label : piezaForm.productoLabel || piezaForm.producto;
-    
-    // Procesar medidas individuales con productos específicos
-    const medidasProcesadas = medidas.slice(0, cantidad).map((medida, index) => ({
-      ancho: parseFloat(medida.ancho) || 0,
-      alto: parseFloat(medida.alto) || 0,
-      area: unidad === 'cm' ? 
-        (parseFloat(medida.ancho) * parseFloat(medida.alto)) / 10000 : 
-        parseFloat(medida.ancho) * parseFloat(medida.alto),
-      producto: medida.producto || piezaForm.producto,
-      productoLabel: medida.productoLabel || piezaForm.productoLabel,
-      color: medida.color || piezaForm.color,
-      precioM2: medida.precioM2 || piezaForm.precioM2 || ''
-    }));
-
-    // Crear la partida (una sola entrada que representa múltiples piezas)
-    const nuevaPartida = {
-      ...piezaForm,
-      cantidad: cantidad,
-      medidas: medidasProcesadas, // Array de medidas individuales
-      precioM2: parseFloat(piezaForm.precioM2) || precioGeneral,
-      productoLabel: productoLabel,
-      // Preservar información de toldos
-      esToldo: piezaForm.esToldo || false,
-      tipoToldo: piezaForm.tipoToldo || 'caida_vertical',
-      kitModelo: piezaForm.kitModelo || '',
-      kitModeloManual: piezaForm.kitModeloManual || '',
-      kitPrecio: piezaForm.kitPrecio || '',
-      // Preservar información de motorización
-      motorizado: piezaForm.motorizado || false,
-      motorModelo: piezaForm.motorModelo || '',
-      motorModeloManual: piezaForm.motorModeloManual || '',
-      motorPrecio: piezaForm.motorPrecio || '',
-      controlModelo: piezaForm.controlModelo || '',
-      controlModeloManual: piezaForm.controlModeloManual || '',
-      controlPrecio: piezaForm.controlPrecio || '',
-      // Agregar descripción de la partida
-      observaciones: `${piezaForm.observaciones ? piezaForm.observaciones + ' - ' : ''}Partida de ${cantidad} pieza${cantidad > 1 ? 's' : ''}`
-    };
-
-    if (editandoPieza && indiceEditando >= 0) {
-      // Actualizar partida existente
-      setPiezas((prev) => {
-        const nuevasPiezas = [...prev];
-        nuevasPiezas[indiceEditando] = nuevaPartida;
-        return nuevasPiezas;
-      });
-      
-      const mensaje = `✅ Se actualizó partida con ${cantidad} pieza${cantidad > 1 ? 's' : ''} en ${piezaForm.ubicacion}`;
-      setErrorLocal('');
-      setTimeout(() => {
-        setErrorLocal(mensaje);
-        setTimeout(() => setErrorLocal(''), 4000);
-      }, 100);
-      
-      // Limpiar estado de edición
-      setEditandoPieza(false);
-      setIndiceEditando(-1);
-    } else {
-      // Agregar nueva partida
-      setPiezas((prev) => [...prev, nuevaPartida]);
-      
-      const mensaje = `✅ Se agregó partida con ${cantidad} pieza${cantidad > 1 ? 's' : ''} en ${piezaForm.ubicacion}`;
-      setErrorLocal('');
-      setTimeout(() => {
-        setErrorLocal(mensaje);
-        setTimeout(() => setErrorLocal(''), 4000);
-      }, 100);
-    }
-    
-    setPiezaForm(emptyPieza);
-    setAgregandoPieza(false);
-  };
-
-  const handleEliminarPieza = (index) => {
-    setPiezas((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleEditarPieza = (index) => {
-    const piezaAEditar = piezas[index];
-    
-    // Cargar datos de la pieza en el formulario
-    setPiezaForm({
-      ubicacion: piezaAEditar.ubicacion,
-      cantidad: piezaAEditar.cantidad || (piezaAEditar.medidas ? piezaAEditar.medidas.length : 1),
-      medidas: piezaAEditar.medidas || [{ 
-        ancho: piezaAEditar.ancho || '', 
-        alto: piezaAEditar.alto || '',
-        producto: piezaAEditar.producto,
-        productoLabel: piezaAEditar.productoLabel,
-        color: piezaAEditar.color,
-        precioM2: piezaAEditar.precioM2
-      }],
-      producto: piezaAEditar.producto,
-      productoLabel: piezaAEditar.productoLabel,
-      color: piezaAEditar.color,
-      precioM2: piezaAEditar.precioM2 || '',
-      observaciones: piezaAEditar.observaciones || '',
-      fotoUrls: piezaAEditar.fotoUrls || [],
-      videoUrl: piezaAEditar.videoUrl || '',
-      // Cargar información de toldos
-      esToldo: piezaAEditar.esToldo || false,
-      tipoToldo: piezaAEditar.tipoToldo || 'caida_vertical',
-      kitModelo: piezaAEditar.kitModelo || '',
-      kitModeloManual: piezaAEditar.kitModeloManual || '',
-      kitPrecio: piezaAEditar.kitPrecio || '',
-      // Cargar información de motorización
-      motorizado: piezaAEditar.motorizado || false,
-      motorModelo: piezaAEditar.motorModelo || '',
-      motorModeloManual: piezaAEditar.motorModeloManual || '',
-      motorPrecio: piezaAEditar.motorPrecio || '',
-      controlModelo: piezaAEditar.controlModelo || '',
-      controlModeloManual: piezaAEditar.controlModeloManual || '',
-      controlPrecio: piezaAEditar.controlPrecio || ''
-    });
-    
-    setIndiceEditando(index);
-    setEditandoPieza(true);
-    setAgregandoPieza(true);
-  };
-
-  const handleCancelarEdicion = () => {
-    setEditandoPieza(false);
-    setIndiceEditando(-1);
-    setPiezaForm(emptyPieza);
-    setAgregandoPieza(false);
   };
 
   const handleCrearNuevoProducto = () => {
@@ -1876,7 +1594,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                 // Propagar a todas las medidas individuales
                                 medidas: medidasActualizadas,
                                 // Detectar automáticamente si es toldo
-                                esToldo: esToldo(nuevoProducto),
+                                esToldo: esProductoToldo(nuevoProducto),
                                 // Reset campos específicos al cambiar producto
                                 kitModelo: '',
                                 kitModeloManual: '',
@@ -2539,7 +2257,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                       )}
 
                       {/* Sección de Kit de Toldo - Solo para toldos */}
-                      {esToldo(piezaForm.producto) && (
+                      {esProductoToldo(piezaForm.producto) && (
                         <>
                           <Grid item xs={12}>
                             <Typography variant="h6" sx={{ mt: 2, mb: 1, color: 'primary.main' }}>
@@ -2612,7 +2330,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                       )}
 
                       {/* Sección de Motorización Simplificada */}
-                      {puedeSerMotorizado(piezaForm.producto) && (
+                      {esProductoMotorizable(piezaForm.producto) && (
                         <>
                           <Grid item xs={12}>
                             <Typography variant="h6" sx={{ mt: 2, mb: 1, color: 'secondary.main' }}>
@@ -3476,8 +3194,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                     const subtotalM2 = areaTotal * precio;
                     
                     // Calcular costos adicionales
-                    const esProductoToldo = esToldo(pieza.producto) || pieza.esToldo;
-                    const kitPrecio = esProductoToldo && pieza.kitPrecio ? parseFloat(pieza.kitPrecio) : 0;
+                    const productoEsToldo = esProductoToldo(pieza.producto) || pieza.esToldo;
+                    const kitPrecio = productoEsToldo && pieza.kitPrecio ? parseFloat(pieza.kitPrecio) : 0;
                     
                     // Motorización: usar la nueva lógica corregida
                     const numMotores = pieza.numMotores || 1;
