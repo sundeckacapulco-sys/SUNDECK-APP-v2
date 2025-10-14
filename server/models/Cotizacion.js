@@ -45,13 +45,27 @@ const cotizacionSchema = new mongoose.Schema({
     ancho: Number,
     alto: Number,
     area: Number,
-    productoId: { type: String }, // <-- CAMBIO AQUÍ: Ahora es String en lugar de ObjectId
+    nombre: String,
     nombreProducto: String,
+    productoLabel: String,
+    descripcion: String,
+    categoria: String,
+    material: String,
+    productoId: { type: String }, // <-- CAMBIO AQUÍ: Ahora es String en lugar de ObjectId
     color: String,
     precioM2: Number,
+    precioUnitario: Number,
+    subtotal: Number,
     observaciones: String,
     fotoUrls: [String],
     videoUrl: String,
+    medidas: {
+      ancho: Number,
+      alto: Number,
+      area: Number
+    },
+    requiereR24: { type: Boolean, default: false },
+    tiempoFabricacion: Number,
     esToldo: { type: Boolean, default: false },
     tipoToldo: String,
     kitModelo: String,

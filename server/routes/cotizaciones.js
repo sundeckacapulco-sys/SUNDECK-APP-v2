@@ -197,6 +197,7 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
 
         productos.push({
           nombre: medida.productoLabel || medida.producto || pieza.productoLabel || pieza.producto || 'Producto personalizado',
+          productoLabel: medida.productoLabel || medida.producto || pieza.productoLabel || pieza.producto || 'Producto personalizado',
           descripcion: `Ubicación: ${pieza.ubicacion}${pieza.observaciones ? ` - ${pieza.observaciones}` : ''}${cantidadPiezas > 1 ? ` (pieza ${medidaIndex + 1} de ${cantidadPiezas})` : ''}`,
           categoria: pieza.esToldo ? 'toldo' : 'ventana',
           material: pieza.material || 'Aluminio',
@@ -234,6 +235,7 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       if (pieza.esToldo && kitPrecio > 0) {
         productos.push({
           nombre: pieza.kitModelo || pieza.kitModeloManual || 'Kit para toldo',
+          productoLabel: pieza.kitModelo || pieza.kitModeloManual || 'Kit para toldo',
           descripcion: `Accesorios para instalación en ${pieza.ubicacion}`,
           categoria: 'kit',
           material: 'Accesorio',
@@ -252,9 +254,10 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
         // Usar la nueva lógica de motores: numMotores o por defecto 1
         const numMotores = pieza.numMotores || 1;
         const subtotalMotores = motorPrecio * numMotores;
-        
+
         productos.push({
           nombre: pieza.motorModelo || pieza.motorModeloManual || 'Motor para toldo',
+          productoLabel: pieza.motorModelo || pieza.motorModeloManual || 'Motor para toldo',
           descripcion: `Motorización para ${pieza.ubicacion} (${numMotores} motor${numMotores > 1 ? 'es' : ''} para ${cantidadPiezas} pieza${cantidadPiezas > 1 ? 's' : ''})`,
           categoria: 'motor',
           material: 'Accesorio',
@@ -275,9 +278,10 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
         const cantidadControles = pieza.esControlMulticanal ? 1 : numMotores;
         const subtotalControles = controlPrecio * cantidadControles;
         const tipoControl = pieza.esControlMulticanal ? 'multicanal' : 'individual';
-        
+
         productos.push({
           nombre: pieza.controlModelo || pieza.controlModeloManual || 'Control remoto',
+          productoLabel: pieza.controlModelo || pieza.controlModeloManual || 'Control remoto',
           descripcion: `Control ${tipoControl} para ${pieza.ubicacion} (${cantidadControles} control${cantidadControles > 1 ? 'es' : ''} para ${cantidadPiezas} pieza${cantidadPiezas > 1 ? 's' : ''})`,
           categoria: 'control',
           material: 'Accesorio',
@@ -445,8 +449,41 @@ router.get('/:id', auth, verificarPermiso('cotizaciones', 'leer'), async (req, r
     console.log('- Prospecto:', cotizacion.prospecto?.nombre);
     console.log('- Productos:', cotizacion.productos?.length || 0);
     console.log('- Total:', cotizacion.total);
-    
-    res.json(cotizacion);
+
+    const cotizacionNormalizada = cotizacion.toObject({ virtuals: true });
+
+    cotizacionNormalizada.productos = (cotizacionNormalizada.productos || []).map((producto) => {
+      const cantidad = producto.cantidad || 1;
+      const ancho = Number(producto.medidas?.ancho ?? producto.ancho) || 0;
+      const alto = Number(producto.medidas?.alto ?? producto.alto) || 0;
+      const area = Number(producto.medidas?.area ?? producto.area) || (ancho * alto);
+      const precioUnitario = Number(producto.precioUnitario ?? producto.precioM2 ?? 0);
+      const subtotal = Number(producto.subtotal ?? (precioUnitario * area * cantidad));
+      const nombre = producto.nombre
+        || producto.nombreProducto
+        || producto.productoLabel
+        || producto.producto
+        || 'Producto personalizado';
+      const descripcion = producto.descripcion
+        || producto.observaciones
+        || (producto.ubicacion ? `Ubicación: ${producto.ubicacion}` : '');
+
+      return {
+        ...producto,
+        nombre,
+        descripcion,
+        productoLabel: producto.productoLabel || producto.nombreProducto || nombre,
+        medidas: {
+          ancho,
+          alto,
+          area
+        },
+        precioUnitario,
+        subtotal
+      };
+    });
+
+    res.json(cotizacionNormalizada);
   } catch (error) {
     console.error('Error obteniendo cotización:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
