@@ -146,14 +146,34 @@ usuarioSchema.methods.enHorarioTrabajo = function() {
   const ahora = new Date();
   const dia = ahora.getDay();
   const hora = ahora.getHours() * 100 + ahora.getMinutes();
-  
-  if (!this.configuracion.horarioTrabajo.diasSemana.includes(dia)) {
+
+  const horarioTrabajo = this.configuracion?.horarioTrabajo;
+  if (!horarioTrabajo) {
     return false;
   }
-  
-  const inicio = parseInt(this.configuracion.horarioTrabajo.inicio.replace(':', ''));
-  const fin = parseInt(this.configuracion.horarioTrabajo.fin.replace(':', ''));
-  
+
+  const diasSemana = Array.isArray(horarioTrabajo.diasSemana)
+    ? horarioTrabajo.diasSemana
+    : [];
+
+  if (!diasSemana.includes(dia)) {
+    return false;
+  }
+
+  const inicioStr = horarioTrabajo.inicio;
+  const finStr = horarioTrabajo.fin;
+
+  if (!inicioStr || !finStr) {
+    return false;
+  }
+
+  const inicio = parseInt(inicioStr.replace(':', ''));
+  const fin = parseInt(finStr.replace(':', ''));
+
+  if (Number.isNaN(inicio) || Number.isNaN(fin)) {
+    return false;
+  }
+
   return hora >= inicio && hora <= fin;
 };
 
