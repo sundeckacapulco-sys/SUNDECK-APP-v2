@@ -597,8 +597,12 @@ class PDFService {
         normal: '📝 Cotización Normal'
       };
 
+      const productos = Array.isArray(cotizacion?.productos)
+        ? cotizacion.productos
+        : [];
+
       const templateData = {
-        ...cotizacion.toObject(),
+        ...(typeof cotizacion?.toObject === 'function' ? cotizacion.toObject() : cotizacion),
         fecha: this.formatDate(cotizacion.fecha),
         validoHasta: this.formatDate(cotizacion.validoHasta),
         subtotal: this.formatCurrency(cotizacion.subtotal),
@@ -607,7 +611,7 @@ class PDFService {
         incluirIVA: cotizacion.incluirIVA !== false, // Por defecto true si no está definido
         costoInstalacion: cotizacion.costoInstalacion ? this.formatCurrency(cotizacion.costoInstalacion) : null,
         origenLabel: origenLabels[cotizacion.origen] || origenLabels.normal,
-        productos: cotizacion.productos.map(producto => {
+        productos: productos.map(producto => {
           const productoData = typeof producto.toObject === 'function' ? producto.toObject() : producto;
           const medidas = productoData.medidas || {};
 
@@ -642,12 +646,20 @@ class PDFService {
         formaPago: cotizacion.formaPago ? {
           ...cotizacion.formaPago,
           anticipo: {
-            ...cotizacion.formaPago.anticipo,
-            monto: this.formatCurrency(cotizacion.formaPago.anticipo?.monto)
+            ...(cotizacion.formaPago.anticipo || {}),
+            monto: this.formatCurrency(
+              typeof cotizacion.formaPago.anticipo === 'object'
+                ? cotizacion.formaPago.anticipo?.monto
+                : cotizacion.formaPago.anticipo
+            )
           },
           saldo: {
-            ...cotizacion.formaPago.saldo,
-            monto: this.formatCurrency(cotizacion.formaPago.saldo?.monto)
+            ...(cotizacion.formaPago.saldo || {}),
+            monto: this.formatCurrency(
+              typeof cotizacion.formaPago.saldo === 'object'
+                ? cotizacion.formaPago.saldo?.monto
+                : cotizacion.formaPago.saldo
+            )
           }
         } : null,
         descuento: cotizacion.descuento?.monto ? {
