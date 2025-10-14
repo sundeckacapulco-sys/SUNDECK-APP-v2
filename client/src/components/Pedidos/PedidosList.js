@@ -55,7 +55,7 @@ const PedidosList = () => {
   const [pagoSaldoModalOpen, setPagoSaldoModalOpen] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('todos');
+  const [filtroEstado, setFiltroEstado] = useState('');
   
   // Estados para WhatsApp
   const [openWhatsApp, setOpenWhatsApp] = useState(false);
@@ -149,7 +149,7 @@ const PedidosList = () => {
   };
 
   const calcularProgreso = (pedido) => {
-    const estados = ['confirmado', 'en_fabricacion', 'fabricado', 'instalado'];
+    const estados = ['confirmado', 'en_fabricacion', 'fabricado', 'en_instalacion', 'instalado', 'entregado'];
     const estadoActual = pedido.estado;
     const indiceActual = estados.indexOf(estadoActual);
     return indiceActual >= 0 ? ((indiceActual + 1) / estados.length) * 100 : 0;
@@ -228,14 +228,16 @@ const PedidosList = () => {
             <MenuItem value="confirmado">📋 Confirmado</MenuItem>
             <MenuItem value="en_fabricacion">🔨 En Fabricación</MenuItem>
             <MenuItem value="fabricado">✅ Fabricado</MenuItem>
+            <MenuItem value="en_instalacion">🚚 En Instalación</MenuItem>
             <MenuItem value="instalado">🏠 Instalado</MenuItem>
+            <MenuItem value="entregado">✅ Entregado</MenuItem>
           </Select>
         </FormControl>
       </Box>
 
       {/* Estadísticas rápidas */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
           <Card sx={{ bgcolor: '#e3f2fd', border: '2px solid #2196f3' }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
@@ -247,7 +249,7 @@ const PedidosList = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
           <Card sx={{ bgcolor: '#fff3e0', border: '2px solid #ff9800' }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ color: '#f57c00', fontWeight: 'bold' }}>
@@ -259,7 +261,7 @@ const PedidosList = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
           <Card sx={{ bgcolor: '#e8f5e8', border: '2px solid #4caf50' }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ color: '#388e3c', fontWeight: 'bold' }}>
@@ -271,7 +273,19 @@ const PedidosList = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
+          <Card sx={{ bgcolor: '#e1f5fe', border: '2px solid #00bcd4' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" sx={{ color: '#0097a7', fontWeight: 'bold' }}>
+                {pedidos.filter(p => p.estado === 'en_instalacion').length}
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#666' }}>
+                🚚 En Instalación
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={2}>
           <Card sx={{ bgcolor: '#f3e5f5', border: '2px solid #9c27b0' }}>
             <CardContent sx={{ textAlign: 'center', py: 2 }}>
               <Typography variant="h4" sx={{ color: '#7b1fa2', fontWeight: 'bold' }}>
@@ -279,6 +293,18 @@ const PedidosList = () => {
               </Typography>
               <Typography variant="body2" sx={{ color: '#666' }}>
                 🏠 Instalados
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={2}>
+          <Card sx={{ bgcolor: '#e8f5e8', border: '2px solid #4caf50' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant="h4" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>
+                {pedidos.filter(p => p.estado === 'entregado').length}
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#666' }}>
+                ✅ Entregados
               </Typography>
             </CardContent>
           </Card>
