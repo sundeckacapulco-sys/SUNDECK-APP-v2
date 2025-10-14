@@ -85,7 +85,7 @@ router.post('/', auth, verificarPermiso('plantillas', 'crear'), async (req, res)
 });
 
 // Obtener mejores plantillas - FUNCIONAL CON DATOS REALES
-router.get('/mejores', async (req, res) => {
+router.get('/mejores', auth, verificarPermiso('plantillas', 'leer'), async (req, res) => {
   try {
     console.log('=== OBTENIENDO MEJORES PLANTILLAS ===');
 
@@ -357,7 +357,7 @@ router.post('/tracking', auth, async (req, res) => {
 });
 
 // Obtener estadísticas generales - FUNCIONAL CON DATOS REALES
-router.get('/estadisticas/resumen', async (req, res) => {
+router.get('/estadisticas/resumen', auth, verificarPermiso('plantillas', 'leer'), async (req, res) => {
   try {
     console.log('=== OBTENIENDO ESTADÍSTICAS RESUMEN ===');
     
