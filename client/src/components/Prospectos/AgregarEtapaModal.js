@@ -36,11 +36,14 @@ import CapturaModal from '../Common/CapturaModal';
 import axiosConfig from '../../config/axios';
 import {
   mapearPiezaParaDocumento,
-  calcularTotales,
   crearResumenEconomico,
   crearInfoFacturacion,
   crearMetodoPago
 } from '../../utils/cotizacionEnVivo';
+import { useCotizacionStore } from '../../stores/cotizacionStore';
+import { calcularTotales as calcularTotalesUnificado } from '../../services/calculosService';
+import { normalizarParaBackend } from '../../services/normalizacionService';
+import { validarCompletitud } from '../../services/validacionService';
 import {
   etapaOptions,
   productosOptions,
@@ -113,6 +116,14 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   // Estado para captura de pantalla
   const [capturaModalOpen, setCapturaModalOpen] = useState(false);
 
+  // Store central de cotización
+  const productosStore = useCotizacionStore((state) => state.productos);
+  const comercialStore = useCotizacionStore((state) => state.comercial);
+  const setProductosStore = useCotizacionStore((state) => state.setProductos);
+  const updateComercialSection = useCotizacionStore((state) => state.updateComercialSection);
+  const resetCotizacionStore = useCotizacionStore((state) => state.reset);
+  const setFlujoStore = useCotizacionStore((state) => state.setFlujo);
+
   // Función para establecer fecha y hora actual
   const establecerFechaHoraActual = () => {
     const ahora = new Date();
@@ -158,6 +169,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setHoraEtapa('');
     // Reset productos personalizados
     setProductosPersonalizados([]);
+    resetCotizacionStore();
   };
 
   useEffect(() => {
@@ -233,7 +245,230 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setErrorLocal
   });
 
+  const productosCotizacion = useMemo(() => {
+    if (tipoVisitaInicial !== 'cotizacion') {
+      return [];
+    }
+
+    return piezas.map((pieza, index) => {
+      const medidas = Array.isArray(pieza.medidas) ? pieza.medidas : [];
+      const detalles = medidas.map((medida) => {
+        const ancho = Number(medida?.ancho) || 0;
+        const alto = Number(medida?.alto) || 0;
+        const area =
+          Number(medida?.area) ||
+          (unidad === 'cm' ? (ancho * alto) / 10000 : ancho * alto);
+
+        return {
+          ...medida,
+          ancho,
+          alto,
+          area: Number.isFinite(area) ? area : 0,
+        };
+      });
+
+      const cantidad = detalles.length > 0 ? detalles.length : parseInt(pieza.cantidad, 10) || 1;
+      let areaTotal = detalles.reduce((total, detalle) => total + (detalle.area || 0), 0);
+
+      if (areaTotal <= 0) {
+        const ancho = Number(pieza.ancho) || 0;
+        const alto = Number(pieza.alto) || 0;
+        const areaBase = unidad === 'cm' ? (ancho * alto) / 10000 : ancho * alto;
+        areaTotal = areaBase * Math.max(cantidad, 1);
+      }
+
+      const precioUnitario = parseFloat(pieza.precioM2) || precioGeneral || 0;
+      const subtotalM2 = areaTotal * precioUnitario;
+
+      const esToldoProducto = esProductoToldo(pieza.producto) || Boolean(pieza.esToldo);
+      const kitPrecioUnitario = esToldoProducto ? parseFloat(pieza.kitPrecio) || 0 : 0;
+      const subtotalKit = kitPrecioUnitario * Math.max(cantidad, 1);
+
+      const motorizado = Boolean(pieza.motorizado);
+      const numMotores = motorizado ? parseInt(pieza.numMotores, 10) || 1 : 0;
+      const motorPrecioUnitario = motorizado ? parseFloat(pieza.motorPrecio) || 0 : 0;
+      const subtotalMotores = motorizado ? motorPrecioUnitario * Math.max(numMotores, 1) : 0;
+
+      const controlPrecioUnitario = motorizado ? parseFloat(pieza.controlPrecio) || 0 : 0;
+      const subtotalControles = motorizado
+        ? pieza.esControlMulticanal
+          ? controlPrecioUnitario
+          : controlPrecioUnitario * Math.max(numMotores, 1)
+        : 0;
+
+      const subtotal = Number(
+        (subtotalM2 + subtotalKit + subtotalMotores + subtotalControles).toFixed(2)
+      );
+
+      return {
+        id: pieza._id || index,
+        nombre: pieza.productoLabel || pieza.producto || `Partida ${index + 1}`,
+        ubicacion: pieza.ubicacion || '',
+        medidas: {
+          ancho: detalles[0]?.ancho ?? Number(pieza.ancho) || 0,
+          alto: detalles[0]?.alto ?? Number(pieza.alto) || 0,
+          area: Number(areaTotal.toFixed(4)),
+          cantidad: Math.max(cantidad, 1),
+          detalles,
+        },
+        precios: {
+          unitario: precioUnitario,
+          subtotal,
+        },
+        tecnico: {
+          tipoControl: pieza.controlModelo || '',
+          orientacion: pieza.orientacion || pieza.orientacionLamellas || '',
+          instalacion: pieza.tipoInstalacion || '',
+          eliminacion: pieza.eliminacion || '',
+          risoAlto: pieza.risoAlto || '',
+          risoBajo: pieza.risoBajo || '',
+          sistema: pieza.sistema || '',
+          telaMarca: pieza.telaMarca || '',
+          baseTabla: pieza.baseTabla || '',
+          observaciones: pieza.observaciones || '',
+        },
+        extras: {
+          motorizado,
+          esToldo: esToldoProducto,
+          kits:
+            kitPrecioUnitario > 0
+              ? [
+                  {
+                    id: pieza.kitModelo || 'kit',
+                    descripcion: pieza.kitModeloManual || '',
+                    precio: kitPrecioUnitario,
+                    cantidad: Math.max(cantidad, 1),
+                  },
+                ]
+              : [],
+          otros: {
+            kit: subtotalKit,
+            motor: subtotalMotores,
+            control: subtotalControles,
+          },
+        },
+        metadata: {
+          piezaOriginal: pieza,
+        },
+      };
+    });
+  }, [tipoVisitaInicial, piezas, unidad, precioGeneral]);
+
+  useEffect(() => {
+    if (tipoVisitaInicial === 'cotizacion') {
+      setProductosStore(productosCotizacion);
+    }
+  }, [tipoVisitaInicial, productosCotizacion, setProductosStore]);
+
+  useEffect(() => {
+    if (tipoVisitaInicial === 'cotizacion') {
+      setFlujoStore({ tipo: 'cotizacion_vivo', origen: 'cotizacion_vivo' });
+    }
+  }, [tipoVisitaInicial, setFlujoStore]);
+
+  const totalPiezasCotizacion = useMemo(() => {
+    if (tipoVisitaInicial !== 'cotizacion') {
+      return 0;
+    }
+
+    return piezas.reduce((total, pieza) => {
+      if (pieza.medidas && Array.isArray(pieza.medidas)) {
+        return total + pieza.medidas.length;
+      }
+      return total + (parseInt(pieza.cantidad, 10) || 1);
+    }, 0);
+  }, [tipoVisitaInicial, piezas]);
+
+  const precioInstalacionCalculado = useMemo(() => {
+    if (tipoVisitaInicial !== 'cotizacion' || !cobraInstalacion) {
+      return 0;
+    }
+
+    const base = parseFloat(precioInstalacion) || 0;
+
+    if (tipoInstalacion === 'por_pieza') {
+      return base * Math.max(totalPiezasCotizacion, 1);
+    }
+
+    if (tipoInstalacion === 'base_mas_pieza') {
+      const adicional = parseFloat(precioInstalacionPorPieza) || 0;
+      const piezasAdicionales = Math.max(0, Math.max(totalPiezasCotizacion, 1) - 1);
+      return base + adicional * piezasAdicionales;
+    }
+
+    return base;
+  }, [
+    tipoVisitaInicial,
+    cobraInstalacion,
+    precioInstalacion,
+    tipoInstalacion,
+    precioInstalacionPorPieza,
+    totalPiezasCotizacion,
+  ]);
+
+  useEffect(() => {
+    if (tipoVisitaInicial === 'cotizacion') {
+      updateComercialSection('instalacionEspecial', {
+        activa: cobraInstalacion,
+        tipo: tipoInstalacion,
+        precio: precioInstalacionCalculado,
+      });
+    }
+  }, [
+    tipoVisitaInicial,
+    cobraInstalacion,
+    tipoInstalacion,
+    precioInstalacionCalculado,
+    updateComercialSection,
+  ]);
+
+  useEffect(() => {
+    if (tipoVisitaInicial === 'cotizacion') {
+      updateComercialSection('descuentos', {
+        activo: aplicaDescuento,
+        tipo: tipoDescuento,
+        valor: aplicaDescuento ? parseFloat(valorDescuento) || 0 : 0,
+      });
+    }
+  }, [
+    tipoVisitaInicial,
+    aplicaDescuento,
+    tipoDescuento,
+    valorDescuento,
+    updateComercialSection,
+  ]);
+
+  useEffect(() => {
+    if (tipoVisitaInicial === 'cotizacion') {
+      updateComercialSection('facturacion', {
+        requiereFactura,
+        iva: requiereFactura ? 0.16 : 0,
+      });
+    }
+  }, [tipoVisitaInicial, requiereFactura, updateComercialSection]);
+
+  useEffect(() => {
+    if (tipoVisitaInicial === 'cotizacion') {
+      updateComercialSection('tiempos', {
+        entrega: tiempoEntrega,
+        tipo: tiempoEntrega,
+      });
+    }
+  }, [tipoVisitaInicial, tiempoEntrega, updateComercialSection]);
+
+  const totalesCotizacion = useMemo(() => {
+    if (tipoVisitaInicial !== 'cotizacion') {
+      return null;
+    }
+
+    return calcularTotalesUnificado(productosStore, comercialStore);
+  }, [tipoVisitaInicial, productosStore, comercialStore]);
+
   const calcularTotalM2 = useMemo(() => {
+    if (tipoVisitaInicial === 'cotizacion' && totalesCotizacion) {
+      return totalesCotizacion.totalArea || 0;
+    }
+
     return piezas.reduce((total, pieza) => {
       // Si tiene medidas individuales, usar esas
       if (pieza.medidas && Array.isArray(pieza.medidas)) {
@@ -250,13 +485,17 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         return total + (area * cantidad);
       }
     }, 0);
-  }, [piezas, unidad]);
+  }, [tipoVisitaInicial, totalesCotizacion, piezas, unidad]);
 
   // Calcular subtotal de productos con precios específicos
   const calcularSubtotalProductos = useMemo(() => {
+    if (tipoVisitaInicial === 'cotizacion' && totalesCotizacion) {
+      return totalesCotizacion.subtotalProductos || 0;
+    }
+
     return piezas.reduce((total, pieza) => {
       let areaPieza = 0;
-      
+
       if (pieza.medidas && Array.isArray(pieza.medidas)) {
         areaPieza = pieza.medidas.reduce((subtotal, medida) => {
           return subtotal + (medida.area || 0);
@@ -302,29 +541,46 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           }
         }
       }
-      
+
       return total + subtotalPieza;
     }, 0);
-  }, [piezas, unidad, precioGeneral]);
+  }, [tipoVisitaInicial, totalesCotizacion, piezas, unidad, precioGeneral]);
 
   // Calcular descuento
   const calcularDescuento = useMemo(() => {
+    if (tipoVisitaInicial === 'cotizacion' && totalesCotizacion) {
+      return totalesCotizacion.descuento?.monto || 0;
+    }
+
     if (!aplicaDescuento || !valorDescuento) return 0;
-    
+
     const subtotalConInstalacion = calcularSubtotalProductos + (cobraInstalacion ? parseFloat(precioInstalacion) || 0 : 0);
-    
+
     if (tipoDescuento === 'porcentaje') {
       const porcentaje = parseFloat(valorDescuento) || 0;
       return (subtotalConInstalacion * porcentaje) / 100;
     } else {
       return parseFloat(valorDescuento) || 0;
     }
-  }, [aplicaDescuento, valorDescuento, tipoDescuento, calcularSubtotalProductos, cobraInstalacion, precioInstalacion]);
+  }, [
+    tipoVisitaInicial,
+    totalesCotizacion,
+    aplicaDescuento,
+    valorDescuento,
+    tipoDescuento,
+    calcularSubtotalProductos,
+    cobraInstalacion,
+    precioInstalacion,
+  ]);
 
   // Calcular IVA y total con factura
   const calcularIVA = useMemo(() => {
+    if (tipoVisitaInicial === 'cotizacion' && totalesCotizacion) {
+      return Math.round((totalesCotizacion.iva?.monto || 0) * 100) / 100;
+    }
+
     if (!requiereFactura) return 0;
-    
+
     // Calcular instalación según el tipo
     let costoInstalacion = 0;
     if (cobraInstalacion && precioInstalacion) {
@@ -367,9 +623,25 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     const subtotalConDescuento = subtotalConInstalacion - calcularDescuento;
     const iva = Math.round(subtotalConDescuento * 0.16 * 100) / 100; // Redondear a 2 decimales
     return iva;
-  }, [requiereFactura, calcularSubtotalProductos, cobraInstalacion, precioInstalacion, tipoInstalacion, precioInstalacionPorPieza, piezas, piezaForm.medidas, calcularDescuento]);
+  }, [
+    tipoVisitaInicial,
+    totalesCotizacion,
+    requiereFactura,
+    calcularSubtotalProductos,
+    cobraInstalacion,
+    precioInstalacion,
+    tipoInstalacion,
+    precioInstalacionPorPieza,
+    piezas,
+    piezaForm.medidas,
+    calcularDescuento,
+  ]);
 
   const totalConIVA = useMemo(() => {
+    if (tipoVisitaInicial === 'cotizacion' && totalesCotizacion) {
+      return Math.round((totalesCotizacion.iva?.totalConIVA || totalesCotizacion.total || 0) * 100) / 100;
+    }
+
     // Calcular instalación según el tipo
     let costoInstalacion = 0;
     if (cobraInstalacion && precioInstalacion) {
@@ -411,10 +683,26 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     const subtotalConDescuento = subtotalConInstalacion - calcularDescuento;
     const total = Math.round((subtotalConDescuento + calcularIVA) * 100) / 100; // Redondear a 2 decimales
     return total;
-  }, [calcularSubtotalProductos, cobraInstalacion, precioInstalacion, tipoInstalacion, precioInstalacionPorPieza, piezas, piezaForm.medidas, calcularDescuento, calcularIVA]);
+  }, [
+    tipoVisitaInicial,
+    totalesCotizacion,
+    calcularSubtotalProductos,
+    cobraInstalacion,
+    precioInstalacion,
+    tipoInstalacion,
+    precioInstalacionPorPieza,
+    piezas,
+    piezaForm.medidas,
+    calcularDescuento,
+    calcularIVA,
+  ]);
 
   // Calcular total final (con o sin IVA)
   const totalFinal = useMemo(() => {
+    if (tipoVisitaInicial === 'cotizacion' && totalesCotizacion) {
+      return Math.round((totalesCotizacion.total || 0) * 100) / 100;
+    }
+
     if (requiereFactura) {
       return totalConIVA;
     } else {
@@ -457,7 +745,20 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       
       return calcularSubtotalProductos + costoInstalacion - calcularDescuento;
     }
-  }, [requiereFactura, totalConIVA, calcularSubtotalProductos, cobraInstalacion, precioInstalacion, tipoInstalacion, precioInstalacionPorPieza, piezas, piezaForm.medidas, calcularDescuento]);
+  }, [
+    tipoVisitaInicial,
+    totalesCotizacion,
+    requiereFactura,
+    totalConIVA,
+    calcularSubtotalProductos,
+    cobraInstalacion,
+    precioInstalacion,
+    tipoInstalacion,
+    precioInstalacionPorPieza,
+    piezas,
+    piezaForm.medidas,
+    calcularDescuento,
+  ]);
 
   // Calcular anticipo (60%) y saldo (40%)
   const anticipo = useMemo(() => {
@@ -469,6 +770,26 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   }, [totalFinal]);
 
   const resumenEconomico = useMemo(() => {
+    if (tipoVisitaInicial === 'cotizacion' && totalesCotizacion) {
+      return {
+        precioGeneral,
+        totalM2: totalesCotizacion.totalArea,
+        subtotalProductos: totalesCotizacion.subtotalProductos,
+        unidadMedida: unidad,
+        instalacion: {
+          cobra: totalesCotizacion.instalacionEspecial?.activa || false,
+          tipo: totalesCotizacion.instalacionEspecial?.tipo || '',
+          precio: totalesCotizacion.instalacionEspecial?.precio || 0,
+        },
+        descuento: {
+          aplica: totalesCotizacion.descuento?.activo || false,
+          tipo: totalesCotizacion.descuento?.tipo || 'porcentaje',
+          valor: totalesCotizacion.descuento?.valor || 0,
+          monto: totalesCotizacion.descuento?.monto || 0,
+        },
+      };
+    }
+
     return crearResumenEconomico({
       precioGeneral,
       totalM2: calcularTotalM2,
@@ -497,6 +818,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       montoDescuento: calcularDescuento
     });
   }, [
+    tipoVisitaInicial,
+    totalesCotizacion,
     precioGeneral,
     calcularTotalM2,
     calcularSubtotalProductos,
@@ -514,13 +837,35 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   ]);
 
   const infoFacturacion = useMemo(() => {
+    if (tipoVisitaInicial === 'cotizacion' && totalesCotizacion) {
+      const ivaMonto = Math.round((totalesCotizacion.iva?.monto || 0) * 100) / 100;
+      const totalIvaIncluido = Math.round(
+        (totalesCotizacion.iva?.totalConIVA || totalesCotizacion.total || 0) * 100
+      ) / 100;
+      const totalSinIVA = Math.round((totalesCotizacion.subtotalConDescuento || 0) * 100) / 100;
+
+      return crearInfoFacturacion({
+        requiereFactura,
+        iva: ivaMonto,
+        totalConIVA: totalIvaIncluido,
+        totalSinIVA,
+      });
+    }
+
     return crearInfoFacturacion({
       requiereFactura,
       iva: calcularIVA,
       totalConIVA,
       totalSinIVA: totalFinal
     });
-  }, [requiereFactura, calcularIVA, totalConIVA, totalFinal]);
+  }, [
+    tipoVisitaInicial,
+    totalesCotizacion,
+    requiereFactura,
+    calcularIVA,
+    totalConIVA,
+    totalFinal,
+  ]);
 
   const metodoPagoInfo = useMemo(() => {
     return crearMetodoPago({
@@ -996,6 +1341,43 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       console.log('- Tipo de visita:', tipoVisitaInicial);
       console.log('- Origen asignado:', origenCotizacion);
 
+      if (tipoVisitaInicial === 'cotizacion') {
+        const estadoGlobal = useCotizacionStore.getState();
+        const snapshotStore = {
+          cliente: estadoGlobal.cliente,
+          productos: estadoGlobal.productos,
+          comercial: estadoGlobal.comercial,
+          flujo: { ...estadoGlobal.flujo, tipo: 'cotizacion_vivo', origen: origenCotizacion },
+        };
+
+        const validacion = validarCompletitud(snapshotStore);
+        if (!validacion.esValido) {
+          throw new Error(validacion.errores.join(' '));
+        }
+
+        const payloadCotizacion = normalizarParaBackend(snapshotStore, 'cotizacion_vivo', {
+          prospectoId,
+          piezas,
+          comentarios,
+          unidadMedida: unidad,
+          precioGeneral,
+          tipoVisitaInicial,
+          facturacion: infoFacturacion,
+          metodoPago: metodoPagoInfo,
+          totalFinal,
+          totalM2: calcularTotalM2,
+          fechaEtapa: fechaEtapa || undefined,
+          horaEtapa: horaEtapa || undefined,
+        });
+
+        console.log('📋 Payload para desde-visita (cotización en vivo unificada):', payloadCotizacion);
+
+        const response = await axiosConfig.post('/cotizaciones/desde-visita', payloadCotizacion);
+        onSaved(`Cotización en vivo generada exitosamente: ${response.data.cotizacion.numero}`);
+        onClose();
+        return;
+      }
+
       const piezasNormalizadas = piezas.map((pieza) =>
         mapearPiezaParaDocumento(pieza, { incluirExtras: true })
       );
@@ -1043,8 +1425,10 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       onClose();
     } catch (error) {
       console.error('Error al generar cotización:', error);
-      setErrorLocal(error.response?.data?.message || 'Error al generar la cotización. Revise los datos.');
-      onError(error.response?.data?.message || 'Error al generar la cotización.');
+      const mensajeError =
+        error.response?.data?.message || error.message || 'Error al generar la cotización. Revise los datos.';
+      setErrorLocal(mensajeError);
+      onError(mensajeError);
     } finally {
       setGenerandoCotizacion(false);
     }
