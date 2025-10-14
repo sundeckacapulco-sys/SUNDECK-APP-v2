@@ -149,7 +149,7 @@ const PedidosList = () => {
   };
 
   const calcularProgreso = (pedido) => {
-    const estados = ['confirmado', 'en_fabricacion', 'fabricado', 'instalado'];
+    const estados = ['confirmado', 'en_fabricacion', 'fabricado', 'en_instalacion', 'instalado', 'entregado'];
     const estadoActual = pedido.estado;
     const indiceActual = estados.indexOf(estadoActual);
     return indiceActual >= 0 ? ((indiceActual + 1) / estados.length) * 100 : 0;
