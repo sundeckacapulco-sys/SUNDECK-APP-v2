@@ -241,7 +241,7 @@ const Layout = ({ children }) => {
             </MenuItem>
             
             {/* Módulo de Soporte - Solo para Admins */}
-            {user && user.role === 'admin' && (
+            {user && (user.role === 'admin' || user.role === 'administrador' || user.nombre === 'Admin Sundeck') && (
               <MenuItem onClick={() => {
                 setSoporteModalOpen(true);
                 handleMenuClose();
