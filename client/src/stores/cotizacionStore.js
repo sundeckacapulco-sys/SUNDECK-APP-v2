@@ -7,27 +7,6 @@ const createInitialCliente = () => ({
   direccion: '',
 });
 
-const normalizarDetallesMedidas = (detalles) => {
-  if (!Array.isArray(detalles)) {
-    return [];
-  }
-
-  return detalles.map((detalle) => {
-    const ancho = Number(detalle?.ancho ?? 0);
-    const alto = Number(detalle?.alto ?? 0);
-    const area = Number(
-      detalle?.area ?? (Number.isFinite(ancho) && Number.isFinite(alto) ? ancho * alto : 0)
-    );
-
-    return {
-      ...detalle,
-      ancho: Number.isFinite(ancho) ? ancho : 0,
-      alto: Number.isFinite(alto) ? alto : 0,
-      area: Number.isFinite(area) ? area : 0,
-    };
-  });
-};
-
 const createInitialProducto = (producto = {}) => ({
   id: producto.id ?? null,
   nombre: producto.nombre ?? '',
@@ -37,7 +16,6 @@ const createInitialProducto = (producto = {}) => ({
     alto: Number(producto.medidas?.alto ?? 0),
     area: Number(producto.medidas?.area ?? 0),
     cantidad: Number(producto.medidas?.cantidad ?? 1),
-    detalles: normalizarDetallesMedidas(producto.medidas?.detalles),
   },
   precios: {
     unitario: Number(producto.precios?.unitario ?? 0),
@@ -60,9 +38,6 @@ const createInitialProducto = (producto = {}) => ({
     esToldo: Boolean(producto.extras?.esToldo ?? false),
     kits: producto.extras?.kits ?? [],
     otros: producto.extras?.otros ?? {},
-  },
-  metadata: {
-    ...producto.metadata,
   },
 });
 
@@ -120,10 +95,6 @@ const mergeProducto = (producto, updates = {}) =>
     extras: {
       ...producto.extras,
       ...updates.extras,
-    },
-    metadata: {
-      ...producto.metadata,
-      ...updates.metadata,
     },
   });
 

@@ -20,6 +20,7 @@ import {
   CameraAlt,
   BugReport
 } from '@mui/icons-material';
+import { useSoporte } from './ModuloSoporte';
 // Importación dinámica de html2canvas para evitar problemas de SSR
 
 const CapturaModal = ({ open, onClose, elemento = null, titulo = "Captura de Pantalla" }) => {
@@ -235,7 +236,33 @@ const CapturaModal = ({ open, onClose, elemento = null, titulo = "Captura de Pan
 
 // Componente del botón flotante para captura rápida
 export const BotonCapturaFlotante = ({ elemento = null }) => {
+  const { soporteActivo } = useSoporte();
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [capturaHabilitada, setCapturaHabilitada] = useState(true);
+
+  // Verificar configuración al montar el componente
+  React.useEffect(() => {
+    const configuracion = localStorage.getItem('sundeck_captura_habilitada');
+    if (configuracion !== null) {
+      setCapturaHabilitada(JSON.parse(configuracion));
+    }
+
+    // Escuchar cambios en localStorage
+    const handleStorageChange = () => {
+      const nuevaConfiguracion = localStorage.getItem('sundeck_captura_habilitada');
+      if (nuevaConfiguracion !== null) {
+        setCapturaHabilitada(JSON.parse(nuevaConfiguracion));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // No mostrar el botón si está deshabilitado o el soporte no está activo
+  if (!capturaHabilitada || !soporteActivo) {
+    return null;
+  }
 
   return (
     <>
@@ -247,10 +274,11 @@ export const BotonCapturaFlotante = ({ elemento = null }) => {
             position: 'fixed',
             bottom: 16,
             right: 16,
-            zIndex: 1300,
+            zIndex: 9999, // Por encima de todos los modales
           }}
           className="captura-ignore"
           data-html2canvas-ignore="true"
+          data-testid="boton-captura-flotante"
         >
           <BugReport />
         </Fab>

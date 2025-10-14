@@ -29,10 +29,12 @@ import {
   Warning,
   Info,
   Error,
-  BugReport
+  BugReport,
+  Search
 } from '@mui/icons-material';
 import TextFieldConDictado from '../Common/TextFieldConDictado';
 import CapturaModal from '../Common/CapturaModal';
+import InspectorElementos from '../Common/InspectorElementos';
 import axiosConfig from '../../config/axios';
 import {
   mapearPiezaParaDocumento,
@@ -63,6 +65,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const [generandoCotizacion, setGenerandoCotizacion] = useState(false);
   const [descargandoLevantamiento, setDescargandoLevantamiento] = useState(false);
   const [descargandoExcel, setDescargandoExcel] = useState(false);
+  const [mostrarAdvertenciaExcel, setMostrarAdvertenciaExcel] = useState(false);
+  const [validacionExcel, setValidacionExcel] = useState({});
   const [errorLocal, setErrorLocal] = useState('');
   
   // Estados para productos
@@ -113,8 +117,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const [fechaEtapa, setFechaEtapa] = useState('');
   const [horaEtapa, setHoraEtapa] = useState('');
   
-  // Estado para captura de pantalla
+  // Estado para captura de pantalla e inspector
   const [capturaModalOpen, setCapturaModalOpen] = useState(false);
+  const [inspectorModalOpen, setInspectorModalOpen] = useState(false);
 
   // Store central de cotización
   const productosStore = useCotizacionStore((state) => state.productos);
@@ -1057,6 +1062,100 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     }
   };
 
+  // Función para validar completitud de datos antes de Excel
+  const validarCompletitudDatos = () => {
+    const errores = [];
+    const advertencias = [];
+    const datosCompletos = [];
+    
+    // Validar piezas básicas
+    if (piezas.length === 0) {
+      errores.push('❌ No hay partidas agregadas');
+    } else {
+      datosCompletos.push(`✅ ${piezas.length} partida(s) agregada(s)`);
+    }
+    
+    // Validar medidas de cada pieza
+    piezas.forEach((pieza, index) => {
+      if (!pieza.medidas || pieza.medidas.length === 0) {
+        errores.push(`❌ Partida ${index + 1}: Sin medidas`);
+      } else {
+        const medidasIncompletas = pieza.medidas.filter(m => !m.ancho || !m.alto);
+        if (medidasIncompletas.length > 0) {
+          errores.push(`❌ Partida ${index + 1}: ${medidasIncompletas.length} medida(s) incompleta(s)`);
+        } else {
+          datosCompletos.push(`✅ Partida ${index + 1}: ${pieza.medidas.length} medida(s) completa(s)`);
+        }
+      }
+      
+      // Validar información técnica para levantamientos
+      if (tipoVisitaInicial === 'levantamiento') {
+        const camposTecnicos = ['tipoControl', 'orientacion', 'tipoInstalacion', 'eliminacion', 'risoAlto', 'risoBajo', 'sistema'];
+        const camposFaltantes = [];
+        
+        pieza.medidas?.forEach((medida, mIndex) => {
+          camposTecnicos.forEach(campo => {
+            if (!medida[campo]) {
+              camposFaltantes.push(`${campo}`);
+            }
+          });
+        });
+        
+        if (camposFaltantes.length > 0) {
+          advertencias.push(`⚠️ Partida ${index + 1}: Campos técnicos opcionales sin llenar`);
+        } else {
+          datosCompletos.push(`✅ Partida ${index + 1}: Información técnica completa`);
+        }
+      }
+    });
+    
+    // Validar instalación especial
+    if (cobraInstalacion) {
+      if (!precioInstalacion || precioInstalacion === '0') {
+        advertencias.push('⚠️ Instalación especial activada pero sin precio');
+      } else {
+        datosCompletos.push(`✅ Instalación especial: $${precioInstalacion}`);
+      }
+    }
+    
+    // Validar descuentos
+    if (aplicaDescuento) {
+      if (!valorDescuento) {
+        advertencias.push('⚠️ Descuento activado pero sin valor');
+      } else {
+        datosCompletos.push(`✅ Descuento: ${tipoDescuento === 'porcentaje' ? valorDescuento + '%' : '$' + valorDescuento}`);
+      }
+    }
+    
+    // Validar comentarios
+    if (!comentarios || comentarios.trim() === '') {
+      advertencias.push('⚠️ Sin observaciones generales');
+    } else {
+      datosCompletos.push('✅ Observaciones generales incluidas');
+    }
+    
+    return { errores, advertencias, datosCompletos };
+  };
+  
+  // Función para mostrar modal de advertencia antes de Excel
+  const handleSolicitarExcel = () => {
+    console.log('🔍 handleSolicitarExcel ejecutado');
+    console.log('📊 Piezas actuales:', piezas);
+    console.log('🔧 Estados actuales:', { cobraInstalacion, precioInstalacion, aplicaDescuento, valorDescuento });
+    
+    try {
+      const validacion = validarCompletitudDatos();
+      console.log('✅ Validación completada:', validacion);
+      setValidacionExcel(validacion);
+      setMostrarAdvertenciaExcel(true);
+      console.log('🚀 Modal de advertencia debería abrirse');
+    } catch (error) {
+      console.error('❌ Error en handleSolicitarExcel:', error);
+      setErrorLocal('Error al validar datos: ' + error.message);
+    }
+  };
+  
+  // Función para proceder con descarga de Excel después de confirmación
   const handleDescargarExcel = async () => {
     if (!prospectoId) {
       setErrorLocal('No se encontró el identificador del prospecto.');
@@ -1070,20 +1169,42 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
 
     setDescargandoExcel(true);
     setErrorLocal('');
+    setMostrarAdvertenciaExcel(false);
 
     try {
       const piezasNormalizadas = piezas.map((pieza) =>
         mapearPiezaParaDocumento(pieza, { incluirExtras: true, precioComoNumero: true })
       );
 
+      // Incluir TODA la información del modal
       const payload = {
         prospectoId,
         piezas: piezasNormalizadas,
         ...resumenEconomico,
         facturacion: infoFacturacion,
         metodoPago: metodoPagoInfo,
-        totalFinal
+        totalFinal,
+        // Información adicional que se estaba perdiendo
+        instalacionEspecial: cobraInstalacion ? {
+          activa: true,
+          tipo: tipoInstalacion,
+          precio: Number(precioInstalacion) || 0,
+          precioPorPieza: Number(precioInstalacionPorPieza) || 0
+        } : { activa: false },
+        descuentos: aplicaDescuento ? {
+          activo: true,
+          tipo: tipoDescuento,
+          valor: Number(valorDescuento) || 0
+        } : { activo: false },
+        sugerenciasInteligentes: {
+          porPieza: sugerenciasPorPieza,
+          etapa: sugerenciasEtapa
+        },
+        tipoVisita: tipoVisitaInicial,
+        observacionesGenerales: comentarios
       };
+
+      console.log('📊 Payload completo para Excel:', payload);
 
       const response = await axiosConfig.post('/etapas/levantamiento-excel', payload, {
         responseType: 'blob'
@@ -1093,13 +1214,13 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Levantamiento-Medidas-${Date.now()}.xlsx`);
+      link.setAttribute('download', `Levantamiento-Completo-${Date.now()}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      console.log('✅ Excel descargado exitosamente');
+      console.log('✅ Excel completo descargado exitosamente');
     } catch (error) {
       console.error('Error descargando Excel:', error);
       const mensaje = error.response?.data?.message || 'No se pudo descargar el Excel.';
@@ -1701,6 +1822,14 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           >
             <BugReport />
           </IconButton>
+          <IconButton 
+            onClick={() => setInspectorModalOpen(true)} 
+            size="small"
+            color="info"
+            title="Inspector de elementos"
+          >
+            <Search />
+          </IconButton>
           <IconButton onClick={cerrarModal} size="small">
             <Close />
           </IconButton>
@@ -1832,18 +1961,30 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                   >
                     Agregar Partida
                   </Button>
-                  {/* Solo mostrar Excel para levantamiento técnico */}
+                  {/* Botón Excel mejorado con validación */}
                   <Button
                     variant="contained"
                     size="small"
-                    onClick={handleDescargarExcel}
-                    disabled={descargandoExcel || piezas.length === 0}
-                    sx={{ bgcolor: '#16A34A', '&:hover': { bgcolor: '#15803D' } }}
+                    onClick={() => {
+                      console.log('🖱️ Click en botón Excel detectado');
+                      console.log('📊 Estado del botón:', { 
+                        descargandoExcel, 
+                        piezasLength: piezas?.length,
+                        disabled: descargandoExcel || (piezas && piezas.length === 0)
+                      });
+                      handleSolicitarExcel();
+                    }}
+                    disabled={descargandoExcel}
+                    sx={{ 
+                      bgcolor: '#16A34A', 
+                      '&:hover': { bgcolor: '#15803D' },
+                      fontWeight: 'bold'
+                    }}
                   >
-                    {descargandoExcel ? 'Generando...' : '📊 Descargar Excel'}
+                    {descargandoExcel ? 'Generando...' : '📊 Excel Completo'}
                   </Button>
                   <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                    📋 Excel necesario para realizar cotización
+                    🔒 Fuente única de verdad para fabricación
                   </Typography>
                 </Box>
               </Box>
@@ -4323,6 +4464,127 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         onClose={() => setCapturaModalOpen(false)}
         titulo="Captura para Soporte - Agregar Etapa"
       />
+      
+      {/* Modal de Inspector de Elementos */}
+      <InspectorElementos
+        open={inspectorModalOpen}
+        onClose={() => setInspectorModalOpen(false)}
+      />
+
+      {/* Modal de Advertencia para Excel */}
+      <Dialog 
+        open={mostrarAdvertenciaExcel} 
+        onClose={() => setMostrarAdvertenciaExcel(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          bgcolor: '#16A34A', 
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
+        }}>
+          📊 Exportar Excel Completo - Verificación de Datos
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+              🔒 <strong>IMPORTANTE:</strong> Este Excel será la fuente única de verdad para fabricación.
+            </Typography>
+            <Typography variant="body2">
+              Verifica que toda la información esté completa antes de exportar.
+            </Typography>
+          </Alert>
+
+          {/* Errores críticos */}
+          {validacionExcel.errores && validacionExcel.errores.length > 0 && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                ❌ Errores que deben corregirse:
+              </Typography>
+              {validacionExcel.errores.map((error, index) => (
+                <Typography key={index} variant="body2" sx={{ ml: 2 }}>
+                  • {error}
+                </Typography>
+              ))}
+            </Alert>
+          )}
+
+          {/* Advertencias */}
+          {validacionExcel.advertencias && validacionExcel.advertencias.length > 0 && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                ⚠️ Advertencias (opcional pero recomendado):
+              </Typography>
+              {validacionExcel.advertencias.map((advertencia, index) => (
+                <Typography key={index} variant="body2" sx={{ ml: 2 }}>
+                  • {advertencia}
+                </Typography>
+              ))}
+            </Alert>
+          )}
+
+          {/* Datos completos */}
+          {validacionExcel.datosCompletos && validacionExcel.datosCompletos.length > 0 && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                ✅ Información completa detectada:
+              </Typography>
+              {validacionExcel.datosCompletos.map((dato, index) => (
+                <Typography key={index} variant="body2" sx={{ ml: 2 }}>
+                  • {dato}
+                </Typography>
+              ))}
+            </Alert>
+          )}
+
+          <Box sx={{ 
+            bgcolor: '#f5f5f5', 
+            p: 2, 
+            borderRadius: 1, 
+            border: '1px solid #ddd',
+            mt: 2
+          }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+              📋 El Excel incluirá:
+            </Typography>
+            <Grid container spacing={1}>
+              <Grid item xs={6}>
+                <Typography variant="body2">• Medidas exactas por pieza</Typography>
+                <Typography variant="body2">• Información técnica completa</Typography>
+                <Typography variant="body2">• Precios y cálculos</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="body2">• Instalación especial</Typography>
+                <Typography variant="body2">• Descuentos aplicados</Typography>
+                <Typography variant="body2">• Observaciones generales</Typography>
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button 
+            onClick={() => setMostrarAdvertenciaExcel(false)}
+            color="inherit"
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleDescargarExcel}
+            variant="contained"
+            disabled={validacionExcel.errores && validacionExcel.errores.length > 0}
+            sx={{ 
+              bgcolor: '#16A34A', 
+              '&:hover': { bgcolor: '#15803D' },
+              fontWeight: 'bold'
+            }}
+            startIcon={descargandoExcel ? null : <CloudUpload />}
+          >
+            {descargandoExcel ? 'Generando Excel...' : 'Confirmar y Exportar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };

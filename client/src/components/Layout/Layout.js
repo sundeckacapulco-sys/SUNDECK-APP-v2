@@ -15,7 +15,9 @@ import {
   Avatar,
   Menu,
   MenuItem,
-  Badge
+  Badge,
+  Fab,
+  Chip
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -32,10 +34,17 @@ import {
   Logout,
   Settings,
   Inventory,
-  WhatsApp
+  WhatsApp,
+  Security
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { BotonCapturaFlotante } from '../Common/CapturaModal';
+import { BotonInspectorSimple } from '../Common/InspectorSimple';
+import { BotonDevToolsInspector } from '../Common/DevToolsInspector';
+import { BotonSelectorDirecto } from '../Common/InspectorDirecto';
+import { SoporteProvider } from '../Common/ModuloSoporte';
+import ModuloSoporte from '../Common/ModuloSoporte';
 
 const drawerWidth = 240;
 
@@ -54,11 +63,12 @@ const menuItems = [
 ];
 
 const Layout = ({ children }) => {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [soporteModalOpen, setSoporteModalOpen] = useState(false);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -136,7 +146,8 @@ const Layout = ({ children }) => {
   );
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <SoporteProvider>
+      <Box sx={{ display: 'flex' }}>
       <AppBar
         position="fixed"
         sx={{
@@ -219,12 +230,33 @@ const Layout = ({ children }) => {
               </ListItemText>
             </MenuItem>
             <Divider />
-            <MenuItem onClick={handleMenuClose}>
+            <MenuItem onClick={() => {
+              navigate('/configuracion');
+              handleMenuClose();
+            }}>
               <ListItemIcon>
                 <Settings fontSize="small" />
               </ListItemIcon>
-              Configuración
+              <ListItemText>Configuración</ListItemText>
             </MenuItem>
+            
+            {/* Módulo de Soporte - Solo para Admins */}
+            {user && (user.role === 'admin' || user.role === 'administrador' || user.nombre === 'Admin Sundeck') && (
+              <MenuItem onClick={() => {
+                setSoporteModalOpen(true);
+                handleMenuClose();
+              }}>
+                <ListItemIcon>
+                  <Security fontSize="small" sx={{ color: '#ff9800' }} />
+                </ListItemIcon>
+                <ListItemText>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <span>🔒 Soporte Técnico</span>
+                    <Chip label="Admin" size="small" color="warning" variant="outlined" />
+                  </Box>
+                </ListItemText>
+              </MenuItem>
+            )}
             <MenuItem onClick={handleLogout}>
               <ListItemIcon>
                 <Logout fontSize="small" />
@@ -284,8 +316,22 @@ const Layout = ({ children }) => {
       >
         {children}
       </Box>
-    </Box>
+      
+      {/* Botones flotantes para soporte */}
+      <BotonCapturaFlotante />
+      <BotonInspectorSimple />
+      <BotonDevToolsInspector />
+      <BotonSelectorDirecto />
+      
+      {/* Modal del Módulo de Soporte */}
+      <ModuloSoporte
+        open={soporteModalOpen}
+        onClose={() => setSoporteModalOpen(false)}
+      />
+      </Box>
+    </SoporteProvider>
   );
+
 };
 
 export default Layout;
