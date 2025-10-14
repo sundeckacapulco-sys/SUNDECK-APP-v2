@@ -29,10 +29,12 @@ import {
   Warning,
   Info,
   Error,
-  BugReport
+  BugReport,
+  Search
 } from '@mui/icons-material';
 import TextFieldConDictado from '../Common/TextFieldConDictado';
 import CapturaModal from '../Common/CapturaModal';
+import InspectorElementos from '../Common/InspectorElementos';
 import axiosConfig from '../../config/axios';
 import {
   mapearPiezaParaDocumento,
@@ -110,8 +112,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const [fechaEtapa, setFechaEtapa] = useState('');
   const [horaEtapa, setHoraEtapa] = useState('');
   
-  // Estado para captura de pantalla
+  // Estado para captura de pantalla e inspector
   const [capturaModalOpen, setCapturaModalOpen] = useState(false);
+  const [inspectorModalOpen, setInspectorModalOpen] = useState(false);
 
   // Función para establecer fecha y hora actual
   const establecerFechaHoraActual = () => {
@@ -1316,6 +1319,14 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
             title="Capturar pantalla para soporte"
           >
             <BugReport />
+          </IconButton>
+          <IconButton 
+            onClick={() => setInspectorModalOpen(true)} 
+            size="small"
+            color="info"
+            title="Inspector de elementos"
+          >
+            <Search />
           </IconButton>
           <IconButton onClick={cerrarModal} size="small">
             <Close />
@@ -3938,6 +3949,12 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         open={capturaModalOpen}
         onClose={() => setCapturaModalOpen(false)}
         titulo="Captura para Soporte - Agregar Etapa"
+      />
+      
+      {/* Modal de Inspector de Elementos */}
+      <InspectorElementos
+        open={inspectorModalOpen}
+        onClose={() => setInspectorModalOpen(false)}
       />
     </Dialog>
   );

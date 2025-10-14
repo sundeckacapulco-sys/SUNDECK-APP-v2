@@ -28,6 +28,9 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
+import ConfiguracionCaptura from '../Common/ConfiguracionCaptura';
+import { BotonModuloSoporte } from '../Common/ModuloSoporte';
+import { useAuth } from '../../contexts/AuthContext';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300'];
 const RADIAN = Math.PI / 180;
@@ -63,6 +66,8 @@ const renderCustomizedLabel = ({
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -353,6 +358,8 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </Grid>
+        
+        {/* El módulo de soporte ahora está en el menú del usuario */}
       </Grid>
     </Box>
   );
