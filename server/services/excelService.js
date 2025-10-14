@@ -194,7 +194,9 @@ class ExcelService {
             // Motor: solo cobrar en la primera medida de cada partida
             const esPrimeraMedida = medidaIndex === 0;
             const numMotores = pieza.numMotores || pieza.medidas.length;
-            const motorPrecio = (pieza.motorizado && pieza.motorPrecio && esPrimeraMedida) ? Number(pieza.motorPrecio) : 0;
+            const motorPrecio = (pieza.motorizado && pieza.motorPrecio && esPrimeraMedida)
+              ? Number(pieza.motorPrecio) * numMotores
+              : 0;
             const controlPrecio = esPrimeraMedida ? this.calcularPrecioControlReal(pieza, piezas) : 0;
             
             const subtotalTotal = subtotalBase + kitPrecio + motorPrecio + controlPrecio;
@@ -274,7 +276,9 @@ class ExcelService {
           const esProductoToldo = pieza.esToldo || (pieza.producto && pieza.producto.toLowerCase().includes('toldo'));
           const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) * cantidad : 0;
           const numMotores = pieza.numMotores || cantidad;
-          const motorPrecio = (pieza.motorizado && pieza.motorPrecio) ? Number(pieza.motorPrecio) : 0;
+          const motorPrecio = (pieza.motorizado && pieza.motorPrecio)
+            ? Number(pieza.motorPrecio) * numMotores
+            : 0;
           const controlPrecio = this.calcularPrecioControlReal(pieza, piezas);
           
           const subtotalTotal = subtotalBase + kitPrecio + motorPrecio + controlPrecio;

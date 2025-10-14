@@ -67,6 +67,31 @@ export const mapearPiezaParaDocumento = (
     return piezaBase;
   }
 
+  const totalMedidas = medidasNormalizadas.length || 1;
+  const fallbackCantidad = pieza.cantidad || totalMedidas || 1;
+
+  const numMotoresIngresados = toNumber(pieza.numMotores, { allowUndefined: true });
+  const numMotoresNormalizados = Math.max(
+    1,
+    numMotoresIngresados ?? (pieza.motorizado ? fallbackCantidad : 1)
+  );
+
+  const piezasPorMotorIngresadas = toNumber(pieza.piezasPorMotor, { allowUndefined: true });
+  const piezasPorMotorNormalizadas = Math.max(
+    1,
+    piezasPorMotorIngresadas ?? Math.ceil(fallbackCantidad / numMotoresNormalizados)
+  );
+
+  const piezasPorControlIngresadas = toNumber(pieza.piezasPorControl, { allowUndefined: true });
+  const piezasPorControlNormalizadas = Math.max(
+    1,
+    piezasPorControlIngresadas ?? (
+      pieza.esControlMulticanal
+        ? fallbackCantidad
+        : numMotoresNormalizados
+    )
+  );
+
   return {
     ...piezaBase,
     esToldo: pieza.esToldo || false,
@@ -81,8 +106,10 @@ export const mapearPiezaParaDocumento = (
     controlModelo: pieza.controlModelo || '',
     controlModeloManual: pieza.controlModeloManual || '',
     controlPrecio: toNumber(pieza.controlPrecio, { defaultValue: 0 }),
-    // CORREGIR: Forzar numMotores a 1 para evitar multiplicación incorrecta en PDF
-    numMotores: 1
+    numMotores: numMotoresNormalizados,
+    piezasPorMotor: piezasPorMotorNormalizadas,
+    esControlMulticanal: Boolean(pieza.esControlMulticanal),
+    piezasPorControl: piezasPorControlNormalizadas
   };
 };
 
