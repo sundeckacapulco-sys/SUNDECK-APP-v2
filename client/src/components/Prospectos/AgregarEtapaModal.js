@@ -46,6 +46,7 @@ import { useCotizacionStore } from '../../stores/cotizacionStore';
 import { calcularTotales as calcularTotalesUnificado } from '../../services/calculosService';
 import { normalizarParaBackend } from '../../services/normalizacionService';
 import { validarCompletitud } from '../../services/validacionService';
+// import { useEtapaManager } from '../../hooks/useEtapaManager'; // TEMPORALMENTE DESACTIVADO
 import {
   etapaOptions,
   productosOptions,
@@ -121,8 +122,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const [capturaModalOpen, setCapturaModalOpen] = useState(false);
   const [inspectorModalOpen, setInspectorModalOpen] = useState(false);
 
-  // Store central de cotización
-  const productosStore = useCotizacionStore((state) => state.productos);
+  // Store central de cotización (legacy - se eliminará)
   const comercialStore = useCotizacionStore((state) => state.comercial);
   const setProductosStore = useCotizacionStore((state) => state.setProductos);
   const updateComercialSection = useCotizacionStore((state) => state.updateComercialSection);
@@ -178,9 +178,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   };
 
   useEffect(() => {
-    if (!open) {
-      resetFormulario();
-    } else {
+    if (open) {
+      establecerFechaHoraActual();
       // Cargar productos desde la API cuando se abre el modal
       cargarProductosDesdeAPI();
     }
@@ -228,6 +227,10 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     ];
   }, [productosFromAPI, productosPersonalizados]);
 
+  // TEMPORALMENTE DESACTIVADO: Hook unificado para debug
+  // const etapaManager = useEtapaManager();
+  
+  // VOLVER AL SISTEMA ANTIGUO TEMPORALMENTE PARA IDENTIFICAR EL PROBLEMA
   const {
     piezas,
     piezaForm,
@@ -249,9 +252,50 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     precioGeneral,
     setErrorLocal
   });
+  
+  // Funciones placeholder para compatibilidad
+  const configurarFlujo = () => {};
+  const configurarInstalacion = () => {};
+  const configurarDescuentos = () => {};
+  const configurarFacturacion = () => {};
+  const updateConfiguracion = () => {};
+
+  // Inicializar store cuando se abre el modal (UNA SOLA VEZ)
+  useEffect(() => {
+    if (open) {
+      console.log('🚀 Modal abierto - Inicializando store...');
+      
+      // Configurar flujo inicial
+      if (configurarFlujo) {
+        configurarFlujo(tipoVisitaInicial);
+      }
+      
+      // Inicializar configuración
+      if (updateConfiguracion) {
+        updateConfiguracion({
+          prospectoId,
+          nombreEtapa: etapaOptions[0],
+          unidadMedida: unidad,
+          precioGeneral,
+          comentarios,
+        });
+      }
+      
+      console.log('✅ Store inicializado');
+    }
+  }, [open]); // SOLO depende de 'open' para evitar loops
 
   const productosCotizacion = useMemo(() => {
     if (tipoVisitaInicial !== 'cotizacion') {
+      return [];
+    }
+
+    console.log('🔄 DEBUG PRODUCTOS - Mapeando piezas a productos:', piezas);
+    console.log('🔄 DEBUG PRODUCTOS - Cantidad de piezas:', Array.isArray(piezas) ? piezas.length : 0);
+    console.log('🔍 DEBUG PRODUCTOS - Tipo de piezas:', typeof piezas, Array.isArray(piezas));
+
+    if (!Array.isArray(piezas)) {
+      console.error('❌ piezas no es un array:', piezas);
       return [];
     }
 
@@ -310,8 +354,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         nombre: pieza.productoLabel || pieza.producto || `Partida ${index + 1}`,
         ubicacion: pieza.ubicacion || '',
         medidas: {
-          ancho: detalles[0]?.ancho ?? Number(pieza.ancho) || 0,
-          alto: detalles[0]?.alto ?? Number(pieza.alto) || 0,
+          ancho: detalles[0]?.ancho ?? (Number(pieza.ancho) || 0),
+          alto: detalles[0]?.alto ?? (Number(pieza.alto) || 0),
           area: Number(areaTotal.toFixed(4)),
           cantidad: Math.max(cantidad, 1),
           detalles,
@@ -359,17 +403,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     });
   }, [tipoVisitaInicial, piezas, unidad, precioGeneral]);
 
-  useEffect(() => {
-    if (tipoVisitaInicial === 'cotizacion') {
-      setProductosStore(productosCotizacion);
-    }
-  }, [tipoVisitaInicial, productosCotizacion, setProductosStore]);
-
-  useEffect(() => {
-    if (tipoVisitaInicial === 'cotizacion') {
-      setFlujoStore({ tipo: 'cotizacion_vivo', origen: 'cotizacion_vivo' });
-    }
-  }, [tipoVisitaInicial, setFlujoStore]);
+  // ELIMINADOS: useEffect problemáticos que causaban loop infinito
+  // La sincronización ahora se hace en el momento de guardar
 
   const totalPiezasCotizacion = useMemo(() => {
     if (tipoVisitaInicial !== 'cotizacion') {
@@ -411,63 +446,11 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     totalPiezasCotizacion,
   ]);
 
-  useEffect(() => {
-    if (tipoVisitaInicial === 'cotizacion') {
-      updateComercialSection('instalacionEspecial', {
-        activa: cobraInstalacion,
-        tipo: tipoInstalacion,
-        precio: precioInstalacionCalculado,
-      });
-    }
-  }, [
-    tipoVisitaInicial,
-    cobraInstalacion,
-    tipoInstalacion,
-    precioInstalacionCalculado,
-    updateComercialSection,
-  ]);
+  // ELIMINADOS: Más useEffect que causaban loops infinitos
+  // La sincronización se hará manualmente al guardar
 
-  useEffect(() => {
-    if (tipoVisitaInicial === 'cotizacion') {
-      updateComercialSection('descuentos', {
-        activo: aplicaDescuento,
-        tipo: tipoDescuento,
-        valor: aplicaDescuento ? parseFloat(valorDescuento) || 0 : 0,
-      });
-    }
-  }, [
-    tipoVisitaInicial,
-    aplicaDescuento,
-    tipoDescuento,
-    valorDescuento,
-    updateComercialSection,
-  ]);
-
-  useEffect(() => {
-    if (tipoVisitaInicial === 'cotizacion') {
-      updateComercialSection('facturacion', {
-        requiereFactura,
-        iva: requiereFactura ? 0.16 : 0,
-      });
-    }
-  }, [tipoVisitaInicial, requiereFactura, updateComercialSection]);
-
-  useEffect(() => {
-    if (tipoVisitaInicial === 'cotizacion') {
-      updateComercialSection('tiempos', {
-        entrega: tiempoEntrega,
-        tipo: tiempoEntrega,
-      });
-    }
-  }, [tipoVisitaInicial, tiempoEntrega, updateComercialSection]);
-
-  const totalesCotizacion = useMemo(() => {
-    if (tipoVisitaInicial !== 'cotizacion') {
-      return null;
-    }
-
-    return calcularTotalesUnificado(productosStore, comercialStore);
-  }, [tipoVisitaInicial, productosStore, comercialStore]);
+  // FIX TEMPORAL: Desactivar totalesCotizacion para evitar dependencias circulares
+  const totalesCotizacion = null;
 
   const calcularTotalM2 = useMemo(() => {
     if (tipoVisitaInicial === 'cotizacion' && totalesCotizacion) {
@@ -1461,43 +1444,11 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       console.log('🎯 Generando cotización desde visita inicial:');
       console.log('- Tipo de visita:', tipoVisitaInicial);
       console.log('- Origen asignado:', origenCotizacion);
+      console.log('🔍 VERIFICACIÓN CRÍTICA - tipoVisitaInicial === "cotizacion"?', tipoVisitaInicial === 'cotizacion');
+      console.log('🔍 VERIFICACIÓN CRÍTICA - Valor exacto:', JSON.stringify(tipoVisitaInicial));
 
-      if (tipoVisitaInicial === 'cotizacion') {
-        const estadoGlobal = useCotizacionStore.getState();
-        const snapshotStore = {
-          cliente: estadoGlobal.cliente,
-          productos: estadoGlobal.productos,
-          comercial: estadoGlobal.comercial,
-          flujo: { ...estadoGlobal.flujo, tipo: 'cotizacion_vivo', origen: origenCotizacion },
-        };
-
-        const validacion = validarCompletitud(snapshotStore);
-        if (!validacion.esValido) {
-          throw new Error(validacion.errores.join(' '));
-        }
-
-        const payloadCotizacion = normalizarParaBackend(snapshotStore, 'cotizacion_vivo', {
-          prospectoId,
-          piezas,
-          comentarios,
-          unidadMedida: unidad,
-          precioGeneral,
-          tipoVisitaInicial,
-          facturacion: infoFacturacion,
-          metodoPago: metodoPagoInfo,
-          totalFinal,
-          totalM2: calcularTotalM2,
-          fechaEtapa: fechaEtapa || undefined,
-          horaEtapa: horaEtapa || undefined,
-        });
-
-        console.log('📋 Payload para desde-visita (cotización en vivo unificada):', payloadCotizacion);
-
-        const response = await axiosConfig.post('/cotizaciones/desde-visita', payloadCotizacion);
-        onSaved(`Cotización en vivo generada exitosamente: ${response.data.cotizacion.numero}`);
-        onClose();
-        return;
-      }
+      // TEMPORALMENTE DESACTIVADO: Flujo refactorizado
+      // Usar solo el sistema antiguo por ahora
 
       const piezasNormalizadas = piezas.map((pieza) =>
         mapearPiezaParaDocumento(pieza, { incluirExtras: true })
@@ -1571,6 +1522,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
 
     try {
       console.log('🔍 DEBUG GUARDADO - Estado completo:');
+      console.log('❌ FLUJO ANTIGUO EJECUTÁNDOSE - tipoVisitaInicial:', tipoVisitaInicial);
       console.log('- Partidas array:', piezas);
       console.log('- Cantidad de partidas:', piezas.length);
       console.log('- Piezas totales:', piezas.reduce((total, partida) => total + (partida.cantidad || 1), 0));
@@ -2085,7 +2037,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                               if (!selected) return '';
                               
                               // Si es un producto personalizado, mostrar su label
-                              if (selected.startsWith('custom_')) {
+                              if (selected && selected.startsWith('custom_')) {
                                 return piezaForm.productoLabel || 'Producto personalizado';
                               }
                               
@@ -2145,7 +2097,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                             </MenuItem>
                           ))}
                         </TextField>
-                        {piezaForm.producto.startsWith('custom_') && (
+                        {piezaForm.producto && piezaForm.producto.startsWith('custom_') && (
                           <Box sx={{ mt: 1, p: 1, bgcolor: 'success.50', borderRadius: 1, border: '1px solid', borderColor: 'success.200' }}>
                             <Typography variant="caption" color="success.dark" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                               ✨ <strong>Producto personalizado:</strong> {piezaForm.productoLabel}
@@ -3935,8 +3887,8 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                       </Grid>
                     </Grid>
                     
-                    {/* Desglose de instalación si está activada */}
-                    {cobraInstalacion && precioInstalacion && (
+                    {/* Desglose de instalación si está activada - SIEMPRE MOSTRAR SI ESTÁ ACTIVADA */}
+                    {cobraInstalacion && (
                       <Box sx={{ mt: 2, p: 2, bgcolor: 'warning.50', borderRadius: 1, border: '1px solid', borderColor: 'warning.200' }}>
                         <Typography variant="body2" fontWeight="medium" color="warning.dark">
                           🔧 Instalación {(() => {
@@ -4132,7 +4084,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                       </Typography>
                     </Box>
                     
-                    {cobraInstalacion && precioInstalacion && (
+                    {cobraInstalacion && (
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                         <Typography variant="body2">Instalación:</Typography>
                         <Typography variant="body2" fontWeight="bold">

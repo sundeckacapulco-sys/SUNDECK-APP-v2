@@ -63,8 +63,9 @@ const createInitialComercial = (comercial = {}) => ({
 });
 
 const createInitialFlujo = (flujo = {}) => ({
-  tipo: flujo.tipo ?? null,
+  tipo: flujo.tipo ?? null, // 'levantamiento' | 'cotizacion_vivo' | 'tradicional' | 'directa'
   origen: flujo.origen ?? null,
+  tipoVisitaInicial: flujo.tipoVisitaInicial ?? null, // 'levantamiento' | 'cotizacion'
 });
 
 const createInitialState = (state = {}) => ({
@@ -74,6 +75,16 @@ const createInitialState = (state = {}) => ({
     : [],
   comercial: createInitialComercial(state.comercial),
   flujo: createInitialFlujo(state.flujo),
+  // Campos adicionales del modal
+  configuracion: {
+    prospectoId: state.configuracion?.prospectoId ?? null,
+    nombreEtapa: state.configuracion?.nombreEtapa ?? '',
+    unidadMedida: state.configuracion?.unidadMedida ?? 'm',
+    precioGeneral: Number(state.configuracion?.precioGeneral ?? 750),
+    comentarios: state.configuracion?.comentarios ?? '',
+    fechaEtapa: state.configuracion?.fechaEtapa ?? '',
+    horaEtapa: state.configuracion?.horaEtapa ?? '',
+  },
 });
 
 const mergeProducto = (producto, updates = {}) =>
@@ -156,6 +167,22 @@ export const useCotizacionStore = create((set, get) => ({
     set((state) => ({
       flujo: {
         ...state.flujo,
+        ...updates,
+      },
+    })),
+
+  /** CONFIGURACIÓN **/
+  setConfiguracion: (configuracion) =>
+    set((state) => ({
+      configuracion: {
+        ...state.configuracion,
+        ...configuracion,
+      },
+    })),
+  updateConfiguracion: (updates) =>
+    set((state) => ({
+      configuracion: {
+        ...state.configuracion,
         ...updates,
       },
     })),
