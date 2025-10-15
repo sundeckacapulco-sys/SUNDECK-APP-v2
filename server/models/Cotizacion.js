@@ -115,6 +115,12 @@ const cotizacionSchema = new mongoose.Schema({
   subtotal: { type: Number, default: 0 },
   total: { type: Number, default: 0 },
   iva: { type: Number, default: 0 },
+  
+  // Tiempos de fabricación e instalación
+  tiempoFabricacion: { type: Number, default: 15 },
+  tiempoInstalacion: { type: Number, default: 1 },
+  requiereInstalacion: { type: Boolean, default: true },
+  costoInstalacion: { type: Number, default: 0 },
 
   elaboradaPor: {
     type: mongoose.Schema.Types.ObjectId,

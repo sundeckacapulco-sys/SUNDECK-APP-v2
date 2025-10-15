@@ -772,4 +772,123 @@ router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (re
   }
 });
 
+// Recalcular totales de cotización existente (herramienta de mantenimiento)
+router.put('/:id/recalcular', auth, verificarPermiso('cotizaciones', 'actualizar'), async (req, res) => {
+  try {
+    
+    const cotizacion = await Cotizacion.findById(req.params.id);
+    
+    if (!cotizacion) {
+      return res.status(404).json({ message: 'Cotización no encontrada' });
+    }
+    
+    console.log('Cotización antes del recálculo:');
+    console.log('- Total actual:', cotizacion.total);
+    console.log('- Subtotal actual:', cotizacion.subtotal);
+    console.log('- IVA actual:', cotizacion.iva);
+    console.log('- Productos:', cotizacion.productos?.length || 0);
+
+    // Verificar permisos
+    const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
+    if (!acceso.permitido) {
+      return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
+    }
+
+    // Recalcular subtotales de productos
+    let subtotalProductos = 0;
+    
+    cotizacion.productos.forEach((producto, index) => {
+      const cantidad = producto.cantidad || 1;
+      const ancho = Number(producto.medidas?.ancho ?? producto.ancho) || 0;
+      const alto = Number(producto.medidas?.alto ?? producto.alto) || 0;
+      const area = Number(producto.medidas?.area ?? producto.area) || (ancho * alto);
+      const precioUnitario = Number(producto.precioUnitario ?? producto.precioM2) || 0;
+      
+      let subtotalProducto = 0;
+      
+      // Calcular según el tipo de producto
+      if (['pieza', 'par', 'juego', 'kit', 'motor', 'control'].includes(producto.categoria)) {
+        // Productos por pieza: precio × cantidad
+        subtotalProducto = precioUnitario * cantidad;
+      } else {
+        // Productos por área: área × precio × cantidad
+        subtotalProducto = area * precioUnitario * cantidad;
+      }
+      
+      // Actualizar el subtotal del producto
+      producto.subtotal = Number(subtotalProducto.toFixed(2));
+      subtotalProductos += producto.subtotal;
+      
+      console.log(`Producto ${index + 1}: ${producto.nombre}`);
+      console.log(`  - Categoría: ${producto.categoria}`);
+      console.log(`  - Área: ${area}m²`);
+      console.log(`  - Precio: $${precioUnitario}`);
+      console.log(`  - Cantidad: ${cantidad}`);
+      console.log(`  - Subtotal: $${producto.subtotal}`);
+    });
+
+    // Calcular instalación
+    const costoInstalacion = cotizacion.instalacion?.incluye ? (cotizacion.instalacion.costo || 0) : 0;
+    
+    // Calcular descuento
+    let montoDescuento = 0;
+    if (cotizacion.descuento?.aplica) {
+      const baseParaDescuento = subtotalProductos + costoInstalacion;
+      if (cotizacion.descuento.tipo === 'porcentaje') {
+        montoDescuento = (baseParaDescuento * (cotizacion.descuento.valor || 0)) / 100;
+      } else if (cotizacion.descuento.tipo === 'monto') {
+        montoDescuento = cotizacion.descuento.valor || 0;
+      }
+      cotizacion.descuento.monto = Number(montoDescuento.toFixed(2));
+    }
+    
+    // Calcular IVA
+    const subtotalConInstalacion = subtotalProductos + costoInstalacion;
+    const subtotalTrasDescuento = Math.max(subtotalConInstalacion - montoDescuento, 0);
+    
+    let ivaCalculado = 0;
+    if (cotizacion.facturacion?.requiere) {
+      // IVA se calcula sobre el subtotal DESPUÉS del descuento (correcto fiscalmente)
+      ivaCalculado = Number((subtotalTrasDescuento * 0.16).toFixed(2));
+    }
+    
+    // Calcular total final
+    const totalFinal = Number((subtotalTrasDescuento + ivaCalculado).toFixed(2));
+    
+    // Actualizar los campos de la cotización
+    cotizacion.subtotal = Number(subtotalProductos.toFixed(2));
+    cotizacion.iva = ivaCalculado;
+    cotizacion.total = totalFinal;
+    
+    console.log('Cotización después del recálculo:');
+    console.log('- Subtotal productos:', cotizacion.subtotal);
+    console.log('- Instalación:', costoInstalacion);
+    console.log('- Descuento:', montoDescuento);
+    console.log('- IVA:', cotizacion.iva);
+    console.log('- Total final:', cotizacion.total);
+
+    await cotizacion.save();
+    
+    console.log('✅ Totales recalculados y guardados exitosamente');
+
+    res.json({
+      message: 'Totales recalculados exitosamente',
+      cotizacion: {
+        _id: cotizacion._id,
+        numero: cotizacion.numero,
+        subtotal: cotizacion.subtotal,
+        iva: cotizacion.iva,
+        total: cotizacion.total,
+        productos: cotizacion.productos.map(p => ({
+          nombre: p.nombre,
+          subtotal: p.subtotal
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Error recalculando totales:', error);
+    res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
 module.exports = router;

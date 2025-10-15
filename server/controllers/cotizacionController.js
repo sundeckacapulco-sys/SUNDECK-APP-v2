@@ -212,10 +212,10 @@ function calcularTotalesCotizacion({ productos = [], precioGeneralM2, incluyeIns
       subtotalProductos += (parseFloat(pieza.kitPrecio) || 0) * cantidad;
     }
     if (pieza.motorizado && pieza.motorPrecio) {
-      subtotalProductos += (parseFloat(pieza.motorPrecio) || 0) * cantidad;
+      subtotalProductos += (parseFloat(pieza.motorPrecio) || 0); // 1 motor por partida
     }
     if (pieza.motorizado && pieza.controlPrecio) {
-      subtotalProductos += (parseFloat(pieza.controlPrecio) || 0);
+      subtotalProductos += (parseFloat(pieza.controlPrecio) || 0); // 1 control por partida
     }
   }
 
@@ -240,8 +240,8 @@ function calcularTotalesCotizacion({ productos = [], precioGeneralM2, incluyeIns
 
   let ivaCalculado = 0;
   if (debeIncluirIVA) {
-    // IVA se calcula sobre el subtotal con instalación, antes del descuento
-    ivaCalculado = Number((baseParaDescuento * 0.16).toFixed(2));
+    // IVA se calcula sobre el subtotal DESPUÉS del descuento (correcto fiscalmente)
+    ivaCalculado = Number((subtotalTrasDescuento * 0.16).toFixed(2));
   }
 
   const totalFinal = Number((subtotalTrasDescuento + ivaCalculado).toFixed(2));

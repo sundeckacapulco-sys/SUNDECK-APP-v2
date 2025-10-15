@@ -665,7 +665,35 @@ class PDFService {
         descuento: cotizacion.descuento?.monto ? {
           ...cotizacion.descuento,
           monto: this.formatCurrency(cotizacion.descuento.monto)
-        } : null
+        } : null,
+        // Mapear instalación para el template
+        instalacion: cotizacion.instalacion ? {
+          cobra: cotizacion.instalacion.incluye || false,
+          tipo: cotizacion.instalacion.tipo || 'fijo',
+          precio: cotizacion.instalacion.costo || 0,
+          precioFormateado: this.formatCurrency(cotizacion.instalacion.costo || 0)
+        } : {
+          cobra: false,
+          tipo: '',
+          precio: 0,
+          precioFormateado: this.formatCurrency(0)
+        },
+        // Datos para el resumen financiero
+        resumenCostos: {
+          subtotalProductos: this.formatCurrency(cotizacion.subtotal || 0),
+          instalacion: cotizacion.instalacion?.incluye ? this.formatCurrency(cotizacion.instalacion.costo || 0) : null,
+          subtotalConInstalacion: this.formatCurrency((cotizacion.subtotal || 0) + (cotizacion.instalacion?.incluye ? (cotizacion.instalacion.costo || 0) : 0)),
+          descuentoAplica: Boolean(cotizacion.descuento?.aplica),
+          descuentoMonto: cotizacion.descuento?.monto ? this.formatCurrency(cotizacion.descuento.monto) : this.formatCurrency(0),
+          subtotalConDescuento: this.formatCurrency(((cotizacion.subtotal || 0) + (cotizacion.instalacion?.incluye ? (cotizacion.instalacion.costo || 0) : 0)) - (cotizacion.descuento?.monto || 0)),
+          requiereFactura: Boolean(cotizacion.facturacion?.requiere),
+          iva: this.formatCurrency(cotizacion.iva || 0),
+          totalConIVA: this.formatCurrency(cotizacion.total || 0),
+          totalFinal: this.formatCurrency(cotizacion.total || 0)
+        },
+        // Mapear tiempos de fabricación e instalación
+        tiempoFabricacion: cotizacion.tiempoFabricacion || 15,
+        tiempoInstalacion: cotizacion.tiempoInstalacion || 1
       };
 
       console.log('🧾 [PDF] Datos preparados para renderizar cotización', {
