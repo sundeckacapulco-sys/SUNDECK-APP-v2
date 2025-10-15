@@ -392,6 +392,96 @@ class ExcelService {
       throw new Error('Error generando archivo Excel');
     }
   }
+
+  // Generar Excel de cotización
+  async generarCotizacionExcel(cotizacion) {
+    try {
+      // Cargar ExcelJS si no está cargado
+      if (!ExcelJSLib) {
+        ExcelJSLib = require('exceljs');
+      }
+
+      const workbook = new ExcelJSLib.Workbook();
+      const worksheet = workbook.addWorksheet('Cotización');
+
+      // Configurar columnas
+      worksheet.columns = [
+        { header: 'Ubicación', key: 'ubicacion', width: 20 },
+        { header: 'Producto', key: 'producto', width: 25 },
+        { header: 'Medidas', key: 'medidas', width: 15 },
+        { header: 'Área (m²)', key: 'area', width: 12 },
+        { header: 'Precio/m²', key: 'precioM2', width: 12 },
+        { header: 'Subtotal', key: 'subtotal', width: 12 },
+        { header: 'Motor', key: 'motor', width: 15 },
+        { header: 'Control', key: 'control', width: 15 },
+        { header: 'Total', key: 'total', width: 12 }
+      ];
+
+      // Agregar información de la cotización
+      worksheet.addRow(['COTIZACIÓN', cotizacion.numero]);
+      worksheet.addRow(['Cliente', cotizacion.prospecto?.nombre || '']);
+      worksheet.addRow(['Fecha', new Date(cotizacion.fecha).toLocaleDateString()]);
+      worksheet.addRow([]);
+
+      // Agregar productos
+      let totalGeneral = 0;
+      
+      cotizacion.productos.forEach((producto, index) => {
+        if (producto.medidas && Array.isArray(producto.medidas)) {
+          producto.medidas.forEach((medida, medidaIndex) => {
+            const area = medida.ancho * medida.alto;
+            const subtotalM2 = area * (medida.precioM2 || 0);
+            
+            // Calcular precios de motor y control
+            const precioMotor = producto.motorizado ? (producto.motorPrecio || 0) : 0;
+            const precioControl = this.calcularPrecioControlReal(producto, cotizacion.productos);
+            
+            const totalPieza = subtotalM2 + precioMotor + (medidaIndex === 0 ? precioControl : 0);
+            totalGeneral += totalPieza;
+
+            worksheet.addRow({
+              ubicacion: medidaIndex === 0 ? producto.ubicacion : '',
+              producto: medida.productoLabel || medida.producto,
+              medidas: `${medida.ancho} × ${medida.alto}`,
+              area: area.toFixed(2),
+              precioM2: `$${(medida.precioM2 || 0).toLocaleString()}`,
+              subtotal: `$${subtotalM2.toLocaleString()}`,
+              motor: precioMotor > 0 ? `$${precioMotor.toLocaleString()}` : '',
+              control: medidaIndex === 0 && precioControl > 0 ? `$${precioControl.toLocaleString()}` : 
+                      medidaIndex > 0 && precioControl > 0 ? 'Incluido' : '',
+              total: `$${totalPieza.toLocaleString()}`
+            });
+          });
+        }
+      });
+
+      // Agregar totales
+      worksheet.addRow([]);
+      worksheet.addRow(['', '', '', '', '', '', '', 'TOTAL:', `$${totalGeneral.toLocaleString()}`]);
+      
+      if (cotizacion.instalacion?.incluye) {
+        worksheet.addRow(['', '', '', '', '', '', '', 'Instalación:', `$${(cotizacion.instalacion.costo || 0).toLocaleString()}`]);
+      }
+      
+      if (cotizacion.descuento?.aplica) {
+        worksheet.addRow(['', '', '', '', '', '', '', 'Descuento:', `-$${(cotizacion.descuento.valor || 0).toLocaleString()}`]);
+      }
+      
+      if (cotizacion.facturacion?.requiere) {
+        worksheet.addRow(['', '', '', '', '', '', '', 'IVA:', `$${(cotizacion.iva || 0).toLocaleString()}`]);
+      }
+      
+      worksheet.addRow(['', '', '', '', '', '', '', 'TOTAL FINAL:', `$${(cotizacion.total || 0).toLocaleString()}`]);
+
+      // Generar buffer
+      const buffer = await workbook.xlsx.writeBuffer();
+      return buffer;
+
+    } catch (error) {
+      console.error('Error generando Excel de cotización:', error);
+      throw new Error('Error generando Excel de cotización: ' + error.message);
+    }
+  }
 }
 
 module.exports = new ExcelService();

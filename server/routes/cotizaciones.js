@@ -3,6 +3,7 @@ const Cotizacion = require('../models/Cotizacion');
 const Prospecto = require('../models/Prospecto');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const pdfService = require('../services/pdfService');
+const excelService = require('../services/excelService');
 const cotizacionController = require('../controllers/cotizacionController');
 
 const router = express.Router();
@@ -768,6 +769,49 @@ router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (re
       message: 'Error generando PDF de cotización',
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Generar Excel de cotización
+router.get('/:id/excel', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res) => {
+  try {
+    const cotizacion = await Cotizacion.findById(req.params.id)
+      .populate('prospecto')
+      .populate('elaboradaPor', 'nombre apellido');
+
+    if (!cotizacion) {
+      return res.status(404).json({ message: 'Cotización no encontrada' });
+    }
+
+    // Verificar permisos
+    const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
+    if (!acceso.permitido) {
+      return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
+    }
+
+    const excel = await excelService.generarCotizacionExcel(cotizacion);
+
+    // Crear nombre de archivo único
+    const nombreCliente = (cotizacion.prospecto?.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
+    const numeroCorto = cotizacion.numero ? cotizacion.numero.replace('COT-', '').replace(/\D/g, '').slice(-4) : 'XXXX';
+    
+    const ahora = new Date();
+    const fechaFormateada = ahora.toISOString().substr(0, 10).replace(/-/g, '');
+    const horaCorta = ahora.toTimeString().substr(0, 5).replace(':', '');
+    const idCorto = Date.now().toString().slice(-6);
+    
+    const nombreArchivo = `Cotizacion-${numeroCorto}-${nombreCliente}-${fechaFormateada}-${horaCorta}-${idCorto}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+    res.send(excel);
+
+  } catch (error) {
+    console.error('Error generando Excel:', error);
+    res.status(500).json({ 
+      message: 'Error generando Excel de cotización',
+      error: error.message
     });
   }
 });

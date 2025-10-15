@@ -88,7 +88,7 @@ const cotizacionSchema = new mongoose.Schema({
 
   descuento: {
     aplica: { type: Boolean, default: false },
-    tipo: { type: String, enum: ['porcentaje', 'monto'] },
+    tipo: { type: String, enum: ['porcentaje', 'monto', 'fijo'] },
     valor: Number,
     monto: Number,
   },
