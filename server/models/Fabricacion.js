@@ -1,10 +1,15 @@
 const mongoose = require('mongoose');
 
 const fabricacionSchema = new mongoose.Schema({
-  // Referencia al pedido
+  // Referencias
   pedido: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Pedido',
+    required: true
+  },
+  prospecto: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Prospecto',
     required: true
   },
   
@@ -24,8 +29,19 @@ const fabricacionSchema = new mongoose.Schema({
   // Estado de fabricación
   estado: {
     type: String,
-    enum: ['pendiente', 'en_proceso', 'pausado', 'terminado', 'entregado'],
+    enum: ['pendiente', 'en_proceso', 'pausado', 'completada', 'terminado', 'entregado'],
     default: 'pendiente'
+  },
+  
+  // Asignación
+  asignadoA: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Usuario'
+  },
+  prioridad: {
+    type: String,
+    enum: ['baja', 'media', 'alta'],
+    default: 'media'
   },
   
   // Productos a fabricar

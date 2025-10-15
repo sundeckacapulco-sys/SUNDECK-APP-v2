@@ -1,0 +1,117 @@
+{
+  "timestamp": "2025-10-15T18:50:47.991Z",
+  "summary": {
+    "passed": 9,
+    "failed": 1,
+    "total": 10
+  },
+  "errors": [
+    "❌ PATCH /fabricacion/68efed071362a2914eba79ad/estado - ERROR: Error interno del servidor"
+  ],
+  "details": [
+    {
+      "test": "Cotización desde completo",
+      "result": "PASS",
+      "validacion": {
+        "puedeAvanzar": true,
+        "etapaDestino": "cotizacion",
+        "requisitos": {
+          "completitudMinima": 60,
+          "camposObligatorios": [
+            "tipoControl",
+            "orientacion"
+          ],
+          "descripcion": "Información básica para cotizar"
+        },
+        "resumen": {
+          "productosValidos": 2,
+          "productosInvalidos": 0,
+          "totalErrores": 0,
+          "totalAdvertencias": 6,
+          "completitudPromedio": 100
+        },
+        "detalleProductos": [
+          {
+            "indice": 0,
+            "ubicacion": "Recámara Principal",
+            "valido": true,
+            "errores": [],
+            "advertencias": [
+              "⚠️ Información de instalación: Sistema",
+              "⚠️ Información de instalación: Tela/Marca",
+              "⚠️ Información de instalación: Base de Tabla"
+            ],
+            "completitud": 100
+          },
+          {
+            "indice": 1,
+            "ubicacion": "Sala-Comedor",
+            "valido": true,
+            "errores": [],
+            "advertencias": [
+              "⚠️ Información de instalación: Sistema",
+              "⚠️ Información de instalación: Tela/Marca",
+              "⚠️ Información de instalación: Base de Tabla"
+            ],
+            "completitud": 100
+          }
+        ],
+        "mensajeCandado": null
+      }
+    },
+    {
+      "test": "Pedido desde completo",
+      "result": "PASS",
+      "validacion": "No disponible"
+    },
+    {
+      "test": "Candado pedido incompleto",
+      "result": "PASS - BLOQUEADO CORRECTAMENTE",
+      "error": "No se puede crear el pedido",
+      "validacion": {
+        "puedeAvanzar": false,
+        "etapaDestino": "pedido",
+        "requisitos": {
+          "completitudMinima": 80,
+          "camposObligatorios": [
+            "tipoControl",
+            "orientacion",
+            "tipoInstalacion"
+          ],
+          "descripcion": "Información técnica para fabricación"
+        },
+        "resumen": {
+          "productosValidos": 0,
+          "productosInvalidos": 1,
+          "totalErrores": 4,
+          "totalAdvertencias": 7,
+          "completitudPromedio": 33
+        },
+        "detalleProductos": [
+          {
+            "indice": 0,
+            "ubicacion": "Cocina",
+            "valido": false,
+            "errores": [
+              "❌ Campo obligatorio faltante: Tipo de Control",
+              "❌ Campo obligatorio faltante: Tipo de Instalación",
+              "❌ Campo obligatorio faltante: Riso Alto",
+              "❌ Campo obligatorio faltante: Riso Bajo"
+            ],
+            "advertencias": [
+              "⚠️ Información de instalación: Sistema",
+              "⚠️ Información de instalación: Tela/Marca",
+              "⚠️ Información de instalación: Base de Tabla",
+              "⚠️ Pieza 1: Tipo de Control",
+              "⚠️ Pieza 1: Tipo de Instalación",
+              "⚠️ Pieza 1: Riso Alto",
+              "⚠️ Pieza 1: Riso Bajo"
+            ],
+            "completitud": 33
+          }
+        ],
+        "mensajeCandado": "🔒 No se puede avanzar a pedido. 1 producto(s) con información incompleta."
+      }
+    }
+  ]
+}

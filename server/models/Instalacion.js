@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const ValidacionTecnicaService = require('../services/validacionTecnicaService');
 
 const instalacionSchema = new mongoose.Schema({
   // Referencia al pedido y fabricación
@@ -219,6 +220,38 @@ instalacionSchema.methods.listaParaEntrega = function() {
   const checklistCompleto = this.checklist.every(item => item.completado);
   const productosInstalados = this.productos.every(prod => prod.estado === 'instalado');
   return checklistCompleto && productosInstalados;
+};
+
+// Método para generar orden de instalación con información técnica completa
+instalacionSchema.methods.generarOrdenInstalacion = function() {
+  try {
+    // Extraer productos con información técnica
+    const productosConInfo = this.productos.map(producto => ({
+      ...producto.toObject(),
+      // Asegurar que tenga la información técnica necesaria
+      medidas: producto.medidas || [],
+      especificacionesTecnicas: producto.especificacionesTecnicas || {}
+    }));
+    
+    // Generar orden usando el servicio de validación
+    const ordenCompleta = ValidacionTecnicaService.generarOrdenInstalacion(productosConInfo, {
+      cliente: {
+        nombre: this.cliente?.nombre || '',
+        telefono: this.cliente?.telefono || '',
+        direccion: this.direccion || {}
+      },
+      instalacion: {
+        numero: this.numero,
+        fechaProgramada: this.fechaProgramada,
+        instaladores: this.instaladores
+      }
+    });
+    
+    return ordenCompleta;
+  } catch (error) {
+    console.error('Error generando orden de instalación:', error);
+    throw new Error(`No se puede generar la orden de instalación: ${error.message}`);
+  }
 };
 
 // Método para calcular tiempo total de instalación

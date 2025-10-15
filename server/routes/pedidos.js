@@ -3,6 +3,8 @@ const Pedido = require('../models/Pedido');
 const Cotizacion = require('../models/Cotizacion');
 const Prospecto = require('../models/Prospecto');
 const { auth, verificarPermiso } = require('../middleware/auth');
+const CotizacionMappingService = require('../services/cotizacionMappingService');
+const ValidacionTecnicaService = require('../services/validacionTecnicaService');
 
 const router = express.Router();
 
@@ -475,5 +477,220 @@ router.get('/:id', auth, verificarPermiso('pedidos', 'leer'), async (req, res) =
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
+
+// Crear pedido directamente desde etapa/levantamiento
+router.post('/desde-etapa', auth, verificarPermiso('pedidos', 'crear'), async (req, res) => {
+  try {
+    console.log('📦 Creando pedido desde etapa...');
+    console.log('Payload recibido:', JSON.stringify(req.body, null, 2));
+
+    const {
+      prospectoId,
+      piezas = [],
+      facturacion = {},
+      entrega = {},
+      terminos = {},
+      totalFinal = 0,
+      instalacion = {},
+      descuento = {},
+      comentarios = ''
+    } = req.body;
+
+    // Validaciones básicas
+    if (!prospectoId) {
+      return res.status(400).json({ message: 'ProspectoId es requerido' });
+    }
+
+    if (!piezas || piezas.length === 0) {
+      return res.status(400).json({ message: 'Debe incluir al menos una pieza/producto' });
+    }
+
+    // 🔒 VALIDACIÓN TÉCNICA OBLIGATORIA: Verificar si se puede crear pedido
+    console.log('🔒 Validando información técnica para pedido...');
+    const validacionTecnica = ValidacionTecnicaService.validarAvanceEtapa(piezas, 'pedido');
+    
+    if (!validacionTecnica.puedeAvanzar) {
+      console.error('❌ Pedido bloqueado por información técnica incompleta');
+      return res.status(400).json({
+        message: 'No se puede crear el pedido',
+        error: validacionTecnica.mensajeCandado,
+        validacion: validacionTecnica,
+        requisitosFaltantes: validacionTecnica.detalleProductos.filter(p => !p.valido)
+      });
+    }
+    
+    console.log('✅ Validación técnica aprobada para pedido');
+
+    // Verificar que el prospecto existe
+    const prospecto = await Prospecto.findById(prospectoId);
+    if (!prospecto) {
+      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    }
+
+    // Generar payload unificado para pedido
+    const payloadUnificado = CotizacionMappingService.generarPayloadUnificado({
+      prospectoId,
+      productos: piezas,
+      origen: 'etapa_directa',
+      instalacion,
+      descuento,
+      facturacion,
+      entrega,
+      terminos,
+      comentarios
+    }, 'pedido');
+
+    // Calcular totales unificados
+    const totales = CotizacionMappingService.calcularTotalesUnificados(piezas, {
+      incluyeInstalacion: instalacion?.cobra || false,
+      costoInstalacion: instalacion?.precio || 0,
+      descuento: descuento?.aplica ? descuento : null,
+      requiereFactura: facturacion?.requiereFactura || false
+    });
+
+    // Crear cotización temporal para el pedido (requerida por el modelo)
+    const cotizacionTemporal = new Cotizacion({
+      numero: `COT-TEMP-${Date.now()}`,
+      prospecto: prospecto._id,
+      nombre: `Cotización temporal para pedido desde etapa`,
+      origen: 'etapa_directa',
+      productos: payloadUnificado.productos,
+      subtotal: totales.subtotalProductos,
+      iva: totales.ivaCalculado,
+      total: totales.totalFinal,
+      elaboradaPor: req.usuario._id,
+      estado: 'convertida' // Marcar como convertida inmediatamente
+    });
+    
+    const cotizacionGuardada = await cotizacionTemporal.save();
+
+    // Crear pedido
+    const nuevoPedido = new Pedido({
+      numero: await generarNumeroPedido(),
+      cotizacion: cotizacionGuardada._id, // Referenciar cotización temporal
+      prospecto: prospecto._id,
+      montoTotal: totales.totalFinal, // Campo requerido
+      vendedor: req.usuario._id,
+      estado: 'confirmado',
+      origen: 'etapa_directa',
+      
+      // Productos normalizados
+      productos: payloadUnificado.productos,
+      
+      // Totales calculados
+      subtotal: totales.subtotalProductos,
+      instalacion: instalacion?.cobra ? {
+        incluye: true,
+        tipo: instalacion.tipo || 'Estándar',
+        costo: instalacion.precio || 0
+      } : { incluye: false, costo: 0 },
+      
+      descuento: descuento?.aplica ? {
+        tipo: descuento.tipo || 'porcentaje',
+        valor: descuento.valor || 0,
+        monto: totales.montoDescuento
+      } : { tipo: 'porcentaje', valor: 0, monto: 0 },
+      
+      iva: totales.ivaCalculado,
+      total: totales.totalFinal,
+      
+      // Información de facturación
+      facturacion: {
+        requiere: facturacion?.requiereFactura || false,
+        razonSocial: facturacion?.razonSocial || '',
+        rfc: facturacion?.rfc || '',
+        direccionFiscal: facturacion?.direccionFiscal || ''
+      },
+      
+      // Información de entrega
+      entrega: {
+        tipo: entrega?.tipo || 'normal',
+        diasExpres: entrega?.diasExpres || null,
+        fechaEstimada: entrega?.fechaEstimada || null,
+        direccion: prospecto.direccion || '',
+        contacto: prospecto.telefono || ''
+      },
+      
+      // Términos
+      terminos: {
+        incluir: terminos?.incluir !== false // Por defecto true
+      },
+      
+      // Pagos (estructura base)
+      pagos: {
+        anticipo: {
+          porcentaje: 60,
+          monto: Math.round(totales.totalFinal * 0.6),
+          pagado: false,
+          fechaPago: null
+        },
+        saldo: {
+          porcentaje: 40,
+          monto: Math.round(totales.totalFinal * 0.4),
+          pagado: false,
+          fechaPago: null
+        }
+      },
+      
+      notas: comentarios ? [{
+        contenido: comentarios,
+        usuario: req.usuario._id,
+        fecha: new Date()
+      }] : []
+    });
+
+    const pedidoGuardado = await nuevoPedido.save();
+    
+    // Actualizar prospecto
+    prospecto.etapa = 'pedido';
+    prospecto.fechaUltimoContacto = new Date();
+    await prospecto.save();
+
+    // Poblar datos para respuesta
+    const pedidoCompleto = await Pedido.findById(pedidoGuardado._id)
+      .populate('prospecto', 'nombre telefono email')
+      .populate('vendedor', 'nombre apellido');
+
+    console.log('✅ Pedido creado exitosamente:', pedidoCompleto.numero);
+
+    res.status(201).json({
+      message: 'Pedido creado exitosamente desde etapa',
+      pedido: pedidoCompleto,
+      totales: {
+        subtotal: totales.subtotalProductos,
+        instalacion: instalacion?.cobra ? instalacion.precio : 0,
+        descuento: totales.montoDescuento,
+        iva: totales.ivaCalculado,
+        total: totales.totalFinal,
+        anticipo: Math.round(totales.totalFinal * 0.6),
+        saldo: Math.round(totales.totalFinal * 0.4)
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error creando pedido desde etapa:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor al crear pedido',
+      error: error.message 
+    });
+  }
+});
+
+// Función auxiliar para generar número de pedido
+async function generarNumeroPedido() {
+  try {
+    const year = new Date().getFullYear();
+    const count = await Pedido.countDocuments({
+      createdAt: {
+        $gte: new Date(year, 0, 1),
+        $lt: new Date(year + 1, 0, 1)
+      }
+    });
+    return `PED-${year}-${String(count + 1).padStart(4, '0')}`;
+  } catch (error) {
+    console.error('Error generando número de pedido:', error);
+    return `PED-${new Date().getFullYear()}-${Date.now()}`;
+  }
+}
 
 module.exports = router;

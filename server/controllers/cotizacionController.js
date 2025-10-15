@@ -1,5 +1,7 @@
 const Cotizacion = require('../models/Cotizacion');
 const Prospecto = require('../models/Prospecto');
+const CotizacionMappingService = require('../services/cotizacionMappingService');
+const ValidacionTecnicaService = require('../services/validacionTecnicaService');
 
 exports.crearCotizacion = async (req, res) => {
   try {
@@ -35,21 +37,38 @@ exports.crearCotizacion = async (req, res) => {
       return res.status(400).json({ message: 'Debes proporcionar al menos un producto para la cotización.' });
     }
 
+    // 🔒 VALIDACIÓN TÉCNICA: Verificar si se puede crear cotización
+    const validacionTecnica = ValidacionTecnicaService.validarAvanceEtapa(productos, 'cotizacion');
+    if (!validacionTecnica.puedeAvanzar) {
+      console.warn('⚠️ Cotización con información técnica incompleta:', validacionTecnica.mensajeCandado);
+      // Permitir crear cotización pero con advertencia
+      console.log('📝 Creando cotización con advertencias técnicas...');
+    }
+
     const prospecto = await Prospecto.findById(prospectoId);
     if (!prospecto) {
       console.error(`Error: Prospecto con ID ${prospectoId} no encontrado.`);
       return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
 
-    // Calcular totales utilizando la función auxiliar
-    const { subtotal, montoDescuento, ivaCalculado, totalFinal, baseParaDescuento, debeIncluirIVA } = calcularTotalesCotizacion({
-      productos,
+    // Usar servicio unificado para cálculos consistentes
+    const totalesUnificados = CotizacionMappingService.calcularTotalesUnificados(productos, {
       precioGeneralM2,
       incluyeInstalacion,
       costoInstalacion,
       descuento,
       requiereFactura
     });
+    
+    const { 
+      subtotalProductos: subtotal, 
+      montoDescuento, 
+      ivaCalculado, 
+      totalFinal, 
+      baseParaDescuento,
+      totalPiezas,
+      totalArea
+    } = totalesUnificados;
     
     const numeroCotizacion = await generarNumeroCotizacion();
 
@@ -60,62 +79,7 @@ exports.crearCotizacion = async (req, res) => {
       fecha: fechaCreacion ? new Date(fechaCreacion) : new Date(),
       estado: 'Activa',
       origen: origen || 'normal', // Usar el origen enviado o 'normal' por defecto
-      productos: productos.map((p) => {
-        const cantidad = p.cantidad || 1;
-        const ancho = parseFloat(p.medidas?.ancho ?? p.ancho) || 0;
-        const alto = parseFloat(p.medidas?.alto ?? p.alto) || 0;
-        const area = parseFloat(p.medidas?.area ?? p.area) || (ancho * alto);
-        const precioUnitario = Number(
-          p.precioUnitario ?? p.precioM2 ?? precioGeneralM2 ?? 0
-        );
-        const subtotalCalculado = Number(
-          p.subtotal ?? (area * precioUnitario * cantidad)
-        );
-
-        const nombreBase = p.nombre || p.nombreProducto || p.productoLabel || p.producto || '';
-        const descripcionBase = p.descripcion || p.observaciones || '';
-
-        return {
-          ubicacion: p.ubicacion,
-          cantidad,
-          ancho,
-          alto,
-          area,
-          nombre: nombreBase,
-          nombreProducto: p.nombreProducto || nombreBase,
-          productoLabel: p.productoLabel || nombreBase,
-          descripcion: descripcionBase,
-          categoria: p.categoria,
-          material: p.material,
-          productoId: p.productoId, // Asegúrate de que p.productoId sea un ObjectId válido o String que mongoose pueda castear
-          color: p.color,
-          precioM2: Number(p.precioM2 ?? precioUnitario),
-          precioUnitario,
-          subtotal: subtotalCalculado,
-          observaciones: p.observaciones,
-          fotoUrls: p.fotoUrls || [],
-          videoUrl: p.videoUrl || '',
-          medidas: {
-            ancho,
-            alto,
-            area
-          },
-          requiereR24: Boolean(p.requiereR24),
-          tiempoFabricacion: p.tiempoFabricacion,
-          esToldo: p.esToldo,
-          tipoToldo: p.tipoToldo,
-          kitModelo: p.kitModelo,
-          kitModeloManual: p.kitModeloManual,
-          kitPrecio: p.kitPrecio,
-          motorizado: p.motorizado,
-          motorModelo: p.motorModelo,
-          motorModeloManual: p.motorModeloManual,
-          motorPrecio: p.motorPrecio,
-          controlModelo: p.controlModelo,
-          controlModeloManual: p.controlModeloManual,
-          controlPrecio: p.controlPrecio,
-        };
-      }),
+      productos: productos.map((p) => CotizacionMappingService.normalizarProducto(p, origen)),
       comentarios,
       precioGeneralM2,
       unidadMedida,
@@ -160,7 +124,8 @@ exports.crearCotizacion = async (req, res) => {
 
     res.status(201).json({
       message: 'Cotización creada exitosamente',
-      cotizacion: cotizacionGuardada
+      cotizacion: cotizacionGuardada,
+      validacionTecnica: validacionTecnica // Incluir información de validación
     });
 
   } catch (error) {
@@ -208,14 +173,20 @@ function calcularTotalesCotizacion({ productos = [], precioGeneralM2, incluyeIns
     
     subtotalProductos += (area * precio * cantidad);
     
+    // Calcular cantidad de piezas reales para esta partida
+    let cantidadPiezasReales = cantidad;
+    if (pieza.medidas && Array.isArray(pieza.medidas)) {
+      cantidadPiezasReales = pieza.medidas.length; // Usar medidas individuales si existen
+    }
+    
     if (pieza.esToldo && pieza.kitPrecio) {
-      subtotalProductos += (parseFloat(pieza.kitPrecio) || 0) * cantidad;
+      subtotalProductos += (parseFloat(pieza.kitPrecio) || 0) * cantidadPiezasReales; // Kit por pieza
     }
     if (pieza.motorizado && pieza.motorPrecio) {
-      subtotalProductos += (parseFloat(pieza.motorPrecio) || 0); // 1 motor por partida
+      subtotalProductos += (parseFloat(pieza.motorPrecio) || 0) * cantidadPiezasReales; // Motor por pieza
     }
     if (pieza.motorizado && pieza.controlPrecio) {
-      subtotalProductos += (parseFloat(pieza.controlPrecio) || 0); // 1 control por partida
+      subtotalProductos += (parseFloat(pieza.controlPrecio) || 0); // 1 control por partida (correcto)
     }
   }
 

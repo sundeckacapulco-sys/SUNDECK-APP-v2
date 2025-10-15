@@ -6,7 +6,7 @@ const CotizacionMappingService = require('../services/cotizacionMappingService')
 
 const router = express.Router();
 
-// Obtener órdenes de fabricación
+// Obtener órdenes de producción
 router.get('/', auth, verificarPermiso('fabricacion', 'leer'), async (req, res) => {
   try {
     const { estado, prioridad, fechaDesde, fechaHasta } = req.query;
@@ -30,19 +30,19 @@ router.get('/', auth, verificarPermiso('fabricacion', 'leer'), async (req, res) 
 
     res.json(ordenes);
   } catch (error) {
-    console.error('Error obteniendo órdenes de fabricación:', error);
+    console.error('Error obteniendo órdenes de producción:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
 
-// Crear orden de fabricación desde pedido
+// Crear orden de producción desde pedido
 router.post('/desde-pedido/:pedidoId', auth, verificarPermiso('fabricacion', 'crear'), async (req, res) => {
   try {
     const { pedidoId } = req.params;
     const {
       fechaInicioDeseada,
       prioridad = 'media',
-      observacionesFabricacion = '',
+      observacionesProduccion = '',
       asignadoA = null
     } = req.body;
 
@@ -56,20 +56,20 @@ router.post('/desde-pedido/:pedidoId', auth, verificarPermiso('fabricacion', 'cr
 
     if (pedido.estado !== 'confirmado') {
       return res.status(400).json({ 
-        message: 'Solo se pueden enviar a fabricación pedidos confirmados' 
+        message: 'Solo se pueden enviar a producción pedidos confirmados' 
       });
     }
 
-    // Verificar si ya existe una orden de fabricación para este pedido
+    // Verificar si ya existe una orden de producción para este pedido
     const ordenExistente = await Fabricacion.findOne({ pedido: pedidoId });
     if (ordenExistente) {
       return res.status(400).json({ 
-        message: 'Ya existe una orden de fabricación para este pedido' 
+        message: 'Ya existe una orden de producción para este pedido' 
       });
     }
 
-    // Generar payload unificado para fabricación
-    const payloadFabricacion = CotizacionMappingService.generarPayloadUnificado({
+    // Generar payload unificado para producción
+    const payloadProduccion = CotizacionMappingService.generarPayloadUnificado({
       prospectoId: pedido.prospecto._id,
       productos: pedido.productos,
       origen: 'pedido_confirmado'
@@ -78,9 +78,9 @@ router.post('/desde-pedido/:pedidoId', auth, verificarPermiso('fabricacion', 'cr
     // Calcular tiempos de fabricación
     const tiemposFabricacion = calcularTiemposFabricacion(pedido.productos);
 
-    // Crear orden de fabricación
+    // Crear orden de producción
     const nuevaOrden = new Fabricacion({
-      numero: await generarNumeroFabricacion(),
+      numero: await generarNumeroProduccion(),
       pedido: pedido._id,
       prospecto: pedido.prospecto._id,
       estado: 'pendiente',
@@ -94,7 +94,7 @@ router.post('/desde-pedido/:pedidoId', auth, verificarPermiso('fabricacion', 'cr
       },
       
       // Detalles técnicos para fabricación
-      detallesTecnicos: payloadFabricacion.detallesTecnicos,
+      detallesTecnicos: payloadProduccion.detallesTecnicos,
       
       // Productos con información técnica completa
       productos: pedido.productos.map(producto => ({
@@ -123,22 +123,22 @@ router.post('/desde-pedido/:pedidoId', auth, verificarPermiso('fabricacion', 'cr
       fechaAsignacion: asignadoA ? new Date() : null,
       
       // Observaciones
-      observaciones: observacionesFabricacion,
+      observaciones: observacionesProduccion,
       
       // Historial inicial
       historial: [{
         fecha: new Date(),
         estado: 'pendiente',
         usuario: req.usuario._id,
-        observaciones: 'Orden de fabricación creada desde pedido'
+        observaciones: 'Orden de producción creada desde pedido'
       }]
     });
 
     const ordenGuardada = await nuevaOrden.save();
     
     // Actualizar estado del pedido
-    pedido.estado = 'en_fabricacion';
-    pedido.fechaInicioFabricacion = new Date();
+    pedido.estado = 'en_produccion';
+    pedido.fechaInicioProduccion = new Date();
     await pedido.save();
 
     // Poblar datos para respuesta
@@ -147,24 +147,24 @@ router.post('/desde-pedido/:pedidoId', auth, verificarPermiso('fabricacion', 'cr
       .populate('prospecto', 'nombre telefono')
       .populate('asignadoA', 'nombre apellido');
 
-    console.log('✅ Orden de fabricación creada:', ordenCompleta.numero);
+    console.log('✅ Orden de producción creada:', ordenCompleta.numero);
 
     res.status(201).json({
-      message: 'Orden de fabricación creada exitosamente',
+      message: 'Orden de producción creada exitosamente',
       orden: ordenCompleta,
       tiempos: tiemposFabricacion
     });
 
   } catch (error) {
-    console.error('❌ Error creando orden de fabricación:', error);
+    console.error('❌ Error creando orden de producción:', error);
     res.status(500).json({ 
-      message: 'Error interno del servidor al crear orden de fabricación',
+      message: 'Error interno del servidor al crear orden de producción',
       error: error.message 
     });
   }
 });
 
-// Actualizar estado de orden de fabricación
+// Actualizar estado de orden de producción
 router.patch('/:id/estado', auth, verificarPermiso('fabricacion', 'actualizar'), async (req, res) => {
   try {
     const { id } = req.params;
@@ -179,7 +179,7 @@ router.patch('/:id/estado', auth, verificarPermiso('fabricacion', 'actualizar'),
 
     const orden = await Fabricacion.findById(id);
     if (!orden) {
-      return res.status(404).json({ message: 'Orden de fabricación no encontrada' });
+      return res.status(404).json({ message: 'Orden de producción no encontrada' });
     }
 
     // Actualizar estado
@@ -222,7 +222,7 @@ router.patch('/:id/estado', auth, verificarPermiso('fabricacion', 'actualizar'),
     });
 
   } catch (error) {
-    console.error('Error actualizando estado de fabricación:', error);
+    console.error('Error actualizando estado de producción:', error);
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -305,7 +305,7 @@ function generarObservacionesFabricacion(producto) {
   return observaciones.join(' | ');
 }
 
-async function generarNumeroFabricacion() {
+async function generarNumeroProduccion() {
   try {
     const year = new Date().getFullYear();
     const count = await Fabricacion.countDocuments({
@@ -314,10 +314,10 @@ async function generarNumeroFabricacion() {
         $lt: new Date(year + 1, 0, 1)
       }
     });
-    return `FAB-${year}-${String(count + 1).padStart(4, '0')}`;
+    return `PROD-${year}-${String(count + 1).padStart(4, '0')}`;
   } catch (error) {
-    console.error('Error generando número de fabricación:', error);
-    return `FAB-${new Date().getFullYear()}-${Date.now()}`;
+    console.error('Error generando número de producción:', error);
+    return `PROD-${new Date().getFullYear()}-${Date.now()}`;
   }
 }
 
