@@ -94,11 +94,179 @@ class PDFService {
   }
 
   formatDate(date) {
-    return new Date(date).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
     });
+  }
+
+  // Calcular tiempo de instalación inteligente COMPLEJO
+  calcularTiempoInstalacionInteligente(cotizacion) {
+    console.log('🤖 Iniciando cálculo COMPLEJO de tiempo de instalación...');
+    
+    let tiempoBaseDias = 0;
+    let factoresComplejidad = {
+      andamios: 0,
+      obraElectrica: 0,
+      alturaExtrema: 0,
+      motorizacionCompleja: 0,
+      diversidadProductos: 0,
+      areaGrande: 0,
+      instalacionExterior: 0,
+      sistemasPremium: 0
+    };
+    
+    let areaTotal = 0;
+    let tiposProductos = new Set();
+    let productosMotorizados = 0;
+    let productosExterior = 0;
+    let requiereAndamios = false;
+    let requiereObraElectrica = false;
+    
+    if (cotizacion.productos && Array.isArray(cotizacion.productos)) {
+      cotizacion.productos.forEach(producto => {
+        const medidas = producto.medidas || producto.medidasIndividuales || [];
+        const medidasArray = Array.isArray(medidas) ? medidas : [medidas];
+        
+        medidasArray.forEach(medida => {
+          if (!medida || typeof medida !== 'object') return;
+          
+          const ancho = parseFloat(medida.ancho) || 0;
+          const alto = parseFloat(medida.alto) || 0;
+          const area = parseFloat(medida.area) || (ancho * alto);
+          const esMotorizado = Boolean(producto.motorizado);
+          const esToldo = Boolean(producto.esToldo);
+          const productoNombre = (medida.producto || producto.nombre || '').toLowerCase();
+          const tipoInstalacion = medida.tipoInstalacion || 'interior';
+          const sistema = medida.sistema || 'estandar';
+          
+          areaTotal += area;
+          tiposProductos.add(productoNombre);
+          
+          // === CÁLCULO BASE POR TIPO DE PRODUCTO ===
+          if (esToldo || productoNombre.includes('toldo')) {
+            // TOLDOS: Más complejos, especialmente motorizados
+            if (area > 20) {
+              tiempoBaseDias += 2.5; // Toldos grandes
+            } else if (area > 10) {
+              tiempoBaseDias += 1.5; // Toldos medianos
+            } else {
+              tiempoBaseDias += 1.0; // Toldos pequeños
+            }
+            
+            if (esMotorizado) {
+              tiempoBaseDias += 0.5; // Complejidad motorización
+              productosMotorizados++;
+            }
+            
+          } else if (productoNombre.includes('blackout') && esMotorizado) {
+            // BLACKOUT MOTORIZADO: Precisión alta
+            tiempoBaseDias += 0.4 * (producto.cantidad || 1);
+            productosMotorizados++;
+            
+          } else if (productoNombre.includes('screen') || productoNombre.includes('persiana')) {
+            // PERSIANAS SCREEN: Según motorización
+            if (esMotorizado) {
+              tiempoBaseDias += 0.3 * (producto.cantidad || 1);
+              productosMotorizados++;
+            } else {
+              tiempoBaseDias += 0.15 * (producto.cantidad || 1);
+            }
+            
+          } else if (productoNombre.includes('cortina')) {
+            // CORTINAS TRADICIONALES: Más rápidas
+            tiempoBaseDias += 0.2 * (producto.cantidad || 1);
+            
+          } else {
+            // PRODUCTOS GENÉRICOS
+            tiempoBaseDias += esMotorizado ? 0.4 : 0.2;
+            if (esMotorizado) productosMotorizados++;
+          }
+          
+          // === FACTORES DE COMPLEJIDAD ===
+          
+          // Altura extrema (andamios)
+          if (alto > 4.0) {
+            requiereAndamios = true;
+            factoresComplejidad.andamios = Math.max(factoresComplejidad.andamios, 2);
+            if (alto > 6.0) factoresComplejidad.alturaExtrema = 1;
+          } else if (alto > 3.0) {
+            factoresComplejidad.andamios = Math.max(factoresComplejidad.andamios, 1);
+          }
+          
+          // Instalación exterior
+          if (tipoInstalacion === 'exterior') {
+            productosExterior++;
+            factoresComplejidad.instalacionExterior = Math.max(factoresComplejidad.instalacionExterior, 0.5);
+          }
+          
+          // Sistemas premium
+          if (sistema === 'premium') {
+            factoresComplejidad.sistemasPremium += 0.3;
+          }
+        });
+        
+        // Obra eléctrica (detectar por propiedades del producto)
+        if (producto.requiereObraElectrica || producto.costoObraElectrica > 0) {
+          requiereObraElectrica = true;
+          factoresComplejidad.obraElectrica = 1.5;
+        }
+        
+        // Motorización compleja (controles multicanal)
+        if (producto.controlModelo && producto.controlModelo.includes('multicanal')) {
+          factoresComplejidad.motorizacionCompleja += 0.5;
+        }
+      });
+    }
+    
+    // === FACTORES ADICIONALES ===
+    
+    // Diversidad de productos (más tipos = más complejidad)
+    const numTiposProductos = tiposProductos.size;
+    if (numTiposProductos >= 4) {
+      factoresComplejidad.diversidadProductos = 1.5;
+    } else if (numTiposProductos >= 3) {
+      factoresComplejidad.diversidadProductos = 1.0;
+    } else if (numTiposProductos >= 2) {
+      factoresComplejidad.diversidadProductos = 0.5;
+    }
+    
+    // Área grande del proyecto
+    if (areaTotal > 50) {
+      factoresComplejidad.areaGrande = 1.5;
+    } else if (areaTotal > 30) {
+      factoresComplejidad.areaGrande = 1.0;
+    } else if (areaTotal > 20) {
+      factoresComplejidad.areaGrande = 0.5;
+    }
+    
+    // === CÁLCULO FINAL ===
+    
+    // Sumar todos los factores de complejidad
+    const complejidadTotal = Object.values(factoresComplejidad).reduce((sum, factor) => sum + factor, 0);
+    
+    // Tiempo final = tiempo base + factores de complejidad
+    let tiempoFinal = Math.ceil(tiempoBaseDias + complejidadTotal);
+    
+    // Mínimo 1 día, máximo 10 días para proyectos residenciales
+    tiempoFinal = Math.max(1, Math.min(10, tiempoFinal));
+    
+    // === LOG DETALLADO ===
+    console.log('📊 ANÁLISIS COMPLEJO DE INSTALACIÓN:');
+    console.log(`- Área total: ${areaTotal.toFixed(1)}m²`);
+    console.log(`- Tipos de productos: ${numTiposProductos} (${Array.from(tiposProductos).join(', ')})`);
+    console.log(`- Productos motorizados: ${productosMotorizados}`);
+    console.log(`- Productos exterior: ${productosExterior}`);
+    console.log(`- Requiere andamios: ${requiereAndamios}`);
+    console.log(`- Requiere obra eléctrica: ${requiereObraElectrica}`);
+    console.log(`- Tiempo base: ${tiempoBaseDias.toFixed(1)} días`);
+    console.log('- Factores complejidad:', factoresComplejidad);
+    console.log(`- Complejidad total: +${complejidadTotal.toFixed(1)} días`);
+    console.log(`🎯 TIEMPO FINAL: ${tiempoFinal} días`);
+    
+    return tiempoFinal;
   }
 
   async generarCotizacionPDF(cotizacion) {
@@ -259,6 +427,7 @@ class PDFService {
               width: 100%;
               border-collapse: collapse;
               margin-bottom: 30px;
+              page-break-inside: auto; /* Permitir cortes en la tabla si es muy larga */
             }
             
             .productos-table th,
@@ -368,9 +537,316 @@ class PDFService {
               margin-left: 5px;
             }
             
+            /* ESTILOS PARA ESPECIFICACIONES TÉCNICAS */
+            .producto-detalle {
+              padding: 8px 0;
+            }
+            
+            .producto-titulo {
+              font-size: 14px;
+              color: #1E40AF;
+              margin-bottom: 8px;
+              display: block;
+            }
+            
+            .especificaciones-tecnicas {
+              margin-top: 6px;
+            }
+            
+            .spec-grupo {
+              display: block;
+              margin-bottom: 4px;
+              font-size: 10px;
+              line-height: 1.3;
+            }
+            
+            .spec-categoria {
+              font-weight: bold;
+              color: #555;
+              display: inline-block;
+              min-width: 100px;
+            }
+            
+            .spec-valor {
+              color: #333;
+              margin-left: 5px;
+            }
+            
+            .badge-r24 {
+              background: #dc3545;
+              color: white;
+              padding: 2px 6px;
+              border-radius: 3px;
+              font-weight: bold;
+            }
+            
+            /* ESTILOS PARA TÉRMINOS COMERCIALES */
+            .terminos-comerciales {
+              background: #f8f9fa;
+              border: 2px solid #1E40AF;
+              border-radius: 8px;
+              padding: 20px;
+              margin: 30px 0;
+              page-break-inside: avoid; /* Evitar cortes dentro de la sección */
+              break-inside: avoid; /* Para navegadores modernos */
+              /* Removido page-break-before: always para cotizaciones cortas */
+            }
+            
+            /* CLASE ESPECIAL PARA COTIZACIONES LARGAS */
+            .terminos-comerciales.nueva-pagina {
+              page-break-before: always; /* Solo para cotizaciones largas */
+            }
+            
+            .terminos-comerciales h3 {
+              color: #1E40AF;
+              text-align: center;
+              margin-bottom: 20px;
+              font-size: 16px;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            
+            .terminos-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              margin-bottom: 20px;
+            }
+            
+            .termino-seccion h4 {
+              color: #D4AF37;
+              margin-bottom: 10px;
+              font-size: 12px;
+              border-bottom: 1px solid #D4AF37;
+              padding-bottom: 5px;
+            }
+            
+            .termino-item {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+              font-size: 11px;
+            }
+            
+            .termino-label {
+              font-weight: bold;
+              color: #555;
+            }
+            
+            .termino-valor {
+              color: #333;
+              text-align: right;
+              flex: 1;
+              margin-left: 10px;
+            }
+            
+            .garantias-seccion h4 {
+              color: #28a745;
+              margin-bottom: 10px;
+              font-size: 12px;
+            }
+            
+            .garantia-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 15px;
+            }
+            
+            .garantia-item {
+              text-align: center;
+              padding: 8px;
+              background: white;
+              border-radius: 4px;
+              border: 1px solid #28a745;
+            }
+            
+            .garantia-tipo {
+              display: block;
+              font-size: 10px;
+              color: #555;
+              margin-bottom: 4px;
+            }
+            
+            .garantia-tiempo {
+              display: block;
+              font-weight: bold;
+              color: #28a745;
+              font-size: 12px;
+            }
+            
+            /* ESTILOS PARA SERVICIO GRATIS */
+            .servicio-gratis {
+              margin: 15px 0;
+              padding: 10px;
+              background: #d4edda;
+              border: 2px solid #28a745;
+              border-radius: 6px;
+              text-align: center;
+            }
+            
+            .servicio-gratis h4 {
+              color: #155724;
+              margin-bottom: 8px;
+              font-size: 12px;
+            }
+            
+            .servicio-item {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+            }
+            
+            .servicio-icono {
+              font-size: 16px;
+            }
+            
+            .servicio-texto {
+              color: #155724;
+              font-size: 11px;
+              font-weight: bold;
+            }
+            
+            /* ESTILOS PARA MANTENIMIENTO */
+            .mantenimiento-seccion {
+              margin-top: 15px;
+              padding: 10px;
+              background: #fff3cd;
+              border: 1px solid #ffc107;
+              border-radius: 6px;
+            }
+            
+            .mantenimiento-seccion h4 {
+              color: #856404;
+              margin-bottom: 10px;
+              font-size: 12px;
+              text-align: center;
+            }
+            
+            .mantenimiento-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+            }
+            
+            .mantenimiento-item {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 6px;
+              background: white;
+              border-radius: 4px;
+              border-left: 3px solid #ffc107;
+            }
+            
+            .mant-tipo {
+              font-size: 10px;
+              color: #555;
+              font-weight: bold;
+            }
+            
+            .mant-frecuencia {
+              font-size: 10px;
+              color: #856404;
+              font-weight: bold;
+            }
+            
+            /* ESTILOS PARA CLÁUSULAS LEGALES */
+            .clausulas-legales {
+              background: #fff3cd;
+              border: 2px solid #ffc107;
+              border-radius: 8px;
+              padding: 15px;
+              margin-top: 20px;
+              page-break-inside: avoid; /* Evitar cortes dentro de las cláusulas */
+              break-inside: avoid; /* Para navegadores modernos */
+            }
+            
+            .clausulas-legales h4 {
+              color: #856404;
+              text-align: center;
+              margin-bottom: 15px;
+              font-size: 14px;
+              text-transform: uppercase;
+            }
+            
+            .clausula-importante {
+              background: #f8d7da;
+              border: 2px solid #dc3545;
+              border-radius: 6px;
+              padding: 12px;
+              margin-bottom: 10px;
+            }
+            
+            .clausula-importante p {
+              margin: 0;
+              color: #721c24;
+              font-weight: bold;
+              text-align: center;
+            }
+            
+            .clausula-item {
+              margin-bottom: 8px;
+              padding: 8px;
+              background: white;
+              border-radius: 4px;
+              border-left: 4px solid #ffc107;
+            }
+            
+            .clausula-item p {
+              margin: 0;
+              font-size: 10px;
+              line-height: 1.4;
+              color: #333;
+            }
+            
+            /* REGLAS DE CONTROL DE PÁGINAS */
+            .totales {
+              page-break-inside: avoid; /* Evitar cortes en totales */
+              break-inside: avoid;
+            }
+            
+            .garantias-seccion {
+              page-break-inside: avoid; /* Evitar cortes en garantías */
+              break-inside: avoid;
+            }
+            
+            .servicio-gratis {
+              page-break-inside: avoid; /* Evitar cortes en servicio gratis */
+              break-inside: avoid;
+            }
+            
+            .mantenimiento-seccion {
+              page-break-inside: avoid; /* Evitar cortes en mantenimiento */
+              break-inside: avoid;
+            }
+            
+            /* Evitar huérfanas y viudas */
+            h3, h4 {
+              page-break-after: avoid;
+              break-after: avoid;
+            }
+            
+            .productos-table tr {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            
             @media print {
-              body { margin: 0; }
-              .container { padding: 10px; }
+              body { 
+                margin: 0; 
+                orphans: 3; /* Mínimo 3 líneas al final de página */
+                widows: 3; /* Mínimo 3 líneas al inicio de página */
+              }
+              .container { 
+                padding: 10px; 
+              }
+              
+              /* Forzar términos comerciales en nueva página */
+              .terminos-comerciales {
+                page-break-before: always !important;
+                page-break-inside: avoid !important;
+              }
             }
           </style>
         </head>
@@ -388,10 +864,10 @@ class PDFService {
               </div>
               <div class="company-info">
                 <strong>Sundeck Acapulco</strong><br>
-                Especialistas en Ventanas y Puertas<br>
+                Gracias por confiar en nosotros. Sundeck: tu espacio, nuestro compromiso.<br>
                 Acapulco, Guerrero<br>
                 Tel: (744) 123-4567<br>
-                info@sundeckacapulco.com
+                sac@sundeckcyp.com
               </div>
             </div>
 
@@ -468,20 +944,57 @@ class PDFService {
                 {{#each productos}}
                 <tr>
                   <td>
-                    <strong>{{nombre}}</strong><br>
-                    <small>{{descripcion}}</small><br>
-                    <small>Material: {{material}} | Color: {{color}}</small>
-                    {{#if requiereR24}}
-                    <span class="badge">R24</span>
-                    {{/if}}
-                    {{#if kitModelo}}
-                    <div><small>Kit: {{kitModelo}}{{#if kitPrecio}} – {{kitPrecio}}{{/if}}</small></div>
-                    {{/if}}
-                    {{#if motorizado}}
-                    <div>
-                      <small>Motorizado{{#if motorModelo}} • Motor: {{motorModelo}}{{#if motorPrecio}} ({{motorPrecio}}){{/if}}{{/if}}{{#if controlModelo}} • Control: {{controlModelo}}{{#if controlPrecio}} ({{controlPrecio}}){{/if}}{{/if}}</small>
+                    <div class="producto-detalle">
+                      <strong class="producto-titulo">{{nombre}}</strong>
+                      
+                      <!-- ESPECIFICACIONES TÉCNICAS DETALLADAS -->
+                      <div class="especificaciones-tecnicas">
+                        {{#if esToldo}}
+                        <div class="spec-grupo">
+                          <span class="spec-categoria">🏠 SISTEMA TOLDO:</span>
+                          <span class="spec-valor">{{tipoToldo}} - {{kitModelo}}</span>
+                        </div>
+                        {{/if}}
+                        
+                        <div class="spec-grupo">
+                          <span class="spec-categoria">🎨 TELA:</span>
+                          <span class="spec-valor">{{medidas.telaMarca}} - Color {{color}}</span>
+                        </div>
+                        
+                        {{#if motorizado}}
+                        <div class="spec-grupo">
+                          <span class="spec-categoria">⚡ MOTORIZACIÓN:</span>
+                          <span class="spec-valor">{{motorModelo}} + Control {{controlModelo}}</span>
+                        </div>
+                        {{else}}
+                        <div class="spec-grupo">
+                          <span class="spec-categoria">🔧 ACCIONAMIENTO:</span>
+                          <span class="spec-valor">Manual con cadena</span>
+                        </div>
+                        {{/if}}
+                        
+                        {{#if medidas.tipoInstalacion}}
+                        <div class="spec-grupo">
+                          <span class="spec-categoria">📍 INSTALACIÓN:</span>
+                          <span class="spec-valor">{{medidas.tipoInstalacion}} - {{medidas.sistema}}</span>
+                        </div>
+                        {{/if}}
+                        
+                        {{#if requiereR24}}
+                        <div class="spec-grupo">
+                          <span class="spec-categoria">🌪️ RESISTENCIA:</span>
+                          <span class="spec-valor badge-r24">R24 Anti-Huracán</span>
+                        </div>
+                        {{/if}}
+                        
+                        {{#if observaciones}}
+                        <div class="spec-grupo">
+                          <span class="spec-categoria">📝 OBSERVACIONES:</span>
+                          <span class="spec-valor">{{observaciones}}</span>
+                        </div>
+                        {{/if}}
+                      </div>
                     </div>
-                    {{/if}}
                   </td>
                   <td>{{medidas.ancho}}m × {{medidas.alto}}m</td>
                   <td>{{medidas.area}}</td>
@@ -548,40 +1061,125 @@ class PDFService {
               </div>
             </div>
 
-            <!-- Condiciones y Garantías -->
-            {{#if garantia}}
-            <div class="condiciones">
-              <h3>Garantías</h3>
-              <div class="condiciones-grid">
-                <div>
-                  <div class="info-item">
-                    <span class="info-label">Fabricación:</span> {{garantia.fabricacion}} meses
+            <!-- TÉRMINOS COMERCIALES OBLIGATORIOS -->
+            <div class="terminos-comerciales {{#if cotizacionLarga}}nueva-pagina{{/if}}">
+              <h3>📋 TÉRMINOS COMERCIALES</h3>
+              
+              <div class="terminos-grid">
+                <div class="termino-seccion">
+                  <h4>💰 CONDICIONES DE PAGO</h4>
+                  {{#if formaPago}}
+                  <div class="termino-item">
+                    <span class="termino-label">Anticipo:</span> 
+                    <span class="termino-valor">{{formaPago.anticipo.porcentaje}}% ({{formaPago.anticipo.monto}}) {{formaPago.anticipo.condiciones}}</span>
                   </div>
+                  <div class="termino-item">
+                    <span class="termino-label">Saldo:</span> 
+                    <span class="termino-valor">{{formaPago.saldo.porcentaje}}% ({{formaPago.saldo.monto}}) {{formaPago.saldo.condiciones}}</span>
+                  </div>
+                  {{else}}
+                  <div class="termino-item">
+                    <span class="termino-label">Anticipo:</span> 
+                    <span class="termino-valor">60% al confirmar pedido</span>
+                  </div>
+                  <div class="termino-item">
+                    <span class="termino-label">Saldo:</span> 
+                    <span class="termino-valor">40% contra instalación finalizada</span>
+                  </div>
+                  {{/if}}
                 </div>
-                <div>
-                  <div class="info-item">
-                    <span class="info-label">Instalación:</span> {{garantia.instalacion}} meses
+                
+                <div class="termino-seccion">
+                  <h4>⏰ PLAZOS DE ENTREGA</h4>
+                  <div class="termino-item">
+                    <span class="termino-label">Fabricación:</span> 
+                    <span class="termino-valor">{{tiempoFabricacion}} días hábiles</span>
+                  </div>
+                  <div class="termino-item">
+                    <span class="termino-label">Instalación:</span> 
+                    <span class="termino-valor">{{tiempoInstalacion}} días</span>
+                  </div>
+                  <div class="termino-item">
+                    <span class="termino-label">Vigencia:</span> 
+                    <span class="termino-valor">Válida hasta {{validoHasta}}</span>
                   </div>
                 </div>
               </div>
-              {{#if garantia.descripcion}}
-              <p><small>{{garantia.descripcion}}</small></p>
-              {{/if}}
+              
+              <div class="garantias-seccion">
+                <h4>🛡️ GARANTÍAS SUNDECK</h4>
+                <div class="garantia-grid">
+                  <div class="garantia-item">
+                    <span class="garantia-tipo">Motores:</span>
+                    <span class="garantia-tiempo">5 años</span>
+                  </div>
+                  <div class="garantia-item">
+                    <span class="garantia-tipo">Telas:</span>
+                    <span class="garantia-tiempo">3 años</span>
+                  </div>
+                  <div class="garantia-item">
+                    <span class="garantia-tipo">Instalación:</span>
+                    <span class="garantia-tiempo">1 año</span>
+                  </div>
+                </div>
+                
+                <div class="servicio-gratis">
+                  <h4>🔧 SERVICIO INCLUIDO</h4>
+                  <div class="servicio-item">
+                    <span class="servicio-icono">🎁</span>
+                    <span class="servicio-texto"><strong>1 AÑO DE SERVICIO GRATIS</strong> incluido</span>
+                  </div>
+                </div>
+                
+                <div class="mantenimiento-seccion">
+                  <h4>📅 MANTENIMIENTO RECOMENDADO</h4>
+                  <div class="mantenimiento-grid">
+                    <div class="mantenimiento-item">
+                      <span class="mant-tipo">🪟 Cortinas y Persianas:</span>
+                      <span class="mant-frecuencia">Cada año</span>
+                    </div>
+                    <div class="mantenimiento-item">
+                      <span class="mant-tipo">🏠 Toldos:</span>
+                      <span class="mant-frecuencia">Cada 8 meses</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            {{/if}}
 
             <!-- Footer -->
             <div class="footer">
-              <p><strong>🏠 Sundeck Persianas y Decoraciones – Instalación y Decoración de Persianas, Toldos y Cortinas a Medida</strong></p>
+              <p><strong>🏠 Sundeck Persianas y Decoraciones – Gracias por confiar en nosotros. Sundeck: tu espacio, nuestro compromiso.</strong></p>
               <p>Acapulco: Almirante Damian Churruca 5 Local 3 Fracc. Costa Azul</p>
               <p>Teléfonos: <a href="tel:7444334126">744-433-4126</a> • WhatsApp: <a href="https://wa.me/527444522540">744-452-2540</a></p>
-              <p>Web: <a href="https://www.sundeckcortinasypersianas.com/" target="_blank">www.sundeckcortinasypersianas.com</a></p>
+              <p>Web: <a href="https://www.sundeckcortinasypersianas.com/" target="_blank">www.sundeckcortinasypersianas.com</a> • Email: <a href="mailto:sac@sundeckcyp.com">sac@sundeckcyp.com</a></p>
               <p>Instagram: <a href="https://www.instagram.com/sundeck_oficial/" target="_blank">@sundeck_oficial</a></p>
               
               <p><em>Esta cotización es válida hasta la fecha indicada. Para cualquier duda, no dudes en contactarnos.</em></p>
               
-              <div class="condiciones-instalacion">
-                <p><strong>📋 Condiciones de Instalación:</strong> La instalación está sujeta a que el área se encuentre en condiciones óptimas y libres para el trabajo. La cotización incluye únicamente los productos y servicios especificados; cualquier modificación adicional (volados, adaptaciones, refuerzos, cortes o ajustes especiales) no está contemplada y generará un costo extra.</p>
+              <!-- CLÁUSULAS LEGALES OBLIGATORIAS -->
+              <div class="clausulas-legales">
+                <h4>📋 CONDICIONES GENERALES</h4>
+                
+                <div class="clausula-importante">
+                  <p><strong>⚠️ PRODUCTOS A LA MEDIDA:</strong> Por ser productos hechos a la medida, <strong>NO SE ACEPTAN CAMBIOS NI CANCELACIONES</strong> una vez realizado el anticipo.</p>
+                </div>
+                
+                <div class="clausula-item">
+                  <p><strong>🛡️ GARANTÍA SUNDECK:</strong> 5 años en motores / 3 años en telas / 1 año en instalación + 1 año de servicio gratis incluido.</p>
+                </div>
+                
+                <div class="clausula-item">
+                  <p><strong>📋 INSTALACIÓN:</strong> La instalación está sujeta a que el área se encuentre en condiciones óptimas y libres para el trabajo. Cualquier modificación adicional (volados, adaptaciones, refuerzos, cortes o ajustes especiales) no está contemplada y generará un costo extra.</p>
+                </div>
+                
+                <div class="clausula-item">
+                  <p><strong>⏰ VIGENCIA:</strong> Esta cotización es válida hasta la fecha indicada. Los precios están sujetos a cambios sin previo aviso.</p>
+                </div>
+                
+                <div class="clausula-item">
+                  <p><strong>📐 MEDIDAS:</strong> Las medidas finales serán verificadas antes de la fabricación. Cualquier discrepancia deberá ser reportada inmediatamente.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -601,6 +1199,25 @@ class PDFService {
         ? cotizacion.productos
         : [];
 
+      // Detectar si es una cotización MUY larga (criterios más estrictos)
+      const areaTotal = productos.reduce((total, prod) => {
+        const area = prod.medidas?.area || prod.area || 0;
+        return total + (parseFloat(area) || 0);
+      }, 0);
+      
+      // Contar líneas de productos (cada producto puede tener múltiples medidas)
+      const lineasProductos = productos.reduce((total, prod) => {
+        const medidas = prod.medidas || prod.medidasIndividuales || [];
+        const numMedidas = Array.isArray(medidas) ? medidas.length : 1;
+        return total + Math.max(1, numMedidas);
+      }, 0);
+      
+      // Solo forzar nueva página si es REALMENTE larga
+      const esLarga = (productos.length > 5) || // Más de 5 productos diferentes
+                     (areaTotal > 60) || // Más de 60m² total
+                     (lineasProductos > 8) || // Más de 8 líneas en la tabla
+                     (cotizacion.observaciones && cotizacion.observaciones.length > 800); // Observaciones muy largas
+
       const templateData = {
         ...(typeof cotizacion?.toObject === 'function' ? cotizacion.toObject() : cotizacion),
         fecha: this.formatDate(cotizacion.fecha),
@@ -611,6 +1228,7 @@ class PDFService {
         incluirIVA: cotizacion.incluirIVA !== false, // Por defecto true si no está definido
         costoInstalacion: cotizacion.costoInstalacion ? this.formatCurrency(cotizacion.costoInstalacion) : null,
         origenLabel: origenLabels[cotizacion.origen] || origenLabels.normal,
+        cotizacionLarga: esLarga, // Nueva propiedad para controlar saltos de página
         productos: productos.map(producto => {
           const productoData = typeof producto.toObject === 'function' ? producto.toObject() : producto;
           const medidas = productoData.medidas || {};
@@ -693,7 +1311,7 @@ class PDFService {
         },
         // Mapear tiempos de fabricación e instalación
         tiempoFabricacion: cotizacion.tiempoFabricacion || 15,
-        tiempoInstalacion: cotizacion.tiempoInstalacion || 1
+        tiempoInstalacion: this.calcularTiempoInstalacionInteligente(cotizacion)
       };
 
       console.log('🧾 [PDF] Datos preparados para renderizar cotización', {

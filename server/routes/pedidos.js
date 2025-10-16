@@ -84,6 +84,7 @@ router.post('/desde-cotizacion/:cotizacionId', auth, verificarPermiso('pedidos',
         pagado: false
       },
       productos: cotizacion.productos.map(producto => ({
+        // === DATOS BÁSICOS ===
         nombre: producto.nombre,
         descripcion: producto.descripcion,
         categoria: producto.categoria,
@@ -97,6 +98,55 @@ router.post('/desde-cotizacion/:cotizacionId', auth, verificarPermiso('pedidos',
         subtotal: producto.subtotal,
         requiereR24: producto.requiereR24,
         tiempoFabricacion: producto.tiempoFabricacion,
+        
+        // === ESPECIFICACIONES COMPLEJAS PARA PEDIDO ===
+        // Motorización
+        motorizado: producto.motorizado,
+        motorModelo: producto.motorModelo,
+        motorModeloManual: producto.motorModeloManual,
+        motorPrecio: producto.motorPrecio,
+        
+        // Controles
+        controlModelo: producto.controlModelo,
+        controlModeloManual: producto.controlModeloManual,
+        controlPrecio: producto.controlPrecio,
+        esControlMulticanal: producto.esControlMulticanal,
+        numMotores: producto.numMotores,
+        
+        // Toldos
+        esToldo: producto.esToldo,
+        tipoToldo: producto.tipoToldo,
+        kitModelo: producto.kitModelo,
+        kitModeloManual: producto.kitModeloManual,
+        kitPrecio: producto.kitPrecio,
+        
+        // Instalación especial
+        requiereAndamios: producto.requiereAndamios,
+        requiereObraElectrica: producto.requiereObraElectrica,
+        nivelAndamio: producto.nivelAndamio,
+        costoAndamios: producto.costoAndamios,
+        costoObraElectrica: producto.costoObraElectrica,
+        
+        // Medidas individuales (para levantamientos)
+        medidasIndividuales: producto.medidasIndividuales,
+        
+        // Observaciones y especificaciones técnicas
+        observaciones: producto.observaciones,
+        fotoUrls: producto.fotoUrls,
+        videoUrl: producto.videoUrl,
+        
+        // Garantías específicas
+        garantiaMotor: producto.garantiaMotor,
+        garantiaTela: producto.garantiaTela,
+        
+        // Accesorios adicionales
+        accionamiento: producto.accionamiento,
+        montaje: producto.montaje,
+        tipoTela: producto.tipoTela,
+        forroBlackout: producto.forroBlackout,
+        rielDecorativo: producto.rielDecorativo,
+        
+        // Estado de fabricación
         estadoFabricacion: 'pendiente'
       })),
       direccionEntrega: direccionEntrega || {
@@ -205,6 +255,7 @@ router.post('/aplicar-anticipo/:cotizacionId', auth, verificarPermiso('pedidos',
         pagado: false
       },
       productos: cotizacion.productos.map(producto => ({
+        // === DATOS BÁSICOS ===
         nombre: producto.nombre,
         descripcion: producto.descripcion,
         categoria: producto.categoria,
@@ -218,6 +269,55 @@ router.post('/aplicar-anticipo/:cotizacionId', auth, verificarPermiso('pedidos',
         subtotal: producto.subtotal,
         requiereR24: producto.requiereR24,
         tiempoFabricacion: producto.tiempoFabricacion,
+        
+        // === ESPECIFICACIONES COMPLEJAS PARA PEDIDO ===
+        // Motorización
+        motorizado: producto.motorizado,
+        motorModelo: producto.motorModelo,
+        motorModeloManual: producto.motorModeloManual,
+        motorPrecio: producto.motorPrecio,
+        
+        // Controles
+        controlModelo: producto.controlModelo,
+        controlModeloManual: producto.controlModeloManual,
+        controlPrecio: producto.controlPrecio,
+        esControlMulticanal: producto.esControlMulticanal,
+        numMotores: producto.numMotores,
+        
+        // Toldos
+        esToldo: producto.esToldo,
+        tipoToldo: producto.tipoToldo,
+        kitModelo: producto.kitModelo,
+        kitModeloManual: producto.kitModeloManual,
+        kitPrecio: producto.kitPrecio,
+        
+        // Instalación especial
+        requiereAndamios: producto.requiereAndamios,
+        requiereObraElectrica: producto.requiereObraElectrica,
+        nivelAndamio: producto.nivelAndamio,
+        costoAndamios: producto.costoAndamios,
+        costoObraElectrica: producto.costoObraElectrica,
+        
+        // Medidas individuales (para levantamientos)
+        medidasIndividuales: producto.medidasIndividuales,
+        
+        // Observaciones y especificaciones técnicas
+        observaciones: producto.observaciones,
+        fotoUrls: producto.fotoUrls,
+        videoUrl: producto.videoUrl,
+        
+        // Garantías específicas
+        garantiaMotor: producto.garantiaMotor,
+        garantiaTela: producto.garantiaTela,
+        
+        // Accesorios adicionales
+        accionamiento: producto.accionamiento,
+        montaje: producto.montaje,
+        tipoTela: producto.tipoTela,
+        forroBlackout: producto.forroBlackout,
+        rielDecorativo: producto.rielDecorativo,
+        
+        // Estado de fabricación
         estadoFabricacion: 'pendiente'
       })),
       direccionEntrega: direccionEntrega || {

@@ -318,14 +318,161 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       return Math.max(max, prod.tiempoFabricacion || 0);
     }, 10);
 
-    const tiempoInstalacionEstimado = Math.max(1, Math.ceil((totalArea || 1) / 10));
+    // === CÁLCULO COMPLEJO DE TIEMPO DE INSTALACIÓN ===
+    console.log('🤖 Iniciando cálculo COMPLEJO de tiempo de instalación en backend...');
+    
+    let tiempoBaseDias = 0;
+    let factoresComplejidad = {
+      andamios: 0,
+      obraElectrica: 0,
+      alturaExtrema: 0,
+      motorizacionCompleja: 0,
+      diversidadProductos: 0,
+      areaGrande: 0,
+      instalacionExterior: 0,
+      sistemasPremium: 0
+    };
+    
+    let tiposProductos = new Set();
+    let productosMotorizados = 0;
+    let productosExterior = 0;
+    let requiereAndamios = false;
+    let requiereObraElectrica = false;
+    
+    // Analizar productos originales del request
+    if (req.body.productos && Array.isArray(req.body.productos)) {
+      req.body.productos.forEach(pieza => {
+        const medidas = pieza.medidas || [];
+        const medidasArray = Array.isArray(medidas) ? medidas : [medidas];
+        
+        medidasArray.forEach(medida => {
+          if (!medida || typeof medida !== 'object') return;
+          
+          const ancho = parseFloat(medida.ancho) || 0;
+          const alto = parseFloat(medida.alto) || 0;
+          const area = parseFloat(medida.area) || (ancho * alto);
+          const esMotorizado = Boolean(pieza.motorizado);
+          const esToldo = Boolean(pieza.esToldo);
+          const productoNombre = (medida.producto || '').toLowerCase();
+          const tipoInstalacion = medida.tipoInstalacion || 'interior';
+          const sistema = medida.sistema || 'estandar';
+          
+          tiposProductos.add(productoNombre);
+          
+          // === CÁLCULO BASE POR TIPO DE PRODUCTO ===
+          if (esToldo || productoNombre.includes('toldo')) {
+            // TOLDOS: Más complejos
+            if (area > 20) {
+              tiempoBaseDias += 2.5; // Toldos grandes
+            } else if (area > 10) {
+              tiempoBaseDias += 1.5; // Toldos medianos
+            } else {
+              tiempoBaseDias += 1.0; // Toldos pequeños
+            }
+            
+            if (esMotorizado) {
+              tiempoBaseDias += 0.5;
+              productosMotorizados++;
+            }
+            
+          } else if (productoNombre.includes('blackout') && esMotorizado) {
+            // BLACKOUT MOTORIZADO
+            tiempoBaseDias += 0.4 * (pieza.cantidad || 1);
+            productosMotorizados++;
+            
+          } else if (productoNombre.includes('screen') || productoNombre.includes('persiana')) {
+            // PERSIANAS SCREEN
+            if (esMotorizado) {
+              tiempoBaseDias += 0.3 * (pieza.cantidad || 1);
+              productosMotorizados++;
+            } else {
+              tiempoBaseDias += 0.15 * (pieza.cantidad || 1);
+            }
+            
+          } else if (productoNombre.includes('cortina')) {
+            // CORTINAS TRADICIONALES
+            tiempoBaseDias += 0.2 * (pieza.cantidad || 1);
+            
+          } else {
+            // PRODUCTOS GENÉRICOS
+            tiempoBaseDias += esMotorizado ? 0.4 : 0.2;
+            if (esMotorizado) productosMotorizados++;
+          }
+          
+          // === FACTORES DE COMPLEJIDAD ===
+          
+          // Altura extrema (andamios)
+          if (alto > 4.0) {
+            requiereAndamios = true;
+            factoresComplejidad.andamios = Math.max(factoresComplejidad.andamios, 2);
+            if (alto > 6.0) factoresComplejidad.alturaExtrema = 1;
+          } else if (alto > 3.0) {
+            factoresComplejidad.andamios = Math.max(factoresComplejidad.andamios, 1);
+          }
+          
+          // Instalación exterior
+          if (tipoInstalacion === 'exterior') {
+            productosExterior++;
+            factoresComplejidad.instalacionExterior = Math.max(factoresComplejidad.instalacionExterior, 0.5);
+          }
+          
+          // Sistemas premium
+          if (sistema === 'premium') {
+            factoresComplejidad.sistemasPremium += 0.3;
+          }
+        });
+        
+        // Obra eléctrica
+        if (pieza.requiereObraElectrica || pieza.costoObraElectrica > 0) {
+          requiereObraElectrica = true;
+          factoresComplejidad.obraElectrica = 1.5;
+        }
+        
+        // Motorización compleja
+        if (pieza.controlModelo && pieza.controlModelo.includes('multicanal')) {
+          factoresComplejidad.motorizacionCompleja += 0.5;
+        }
+      });
+    }
+    
+    // === FACTORES ADICIONALES ===
+    
+    // Diversidad de productos
+    const numTiposProductos = tiposProductos.size;
+    if (numTiposProductos >= 4) {
+      factoresComplejidad.diversidadProductos = 1.5;
+    } else if (numTiposProductos >= 3) {
+      factoresComplejidad.diversidadProductos = 1.0;
+    } else if (numTiposProductos >= 2) {
+      factoresComplejidad.diversidadProductos = 0.5;
+    }
+    
+    // Área grande del proyecto
+    if (totalArea > 50) {
+      factoresComplejidad.areaGrande = 1.5;
+    } else if (totalArea > 30) {
+      factoresComplejidad.areaGrande = 1.0;
+    } else if (totalArea > 20) {
+      factoresComplejidad.areaGrande = 0.5;
+    }
+    
+    // === CÁLCULO FINAL ===
+    const complejidadTotal = Object.values(factoresComplejidad).reduce((sum, factor) => sum + factor, 0);
+    let tiempoInstalacionEstimado = Math.ceil(tiempoBaseDias + complejidadTotal);
+    tiempoInstalacionEstimado = Math.max(1, Math.min(10, tiempoInstalacionEstimado));
 
-    console.log('📊 Datos calculados para cotización:');
-    console.log('- Productos count:', productos.length);
-    console.log('- Mediciones count:', mediciones.length);
-    console.log('- Total área:', totalArea);
+    console.log('📊 ANÁLISIS COMPLEJO DE INSTALACIÓN COMPLETADO:');
+    console.log(`- Área total: ${totalArea.toFixed(1)}m²`);
+    console.log(`- Tipos de productos: ${numTiposProductos} (${Array.from(tiposProductos).join(', ')})`);
+    console.log(`- Productos motorizados: ${productosMotorizados}`);
+    console.log(`- Productos exterior: ${productosExterior}`);
+    console.log(`- Requiere andamios: ${requiereAndamios}`);
+    console.log(`- Requiere obra eléctrica: ${requiereObraElectrica}`);
+    console.log(`- Tiempo base: ${tiempoBaseDias.toFixed(1)} días`);
+    console.log('- Factores complejidad:', factoresComplejidad);
+    console.log(`- Complejidad total: +${complejidadTotal.toFixed(1)} días`);
+    console.log(`🎯 TIEMPO INSTALACIÓN FINAL: ${tiempoInstalacionEstimado} días`);
     console.log('- Tiempo fabricación:', tiempoFabricacionEstimado);
-    console.log('- Tiempo instalación:', tiempoInstalacionEstimado);
     console.log('- Requiere instalación:', requiereInstalacion);
     console.log('- Costo instalación:', costoInstalacion);
     const subtotalProductos = productos.reduce((sum, prod) => sum + (prod.subtotal || 0), 0);
