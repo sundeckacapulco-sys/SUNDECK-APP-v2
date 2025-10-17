@@ -323,8 +323,29 @@ class PDFService {
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Cotización {{numero}}</title>
+          <title>Cotización {{numero}} - SUNDECK</title>
           <style>
+            /* ===== VARIABLES CSS SUNDECK ===== */
+            :root {
+              --sundeck-azul-principal: #1E40AF;
+              --sundeck-azul-claro: #3B82F6;
+              --sundeck-azul-suave: #DBEAFE;
+              --sundeck-dorado: #D4AF37;
+              --sundeck-dorado-claro: #F59E0B;
+              --sundeck-dorado-suave: #FEF3C7;
+              --sundeck-gris-oscuro: #374151;
+              --sundeck-gris-medio: #6B7280;
+              --sundeck-gris-claro: #F3F4F6;
+              --sundeck-gris-muy-claro: #F9FAFB;
+              --sundeck-blanco: #FFFFFF;
+              --sundeck-verde: #10B981;
+              --sundeck-verde-suave: #D1FAE5;
+              --sundeck-rojo: #EF4444;
+              --sundeck-rojo-suave: #FEE2E2;
+              --sundeck-amarillo: #F59E0B;
+              --sundeck-amarillo-suave: #FEF3C7;
+            }
+            
             * {
               margin: 0;
               padding: 0;
@@ -332,12 +353,13 @@ class PDFService {
             }
             
             body {
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              margin: 15px 20px 20px 20px;
-              padding: 0;
-              line-height: 1.4;
-              color: #333;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+              margin: 0;
+              padding: 20px;
+              line-height: 1.5;
+              color: var(--sundeck-gris-oscuro);
               font-size: 12px;
+              background: var(--sundeck-blanco);
               -webkit-font-smoothing: antialiased;
               -moz-osx-font-smoothing: grayscale;
               text-rendering: optimizeLegibility;
@@ -346,22 +368,33 @@ class PDFService {
             .container {
               max-width: 800px;
               margin: 0 auto;
-              padding: 20px;
+              padding: 0;
+              background: var(--sundeck-blanco);
             }
             
+            /* ===== HEADER MODERNIZADO ===== */
             .header {
+              background: linear-gradient(135deg, var(--sundeck-azul-principal) 0%, var(--sundeck-azul-claro) 100%);
+              color: var(--sundeck-blanco);
+              padding: 25px 30px;
+              margin: -20px -20px 30px -20px;
+              border-radius: 0 0 15px 15px;
+              box-shadow: 0 4px 20px rgba(30, 64, 175, 0.15);
               display: flex;
               justify-content: space-between;
               align-items: center;
-              margin-bottom: 30px;
-              border-bottom: 3px solid #1E40AF;
-              padding-bottom: 20px;
             }
             
             .logo {
               display: flex;
               align-items: center;
-              gap: 15px;
+            }
+            
+            .logo-container {
+              background: var(--sundeck-blanco);
+              padding: 10px 20px;
+              border-radius: 12px;
+              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             }
             
             .logo img {
@@ -369,113 +402,270 @@ class PDFService {
               width: auto;
             }
             
-            .logo-text {
-              font-size: 28px;
-              font-weight: bold;
-              color: #1E40AF;
-            }
-            
             .company-info {
               text-align: right;
-              font-size: 12px;
-              color: #666;
+              font-size: 11px;
+              color: var(--sundeck-azul-suave);
+              line-height: 1.4;
             }
             
+            .company-info strong {
+              color: var(--sundeck-blanco);
+              font-size: 13px;
+              display: block;
+              margin-bottom: 5px;
+            }
+            
+            /* ===== INFORMACIÓN DE COTIZACIÓN MODERNIZADA ===== */
             .cotizacion-info {
-              background: #f8f9fa;
-              padding: 20px;
-              border-radius: 8px;
-              margin-bottom: 30px;
+              background: linear-gradient(135deg, var(--sundeck-dorado-suave) 0%, var(--sundeck-amarillo-suave) 100%);
+              border: 2px solid var(--sundeck-dorado);
+              padding: 40px 30px 25px 30px;
+              border-radius: 15px;
+              margin: 0 20px 30px 20px;
+              box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1);
+              position: relative;
+              overflow: hidden;
+            }
+            
+            .cotizacion-info::before {
+              content: '';
+              position: absolute;
+              top: -50%;
+              right: -50%;
+              width: 100%;
+              height: 100%;
+              background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+              pointer-events: none;
             }
             
             .cotizacion-info h2 {
-              color: #D4AF37;
-              margin-bottom: 15px;
-              font-size: 24px;
-              text-align: center;
+              position: absolute;
+              top: 15px;
+              right: 20px;
+              color: var(--sundeck-gris-oscuro);
+              margin: 0;
+              font-size: 14px;
+              text-align: right;
               text-transform: uppercase;
-              letter-spacing: 1px;
+              letter-spacing: 0.5px;
+              font-weight: 600;
+              z-index: 2;
             }
             
             .info-grid {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 20px;
+              gap: 25px;
+              position: relative;
+              z-index: 1;
             }
             
             .info-item {
-              margin-bottom: 10px;
+              margin-bottom: 12px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
             }
             
             .info-label {
-              font-weight: bold;
-              color: #555;
+              font-weight: 600;
+              color: var(--sundeck-gris-oscuro);
+              min-width: 120px;
+              font-size: 11px;
             }
             
+            .info-value {
+              color: var(--sundeck-azul-principal);
+              font-weight: 500;
+              font-size: 12px;
+            }
+            
+            /* ===== INFORMACIÓN DEL CLIENTE MODERNIZADA ===== */
             .cliente-info {
-              margin-bottom: 30px;
+              background: var(--sundeck-gris-muy-claro);
+              border: 1px solid var(--sundeck-gris-claro);
+              border-radius: 12px;
+              padding: 20px 25px;
+              margin: 0 20px 30px 20px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             }
             
             .cliente-info h3 {
-              color: #333;
-              margin-bottom: 15px;
-              border-bottom: 2px solid #D4AF37;
-              padding-bottom: 5px;
+              color: var(--sundeck-azul-principal);
+              margin-bottom: 18px;
+              font-size: 16px;
+              font-weight: 700;
+              border-bottom: 3px solid var(--sundeck-dorado);
+              padding-bottom: 8px;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+            
+            .cliente-info h3::before {
+              content: '👤';
+              font-size: 18px;
+            }
+            
+            /* ===== TABLA DE PRODUCTOS MODERNIZADA ===== */
+            .productos-section {
+              margin: 0 20px 30px 20px;
+            }
+            
+            .productos-section h3 {
+              color: var(--sundeck-azul-principal);
+              margin-bottom: 20px;
+              font-size: 18px;
+              font-weight: 700;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+            
+            .productos-section h3::before {
+              content: '📦';
+              font-size: 20px;
             }
             
             .productos-table {
               width: 100%;
-              border-collapse: collapse;
+              border-collapse: separate;
+              border-spacing: 0;
               margin-bottom: 30px;
-              page-break-inside: auto; /* Permitir cortes en la tabla si es muy larga */
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+              page-break-inside: auto;
             }
             
             .productos-table th,
             .productos-table td {
-              border: 1px solid #ddd;
-              padding: 12px;
+              padding: 15px 12px;
               text-align: left;
+              border: none;
+              border-bottom: 1px solid var(--sundeck-gris-claro);
             }
             
             .productos-table th {
-              background-color: #1E40AF;
-              color: white;
-              font-weight: bold;
+              background: linear-gradient(135deg, var(--sundeck-azul-principal) 0%, var(--sundeck-azul-claro) 100%);
+              color: var(--sundeck-blanco);
+              font-weight: 700;
               text-align: center;
               font-size: 11px;
               text-transform: uppercase;
+              letter-spacing: 0.5px;
+              text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            }
+            
+            .productos-table th:first-child {
+              border-top-left-radius: 12px;
+            }
+            
+            .productos-table th:last-child {
+              border-top-right-radius: 12px;
             }
             
             .productos-table tr:nth-child(even) {
-              background-color: #f9f9f9;
+              background-color: var(--sundeck-gris-muy-claro);
             }
             
+            .productos-table tr:hover {
+              background-color: var(--sundeck-azul-suave);
+            }
+            
+            .productos-table tr:last-child td:first-child {
+              border-bottom-left-radius: 12px;
+            }
+            
+            .productos-table tr:last-child td:last-child {
+              border-bottom-right-radius: 12px;
+            }
+            
+            /* ===== SECCIÓN DE TOTALES MODERNIZADA ===== */
             .totales {
-              background: #f8f9fa;
-              padding: 20px;
-              border-radius: 8px;
-              margin-bottom: 30px;
+              background: linear-gradient(135deg, var(--sundeck-gris-muy-claro) 0%, var(--sundeck-blanco) 100%);
+              border: 2px solid var(--sundeck-dorado);
+              padding: 25px 30px;
+              border-radius: 15px;
+              margin: 0 20px 30px 20px;
+              box-shadow: 0 6px 20px rgba(212, 175, 55, 0.15);
+              position: relative;
+            }
+            
+            .totales::before {
+              content: '💰';
+              position: absolute;
+              top: -15px;
+              left: 25px;
+              background: var(--sundeck-dorado);
+              color: var(--sundeck-blanco);
+              width: 30px;
+              height: 30px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 16px;
+              box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+            }
+            
+            .totales h3 {
+              color: var(--sundeck-dorado);
+              margin-bottom: 20px;
+              font-size: 18px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 1px;
             }
             
             .totales-grid {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 20px;
+              gap: 30px;
             }
             
             .total-item {
               display: flex;
               justify-content: space-between;
-              margin-bottom: 10px;
-              padding: 5px 0;
+              align-items: center;
+              margin-bottom: 12px;
+              padding: 8px 12px;
+              background: var(--sundeck-blanco);
+              border-radius: 8px;
+              border-left: 4px solid var(--sundeck-azul-claro);
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+            
+            .total-item span:first-child {
+              font-weight: 600;
+              color: var(--sundeck-gris-oscuro);
+              font-size: 11px;
+            }
+            
+            .total-item span:last-child {
+              font-weight: 700;
+              color: var(--sundeck-azul-principal);
+              font-size: 12px;
             }
             
             .total-final {
-              border-top: 2px solid #D4AF37;
-              padding-top: 10px;
-              font-weight: bold;
+              border: 3px solid var(--sundeck-dorado);
+              border-left: 6px solid var(--sundeck-dorado);
+              background: linear-gradient(135deg, var(--sundeck-dorado-suave) 0%, var(--sundeck-amarillo-suave) 100%);
+              padding: 15px 20px;
+              margin-top: 15px;
+              font-weight: 800;
+              font-size: 16px;
+              color: var(--sundeck-dorado);
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+            }
+            
+            .total-final span:last-child {
               font-size: 18px;
-              color: #D4AF37;
+              color: var(--sundeck-dorado);
             }
             
             .condiciones {
@@ -852,22 +1042,21 @@ class PDFService {
         </head>
         <body>
           <div class="container">
-            <!-- Header -->
+            <!-- Header Modernizado -->
             <div class="header">
               <div class="logo">
-                <div class="logo-text">
-                  🏠 SUNDECK
+                {{#if logoBase64}}
+                <div class="logo-container">
+                  <img src="{{logoBase64}}" alt="SUNDECK Logo" />
                 </div>
-                <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                  PERSIANAS Y DECORACIONES
-                </div>
+                {{/if}}
               </div>
               <div class="company-info">
-                <strong>Sundeck Acapulco</strong><br>
+                <strong>Sundeck Acapulco</strong>
                 Gracias por confiar en nosotros. Sundeck: tu espacio, nuestro compromiso.<br>
-                Acapulco, Guerrero<br>
-                Tel: (744) 123-4567<br>
-                sac@sundeckcyp.com
+                📍 Acapulco, Guerrero<br>
+                📞 Tel: (744) 123-4567<br>
+                📧 sac@sundeckcyp.com
               </div>
             </div>
 
@@ -928,8 +1117,9 @@ class PDFService {
             </div>
 
             <!-- Productos Cotizados -->
-            <h3>Productos Cotizados</h3>
-            <table class="productos-table">
+            <div class="productos-section">
+              <h3>Productos Cotizados</h3>
+              <table class="productos-table">
               <thead>
                 <tr>
                   <th>Descripción</th>
@@ -1005,6 +1195,7 @@ class PDFService {
                 {{/each}}
               </tbody>
             </table>
+            </div>
 
             <!-- Totales -->
             <div class="totales">
@@ -1218,6 +1409,17 @@ class PDFService {
                      (lineasProductos > 8) || // Más de 8 líneas en la tabla
                      (cotizacion.observaciones && cotizacion.observaciones.length > 800); // Observaciones muy largas
 
+      // Cargar logo existente como base64
+      let logoBase64 = '';
+      try {
+        const logoPath = path.join(__dirname, '../public/images/logo-sundeck.png');
+        const logoBuffer = await fs.readFile(logoPath);
+        logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+        console.log('✅ Logo SUNDECK cargado correctamente');
+      } catch (logoError) {
+        console.log('⚠️ No se pudo cargar el logo SUNDECK:', logoError.message);
+      }
+
       const templateData = {
         ...(typeof cotizacion?.toObject === 'function' ? cotizacion.toObject() : cotizacion),
         fecha: this.formatDate(cotizacion.fecha),
@@ -1229,6 +1431,7 @@ class PDFService {
         costoInstalacion: cotizacion.costoInstalacion ? this.formatCurrency(cotizacion.costoInstalacion) : null,
         origenLabel: origenLabels[cotizacion.origen] || origenLabels.normal,
         cotizacionLarga: esLarga, // Nueva propiedad para controlar saltos de página
+        logoBase64: logoBase64, // Logo SUNDECK existente
         productos: productos.map(producto => {
           const productoData = typeof producto.toObject === 'function' ? producto.toObject() : producto;
           const medidas = productoData.medidas || {};
