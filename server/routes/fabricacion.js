@@ -1,8 +1,7 @@
 const express = require('express');
-const Fabricacion = require('../models/Fabricacion');
+const OrdenFabricacion = require('../models/OrdenFabricacion');
 const Pedido = require('../models/Pedido');
 const { auth, verificarPermiso } = require('../middleware/auth');
-const CotizacionMappingService = require('../services/cotizacionMappingService');
 
 const router = express.Router();
 

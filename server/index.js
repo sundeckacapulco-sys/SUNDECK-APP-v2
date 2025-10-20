@@ -104,6 +104,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/prospectos', require('./routes/prospectos'));
 app.use('/api/cotizaciones', require('./routes/cotizaciones'));
 app.use('/api/pedidos', require('./routes/pedidos'));
+app.use('/api/pedidos/dashboard', require('./routes/dashboardPedidos'));
 app.use('/api/fabricacion', require('./routes/fabricacion'));
 app.use('/api/instalaciones', require('./routes/instalaciones'));
 app.use('/api/postventa', require('./routes/postventa'));

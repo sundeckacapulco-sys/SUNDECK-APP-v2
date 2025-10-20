@@ -141,6 +141,16 @@ const KanbanBoard = () => {
         etapa: nuevaEtapaId,
         motivo: 'Movido desde Kanban'
       });
+
+      // Si se movió a "pedido", intentar crear el pedido automáticamente
+      if (nuevaEtapaId === 'pedido') {
+        console.log('🛒 Prospecto movido a Pedido, verificando cotización...');
+        await crearPedidoDesdeProspecto(draggableId);
+      }
+
+      // Notificar al dashboard que hubo cambios
+      localStorage.setItem('pedidos_updated', Date.now().toString());
+      
     } catch (error) {
       console.error('Error updating etapa:', error);
       // Revertir cambio local si falla
@@ -151,6 +161,60 @@ const KanbanBoard = () => {
             : p
         )
       );
+    }
+  };
+
+  // Función para crear pedido automáticamente desde prospecto
+  const crearPedidoDesdeProspecto = async (prospectoId) => {
+    try {
+      // Buscar cotizaciones del prospecto
+      const cotizacionesRes = await axiosConfig.get(`/cotizaciones?prospecto=${prospectoId}`);
+      
+      if (cotizacionesRes.data && cotizacionesRes.data.length > 0) {
+        // Buscar la cotización más reciente aprobada o activa
+        const cotizacionAprobada = cotizacionesRes.data.find(c => 
+          c.estado === 'aprobada' || c.estado === 'Activa'
+        );
+        
+        if (cotizacionAprobada) {
+          console.log('📋 Cotización encontrada, creando pedido...', cotizacionAprobada.numero);
+          
+          // Crear pedido desde la cotización
+          const pedidoRes = await axiosConfig.post(`/pedidos/desde-cotizacion/${cotizacionAprobada._id}`, {
+            direccionEntrega: {
+              calle: '',
+              colonia: '',
+              ciudad: '',
+              codigoPostal: '',
+              referencias: 'Dirección por confirmar'
+            },
+            contactoEntrega: {
+              nombre: cotizacionAprobada.nombre || 'Por confirmar',
+              telefono: '',
+              horarioPreferido: 'Por confirmar'
+            },
+            anticipo: {
+              porcentaje: 50
+            }
+          });
+
+          if (pedidoRes.data) {
+            console.log('✅ Pedido creado exitosamente:', pedidoRes.data.pedido?.numero);
+            
+            // Mostrar notificación de éxito
+            alert(`✅ Pedido ${pedidoRes.data.pedido?.numero} creado exitosamente desde la cotización ${cotizacionAprobada.numero}`);
+          }
+        } else {
+          console.log('⚠️ No se encontró cotización aprobada para crear pedido');
+          alert('⚠️ Para crear un pedido, el prospecto debe tener una cotización aprobada');
+        }
+      } else {
+        console.log('⚠️ No se encontraron cotizaciones para este prospecto');
+        alert('⚠️ Para crear un pedido, primero debe existir una cotización para este prospecto');
+      }
+    } catch (error) {
+      console.error('❌ Error creando pedido desde prospecto:', error);
+      alert('❌ Error al crear el pedido. Revisa que exista una cotización aprobada.');
     }
   };
 

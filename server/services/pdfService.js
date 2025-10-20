@@ -378,8 +378,8 @@ class PDFService {
               color: var(--sundeck-blanco);
               padding: 25px 30px;
               margin: -20px -20px 30px -20px;
-              border-radius: 0 0 15px 15px;
-              box-shadow: 0 4px 20px rgba(30, 64, 175, 0.15);
+              border-radius: 0 0 12px 12px;
+              border-bottom: 3px solid var(--sundeck-azul-principal);
               display: flex;
               justify-content: space-between;
               align-items: center;
@@ -393,8 +393,8 @@ class PDFService {
             .logo-container {
               background: var(--sundeck-blanco);
               padding: 10px 20px;
-              border-radius: 12px;
-              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+              border-radius: 8px;
+              border: 1px solid rgba(255, 255, 255, 0.3);
             }
             
             .logo img {
@@ -418,26 +418,14 @@ class PDFService {
             
             /* ===== INFORMACIÓN DE COTIZACIÓN MODERNIZADA ===== */
             .cotizacion-info {
-              background: linear-gradient(135deg, var(--sundeck-dorado-suave) 0%, var(--sundeck-amarillo-suave) 100%);
+              background: var(--sundeck-dorado-suave);
               border: 2px solid var(--sundeck-dorado);
               padding: 40px 30px 25px 30px;
-              border-radius: 15px;
+              border-radius: 10px;
               margin: 0 20px 30px 20px;
-              box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1);
               position: relative;
-              overflow: hidden;
             }
             
-            .cotizacion-info::before {
-              content: '';
-              position: absolute;
-              top: -50%;
-              right: -50%;
-              width: 100%;
-              height: 100%;
-              background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
-              pointer-events: none;
-            }
             
             .cotizacion-info h2 {
               position: absolute;
@@ -485,10 +473,9 @@ class PDFService {
             .cliente-info {
               background: var(--sundeck-gris-muy-claro);
               border: 1px solid var(--sundeck-gris-claro);
-              border-radius: 12px;
+              border-radius: 8px;
               padding: 20px 25px;
               margin: 0 20px 30px 20px;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             }
             
             .cliente-info h3 {
@@ -533,9 +520,9 @@ class PDFService {
               border-collapse: separate;
               border-spacing: 0;
               margin-bottom: 30px;
-              border-radius: 12px;
+              border-radius: 8px;
               overflow: hidden;
-              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+              border: 1px solid var(--sundeck-gris-claro);
               page-break-inside: auto;
             }
             
@@ -548,22 +535,21 @@ class PDFService {
             }
             
             .productos-table th {
-              background: linear-gradient(135deg, var(--sundeck-azul-principal) 0%, var(--sundeck-azul-claro) 100%);
+              background: var(--sundeck-azul-principal);
               color: var(--sundeck-blanco);
               font-weight: 700;
               text-align: center;
               font-size: 11px;
               text-transform: uppercase;
               letter-spacing: 0.5px;
-              text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
             }
             
             .productos-table th:first-child {
-              border-top-left-radius: 12px;
+              border-top-left-radius: 8px;
             }
             
             .productos-table th:last-child {
-              border-top-right-radius: 12px;
+              border-top-right-radius: 8px;
             }
             
             .productos-table tr:nth-child(even) {
@@ -575,21 +561,20 @@ class PDFService {
             }
             
             .productos-table tr:last-child td:first-child {
-              border-bottom-left-radius: 12px;
+              border-bottom-left-radius: 8px;
             }
             
             .productos-table tr:last-child td:last-child {
-              border-bottom-right-radius: 12px;
+              border-bottom-right-radius: 8px;
             }
             
             /* ===== SECCIÓN DE TOTALES MODERNIZADA ===== */
             .totales {
-              background: linear-gradient(135deg, var(--sundeck-gris-muy-claro) 0%, var(--sundeck-blanco) 100%);
+              background: var(--sundeck-gris-muy-claro);
               border: 2px solid var(--sundeck-dorado);
               padding: 25px 30px;
-              border-radius: 15px;
+              border-radius: 10px;
               margin: 0 20px 30px 20px;
-              box-shadow: 0 6px 20px rgba(212, 175, 55, 0.15);
               position: relative;
             }
             
@@ -607,7 +592,7 @@ class PDFService {
               align-items: center;
               justify-content: center;
               font-size: 16px;
-              box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+              border: 2px solid var(--sundeck-blanco);
             }
             
             .totales h3 {
@@ -632,9 +617,9 @@ class PDFService {
               margin-bottom: 12px;
               padding: 8px 12px;
               background: var(--sundeck-blanco);
-              border-radius: 8px;
+              border-radius: 6px;
               border-left: 4px solid var(--sundeck-azul-claro);
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+              border: 1px solid var(--sundeck-gris-claro);
             }
             
             .total-item span:first-child {
@@ -652,7 +637,7 @@ class PDFService {
             .total-final {
               border: 3px solid var(--sundeck-dorado);
               border-left: 6px solid var(--sundeck-dorado);
-              background: linear-gradient(135deg, var(--sundeck-dorado-suave) 0%, var(--sundeck-amarillo-suave) 100%);
+              background: var(--sundeck-dorado-suave);
               padding: 15px 20px;
               margin-top: 15px;
               font-weight: 800;
@@ -660,7 +645,7 @@ class PDFService {
               color: var(--sundeck-dorado);
               text-transform: uppercase;
               letter-spacing: 1px;
-              box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+              border-radius: 6px;
             }
             
             .total-final span:last-child {
