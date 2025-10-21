@@ -30,7 +30,7 @@ class PDFService {
       return Number(pieza.controlPrecio) || 0;
     } else {
       // Control individual: cobrar por cada motor/pieza
-      const numMotores = pieza.numMotores || (pieza.medidas ? pieza.medidas.length : (pieza.cantidad || 1));
+      const numMotores = pieza.numMotores || 1;
       return (Number(pieza.controlPrecio) || 0) * numMotores;
     }
   }
@@ -2214,7 +2214,7 @@ class PDFService {
             const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) : 0;
             // Motor: solo cobrar en la primera medida de cada partida
             const esPrimeraMedida = medidaIndex === 0;
-            const numMotores = pieza.numMotores || pieza.medidas.length;
+            const numMotores = pieza.numMotores || 1;
             const motorPrecio = (pieza.motorizado && pieza.motorPrecio && esPrimeraMedida) ? Number(pieza.motorPrecio) * numMotores : 0;
             const controlPrecio = esPrimeraMedida ? this.calcularPrecioControlReal(pieza, piezas) : 0;
             
@@ -2521,7 +2521,7 @@ class PDFService {
             const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) : 0;
             // Motor: solo cobrar en la primera medida de cada partida
             const esPrimeraMedida = medidaIndex === 0;
-            const numMotores = pieza.numMotores || pieza.medidas.length;
+            const numMotores = pieza.numMotores || 1;
             const motorPrecio = (pieza.motorizado && pieza.motorPrecio && esPrimeraMedida) ? Number(pieza.motorPrecio) * numMotores : 0;
             const controlPrecio = esPrimeraMedida ? this.calcularPrecioControlReal(pieza, piezas) : 0;
             

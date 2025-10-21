@@ -193,7 +193,7 @@ class ExcelService {
             const kitPrecio = (esProductoToldo && pieza.kitPrecio) ? Number(pieza.kitPrecio) : 0;
             // Motor: solo cobrar en la primera medida de cada partida
             const esPrimeraMedida = medidaIndex === 0;
-            const numMotores = pieza.numMotores || pieza.medidas.length;
+            const numMotores = pieza.numMotores || 1;
             const motorPrecio = (pieza.motorizado && pieza.motorPrecio && esPrimeraMedida)
               ? Number(pieza.motorPrecio) * numMotores
               : 0;

@@ -114,6 +114,9 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   // Estado para tipo de visita inicial
   const [tipoVisitaInicial, setTipoVisitaInicial] = useState('levantamiento'); // 'levantamiento' o 'cotizacion'
   
+  // Estado para persona que realizó visita (global para levantamiento)
+  const [personaVisita, setPersonaVisita] = useState('');
+  
   // Estados para fecha y hora
   const [fechaEtapa, setFechaEtapa] = useState('');
   const [horaEtapa, setHoraEtapa] = useState('');
@@ -169,6 +172,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setMetodoPagoAnticipo('');
     setGuardandoPDF(false);
     setTipoVisitaInicial('levantamiento');
+    setPersonaVisita('');
     // Reset fecha y hora
     setFechaEtapa('');
     setHoraEtapa('');
@@ -1567,7 +1571,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
           ...payload,
           tipoVisita: 'levantamiento',
           datosLevantamiento: {
-            personaVisita: piezaForm.personaVisita || '',
+            personaVisita: personaVisita || '',
             piezas: piezasNormalizadas
           }
         };
@@ -1586,55 +1590,56 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     }
   };
 
-  const handleAgregarPedido = async () => {
-    if (piezas.length === 0) {
-      setErrorLocal('Debes agregar al menos una partida para crear un pedido');
-      return;
+const handleAgregarPedido = async () => {
+  if (piezas.length === 0) {
+    setErrorLocal('Debes agregar al menos una partida para crear un pedido');
+    return;
+  }
+
+  setGuardandoPedido(true);
+  setErrorLocal('');
+
+  try {
+    const piezasNormalizadas = piezas.map((pieza) =>
+      mapearPiezaParaDocumento(pieza, { incluirExtras: true })
+    );
+
+    const payload = {
+      prospectoId,
+      piezas: piezasNormalizadas,
+      ...resumenEconomico,
+      facturacion: infoFacturacion,
+      metodoPago: metodoPagoInfo,
+      entrega: {
+        tipo: tiempoEntrega,
+        diasExpres: tiempoEntrega === 'expres' ? Number(diasExpres) : null,
+        fechaEstimada: calcularFechaEntrega.toISOString().split('T')[0]
+      },
+      terminos: {
+        incluir: incluirTerminos
+      },
+      totalFinal: totalFinal,
+      comentarios,
+      fotoUrls: [],
+      videoUrl: ''
+    };
+
+    const response = await axiosConfig.post(`/prospectos/${prospectoId}/pedidos`, payload);
+    
+    if (response.data) {
+      onSaved?.('Pedido creado exitosamente');
+      cerrarModal();
     }
+  } catch (error) {
+    console.error('Error al crear pedido:', error);
+    const mensaje = error.response?.data?.message || 'Error al crear el pedido';
+    setErrorLocal(mensaje);
+    onError?.(mensaje);
+  } finally {
+    setGuardandoPedido(false);
+  }
+};
 
-    setGuardandoPedido(true);
-    setErrorLocal('');
-
-    try {
-      const piezasNormalizadas = piezas.map((pieza) =>
-        mapearPiezaParaDocumento(pieza, { incluirExtras: true })
-      );
-
-      const payload = {
-        prospectoId,
-        piezas: piezasNormalizadas,
-        ...resumenEconomico,
-        facturacion: infoFacturacion,
-        metodoPago: metodoPagoInfo,
-        entrega: {
-          tipo: tiempoEntrega,
-          diasExpres: tiempoEntrega === 'expres' ? Number(diasExpres) : null,
-          fechaEstimada: calcularFechaEntrega.toISOString().split('T')[0]
-        },
-        terminos: {
-          incluir: incluirTerminos
-        },
-        totalFinal: totalFinal,
-        comentarios,
-        fotoUrls: [],
-        videoUrl: ''
-      };
-
-      const response = await axiosConfig.post(`/prospectos/${prospectoId}/pedidos`, payload);
-      
-      if (response.data) {
-        onSaved?.('Pedido creado exitosamente');
-        cerrarModal();
-      }
-    } catch (error) {
-      console.error('Error al crear pedido:', error);
-      const mensaje = error.response?.data?.message || 'Error al crear el pedido';
-      setErrorLocal(mensaje);
-      onError?.(mensaje);
-    } finally {
-      setGuardandoPedido(false);
-    }
-  };
 
   const handleVerPDF = async () => {
     console.log('🎯 Iniciando generación de PDF...');
@@ -1952,6 +1957,25 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                       value={precioGeneral}
                       onChange={(e) => setPrecioGeneral(e.target.value)}
                       placeholder="750"
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Información Global del Levantamiento - Solo para Levantamiento Simple */}
+              {tipoVisitaInicial === 'levantamiento' && (
+                <Card sx={{ mb: 2, bgcolor: 'info.50' }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" sx={{ mb: 2, color: 'info.main', fontWeight: 'bold' }}>
+                      👤 Información General del Levantamiento
+                    </Typography>
+                    <TextField
+                      label="Persona que realizó visita"
+                      fullWidth
+                      value={personaVisita}
+                      onChange={(e) => setPersonaVisita(e.target.value)}
+                      placeholder="Nombre del asesor/técnico"
+                      helperText="Se aplicará a todo el levantamiento"
                     />
                   </CardContent>
                 </Card>
@@ -2663,75 +2687,6 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                         </Grid>
                       )}
 
-                      {/* Información técnica general para Levantamiento Simple */}
-                      {tipoVisitaInicial === 'levantamiento' && (
-                        <>
-                          <Grid item xs={12}>
-                            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, color: 'info.main', fontWeight: 'bold' }}>
-                              📋 Datos Generales del Levantamiento
-                            </Typography>
-                          </Grid>
-                          
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              label="Persona que realizó visita"
-                              fullWidth
-                              value={piezaForm.personaVisita || ''}
-                              onChange={(e) => setPiezaForm(prev => ({ ...prev, personaVisita: e.target.value }))}
-                              placeholder="Nombre del asesor/técnico"
-                            />
-                          </Grid>
-
-                          <Grid item xs={12} sm={6}>
-                            <Box sx={{ 
-                              p: 2, 
-                              bgcolor: 'warning.50', 
-                              borderRadius: 1, 
-                              border: '1px solid', 
-                              borderColor: 'warning.200',
-                              height: '56px',
-                              display: 'flex',
-                              alignItems: 'center'
-                            }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                                <Box sx={{ 
-                                  bgcolor: 'warning.main', 
-                                  color: 'white', 
-                                  borderRadius: '50%', 
-                                  width: 24, 
-                                  height: 24, 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center',
-                                  fontSize: '12px',
-                                  fontWeight: 'bold'
-                                }}>
-                                  ⏰
-                                </Box>
-                                <Box>
-                                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'warning.dark' }}>
-                                    Recordatorio automático
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    Cotización en menos de 24 horas
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            </Box>
-                          </Grid>
-
-                          <Grid item xs={12}>
-                            <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px dashed', borderColor: 'grey.300' }}>
-                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                📝 Firma digital (opcional):
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                La firma digital se capturará al finalizar el levantamiento
-                              </Typography>
-                            </Box>
-                          </Grid>
-                        </>
-                      )}
 
                       {/* Sección de Kit de Toldo - Solo para toldos */}
                       {esProductoToldo(piezaForm.producto) && (
@@ -2792,17 +2747,20 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                               />
                             </Grid>
                           )}
-                          <Grid item xs={12} sm={4}>
-                            <TextField
-                              label="Precio del Kit (MXN)"
-                              type="number"
-                              fullWidth
-                              value={piezaForm.kitPrecio}
-                              onChange={(e) => setPiezaForm(prev => ({ ...prev, kitPrecio: e.target.value }))}
-                              placeholder="Ej. 3500, 4200, 5000"
-                              inputProps={{ step: 0.01 }}
-                            />
-                          </Grid>
+                          {/* Campo de precio solo para Cotización en Vivo */}
+                          {tipoVisitaInicial === 'cotizacion' && (
+                            <Grid item xs={12} sm={4}>
+                              <TextField
+                                label="Precio del Kit (MXN)"
+                                type="number"
+                                fullWidth
+                                value={piezaForm.kitPrecio}
+                                onChange={(e) => setPiezaForm(prev => ({ ...prev, kitPrecio: e.target.value }))}
+                                placeholder="Ej. 3500, 4200, 5000"
+                                inputProps={{ step: 0.01 }}
+                              />
+                            </Grid>
+                          )}
                         </>
                       )}
 
@@ -2890,17 +2848,20 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                       </Grid>
                                     )}
                                     
-                                    <Grid item xs={12} sm={4}>
-                                      <TextField
-                                        label="Precio por Motor (MXN)"
-                                        type="number"
-                                        fullWidth
-                                        value={piezaForm.motorPrecio}
-                                        onChange={(e) => setPiezaForm(prev => ({ ...prev, motorPrecio: e.target.value }))}
-                                        placeholder="Ej. 9500"
-                                        inputProps={{ step: 0.01 }}
-                                      />
-                                    </Grid>
+                                    {/* Campo de precio solo para Cotización en Vivo */}
+                                    {tipoVisitaInicial === 'cotizacion' && (
+                                      <Grid item xs={12} sm={4}>
+                                        <TextField
+                                          label="Precio por Motor (MXN)"
+                                          type="number"
+                                          fullWidth
+                                          value={piezaForm.motorPrecio}
+                                          onChange={(e) => setPiezaForm(prev => ({ ...prev, motorPrecio: e.target.value }))}
+                                          placeholder="Ej. 9500"
+                                          inputProps={{ step: 0.01 }}
+                                        />
+                                      </Grid>
+                                    )}
                                     
                                     <Grid item xs={12} sm={4}>
                                       <TextField
@@ -3002,18 +2963,21 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
                                       </Grid>
                                     )}
                                     
-                                    <Grid item xs={12} sm={6}>
-                                      <TextField
-                                        label="Precio Control (MXN)"
-                                        type="number"
-                                        fullWidth
-                                        value={piezaForm.controlPrecio}
-                                        onChange={(e) => setPiezaForm(prev => ({ ...prev, controlPrecio: e.target.value }))}
-                                        placeholder={piezaForm.esControlMulticanal ? "Ej. 1800 (solo 1)" : "Ej. 950 (por pieza)"}
-                                        inputProps={{ step: 0.01 }}
-                                        helperText={piezaForm.esControlMulticanal ? "Solo se cobrará 1 control multicanal" : "Se cobrará 1 control por pieza"}
-                                      />
-                                    </Grid>
+                                    {/* Campo de precio solo para Cotización en Vivo */}
+                                    {tipoVisitaInicial === 'cotizacion' && (
+                                      <Grid item xs={12} sm={6}>
+                                        <TextField
+                                          label="Precio Control (MXN)"
+                                          type="number"
+                                          fullWidth
+                                          value={piezaForm.controlPrecio}
+                                          onChange={(e) => setPiezaForm(prev => ({ ...prev, controlPrecio: e.target.value }))}
+                                          placeholder={piezaForm.esControlMulticanal ? "Ej. 1800 (solo 1)" : "Ej. 950 (por pieza)"}
+                                          inputProps={{ step: 0.01 }}
+                                          helperText={piezaForm.esControlMulticanal ? "Solo se cobrará 1 control multicanal" : "Se cobrará 1 control por pieza"}
+                                        />
+                                      </Grid>
+                                    )}
                                     
                                     {piezaForm.esControlMulticanal && (
                                       <Grid item xs={12} sm={6}>

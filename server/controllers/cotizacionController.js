@@ -183,7 +183,9 @@ function calcularTotalesCotizacion({ productos = [], precioGeneralM2, incluyeIns
       subtotalProductos += (parseFloat(pieza.kitPrecio) || 0) * cantidadPiezasReales; // Kit por pieza
     }
     if (pieza.motorizado && pieza.motorPrecio) {
-      subtotalProductos += (parseFloat(pieza.motorPrecio) || 0) * cantidadPiezasReales; // Motor por pieza
+      // CORRECCIÓN: 1 motor por partida, no por pieza individual
+      const numMotores = pieza.numMotores || 1;
+      subtotalProductos += (parseFloat(pieza.motorPrecio) || 0) * numMotores;
     }
     if (pieza.motorizado && pieza.controlPrecio) {
       subtotalProductos += (parseFloat(pieza.controlPrecio) || 0); // 1 control por partida (correcto)
