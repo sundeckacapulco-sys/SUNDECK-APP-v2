@@ -955,6 +955,14 @@ const CotizacionForm = () => {
       
       const prospectoIdFinal = data.prospecto;
 
+      // Debug del prospecto seleccionado
+      console.log('=== DEBUG PROSPECTO ===');
+      console.log('data.prospecto:', data.prospecto);
+      console.log('prospectoIdFinal:', prospectoIdFinal);
+      console.log('Tipo de prospectoIdFinal:', typeof prospectoIdFinal);
+      console.log('¿Es válido?:', !!prospectoIdFinal);
+      console.log('=== FIN DEBUG PROSPECTO ===');
+
       const totales = calcularTotales();
       
       // Calcular subtotales de productos usando la misma lógica que calcularTotales()
@@ -1011,7 +1019,7 @@ const CotizacionForm = () => {
       console.log('=== FIN DEBUG ===');
 
       const cotizacionData = {
-        prospectoId: prospectoIdFinal, // Usar el ID final (existente o creado)
+        prospecto: prospectoIdFinal, // Usar el ID final (existente o creado) - campo correcto para backend
         validoHasta: data.validoHasta,
         productos: productosConSubtotal,
         descuento: data.descuento,
@@ -1042,6 +1050,8 @@ const CotizacionForm = () => {
         }, 2000);
       } else {
         console.log('Enviando datos de cotización:', cotizacionData);
+        console.log('prospecto en payload:', cotizacionData.prospecto);
+        console.log('Tipo de prospecto en payload:', typeof cotizacionData.prospecto);
         response = await axiosConfig.post('/cotizaciones', cotizacionData);
         console.log('Respuesta del servidor:', response.data);
         setSuccess('Cotización creada exitosamente');

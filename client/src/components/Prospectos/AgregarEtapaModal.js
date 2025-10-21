@@ -1766,7 +1766,8 @@ const handleAgregarPedido = async () => {
           )}
           {nombreEtapa === 'Visita Inicial / Medición' && piezas.length > 0 && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              📋 Resumen: {piezas.length} partida{piezas.length > 1 ? 's' : ''} medida{piezas.length > 1 ? 's' : ''} • Precio por m² de tela: ${precioGeneral.toLocaleString()}
+              📋 Resumen: {piezas.length} partida{piezas.length > 1 ? 's' : ''} medida{piezas.length > 1 ? 's' : ''}
+              {tipoVisitaInicial === 'cotizacion' && ` • Precio por m² de tela: $${precioGeneral.toLocaleString()}`}
             </Typography>
           )}
         </Box>
@@ -2994,8 +2995,8 @@ const handleAgregarPedido = async () => {
                                     )}
                                   </Grid>
                                   
-                                  {/* Resumen de costos */}
-                                  {(piezaForm.motorPrecio || piezaForm.controlPrecio) && (
+                                  {/* Resumen de costos - Solo para Cotización en Vivo */}
+                                  {tipoVisitaInicial === 'cotizacion' && (piezaForm.motorPrecio || piezaForm.controlPrecio) && (
                                     <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
                                       <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
                                         💰 Resumen de Costos de Motorización:
@@ -3017,6 +3018,25 @@ const handleAgregarPedido = async () => {
                                           ((piezaForm.numMotores || 1) * parseFloat(piezaForm.motorPrecio || 0)) +
                                           (piezaForm.esControlMulticanal ? parseFloat(piezaForm.controlPrecio || 0) : ((piezaForm.numMotores || 1) * parseFloat(piezaForm.controlPrecio || 0)))
                                         ).toLocaleString()}
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                  
+                                  {/* Resumen técnico - Para Levantamiento Simple */}
+                                  {tipoVisitaInicial === 'levantamiento' && piezaForm.motorizado && (
+                                    <Box sx={{ mt: 2, p: 2, bgcolor: 'info.50', borderRadius: 1 }}>
+                                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: 'info.main' }}>
+                                        🔧 Especificaciones Técnicas de Motorización:
+                                      </Typography>
+                                      <Typography variant="body2">
+                                        • Motores: {piezaForm.numMotores || 1} unidad{(piezaForm.numMotores || 1) > 1 ? 'es' : ''}
+                                        <br />
+                                        • Modelo: {piezaForm.motorModeloManual || piezaForm.motorModelo || 'Por especificar'}
+                                        <br />
+                                        • Control: {piezaForm.controlModeloManual || piezaForm.controlModelo || 'Por especificar'}
+                                        {piezaForm.esControlMulticanal && ' (Multicanal)'}
+                                        <br />
+                                        • Distribución: {piezaForm.piezasPorMotor || Math.ceil((piezaForm.medidas ? piezaForm.medidas.length : 1) / (piezaForm.numMotores || 1))} piezas por motor
                                       </Typography>
                                     </Box>
                                   )}
@@ -3127,14 +3147,23 @@ const handleAgregarPedido = async () => {
                         </Box>
                       )}
                     </Box>
-                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
                       <Button
                         variant="contained"
                         onClick={handleAgregarPieza}
                         sx={{ bgcolor: '#16A34A', '&:hover': { bgcolor: '#15803D' } }}
                       >
-                        {editandoPieza ? '✅ Actualizar Partida' : '✅ Guardar Partida'}
+                        {editandoPieza ? '✅ Actualizar Partida' : '➕ Agregar Partida'}
                       </Button>
+                      {!editandoPieza && piezas.length > 0 && (
+                        <Button
+                          variant="contained"
+                          onClick={() => setAgregandoPieza(false)}
+                          sx={{ bgcolor: '#2563EB', '&:hover': { bgcolor: '#1D4ED8' } }}
+                        >
+                          ✅ Terminar de Agregar
+                        </Button>
+                      )}
                       <Button
                         variant="outlined"
                         onClick={editandoPieza ? handleCancelarEdicion : () => setAgregandoPieza(false)}
@@ -3686,14 +3715,19 @@ const handleAgregarPedido = async () => {
                                 <Typography variant="body2" color="text.secondary">Superficie:</Typography>
                                 <Typography variant="body1" fontWeight="bold">📐 {areaTotal.toFixed(2)} m²</Typography>
                               </Grid>
-                              <Grid item xs={6} sm={3}>
-                                <Typography variant="body2" color="text.secondary">Precio m²:</Typography>
-                                <Typography variant="body1" fontWeight="bold">💲 ${precio.toLocaleString()}/m²</Typography>
-                              </Grid>
-                              <Grid item xs={6} sm={3}>
-                                <Typography variant="body2" color="text.secondary">Subtotal m²:</Typography>
-                                <Typography variant="body1" fontWeight="bold">💰 ${subtotalM2.toLocaleString()}</Typography>
-                              </Grid>
+                              {/* Campos de precio solo para Cotización en Vivo */}
+                              {tipoVisitaInicial === 'cotizacion' && (
+                                <>
+                                  <Grid item xs={6} sm={3}>
+                                    <Typography variant="body2" color="text.secondary">Precio m²:</Typography>
+                                    <Typography variant="body1" fontWeight="bold">💲 ${precio.toLocaleString()}/m²</Typography>
+                                  </Grid>
+                                  <Grid item xs={6} sm={3}>
+                                    <Typography variant="body2" color="text.secondary">Subtotal m²:</Typography>
+                                    <Typography variant="body1" fontWeight="bold">💰 ${subtotalM2.toLocaleString()}</Typography>
+                                  </Grid>
+                                </>
+                              )}
                               <Grid item xs={6} sm={3}>
                                 <Typography variant="body2" color="text.secondary">Color:</Typography>
                                 <Typography variant="body1" fontWeight="bold">🎨 {pieza.color || 'No especificado'}</Typography>
@@ -3724,6 +3758,17 @@ const handleAgregarPedido = async () => {
                                     {medida.color && medida.color !== pieza.color && (
                                       <Typography variant="caption" color="text.secondary">
                                         - {medida.color}
+                                      </Typography>
+                                    )}
+                                    {/* Especificaciones técnicas */}
+                                    {(medida.sistema || medida.sistemaEspecial || medida.galeria || medida.baseTabla) && (
+                                      <Typography variant="caption" color="primary.main" sx={{ ml: 1 }}>
+                                        {[
+                                          medida.sistema && medida.sistema.length > 0 && `Sistema: ${medida.sistema.join(', ')}`,
+                                          medida.sistemaEspecial && medida.sistemaEspecial.length > 0 && `Especial: ${medida.sistemaEspecial.join(', ')}`,
+                                          medida.galeria && `Galería: ${medida.galeria}`,
+                                          medida.baseTabla && `Base: ${medida.baseTabla}`
+                                        ].filter(Boolean).join(' | ')}
                                       </Typography>
                                     )}
                                   </Box>
@@ -3777,12 +3822,14 @@ const handleAgregarPedido = async () => {
                             </Box>
                           )}
 
-                          {/* Total de la partida */}
-                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1, borderTop: 1, borderColor: 'grey.200' }}>
-                            <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                              Total Partida: ${totalPartida.toLocaleString()}
-                            </Typography>
-                          </Box>
+                          {/* Total de la partida - Solo para Cotización en Vivo */}
+                          {tipoVisitaInicial === 'cotizacion' && (
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1, borderTop: 1, borderColor: 'grey.200' }}>
+                              <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                                Total Partida: ${totalPartida.toLocaleString()}
+                              </Typography>
+                            </Box>
+                          )}
 
                           {/* Observaciones */}
                           {pieza.observaciones && (
@@ -3837,18 +3884,23 @@ const handleAgregarPedido = async () => {
                         <Typography variant="body2" color="text.secondary">Área total:</Typography>
                         <Typography variant="body1" fontWeight="bold" color="primary">📐 {calcularTotalM2.toFixed(2)} m²</Typography>
                       </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="body2" color="text.secondary">Subtotal productos:</Typography>
-                        <Typography variant="body1" fontWeight="bold">💰 ${calcularSubtotalProductos.toLocaleString()}</Typography>
-                      </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="body2" color="text.secondary">
-                          {aplicaDescuento ? 'Total final:' : (cobraInstalacion ? 'Total con instalación:' : 'Total estimado:')}
-                        </Typography>
-                        <Typography variant="body1" fontWeight="bold" color="success.main">
-                          💵 ${(requiereFactura ? totalConIVA : totalFinal).toLocaleString()}
-                        </Typography>
-                      </Grid>
+                      {/* Campos de precio solo para Cotización en Vivo */}
+                      {tipoVisitaInicial === 'cotizacion' && (
+                        <>
+                          <Grid item xs={6} sm={3}>
+                            <Typography variant="body2" color="text.secondary">Subtotal productos:</Typography>
+                            <Typography variant="body1" fontWeight="bold">💰 ${calcularSubtotalProductos.toLocaleString()}</Typography>
+                          </Grid>
+                          <Grid item xs={6} sm={3}>
+                            <Typography variant="body2" color="text.secondary">
+                              {aplicaDescuento ? 'Total final:' : (cobraInstalacion ? 'Total con instalación:' : 'Total estimado:')}
+                            </Typography>
+                            <Typography variant="body1" fontWeight="bold" color="success.main">
+                              💵 ${(requiereFactura ? totalConIVA : totalFinal).toLocaleString()}
+                            </Typography>
+                          </Grid>
+                        </>
+                      )}
                     </Grid>
                     
                     {/* Desglose de instalación si está activada - SIEMPRE MOSTRAR SI ESTÁ ACTIVADA */}

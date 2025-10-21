@@ -2195,6 +2195,19 @@ class PDFService {
       let totalGeneralReal = 0;
       const piezasExpandidas = [];
 
+      // Debug de datos recibidos
+      console.log('🔍 DEBUG PDF - Datos de piezas recibidos:');
+      piezas.forEach((pieza, index) => {
+        console.log(`Pieza ${index + 1}:`, {
+          ubicacion: pieza.ubicacion,
+          motorizado: pieza.motorizado,
+          motorModelo: pieza.motorModelo,
+          motorModeloManual: pieza.motorModeloManual,
+          sistema: pieza.sistema,
+          sistemaEspecial: pieza.sistemaEspecial
+        });
+      });
+
       piezas.forEach((pieza) => {
         if (pieza.medidas && Array.isArray(pieza.medidas) && pieza.medidas.length > 0) {
           // Formato nuevo: procesar cada medida individual
@@ -2272,32 +2285,41 @@ class PDFService {
           const subtotalCompleto = subtotal + kitPrecio + motorPrecio + controlPrecio;
           totalGeneralReal = totalGeneralReal - subtotal + subtotalCompleto; // Ajustar el total
 
-          piezasExpandidas.push({
-            ...pieza,
-            ubicacion: cantidad > 1 ? 
-              `${pieza.ubicacion || ''} (${cantidad} piezas)` : 
-              (pieza.ubicacion || ''),
-            ancho: ancho,
-            alto: alto,
-            area: area.toFixed(2),
-            precioM2: this.formatCurrency(precio),
-            subtotalBase: this.formatCurrency(subtotal),
-            // Información de toldos
-            esProductoToldo: esProductoToldo,
-            kitModelo: esProductoToldo ? (pieza.kitModeloManual || pieza.kitModelo || 'Kit incluido') : null,
-            kitPrecio: kitPrecio > 0 ? this.formatCurrency(kitPrecio) : null,
-            // Información de motorización
-            motorizado: pieza.motorizado,
-            motorModelo: pieza.motorizado ? (pieza.motorModeloManual || pieza.motorModelo || 'Motor incluido') : null,
-            motorPrecio: motorPrecio > 0 ? this.formatCurrency(motorPrecio) : null,
-            controlModelo: pieza.motorizado ? (pieza.controlModeloManual || pieza.controlModelo || 'Control incluido') : null,
-            controlPrecio: controlPrecio > 0 ? this.formatCurrency(controlPrecio) : null,
-            // Subtotal completo
-            subtotal: this.formatCurrency(subtotalCompleto),
-            productoLabel: pieza.productoLabel || pieza.producto,
-            fotoUrls: pieza.fotoUrls || [],
-            videoUrl: pieza.videoUrl
-          });
+          // Expandir partidas múltiples como líneas separadas
+          for (let i = 0; i < cantidad; i++) {
+            const esPrimeraPiezaPartida = i === 0;
+            const motorPrecioLinea = (pieza.motorizado && pieza.motorPrecio && esPrimeraPiezaPartida) ? this.formatCurrency(Number(pieza.motorPrecio) * numMotores) : null;
+            const controlPrecioLinea = (pieza.motorizado && pieza.controlPrecio && esPrimeraPiezaPartida) ? this.formatCurrency(controlPrecio) : null;
+            
+            piezasExpandidas.push({
+              ...pieza,
+              ubicacion: cantidad > 1 ? 
+                `${pieza.ubicacion || ''} (${i + 1}/${cantidad})` : 
+                (pieza.ubicacion || ''),
+              ancho: ancho,
+              alto: alto,
+              area: (area / cantidad).toFixed(2), // Área por pieza individual
+              precioM2: this.formatCurrency(precio),
+              subtotalBase: this.formatCurrency(subtotal / cantidad), // Subtotal por pieza individual
+              // Información de toldos
+              esProductoToldo: esProductoToldo,
+              kitModelo: esProductoToldo ? (pieza.kitModeloManual || pieza.kitModelo || 'Kit incluido') : null,
+              kitPrecio: kitPrecio > 0 ? this.formatCurrency(kitPrecio) : null,
+              // Información de motorización - solo en primera pieza de la partida
+              motorizado: pieza.motorizado,
+              motorModelo: pieza.motorizado ? (pieza.motorModeloManual || pieza.motorModelo || 'Motor incluido') : null,
+              motorPrecio: motorPrecioLinea,
+              controlModelo: pieza.motorizado ? (pieza.controlModeloManual || pieza.controlModelo || 'Control incluido') : null,
+              controlPrecio: controlPrecioLinea,
+              // Subtotal completo - solo en primera pieza, resto solo base
+              subtotal: esPrimeraPiezaPartida ? 
+                this.formatCurrency(subtotalCompleto) : 
+                this.formatCurrency(subtotal / cantidad),
+              productoLabel: pieza.productoLabel || pieza.producto,
+              fotoUrls: pieza.fotoUrls || [],
+              videoUrl: pieza.videoUrl
+            });
+          }
         }
       });
 

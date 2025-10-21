@@ -57,7 +57,7 @@ class ExcelService {
     });
   }
 
-  async generarLevantamientoExcel(prospecto, piezas, precioGeneral, totalM2, unidadMedida = 'm') {
+  async generarLevantamientoExcel(prospecto, piezas, precioGeneral, totalM2, unidadMedida = 'm', tipoVisita = 'levantamiento') {
     try {
       const ExcelJS = await this.initExcelJS();
       this.workbook = new ExcelJS.Workbook();
@@ -81,14 +81,17 @@ class ExcelService {
         }
       });
 
-      // Configurar anchos de columnas
-      worksheet.columns = [
+      // Configurar anchos de columnas según tipo de visita
+      const columnasBasicas = [
         { key: 'ubicacion', width: 15 },
         { key: 'producto', width: 25 },
         { key: 'ancho', width: 10 },
         { key: 'alto', width: 10 },
         { key: 'area', width: 12 },
-        { key: 'color', width: 15 },
+        { key: 'color', width: 15 }
+      ];
+      
+      const columnasPrecio = [
         { key: 'precioM2', width: 15 },
         { key: 'subtotalBase', width: 15 },
         { key: 'kitToldo', width: 20 },
@@ -97,16 +100,37 @@ class ExcelService {
         { key: 'precioMotor', width: 12 },
         { key: 'control', width: 15 },
         { key: 'precioControl', width: 12 },
-        { key: 'subtotalTotal', width: 15 },
+        { key: 'subtotalTotal', width: 15 }
+      ];
+      
+      const columnasEspecificaciones = [
+        { key: 'galeria', width: 15 },
+        { key: 'concreto', width: 15 },
+        { key: 'madera', width: 15 },
+        { key: 'traslape', width: 12 }
+      ];
+      
+      const columnasFinales = [
         { key: 'observaciones', width: 25 },
         { key: 'fotos', width: 8 },
         { key: 'video', width: 8 }
       ];
+      
+      // Configurar columnas según tipo de visita
+      const todasLasColumnas = tipoVisita === 'cotizacion' 
+        ? [...columnasBasicas, ...columnasPrecio, ...columnasFinales]
+        : [...columnasBasicas, ...columnasEspecificaciones, ...columnasFinales];
+        
+      worksheet.columns = todasLasColumnas;
 
-      // Título principal
-      worksheet.mergeCells('A1:R1');
+      // Título principal - ajustar merge según columnas
+      const ultimaColumna = tipoVisita === 'cotizacion' ? 'R' : 'M'; // R para cotización, M para levantamiento con especificaciones
+      worksheet.mergeCells(`A1:${ultimaColumna}1`);
       const titleCell = worksheet.getCell('A1');
-      titleCell.value = '🏠 SUNDECK - Levantamiento de Medidas Completo';
+      const tituloTexto = tipoVisita === 'cotizacion' 
+        ? '🏠 SUNDECK - Cotización Completa'
+        : '🏠 SUNDECK - Levantamiento Técnico';
+      titleCell.value = tituloTexto;
       titleCell.font = { size: 16, bold: true, color: { argb: 'FFD4AF37' } };
       titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
       titleCell.fill = {
@@ -116,28 +140,38 @@ class ExcelService {
       };
 
       // Información del cliente
-      worksheet.mergeCells('A3:R3');
+      worksheet.mergeCells(`A3:${ultimaColumna}3`);
       const infoCell = worksheet.getCell('A3');
       infoCell.value = `Cliente: ${prospecto.nombre || 'N/A'} | Teléfono: ${prospecto.telefono || 'N/A'} | Fecha: ${this.formatDate(new Date())}`;
       infoCell.font = { size: 12, bold: true };
       infoCell.alignment = { horizontal: 'center' };
 
-      // Información de precios
-      worksheet.mergeCells('A4:R4');
-      const precioCell = worksheet.getCell('A4');
-      precioCell.value = `Precio General: ${this.formatCurrency(precioGeneral)}/m² | Unidad: ${unidadMedida} | Total: ${totalM2.toFixed(2)} m²`;
-      precioCell.font = { size: 11 };
-      precioCell.alignment = { horizontal: 'center' };
+      // Información de precios - solo para cotización
+      if (tipoVisita === 'cotizacion') {
+        worksheet.mergeCells(`A4:${ultimaColumna}4`);
+        const precioCell = worksheet.getCell('A4');
+        precioCell.value = `Precio General: ${this.formatCurrency(precioGeneral)}/m² | Unidad: ${unidadMedida} | Total: ${totalM2.toFixed(2)} m²`;
+        precioCell.font = { size: 11 };
+      } else {
+        // Para levantamiento técnico, mostrar solo información técnica
+        worksheet.mergeCells(`A4:${ultimaColumna}4`);
+        const infoTecnicaCell = worksheet.getCell('A4');
+        infoTecnicaCell.value = `Levantamiento Técnico | Unidad: ${unidadMedida} | Total: ${totalM2.toFixed(2)} m²`;
+        infoTecnicaCell.font = { size: 11 };
+      }
 
-      // Encabezados de la tabla
+      // Encabezados de la tabla - condicionales según tipo de visita
       const headerRow = worksheet.getRow(6);
-      const headers = [
+      const headersBasicos = [
         'Ubicación',
         'Producto',
         `Ancho (${unidadMedida})`,
         `Alto (${unidadMedida})`,
         'Área (m²)',
-        'Color/Acabado',
+        'Color/Acabado'
+      ];
+      
+      const headersPrecio = [
         'Precio/m²',
         'Subtotal Base',
         'Kit de Toldo',
@@ -146,11 +180,25 @@ class ExcelService {
         'Precio Motor',
         'Control',
         'Precio Control',
-        'Subtotal Total',
+        'Subtotal Total'
+      ];
+      
+      const headersEspecificaciones = [
+        'Sistema',
+        'Sistema Especial',
+        'Galería',
+        'Base Tabla'
+      ];
+      
+      const headersFinales = [
         'Observaciones',
         'Fotos',
         'Video'
       ];
+      
+      const headers = tipoVisita === 'cotizacion'
+        ? [...headersBasicos, ...headersPrecio, ...headersFinales]
+        : [...headersBasicos, ...headersEspecificaciones, ...headersFinales];
 
       headers.forEach((header, index) => {
         const cell = headerRow.getCell(index + 1);
@@ -210,30 +258,50 @@ class ExcelService {
               `${pieza.ubicacion || ''} (${medidaIndex + 1}/${pieza.medidas.length})` : 
               (pieza.ubicacion || '');
             
+            // Datos básicos (siempre)
             row.getCell(1).value = ubicacionDisplay;
             row.getCell(2).value = medida.productoLabel || medida.producto || pieza.productoLabel || pieza.producto || '';
             row.getCell(3).value = ancho;
             row.getCell(4).value = alto;
             row.getCell(5).value = area.toFixed(2);
             row.getCell(6).value = medida.color || pieza.color || '';
-            row.getCell(7).value = this.formatCurrency(precio);
-            row.getCell(8).value = this.formatCurrency(subtotalBase);
             
-            // Información de kit de toldo
-            row.getCell(9).value = esProductoToldo ? (pieza.kitModeloManual || pieza.kitModelo || 'Kit incluido') : '-';
-            row.getCell(10).value = kitPrecio > 0 ? this.formatCurrency(kitPrecio) : '-';
+            let colIndex = 7;
             
-            // Información de motorización
-            row.getCell(11).value = pieza.motorizado ? (pieza.motorModeloManual || pieza.motorModelo || 'Motor incluido') : '-';
-            row.getCell(12).value = motorPrecio > 0 ? this.formatCurrency(motorPrecio) : '-';
-            row.getCell(13).value = pieza.motorizado ? (pieza.controlModeloManual || pieza.controlModelo || 'Control incluido') : '-';
-            row.getCell(14).value = controlPrecio > 0 ? this.formatCurrency(controlPrecio) : '-';
+            if (tipoVisita === 'cotizacion') {
+              // Columnas de precio para cotización
+              row.getCell(colIndex++).value = this.formatCurrency(precio);
+              row.getCell(colIndex++).value = this.formatCurrency(subtotalBase);
+              
+              // Información de kit de toldo
+              row.getCell(colIndex++).value = esProductoToldo ? (pieza.kitModeloManual || pieza.kitModelo || 'Kit incluido') : '-';
+              row.getCell(colIndex++).value = kitPrecio > 0 ? this.formatCurrency(kitPrecio) : '-';
+              
+              // Información de motorización
+              row.getCell(colIndex++).value = pieza.motorizado ? (pieza.motorModeloManual || pieza.motorModelo || 'Motor incluido') : '-';
+              row.getCell(colIndex++).value = motorPrecio > 0 ? this.formatCurrency(motorPrecio) : '-';
+              row.getCell(colIndex++).value = pieza.motorizado ? (pieza.controlModeloManual || pieza.controlModelo || 'Control incluido') : '-';
+              row.getCell(colIndex++).value = controlPrecio > 0 ? this.formatCurrency(controlPrecio) : '-';
+              
+              // Subtotal total
+              row.getCell(colIndex++).value = this.formatCurrency(subtotalTotal);
+            } else {
+              // Columnas de especificaciones técnicas para levantamiento
+              const sistemas = medida.sistema ? (Array.isArray(medida.sistema) ? medida.sistema.join(', ') : medida.sistema) : '-';
+              const sistemasEspeciales = medida.sistemaEspecial ? (Array.isArray(medida.sistemaEspecial) ? medida.sistemaEspecial.join(', ') : medida.sistemaEspecial) : '-';
+              const galeria = medida.galeria || pieza.galeria || '-';
+              const baseTabla = medida.baseTabla || pieza.baseTabla || '-';
+              
+              row.getCell(colIndex++).value = sistemas;
+              row.getCell(colIndex++).value = sistemasEspeciales;
+              row.getCell(colIndex++).value = galeria;
+              row.getCell(colIndex++).value = baseTabla;
+            }
             
-            // Subtotal total
-            row.getCell(15).value = this.formatCurrency(subtotalTotal);
-            row.getCell(16).value = pieza.observaciones || '';
-            row.getCell(17).value = (pieza.fotoUrls && pieza.fotoUrls.length) ? pieza.fotoUrls.length : 0;
-            row.getCell(18).value = pieza.videoUrl ? 'Sí' : 'No';
+            // Columnas finales (siempre)
+            row.getCell(colIndex++).value = pieza.observaciones || '';
+            row.getCell(colIndex++).value = (pieza.fotoUrls && pieza.fotoUrls.length) ? pieza.fotoUrls.length : 0;
+            row.getCell(colIndex++).value = pieza.videoUrl ? 'Sí' : 'No';
 
             // Formato de números
             row.getCell(3).numFmt = '0.00';
@@ -241,7 +309,8 @@ class ExcelService {
             row.getCell(5).numFmt = '0.00';
 
             // Bordes para todas las celdas
-            for (let col = 1; col <= 18; col++) {
+            const totalColumnas = tipoVisita === 'cotizacion' ? 18 : 13; // Ajustar según tipo
+            for (let col = 1; col <= totalColumnas; col++) {
               const cell = row.getCell(col);
               cell.border = {
                 top: { style: 'thin' },

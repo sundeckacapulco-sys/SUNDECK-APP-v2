@@ -148,7 +148,7 @@ const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLo
     } else {
       setPiezas(prev => [...prev, nuevaPartida]);
 
-      const mensaje = `✅ Se agregó partida con ${cantidad} pieza${cantidad > 1 ? 's' : ''} en ${piezaForm.ubicacion}`;
+      const mensaje = `✅ Partida agregada: ${cantidad} pieza${cantidad > 1 ? 's' : ''} en ${piezaForm.ubicacion}. Puedes agregar más partidas o terminar.`;
       setErrorLocal('');
       setTimeout(() => {
         setErrorLocal(mensaje);
@@ -157,7 +157,8 @@ const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLo
     }
 
     setPiezaForm(createEmptyPieza());
-    setAgregandoPieza(false);
+    // Mantener el formulario abierto para agregar más partidas
+    // setAgregandoPieza(false); // Comentado para permitir agregar múltiples partidas
   }, [
     calcularMedidasProcesadas,
     editandoPieza,

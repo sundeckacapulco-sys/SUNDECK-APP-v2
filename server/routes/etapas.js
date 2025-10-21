@@ -397,7 +397,8 @@ router.post('/levantamiento-excel', auth, verificarPermiso('prospectos', 'leer')
       piezas = [],
       precioGeneral = 750,
       totalM2 = 0,
-      unidadMedida = 'm'
+      unidadMedida = 'm',
+      tipoVisita = 'levantamiento' // Nuevo: tipo de visita para determinar si incluir precios
     } = req.body;
 
     if (!prospectoId || !mongoose.Types.ObjectId.isValid(prospectoId)) {
@@ -420,7 +421,8 @@ router.post('/levantamiento-excel', auth, verificarPermiso('prospectos', 'leer')
       piezas,
       precioGeneral,
       totalM2,
-      unidadMedida
+      unidadMedida,
+      tipoVisita // Pasar tipo de visita al servicio
     );
 
     // Crear nombre de archivo único pero más corto para Excel
