@@ -2749,6 +2749,95 @@ class PDFService {
       throw new Error('No se pudo generar el PDF del levantamiento');
     }
   }
+
+  // Método para generar PDF desde Proyecto Unificado
+  async generarPDFProyecto(proyectoId) {
+    try {
+      const { getProyectoDataForPDF } = require('../utils/exportNormalizer');
+      const datos = await getProyectoDataForPDF(proyectoId);
+
+      console.log('📄 Generando PDF para proyecto:', proyectoId);
+
+      // Registrar helpers de Handlebars
+      handlebars.registerHelper('gte', function(a, b) {
+        return a >= b;
+      });
+
+      handlebars.registerHelper('eq', function(a, b) {
+        return a === b;
+      });
+
+      handlebars.registerHelper('or', function(a, b) {
+        return a || b;
+      });
+
+      // Preparar datos para el template usando la estructura del exportNormalizer
+      const templateData = {
+        // Información del cliente
+        cliente: datos.cliente,
+        
+        // Información del proyecto
+        estado: datos.estado,
+        tipo_fuente: datos.tipo_fuente,
+        observaciones: datos.observaciones,
+        
+        // Fechas
+        fechas: datos.fechas,
+        
+        // Medidas con información completa
+        medidas: datos.medidas,
+        
+        // Totales formateados
+        totales_formateados: {
+          subtotal: this.formatCurrency(datos.totales.subtotal),
+          iva: this.formatCurrency(datos.totales.iva),
+          total: this.formatCurrency(datos.totales.total)
+        },
+        
+        // Responsables
+        responsables: datos.responsables,
+        
+        // Configuraciones
+        requiere_factura: datos.requiere_factura,
+        tiempo_entrega: datos.tiempo_entrega,
+        
+        // Resumen
+        resumen: datos.resumen
+      };
+
+      // Cargar template desde archivo
+      const templatePath = path.join(__dirname, '../templates/pdf/proyectoUnificado.hbs');
+      const htmlTemplate = await fs.readFile(templatePath, 'utf8');
+
+      const template = handlebars.compile(htmlTemplate);
+      const html = template(templateData);
+
+      const options = { 
+        format: 'A4',
+        border: {
+          top: "20px",
+          right: "20px", 
+          bottom: "20px",
+          left: "20px"
+        }
+      };
+
+      const file = { content: html };
+      const pdf = await htmlPdf.generatePdf(file, options);
+      
+      console.log('✅ PDF de proyecto generado exitosamente', {
+        proyectoId,
+        size: pdf.length,
+        type: 'proyecto-unificado'
+      });
+      
+      return pdf;
+
+    } catch (error) {
+      console.error('Error generando PDF de proyecto:', error);
+      throw new Error('No se pudo generar el PDF del proyecto');
+    }
+  }
 }
 
 module.exports = new PDFService();

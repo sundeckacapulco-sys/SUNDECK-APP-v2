@@ -117,6 +117,8 @@ app.use('/api/plantillas', require('./routes/plantillas'));
 app.use('/api/plantillas-whatsapp', require('./routes/plantillasWhatsApp'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/etapas', require('./routes/etapas'));
+app.use('/api/proyectos', require('./routes/proyectos'));
+app.use('/api/exportacion', require('./routes/exportacion'));
 app.use('/api/storage', require('./routes/storage'));
 app.use('/api/backup', require('./routes/backup'));
 app.use('/api/fix', require('./routes/fix')); // Ruta temporal para correcciones

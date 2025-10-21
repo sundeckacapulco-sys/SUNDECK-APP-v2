@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto Sundeck - {{proyecto.id}}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.4;
+            color: #333;
+            background: #fff;
+            padding: 20px;
+        }
+
+        .proyecto-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            border: 2px solid #D4AF37;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .subtitulo {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .estado-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 10px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .info-cliente {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .cliente-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .contenido {
+            padding: 25px;
+        }
+
+        .seccion {
+            margin-bottom: 25px;
+        }
+
+        .seccion-titulo {
+            font-size: 18px;
+            font-weight: bold;
+            color: #D4AF37;
+            border-bottom: 2px solid #D4AF37;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+
+        .tabla {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .tabla th,
+        .tabla td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .tabla th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .tabla tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .totales {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .total-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .total-item:last-child {
+            border-bottom: none;
+        }
+
+        .total-final {
+            font-size: 18px;
+            font-weight: bold;
+            color: #D4AF37;
+            border-top: 2px solid #D4AF37;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        .progreso-container {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .progreso-barra {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progreso-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #D4AF37, #B8941F);
+            transition: width 0.3s ease;
+        }
+
+        .pasos-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .paso {
+            text-align: center;
+            flex: 1;
+        }
+
+        .paso-icono {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 5px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .paso-activo {
+            background: #D4AF37;
+            color: white;
+        }
+
+        .paso-completado {
+            background: #28a745;
+            color: white;
+        }
+
+        .paso-pendiente {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+        .paso-label {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .medida-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .medida-header {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .medida-body {
+            padding: 15px;
+        }
+
+        .medida-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .campo {
+            margin-bottom: 8px;
+        }
+
+        .campo-label {
+            font-weight: bold;
+            color: #495057;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .campo-valor {
+            color: #212529;
+            font-size: 14px;
+        }
+
+        .especiales {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        .especiales-titulo {
+            font-weight: bold;
+            color: #856404;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .proyecto-container {
+                border: none;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="proyecto-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">SUNDECK</div>
+            <div class="subtitulo">PERSIANAS Y DECORACIONES</div>
+            <div class="estado-badge">{{estado}}</div>
+        </div>
+
+        <!-- Información del cliente -->
+        <div class="info-cliente">
+            <div class="cliente-grid">
+                <div>
+                    <h3>{{cliente.nombre}}</h3>
+                    <p><strong>Teléfono:</strong> {{cliente.telefono}}</p>
+                    {{#if cliente.correo}}
+                    <p><strong>Email:</strong> {{cliente.correo}}</p>
+                    {{/if}}
+                </div>
+                <div>
+                    {{#if cliente.direccion}}
+                    <p><strong>Dirección:</strong> {{cliente.direccion}}</p>
+                    {{/if}}
+                    {{#if cliente.zona}}
+                    <p><strong>Zona:</strong> {{cliente.zona}}</p>
+                    {{/if}}
+                    <p><strong>Fecha:</strong> {{fechas.creacion_formateada}}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="contenido">
+            <!-- Progreso del proyecto -->
+            <div class="seccion">
+                <h2 class="seccion-titulo">📈 Progreso del Proyecto</h2>
+                <div class="progreso-container">
+                    <div class="progreso-barra">
+                        <div class="progreso-fill" style="width: {{resumen.progreso_porcentaje}}%"></div>
+                    </div>
+                    <p style="text-align: center; margin-bottom: 15px;">
+                        <strong>{{resumen.progreso_porcentaje}}% Completado</strong>
+                    </p>
+                    
+                    <div class="pasos-container">
+                        <div class="paso">
+                            <div class="paso-icono paso-completado">📏</div>
+                            <div class="paso-label">Levantamiento</div>
+                        </div>
+                        <div class="paso">
+                            <div class="paso-icono {{#if (gte resumen.progreso_porcentaje 20)}}paso-completado{{else}}paso-pendiente{{/if}}">💰</div>
+                            <div class="paso-label">Cotización</div>
+                        </div>
+                        <div class="paso">
+                            <div class="paso-icono {{#if (gte resumen.progreso_porcentaje 40)}}paso-completado{{else}}paso-pendiente{{/if}}">✅</div>
+                            <div class="paso-label">Aprobado</div>
+                        </div>
+                        <div class="paso">
+                            <div class="paso-icono {{#if (gte resumen.progreso_porcentaje 60)}}paso-completado{{else}}paso-pendiente{{/if}}">🏭</div>
+                            <div class="paso-label">Fabricación</div>
+                        </div>
+                        <div class="paso">
+                            <div class="paso-icono {{#if (gte resumen.progreso_porcentaje 80)}}paso-completado{{else}}paso-pendiente{{/if}}">🔧</div>
+                            <div class="paso-label">Instalación</div>
+                        </div>
+                        <div class="paso">
+                            <div class="paso-icono {{#if (eq resumen.progreso_porcentaje 100)}}paso-completado{{else}}paso-pendiente{{/if}}">🎉</div>
+                            <div class="paso-label">Completado</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen técnico -->
+            <div class="seccion">
+                <h2 class="seccion-titulo">📊 Resumen Técnico</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #D4AF37;">{{resumen.total_medidas}}</div>
+                        <div style="font-size: 12px; color: #6c757d;">Medidas</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #D4AF37;">{{resumen.total_area}}</div>
+                        <div style="font-size: 12px; color: #6c757d;">m² Total</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #D4AF37;">{{resumen.total_productos}}</div>
+                        <div style="font-size: 12px; color: #6c757d;">Productos</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #D4AF37;">{{resumen.dias_transcurridos}}</div>
+                        <div style="font-size: 12px; color: #6c757d;">Días</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medidas detalladas -->
+            <div class="seccion">
+                <h2 class="seccion-titulo">📏 Medidas del Proyecto</h2>
+                {{#each medidas}}
+                <div class="medida-card">
+                    <div class="medida-header">
+                        📍 {{ubicacion}} - {{producto}}
+                    </div>
+                    <div class="medida-body">
+                        <div class="medida-grid">
+                            <div class="campo">
+                                <div class="campo-label">Dimensiones</div>
+                                <div class="campo-valor">{{ancho}} × {{alto}} m</div>
+                            </div>
+                            <div class="campo">
+                                <div class="campo-label">Cantidad</div>
+                                <div class="campo-valor">{{cantidad}} piezas</div>
+                            </div>
+                            <div class="campo">
+                                <div class="campo-label">Área</div>
+                                <div class="campo-valor">{{area}} m²</div>
+                            </div>
+                        </div>
+                        
+                        {{#if color}}
+                        <div class="campo">
+                            <div class="campo-label">Color/Acabado</div>
+                            <div class="campo-valor">{{color}}</div>
+                        </div>
+                        {{/if}}
+
+                        {{#if (or motorizado esToldo)}}
+                        <div class="especiales">
+                            <div class="especiales-titulo">Características Especiales</div>
+                            {{#if motorizado}}
+                            <p>⚡ <strong>Motorizado:</strong> {{motorModelo}}</p>
+                            {{#if controlModelo}}
+                            <p>🎛️ <strong>Control:</strong> {{controlModelo}}</p>
+                            {{/if}}
+                            {{/if}}
+                            {{#if esToldo}}
+                            <p>☂️ <strong>Toldo:</strong> {{tipoToldo}}</p>
+                            {{#if kitModelo}}
+                            <p>🔧 <strong>Kit:</strong> {{kitModelo}}</p>
+                            {{/if}}
+                            {{/if}}
+                        </div>
+                        {{/if}}
+
+                        {{#if observaciones}}
+                        <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                            <div class="campo-label">Observaciones</div>
+                            <div class="campo-valor">{{observaciones}}</div>
+                        </div>
+                        {{/if}}
+                    </div>
+                </div>
+                {{/each}}
+            </div>
+
+            <!-- Información financiera -->
+            <div class="seccion">
+                <h2 class="seccion-titulo">💰 Información Financiera</h2>
+                <div class="totales">
+                    <div class="total-item">
+                        <span>Subtotal:</span>
+                        <span>{{totales_formateados.subtotal}}</span>
+                    </div>
+                    <div class="total-item">
+                        <span>IVA (16%):</span>
+                        <span>{{totales_formateados.iva}}</span>
+                    </div>
+                    <div class="total-item total-final">
+                        <span>Total:</span>
+                        <span>{{totales_formateados.total}}</span>
+                    </div>
+                </div>
+
+                {{#if requiere_factura}}
+                <p style="margin-top: 15px; font-size: 12px; color: #6c757d;">
+                    ✅ <strong>Requiere Factura</strong>
+                </p>
+                {{/if}}
+
+                {{#if tiempo_entrega}}
+                <div style="margin-top: 15px; padding: 12px; background: #e8f4fd; border-radius: 6px;">
+                    <p><strong>🚚 Tiempo de Entrega:</strong></p>
+                    <p>Tipo: {{tiempo_entrega.tipo}} 
+                    {{#if tiempo_entrega.dias_estimados}}
+                    ({{tiempo_entrega.dias_estimados}} días)
+                    {{/if}}</p>
+                    {{#if tiempo_entrega.fecha_estimada_formateada}}
+                    <p>Fecha estimada: {{tiempo_entrega.fecha_estimada_formateada}}</p>
+                    {{/if}}
+                </div>
+                {{/if}}
+            </div>
+
+            {{#if observaciones}}
+            <!-- Observaciones generales -->
+            <div class="seccion">
+                <h2 class="seccion-titulo">📝 Observaciones Generales</h2>
+                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    {{observaciones}}
+                </div>
+            </div>
+            {{/if}}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>{{responsables.asesor_asignado}}</strong></p>
+            {{#if responsables.asesor_telefono}}
+            <p>{{responsables.asesor_telefono}}</p>
+            {{/if}}
+            <p>Sundeck - Persianas y Decoraciones</p>
+            <p>Generado el {{fechas.actualizacion_formateada}}</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -551,6 +551,459 @@ class ExcelService {
       throw new Error('Error generando Excel de cotización: ' + error.message);
     }
   }
+
+  // Método para generar Excel desde Proyecto Unificado
+  async generarExcelProyecto(proyectoId) {
+    try {
+      const { getProyectoDataForExcel } = require('../utils/exportNormalizer');
+      const datos = await getProyectoDataForExcel(proyectoId);
+
+      console.log('📊 Generando Excel para proyecto:', proyectoId);
+
+      const ExcelJS = await this.initExcelJS();
+      this.workbook = new ExcelJS.Workbook();
+      
+      // Metadatos del archivo
+      this.workbook.creator = 'Sundeck CRM - Proyecto Unificado';
+      this.workbook.lastModifiedBy = 'Sundeck CRM';
+      this.workbook.created = new Date();
+      this.workbook.modified = new Date();
+
+      // Crear múltiples hojas de trabajo
+      await this.crearHojaInformacionGeneral(datos);
+      await this.crearHojaMedidas(datos);
+      await this.crearHojaResumenFinanciero(datos);
+      await this.crearHojaEspecificacionesTecnicas(datos);
+
+      // Generar buffer del archivo
+      const buffer = await this.workbook.xlsx.writeBuffer();
+      
+      console.log('✅ Excel de proyecto generado exitosamente', {
+        proyectoId,
+        size: buffer.length,
+        hojas: this.workbook.worksheets.length
+      });
+      
+      return buffer;
+
+    } catch (error) {
+      console.error('Error generando Excel de proyecto:', error);
+      throw new Error('No se pudo generar el Excel del proyecto');
+    }
+  }
+
+  // Crear hoja de información general
+  async crearHojaInformacionGeneral(datos) {
+    const worksheet = this.workbook.addWorksheet('Información General', {
+      pageSetup: {
+        paperSize: 9, // A4
+        orientation: 'portrait'
+      }
+    });
+
+    // Configurar anchos de columnas
+    worksheet.columns = [
+      { key: 'campo', width: 25 },
+      { key: 'valor', width: 40 }
+    ];
+
+    // Título principal
+    worksheet.mergeCells('A1:B1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = '🏗️ PROYECTO SUNDECK - INFORMACIÓN GENERAL';
+    titleCell.font = { size: 16, bold: true, color: { argb: 'FFD4AF37' } };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    titleCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF0F172A' }
+    };
+
+    let currentRow = 3;
+
+    // Información del cliente
+    this.agregarSeccion(worksheet, currentRow, 'INFORMACIÓN DEL CLIENTE');
+    currentRow += 2;
+    
+    const infoCliente = [
+      ['Nombre', datos.cliente.nombre],
+      ['Teléfono', datos.cliente.telefono],
+      ['Email', datos.cliente.correo],
+      ['Dirección', datos.cliente.direccion],
+      ['Zona', datos.cliente.zona]
+    ];
+
+    infoCliente.forEach(([campo, valor]) => {
+      worksheet.getCell(`A${currentRow}`).value = campo;
+      worksheet.getCell(`B${currentRow}`).value = valor || '-';
+      this.aplicarEstiloFila(worksheet, currentRow);
+      currentRow++;
+    });
+
+    currentRow += 1;
+
+    // Información del proyecto
+    this.agregarSeccion(worksheet, currentRow, 'INFORMACIÓN DEL PROYECTO');
+    currentRow += 2;
+
+    const infoProyecto = [
+      ['ID del Proyecto', datos.id],
+      ['Estado Actual', datos.estado],
+      ['Tipo de Fuente', datos.tipo_fuente],
+      ['Fecha de Creación', datos.fechas.creacion_formateada],
+      ['Última Actualización', datos.fechas.actualizacion_formateada],
+      ['Progreso', `${datos.resumen.progreso_porcentaje}%`]
+    ];
+
+    infoProyecto.forEach(([campo, valor]) => {
+      worksheet.getCell(`A${currentRow}`).value = campo;
+      worksheet.getCell(`B${currentRow}`).value = valor || '-';
+      this.aplicarEstiloFila(worksheet, currentRow);
+      currentRow++;
+    });
+
+    currentRow += 1;
+
+    // Resumen técnico
+    this.agregarSeccion(worksheet, currentRow, 'RESUMEN TÉCNICO');
+    currentRow += 2;
+
+    const resumenTecnico = [
+      ['Total de Medidas', datos.resumen.total_medidas],
+      ['Área Total', `${datos.resumen.total_area} m²`],
+      ['Total de Productos', datos.resumen.total_productos],
+      ['Total de Materiales', datos.resumen.total_materiales]
+    ];
+
+    resumenTecnico.forEach(([campo, valor]) => {
+      worksheet.getCell(`A${currentRow}`).value = campo;
+      worksheet.getCell(`B${currentRow}`).value = valor || '-';
+      this.aplicarEstiloFila(worksheet, currentRow);
+      currentRow++;
+    });
+
+    // Observaciones
+    if (datos.observaciones) {
+      currentRow += 1;
+      this.agregarSeccion(worksheet, currentRow, 'OBSERVACIONES');
+      currentRow += 2;
+      
+      worksheet.mergeCells(`A${currentRow}:B${currentRow + 2}`);
+      const obsCell = worksheet.getCell(`A${currentRow}`);
+      obsCell.value = datos.observaciones;
+      obsCell.alignment = { wrapText: true, vertical: 'top' };
+      obsCell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    }
+  }
+
+  // Crear hoja de medidas
+  async crearHojaMedidas(datos) {
+    const worksheet = this.workbook.addWorksheet('Medidas Detalladas');
+
+    // Configurar columnas
+    worksheet.columns = [
+      { key: 'id', width: 8 },
+      { key: 'ubicacion', width: 20 },
+      { key: 'ancho', width: 12 },
+      { key: 'alto', width: 12 },
+      { key: 'cantidad', width: 10 },
+      { key: 'area', width: 12 },
+      { key: 'producto', width: 25 },
+      { key: 'color', width: 15 },
+      { key: 'motorizado', width: 12 },
+      { key: 'toldo', width: 12 },
+      { key: 'observaciones', width: 30 }
+    ];
+
+    // Título
+    worksheet.mergeCells('A1:K1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = '📏 MEDIDAS DEL PROYECTO';
+    titleCell.font = { size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.alignment = { horizontal: 'center' };
+    titleCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFD4AF37' }
+    };
+
+    // Encabezados
+    const headers = [
+      'ID', 'Ubicación', 'Ancho (m)', 'Alto (m)', 'Cantidad', 
+      'Área (m²)', 'Producto', 'Color', 'Motorizado', 'Es Toldo', 'Observaciones'
+    ];
+
+    const headerRow = worksheet.getRow(3);
+    headers.forEach((header, index) => {
+      const cell = headerRow.getCell(index + 1);
+      cell.value = header;
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF6C757D' }
+      };
+      cell.alignment = { horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
+
+    // Datos de medidas
+    let currentRow = 4;
+    datos.medidas.forEach((medida, index) => {
+      const row = worksheet.getRow(currentRow);
+      
+      row.getCell(1).value = medida.id;
+      row.getCell(2).value = medida.ubicacion;
+      row.getCell(3).value = medida.ancho;
+      row.getCell(4).value = medida.alto;
+      row.getCell(5).value = medida.cantidad;
+      row.getCell(6).value = medida.area;
+      row.getCell(7).value = medida.producto;
+      row.getCell(8).value = medida.color;
+      row.getCell(9).value = medida.motorizado ? 'Sí' : 'No';
+      row.getCell(10).value = medida.esToldo ? 'Sí' : 'No';
+      row.getCell(11).value = medida.observaciones;
+
+      // Aplicar bordes y formato
+      for (let col = 1; col <= 11; col++) {
+        const cell = row.getCell(col);
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+        
+        // Alternar colores
+        if (index % 2 === 1) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8F9FA' }
+          };
+        }
+      }
+
+      currentRow++;
+    });
+
+    // Fila de totales
+    const totalRow = worksheet.getRow(currentRow + 1);
+    totalRow.getCell(1).value = 'TOTALES';
+    totalRow.getCell(1).font = { bold: true };
+    totalRow.getCell(5).value = datos.medidas.reduce((sum, m) => sum + m.cantidad, 0);
+    totalRow.getCell(5).font = { bold: true };
+    totalRow.getCell(6).value = datos.resumen.total_area;
+    totalRow.getCell(6).font = { bold: true };
+
+    // Formato de totales
+    for (let col = 1; col <= 11; col++) {
+      const cell = totalRow.getCell(col);
+      cell.border = {
+        top: { style: 'thick' },
+        left: { style: 'thin' },
+        bottom: { style: 'thick' },
+        right: { style: 'thin' }
+      };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFE4B5' }
+      };
+    }
+  }
+
+  // Crear hoja de resumen financiero
+  async crearHojaResumenFinanciero(datos) {
+    const worksheet = this.workbook.addWorksheet('Resumen Financiero');
+
+    // Configurar columnas
+    worksheet.columns = [
+      { key: 'concepto', width: 30 },
+      { key: 'importe', width: 20 }
+    ];
+
+    // Título
+    worksheet.mergeCells('A1:B1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = '💰 RESUMEN FINANCIERO';
+    titleCell.font = { size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.alignment = { horizontal: 'center' };
+    titleCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF28A745' }
+    };
+
+    let currentRow = 3;
+
+    // Datos financieros usando hoja_resumen del exportNormalizer
+    datos.hoja_resumen.forEach((item, index) => {
+      const row = worksheet.getRow(currentRow);
+      row.getCell(1).value = item.Concepto;
+      row.getCell(2).value = this.formatCurrency(item.Importe);
+      
+      // Estilo especial para el total
+      if (item.Concepto === 'Total') {
+        row.getCell(1).font = { bold: true, size: 12 };
+        row.getCell(2).font = { bold: true, size: 12, color: { argb: 'FFD4AF37' } };
+      }
+
+      // Aplicar bordes
+      for (let col = 1; col <= 2; col++) {
+        const cell = row.getCell(col);
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+        
+        if (index % 2 === 1) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8F9FA' }
+          };
+        }
+      }
+
+      currentRow++;
+    });
+  }
+
+  // Crear hoja de especificaciones técnicas
+  async crearHojaEspecificacionesTecnicas(datos) {
+    const worksheet = this.workbook.addWorksheet('Especificaciones Técnicas');
+
+    // Solo crear si hay medidas con información técnica
+    const medidasConTecnicas = datos.medidas.filter(m => 
+      m.tipoControl || m.orientacion || m.tipoInstalacion || m.sistema || m.telaMarca
+    );
+
+    if (medidasConTecnicas.length === 0) {
+      // Crear hoja vacía con mensaje
+      worksheet.getCell('A1').value = 'No hay especificaciones técnicas registradas para este proyecto.';
+      return;
+    }
+
+    // Configurar columnas
+    worksheet.columns = [
+      { key: 'ubicacion', width: 20 },
+      { key: 'tipoControl', width: 20 },
+      { key: 'orientacion', width: 15 },
+      { key: 'tipoInstalacion', width: 20 },
+      { key: 'sistema', width: 20 },
+      { key: 'telaMarca', width: 20 }
+    ];
+
+    // Título
+    worksheet.mergeCells('A1:F1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = '🔧 ESPECIFICACIONES TÉCNICAS';
+    titleCell.font = { size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.alignment = { horizontal: 'center' };
+    titleCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF6F42C1' }
+    };
+
+    // Encabezados
+    const headers = ['Ubicación', 'Tipo Control', 'Orientación', 'Tipo Instalación', 'Sistema', 'Tela/Marca'];
+    const headerRow = worksheet.getRow(3);
+    headers.forEach((header, index) => {
+      const cell = headerRow.getCell(index + 1);
+      cell.value = header;
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF6C757D' }
+      };
+      cell.alignment = { horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
+
+    // Datos técnicos
+    let currentRow = 4;
+    medidasConTecnicas.forEach((medida, index) => {
+      const row = worksheet.getRow(currentRow);
+      
+      row.getCell(1).value = medida.ubicacion;
+      row.getCell(2).value = medida.tipoControl || '-';
+      row.getCell(3).value = medida.orientacion || '-';
+      row.getCell(4).value = medida.tipoInstalacion || '-';
+      row.getCell(5).value = medida.sistema || '-';
+      row.getCell(6).value = medida.telaMarca || '-';
+
+      // Aplicar bordes y formato
+      for (let col = 1; col <= 6; col++) {
+        const cell = row.getCell(col);
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+        
+        if (index % 2 === 1) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8F9FA' }
+          };
+        }
+      }
+
+      currentRow++;
+    });
+  }
+
+  // Funciones auxiliares para formato
+  agregarSeccion(worksheet, row, titulo) {
+    worksheet.mergeCells(`A${row}:B${row}`);
+    const sectionCell = worksheet.getCell(`A${row}`);
+    sectionCell.value = titulo;
+    sectionCell.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+    sectionCell.alignment = { horizontal: 'center' };
+    sectionCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFD4AF37' }
+    };
+  }
+
+  aplicarEstiloFila(worksheet, row) {
+    const cellA = worksheet.getCell(`A${row}`);
+    const cellB = worksheet.getCell(`B${row}`);
+    
+    cellA.font = { bold: true };
+    
+    [cellA, cellB].forEach(cell => {
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
+  }
 }
 
 module.exports = new ExcelService();
