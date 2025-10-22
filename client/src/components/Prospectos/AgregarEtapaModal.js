@@ -1620,36 +1620,64 @@ const handleAgregarPedido = async () => {
   setErrorLocal('');
 
   try {
+    // 1. Primero crear una cotización temporal si no existe
     const piezasNormalizadas = piezas.map((pieza) =>
       mapearPiezaParaDocumento(pieza, { incluirExtras: true })
     );
 
-    const payload = {
+    const cotizacionPayload = {
       prospectoId,
       piezas: piezasNormalizadas,
       ...resumenEconomico,
-      facturacion: infoFacturacion,
-      metodoPago: metodoPagoInfo,
-      entrega: {
-        tipo: tiempoEntrega,
-        diasExpres: tiempoEntrega === 'expres' ? Number(diasExpres) : null,
-        fechaEstimada: calcularFechaEntrega.toISOString().split('T')[0]
-      },
-      terminos: {
-        incluir: incluirTerminos
-      },
-      totalFinal: totalFinal,
       comentarios,
-      fotoUrls: [],
-      videoUrl: ''
+      origen: 'etapa_directa'
     };
 
-    const response = await axiosConfig.post(`/prospectos/${prospectoId}/pedidos`, payload);
+    console.log('📋 Creando cotización temporal para el pedido...');
+    const cotizacionResponse = await axiosConfig.post('/cotizaciones/desde-visita', cotizacionPayload);
     
-    if (response.data) {
-      onSaved?.('Pedido creado exitosamente');
-      cerrarModal();
+    if (!cotizacionResponse.data?.success) {
+      throw new Error('Error creando cotización temporal');
     }
+
+    const cotizacionId = cotizacionResponse.data.cotizacion._id;
+    console.log('✅ Cotización temporal creada:', cotizacionId);
+
+    // 2. Aprobar la cotización automáticamente
+    await axiosConfig.patch(`/cotizaciones/${cotizacionId}`, {
+      estado: 'aprobada'
+    });
+
+    // 3. Crear el proyecto-pedido unificado
+    const proyectoPayload = {
+      metodoPagoAnticipo: metodoPagoInfo.metodoPago || 'transferencia',
+      referenciaAnticipo: metodoPagoInfo.referencia || '',
+      comprobanteAnticipo: metodoPagoInfo.comprobante || '',
+      fechaInstalacionDeseada: calcularFechaEntrega,
+      instruccionesEspeciales: comentarios,
+      contactoEntrega: {
+        nombre: '', // Se llenará desde el prospecto en el backend
+        telefono: '', // Se llenará desde el prospecto en el backend
+        horarioPreferido: 'Mañana'
+      }
+    };
+
+    console.log('🚀 Creando proyecto-pedido unificado...');
+    const proyectoResponse = await axiosConfig.post(
+      `/proyecto-pedido/desde-cotizacion/${cotizacionId}`, 
+      proyectoPayload
+    );
+    
+    if (proyectoResponse.data?.success) {
+      const proyecto = proyectoResponse.data.data;
+      console.log('✅ Proyecto-pedido creado:', proyecto.numero);
+      
+      onSaved?.(`Proyecto ${proyecto.numero} creado exitosamente`);
+      cerrarModal();
+    } else {
+      throw new Error('Error creando proyecto-pedido');
+    }
+
   } catch (error) {
     console.error('Error al crear pedido:', error);
     const mensaje = error.response?.data?.message || 'Error al crear el pedido';
@@ -4422,7 +4450,7 @@ const handleAgregarPedido = async () => {
             </Button>
           )}
           
-          {/* Botón Agregar Pedido - Solo cuando hay piezas */}
+          {/* Botón Crear Proyecto - Solo cuando hay piezas */}
           {piezas.length > 0 && (
             <Button
               onClick={handleAgregarPedido}
@@ -4431,7 +4459,7 @@ const handleAgregarPedido = async () => {
               startIcon={<span>📦</span>}
               sx={{ bgcolor: '#1976D2', '&:hover': { bgcolor: '#1565C0' } }}
             >
-              {guardandoPedido ? 'Creando...' : 'Agregar Pedido'}
+              {guardandoPedido ? 'Creando Proyecto...' : 'Crear Proyecto'}
             </Button>
           )}
           

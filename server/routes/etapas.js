@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const Etapa = require('../models/Etapa');
 const Prospecto = require('../models/Prospecto');
+const ProyectoSyncMiddleware = require('../middleware/proyectoSync');
 const pdfService = require('../services/pdfService');
 const excelService = require('../services/excelService');
 
@@ -139,6 +140,20 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
 
     prospecto.fechaUltimoContacto = new Date();
     await prospecto.save();
+
+    // 🔄 SINCRONIZACIÓN AUTOMÁTICA: Sincronizar medidas al Proyecto
+    try {
+      const Proyecto = require('../models/Proyecto');
+      const proyecto = await Proyecto.findOne({ prospecto_original: prospectoId });
+      
+      if (proyecto) {
+        await ProyectoSyncMiddleware.sincronizarMedidasDesdeEtapas(proyecto._id, prospectoId);
+        console.log(`✅ Medidas sincronizadas al proyecto ${proyecto._id} desde etapa`);
+      }
+    } catch (syncError) {
+      console.error('⚠️ Error sincronizando medidas:', syncError);
+      // No interrumpir el flujo principal
+    }
 
     res.status(201).json({
       message: 'Etapa agregada exitosamente',

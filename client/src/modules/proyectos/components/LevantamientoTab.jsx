@@ -14,11 +14,6 @@ import {
   Paper,
   Chip,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
   Alert,
   Accordion,
   AccordionSummary,
@@ -35,10 +30,22 @@ import {
   Straighten as StraightenIcon,
   Build as BuildIcon
 } from '@mui/icons-material';
+import AgregarMedidaProyectoModal from './AgregarMedidaProyectoModal';
 
 const LevantamientoTab = ({ proyecto, onActualizar }) => {
   const [dialogoMedida, setDialogoMedida] = useState(false);
   const [medidaEditando, setMedidaEditando] = useState(null);
+
+  // Funciones para manejar el modal
+  const abrirDialogoMedida = (medida = null) => {
+    setMedidaEditando(medida);
+    setDialogoMedida(true);
+  };
+
+  const cerrarDialogoMedida = () => {
+    setDialogoMedida(false);
+    setMedidaEditando(null);
+  };
 
   // Calcular totales
   const calcularTotales = () => {
@@ -161,7 +168,7 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => setDialogoMedida(true)}
+              onClick={() => abrirDialogoMedida()}
               sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } }}
             >
               Agregar Medida
@@ -382,10 +389,7 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
                         <Button
                           variant="outlined"
                           startIcon={<EditIcon />}
-                          onClick={() => {
-                            setMedidaEditando({ ...medida, index });
-                            setDialogoMedida(true);
-                          }}
+                          onClick={() => abrirDialogoMedida({ ...medida, index })}
                           size="small"
                         >
                           Editar Medida
@@ -400,34 +404,14 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
         </CardContent>
       </Card>
 
-      {/* Diálogo para agregar/editar medida */}
-      <Dialog 
-        open={dialogoMedida} 
-        onClose={() => {
-          setDialogoMedida(false);
-          setMedidaEditando(null);
-        }}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {medidaEditando ? 'Editar Medida' : 'Agregar Nueva Medida'}
-        </DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Esta funcionalidad estará disponible en la próxima actualización.
-            Por ahora, las medidas se gestionan desde el módulo de prospectos.
-          </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => {
-            setDialogoMedida(false);
-            setMedidaEditando(null);
-          }}>
-            Cerrar
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Modal para agregar/editar medidas */}
+      <AgregarMedidaProyectoModal
+        open={dialogoMedida}
+        onClose={cerrarDialogoMedida}
+        proyecto={proyecto}
+        onActualizar={onActualizar}
+        medidaEditando={medidaEditando}
+      />
     </Box>
   );
 };

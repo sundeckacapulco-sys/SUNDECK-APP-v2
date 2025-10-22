@@ -118,6 +118,7 @@ app.use('/api/plantillas-whatsapp', require('./routes/plantillasWhatsApp'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/etapas', require('./routes/etapas'));
 app.use('/api/proyectos', require('./routes/proyectos'));
+app.use('/api/proyecto-pedido', require('./routes/proyectoPedido')); // ✅ NUEVO - Modelo Unificado
 app.use('/api/exportacion', require('./routes/exportacion')); // ✅ REACTIVADO - Proyecto Unificado
 app.use('/api/storage', require('./routes/storage'));
 app.use('/api/backup', require('./routes/backup'));
@@ -171,7 +172,7 @@ app.use('*', (req, res) => {
   res.status(404).json({ message: 'Ruta no encontrada' });
 });
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
   console.log(`🌐 Ambiente: ${process.env.NODE_ENV || 'development'}`);

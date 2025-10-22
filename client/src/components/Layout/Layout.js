@@ -52,6 +52,7 @@ const menuItems = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
   { text: 'Kanban', icon: <ViewKanban />, path: '/kanban' },
   { text: 'Prospectos', icon: <People />, path: '/prospectos' },
+  { text: 'Proyectos Unificados', icon: <Assignment />, path: '/proyectos', badge: 'NUEVO' },
   { text: 'Cotizaciones', icon: <Assignment />, path: '/cotizaciones' },
   { text: 'Catálogo Productos', icon: <Inventory />, path: '/productos' },
   { text: 'Pedidos', icon: <Build />, path: '/pedidos' },
@@ -135,8 +136,30 @@ const Layout = ({ children }) => {
                 {item.icon}
               </ListItemIcon>
               <ListItemText 
-                primary={item.text} 
-                sx={{ color: '#ffffff' }}
+                primary={
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>{item.text}</span>
+                    {item.badge && (
+                      <Chip 
+                        label={item.badge} 
+                        size="small" 
+                        sx={{ 
+                          bgcolor: '#D4AF37', 
+                          color: '#000', 
+                          fontSize: '0.6rem',
+                          height: '16px',
+                          fontWeight: 'bold'
+                        }} 
+                      />
+                    )}
+                  </Box>
+                }
+                sx={{ 
+                  '& .MuiListItemText-primary': { 
+                    fontSize: '0.875rem',
+                    fontWeight: 500
+                  } 
+                }} 
               />
             </ListItemButton>
           </ListItem>

@@ -19,6 +19,9 @@ import DashboardFabricacionSimple from './components/Fabricacion/DashboardFabric
 import PlantillasWhatsAppAdmin from './components/Admin/PlantillasWhatsAppAdmin';
 import PapeleraProspectos from './components/Prospectos/PapeleraProspectos';
 import LoadingSpinner from './components/Common/LoadingSpinner';
+// Módulo de Proyectos Unificados
+import ProyectosList from './modules/proyectos/ProyectosList';
+import ProyectoDetail from './modules/proyectos/ProyectoDetail';
 
 function App() {
   const { user, loading } = useAuth();
@@ -57,6 +60,10 @@ function App() {
           
           {/* Productos */}
           <Route path="/productos" element={<CatalogoProductos />} />
+          
+          {/* Proyectos Unificados */}
+          <Route path="/proyectos" element={<ProyectosList />} />
+          <Route path="/proyectos/:id" element={<ProyectoDetail />} />
           
           {/* Pedidos y Fabricación */}
           <Route path="/pedidos" element={<DashboardComercialSimple />} />

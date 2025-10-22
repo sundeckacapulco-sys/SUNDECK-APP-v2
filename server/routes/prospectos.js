@@ -3,7 +3,10 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Prospecto = require('../models/Prospecto');
+const Usuario = require('../models/Usuario');
 const { auth, verificarPermiso } = require('../middleware/auth');
+// const cloudinary = require('../config/cloudinary'); // Comentado temporalmente
+const ProyectoSyncMiddleware = require('../middleware/proyectoSync');
 
 const router = express.Router();
 
@@ -322,6 +325,15 @@ router.post('/', auth, verificarPermiso('prospectos', 'crear'), async (req, res)
     await nuevoProspecto.save();
     await nuevoProspecto.populate('vendedorAsignado', 'nombre apellido');
 
+    // SINCRONIZACIÓN AUTOMÁTICA: Crear Proyecto desde Prospecto
+    try {
+      await ProyectoSyncMiddleware.sincronizarProspecto(nuevoProspecto, 'create');
+      console.log(`✅ Proyecto creado automáticamente para prospecto ${nuevoProspecto._id}`);
+    } catch (syncError) {
+      console.error('⚠️ Error en sincronización automática:', syncError);
+      // No interrumpir el flujo principal
+    }
+
     res.status(201).json({
       message: 'Prospecto creado exitosamente',
       prospecto: nuevoProspecto
@@ -395,6 +407,15 @@ router.put('/:id', auth, verificarPermiso('prospectos', 'actualizar'), upload.ar
 
     await prospecto.save();
     await prospecto.populate('vendedorAsignado', 'nombre apellido');
+
+    // 🔄 SINCRONIZACIÓN AUTOMÁTICA: Actualizar Proyecto desde Prospecto
+    try {
+      await ProyectoSyncMiddleware.sincronizarProspecto(prospecto, 'update');
+      console.log(`✅ Proyecto actualizado automáticamente para prospecto ${prospecto._id}`);
+    } catch (syncError) {
+      console.error('⚠️ Error en sincronización automática:', syncError);
+      // No interrumpir el flujo principal
+    }
 
     res.json({
       message: 'Prospecto actualizado exitosamente',

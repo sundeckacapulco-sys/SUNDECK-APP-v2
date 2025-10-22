@@ -114,14 +114,18 @@ const ProyectosList = () => {
       const response = await proyectosApi.obtenerProyectos(parametros);
       
       if (response.success) {
-        setProyectos(response.data);
-        setTotalProyectos(response.pagination.total);
+        // El backend devuelve los proyectos en response.data.docs
+        const proyectosData = Array.isArray(response.data?.docs) ? response.data.docs : [];
+        setProyectos(proyectosData);
+        setTotalProyectos(response.data?.totalDocs || response.data?.total || 0);
       } else {
         setError('Error cargando proyectos');
+        setProyectos([]); // Asegurar que proyectos sea un array vacío
       }
     } catch (error) {
       console.error('Error cargando proyectos:', error);
       setError('Error de conexión al cargar proyectos');
+      setProyectos([]); // Asegurar que proyectos sea un array vacío en caso de error
     } finally {
       setLoading(false);
     }

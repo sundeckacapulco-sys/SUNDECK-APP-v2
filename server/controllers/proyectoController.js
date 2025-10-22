@@ -73,79 +73,95 @@ exports.crearProyecto = async (req, res) => {
   }
 };
 
-// Obtener todos los proyectos con paginación y filtros
+// Obtener todos los proyectos con filtros y paginación
 exports.obtenerProyectos = async (req, res) => {
   try {
     const {
       page = 1,
-      limit = 10,
+      limit = 20,
       estado,
       tipo_fuente,
       asesor_asignado,
-      buscar,
-      fecha_desde,
-      fecha_hasta
+      busqueda,
+      fechaDesde,
+      fechaHasta
     } = req.query;
 
     // Construir filtros
-    const filtros = { activo: true };
-
-    if (estado) {
-      filtros.estado = estado;
+    const filtros = {};
+    
+    if (estado) filtros.estado = estado;
+    if (tipo_fuente) filtros.tipo_fuente = tipo_fuente;
+    if (asesor_asignado) filtros.asesor_asignado = asesor_asignado;
+    
+    if (fechaDesde || fechaHasta) {
+      filtros.fecha_creacion = {};
+      if (fechaDesde) filtros.fecha_creacion.$gte = new Date(fechaDesde);
+      if (fechaHasta) filtros.fecha_creacion.$lte = new Date(fechaHasta);
     }
 
-    if (tipo_fuente) {
-      filtros.tipo_fuente = tipo_fuente;
-    }
-
-    if (asesor_asignado) {
-      filtros.asesor_asignado = asesor_asignado;
-    }
-
-    if (buscar) {
+    // Búsqueda por texto
+    if (busqueda) {
       filtros.$or = [
-        { 'cliente.nombre': { $regex: buscar, $options: 'i' } },
-        { 'cliente.telefono': { $regex: buscar, $options: 'i' } },
-        { 'cliente.correo': { $regex: buscar, $options: 'i' } },
-        { observaciones: { $regex: buscar, $options: 'i' } }
+        { 'cliente.nombre': { $regex: busqueda, $options: 'i' } },
+        { 'cliente.telefono': { $regex: busqueda, $options: 'i' } },
+        { 'cliente.correo': { $regex: busqueda, $options: 'i' } },
+        { observaciones: { $regex: busqueda, $options: 'i' } }
       ];
     }
 
-    if (fecha_desde || fecha_hasta) {
-      filtros.fecha_creacion = {};
-      if (fecha_desde) {
-        filtros.fecha_creacion.$gte = new Date(fecha_desde);
-      }
-      if (fecha_hasta) {
-        filtros.fecha_creacion.$lte = new Date(fecha_hasta);
-      }
+    // Si no es admin, solo ver sus proyectos asignados
+    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente') {
+      filtros.$or = [
+        { creado_por: req.usuario.id },
+        { asesor_asignado: req.usuario.id },
+        { tecnico_asignado: req.usuario.id }
+      ];
     }
 
-    // Opciones de paginación
     const opciones = {
       page: parseInt(page),
       limit: parseInt(limit),
       sort: { fecha_creacion: -1 },
       populate: [
         { path: 'creado_por', select: 'nombre email' },
-        { path: 'asesor_asignado', select: 'nombre email' },
-        { path: 'tecnico_asignado', select: 'nombre email' },
-        { path: 'prospecto_original', select: 'nombre telefono' }
+        { path: 'asesor_asignado', select: 'nombre email telefono' },
+        { path: 'tecnico_asignado', select: 'nombre email telefono' },
+        { path: 'prospecto_original', select: 'nombre telefono email etapa' }
       ]
     };
 
     const proyectos = await Proyecto.paginate(filtros, opciones);
 
+    // Calcular estadísticas adicionales para cada proyecto
+    const proyectosConEstadisticas = proyectos.docs.map(proyecto => {
+      const proyectoObj = proyecto.toObject();
+      
+      // Calcular progreso
+      const estados = ['levantamiento', 'cotizacion', 'aprobado', 'fabricacion', 'instalacion', 'completado'];
+      const indiceEstado = estados.indexOf(proyecto.estado);
+      const progreso = indiceEstado >= 0 ? Math.round((indiceEstado / (estados.length - 1)) * 100) : 0;
+      
+      // Calcular totales
+      const totalArea = proyecto.medidas.reduce((sum, medida) => sum + ((medida.ancho || 0) * (medida.alto || 0) * (medida.cantidad || 1)), 0);
+      const totalMedidas = proyecto.medidas.length;
+      
+      return {
+        ...proyectoObj,
+        estadisticas: {
+          progreso,
+          totalArea: parseFloat(totalArea.toFixed(2)),
+          totalMedidas,
+          diasTranscurridos: Math.ceil((new Date() - new Date(proyecto.fecha_creacion)) / (1000 * 60 * 60 * 24))
+        }
+      };
+    });
+
     res.json({
       success: true,
-      data: proyectos.docs,
-      pagination: {
-        total: proyectos.totalDocs,
-        page: proyectos.page,
-        pages: proyectos.totalPages,
-        limit: proyectos.limit,
-        hasNext: proyectos.hasNextPage,
-        hasPrev: proyectos.hasPrevPage
+      data: {
+        ...proyectos,
+        docs: proyectosConEstadisticas
       }
     });
 
