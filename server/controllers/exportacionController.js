@@ -311,10 +311,10 @@ exports.formatosDisponibles = (req, res) => {
 };
 
 module.exports = {
-  generarPDFUnificado,
-  generarExcelUnificado,
-  generarPaqueteCompleto,
-  vistaPrevia,
-  validarExportacion,
-  formatosDisponibles
+  generarPDFUnificado: exports.generarPDFUnificado,
+  generarExcelUnificado: exports.generarExcelUnificado,
+  generarPaqueteCompleto: exports.generarPaqueteCompleto,
+  vistaPrevia: exports.vistaPrevia,
+  validarExportacion: exports.validarExportacion,
+  formatosDisponibles: exports.formatosDisponibles
 };
