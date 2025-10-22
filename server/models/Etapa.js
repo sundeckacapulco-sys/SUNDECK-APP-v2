@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const piezaSchema = new mongoose.Schema({
   ubicacion: { type: String, trim: true },
-  cantidad: { type: Number, default: 1 }, // ✅ CAMPO AGREGADO
+  cantidad: { type: Number, default: 1 },
   ancho: { type: Number },
   alto: { type: Number },
   producto: { type: String, trim: true },
@@ -15,7 +15,32 @@ const piezaSchema = new mongoose.Schema({
   // Mantener fotoUrl para compatibilidad hacia atrás
   fotoUrl: { type: String },
   // Campos para levantamiento técnico
-  medidas: { type: [mongoose.Schema.Types.Mixed], default: [] }
+  medidas: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  // CAMPOS TÉCNICOS CRÍTICOS PARA FABRICACIÓN
+  sistema: { type: [String], default: [] },
+  sistemaEspecial: { type: [String], default: [] },
+  tipoControl: { type: String, trim: true },
+  galeria: { type: String, trim: true },
+  baseTabla: { type: String, trim: true },
+  orientacion: { type: String, trim: true },
+  tipoInstalacion: { type: String, trim: true },
+  eliminacion: { type: String, trim: true },
+  risoAlto: { type: String, trim: true },
+  risoBajo: { type: String, trim: true },
+  telaMarca: { type: String, trim: true },
+  // CAMPOS DE TOLDOS Y MOTORIZACIÓN
+  esToldo: { type: Boolean, default: false },
+  tipoToldo: { type: String, trim: true },
+  kitModelo: { type: String, trim: true },
+  kitModeloManual: { type: String, trim: true },
+  kitPrecio: { type: Number, default: 0 },
+  motorizado: { type: Boolean, default: false },
+  motorModelo: { type: String, trim: true },
+  motorModeloManual: { type: String, trim: true },
+  motorPrecio: { type: Number, default: 0 },
+  controlModelo: { type: String, trim: true },
+  controlModeloManual: { type: String, trim: true },
+  controlPrecio: { type: Number, default: 0 }
 }, { _id: false });
 
 const etapaSchema = new mongoose.Schema({

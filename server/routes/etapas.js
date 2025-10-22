@@ -81,7 +81,7 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
 
           return {
             ubicacion: pieza.ubicacion || '',
-            cantidad: pieza.cantidad ? Number(pieza.cantidad) : 1, // ✅ CAMPO AGREGADO
+            cantidad: pieza.cantidad ? Number(pieza.cantidad) : 1,
             ancho: Number.isFinite(ancho) ? ancho : undefined,
             alto: Number.isFinite(alto) ? alto : undefined,
             producto: pieza.producto || '',
@@ -91,7 +91,32 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
             observaciones: pieza.observaciones || '',
             fotoUrls: Array.isArray(pieza.fotoUrls) ? pieza.fotoUrls : (pieza.fotoUrl ? [pieza.fotoUrl] : []),
             videoUrl: pieza.videoUrl || '',
-            medidas: Array.isArray(pieza.medidas) ? pieza.medidas : [] // ✅ CAMPO AGREGADO
+            medidas: Array.isArray(pieza.medidas) ? pieza.medidas : [],
+            // CAMPOS TÉCNICOS CRÍTICOS QUE FALTABAN
+            sistema: Array.isArray(pieza.sistema) ? pieza.sistema : [],
+            sistemaEspecial: Array.isArray(pieza.sistemaEspecial) ? pieza.sistemaEspecial : [],
+            tipoControl: pieza.tipoControl || '',
+            galeria: pieza.galeria || '',
+            baseTabla: pieza.baseTabla || '',
+            orientacion: pieza.orientacion || '',
+            tipoInstalacion: pieza.tipoInstalacion || '',
+            eliminacion: pieza.eliminacion || '',
+            risoAlto: pieza.risoAlto || '',
+            risoBajo: pieza.risoBajo || '',
+            telaMarca: pieza.telaMarca || '',
+            // CAMPOS DE TOLDOS Y MOTORIZACIÓN
+            esToldo: Boolean(pieza.esToldo),
+            tipoToldo: pieza.tipoToldo || '',
+            kitModelo: pieza.kitModelo || '',
+            kitModeloManual: pieza.kitModeloManual || '',
+            kitPrecio: pieza.kitPrecio ? Number(pieza.kitPrecio) : 0,
+            motorizado: Boolean(pieza.motorizado),
+            motorModelo: pieza.motorModelo || '',
+            motorModeloManual: pieza.motorModeloManual || '',
+            motorPrecio: pieza.motorPrecio ? Number(pieza.motorPrecio) : 0,
+            controlModelo: pieza.controlModelo || '',
+            controlModeloManual: pieza.controlModeloManual || '',
+            controlPrecio: pieza.controlPrecio ? Number(pieza.controlPrecio) : 0
           };
         })
         .filter(Boolean)

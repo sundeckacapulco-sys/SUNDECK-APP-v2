@@ -1539,7 +1539,27 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       });
       const piezasNormalizadas = piezas.map((pieza) => {
         console.log(`🔍 Procesando pieza: ${pieza.ubicacion}, cantidad original: ${pieza.cantidad}`);
-        return mapearPiezaParaDocumento(pieza, { precioComoNumero: true });
+        console.log(`🔧 CAMPOS TÉCNICOS DE LA PIEZA:`, {
+          sistema: pieza.sistema,
+          sistemaEspecial: pieza.sistemaEspecial,
+          tipoControl: pieza.tipoControl,
+          galeria: pieza.galeria,
+          baseTabla: pieza.baseTabla
+        });
+        if (pieza.medidas && Array.isArray(pieza.medidas)) {
+          pieza.medidas.forEach((medida, index) => {
+            console.log(`🔧 MEDIDA ${index + 1} - CAMPOS TÉCNICOS:`, {
+              sistema: medida.sistema,
+              sistemaEspecial: medida.sistemaEspecial,
+              tipoControl: medida.tipoControl,
+              galeria: medida.galeria,
+              baseTabla: medida.baseTabla
+            });
+          });
+        }
+        const piezaNormalizada = mapearPiezaParaDocumento(pieza, { precioComoNumero: true });
+        console.log(`🔍 PIEZA NORMALIZADA:`, piezaNormalizada);
+        return piezaNormalizada;
       });
 
       const instalacionEspecial = resumenEconomico.instalacion.cobra
@@ -2491,12 +2511,14 @@ const handleAgregarPedido = async () => {
                                       size="small"
                                       variant={medida.sistema?.includes(sistema) ? 'contained' : 'outlined'}
                                       onClick={() => {
+                                        console.log(`🔧 SISTEMA: Click en "${sistema}" para medida ${index + 1}`);
                                         const nuevasMedidas = [...(piezaForm.medidas || [])];
                                         const sistemasActuales = nuevasMedidas[index].sistema || [];
                                         const nuevosSistemas = sistemasActuales.includes(sistema)
                                           ? sistemasActuales.filter(s => s !== sistema)
                                           : [...sistemasActuales, sistema];
                                         nuevasMedidas[index] = { ...nuevasMedidas[index], sistema: nuevosSistemas };
+                                        console.log(`🔧 SISTEMA: Nuevos sistemas para medida ${index + 1}:`, nuevosSistemas);
                                         setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
                                       }}
                                       sx={{ 
@@ -2526,12 +2548,14 @@ const handleAgregarPedido = async () => {
                                       size="small"
                                       variant={medida.sistemaEspecial?.includes(sistemaEsp) ? 'contained' : 'outlined'}
                                       onClick={() => {
+                                        console.log(`🎨 SISTEMA ESPECIAL: Click en "${sistemaEsp}" para medida ${index + 1}`);
                                         const nuevasMedidas = [...(piezaForm.medidas || [])];
                                         const sistemasActuales = nuevasMedidas[index].sistemaEspecial || [];
                                         const nuevosSistemas = sistemasActuales.includes(sistemaEsp)
                                           ? sistemasActuales.filter(s => s !== sistemaEsp)
                                           : [...sistemasActuales, sistemaEsp];
                                         nuevasMedidas[index] = { ...nuevasMedidas[index], sistemaEspecial: nuevosSistemas };
+                                        console.log(`🎨 SISTEMA ESPECIAL: Nuevos sistemas especiales para medida ${index + 1}:`, nuevosSistemas);
                                         setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
                                       }}
                                       sx={{ 
@@ -2904,13 +2928,18 @@ const handleAgregarPedido = async () => {
                                         select
                                         label="Tipo de Control"
                                         fullWidth
-                                        value={piezaForm.esControlMulticanal ? 'multicanal' : 'individual'}
+                                        value={(() => {
+                                          // Determinar automáticamente si es multicanal basado en controlModelo
+                                          const controlSeleccionado = modelosControles.find(c => c.value === piezaForm.controlModelo);
+                                          const esMulticanalReal = controlSeleccionado?.esMulticanal || piezaForm.esControlMulticanal;
+                                          return esMulticanalReal ? 'multicanal' : 'individual';
+                                        })()}
                                         onChange={(e) => {
                                           const esMulticanal = e.target.value === 'multicanal';
                                           setPiezaForm(prev => ({ 
                                             ...prev, 
                                             esControlMulticanal: esMulticanal,
-                                            controlModelo: esMulticanal ? 'multicanal_4' : 'monocanal',
+                                            controlModelo: esMulticanal ? 'multicanal' : 'monocanal',
                                             piezasPorControl: esMulticanal ? (piezaForm.medidas ? piezaForm.medidas.length : 1) : 1
                                           }));
                                         }}
@@ -2934,21 +2963,27 @@ const handleAgregarPedido = async () => {
                                           }));
                                         }}
                                       >
-                                        {piezaForm.esControlMulticanal ? (
-                                          // Solo controles multicanal
-                                          modelosControles.filter(c => c.esMulticanal).map(control => (
-                                            <MenuItem key={control.value} value={control.value}>
-                                              {control.label}
-                                            </MenuItem>
-                                          ))
-                                        ) : (
-                                          // Solo controles individuales
-                                          modelosControles.filter(c => !c.esMulticanal).map(control => (
-                                            <MenuItem key={control.value} value={control.value}>
-                                              {control.label}
-                                            </MenuItem>
-                                          ))
-                                        )}
+                                        {(() => {
+                                          // Determinar automáticamente si es multicanal basado en controlModelo
+                                          const controlSeleccionado = modelosControles.find(c => c.value === piezaForm.controlModelo);
+                                          const esMulticanalReal = controlSeleccionado?.esMulticanal || piezaForm.esControlMulticanal;
+                                          
+                                          return esMulticanalReal ? (
+                                            // Solo controles multicanal
+                                            modelosControles.filter(c => c.esMulticanal).map(control => (
+                                              <MenuItem key={control.value} value={control.value}>
+                                                {control.label}
+                                              </MenuItem>
+                                            ))
+                                          ) : (
+                                            // Solo controles individuales
+                                            modelosControles.filter(c => !c.esMulticanal).map(control => (
+                                              <MenuItem key={control.value} value={control.value}>
+                                                {control.label}
+                                              </MenuItem>
+                                            ))
+                                          );
+                                        })()}
                                       </TextField>
                                     </Grid>
                                     

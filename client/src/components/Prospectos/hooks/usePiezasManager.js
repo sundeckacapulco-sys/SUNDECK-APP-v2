@@ -129,6 +129,10 @@ const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLo
       observaciones: `${piezaForm.observaciones ? `${piezaForm.observaciones} - ` : ''}Partida de ${cantidad} pieza${cantidad > 1 ? 's' : ''}`
     };
 
+    console.log('🔍 AGREGANDO PIEZA - piezaForm completo:', piezaForm);
+    console.log('🔍 AGREGANDO PIEZA - medidasProcesadas:', medidasProcesadas);
+    console.log('🔍 AGREGANDO PIEZA - nuevaPartida final:', nuevaPartida);
+
     if (editandoPieza && indiceEditando >= 0) {
       setPiezas(prev => {
         const nuevasPiezas = [...prev];

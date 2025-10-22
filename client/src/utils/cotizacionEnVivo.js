@@ -18,7 +18,20 @@ const normalizarMedidas = (pieza) => {
         ...medida,
         ancho,
         alto,
-        area: medida.area ? toNumber(medida.area) : ancho * alto
+        area: medida.area ? toNumber(medida.area) : ancho * alto,
+        // Incluir información de sistemas si está disponible
+        sistema: medida.sistema || pieza.sistema || [],
+        sistemaEspecial: medida.sistemaEspecial || pieza.sistemaEspecial || [],
+        // CAMPOS TÉCNICOS CRÍTICOS PARA FABRICACIÓN
+        tipoControl: medida.tipoControl || pieza.tipoControl || '',
+        galeria: medida.galeria || pieza.galeria || '',
+        baseTabla: medida.baseTabla || pieza.baseTabla || '',
+        orientacion: medida.orientacion || pieza.orientacion || '',
+        tipoInstalacion: medida.tipoInstalacion || pieza.tipoInstalacion || '',
+        eliminacion: medida.eliminacion || pieza.eliminacion || '',
+        risoAlto: medida.risoAlto || pieza.risoAlto || '',
+        risoBajo: medida.risoBajo || pieza.risoBajo || '',
+        telaMarca: medida.telaMarca || pieza.telaMarca || ''
       };
     });
   }
@@ -34,7 +47,20 @@ const normalizarMedidas = (pieza) => {
       producto: pieza.producto,
       productoLabel: pieza.productoLabel,
       color: pieza.color,
-      precioM2: pieza.precioM2
+      precioM2: pieza.precioM2,
+      // Incluir información de sistemas
+      sistema: pieza.sistema || [],
+      sistemaEspecial: pieza.sistemaEspecial || [],
+      // CAMPOS TÉCNICOS CRÍTICOS PARA FABRICACIÓN
+      tipoControl: pieza.tipoControl || '',
+      galeria: pieza.galeria || '',
+      baseTabla: pieza.baseTabla || '',
+      orientacion: pieza.orientacion || '',
+      tipoInstalacion: pieza.tipoInstalacion || '',
+      eliminacion: pieza.eliminacion || '',
+      risoAlto: pieza.risoAlto || '',
+      risoBajo: pieza.risoBajo || '',
+      telaMarca: pieza.telaMarca || ''
     }
   ];
 };
@@ -60,7 +86,20 @@ export const mapearPiezaParaDocumento = (
     observaciones: pieza.observaciones,
     fotoUrls: pieza.fotoUrls || [],
     videoUrl: pieza.videoUrl || '',
-    medidas: medidasNormalizadas
+    medidas: medidasNormalizadas,
+    // CAMPOS QUE FALTABAN - Información de sistemas
+    sistema: pieza.sistema || [],
+    sistemaEspecial: pieza.sistemaEspecial || [],
+    // CAMPOS TÉCNICOS CRÍTICOS PARA FABRICACIÓN
+    tipoControl: pieza.tipoControl || '',
+    galeria: pieza.galeria || '',
+    baseTabla: pieza.baseTabla || '',
+    orientacion: pieza.orientacion || '',
+    tipoInstalacion: pieza.tipoInstalacion || '',
+    eliminacion: pieza.eliminacion || '',
+    risoAlto: pieza.risoAlto || '',
+    risoBajo: pieza.risoBajo || '',
+    telaMarca: pieza.telaMarca || ''
   };
 
   if (!incluirExtras) {

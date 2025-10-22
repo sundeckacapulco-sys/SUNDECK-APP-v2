@@ -710,20 +710,91 @@ const ProspectoDetalle = () => {
     }
 
     try {
+      // Calcular totales de manera más completa
       const totalM2 = etapa.piezas.reduce((total, pieza) => {
-        const area = (pieza.ancho || 0) * (pieza.alto || 0);
-        return total + area;
+        if (pieza.medidas && pieza.medidas.length > 0) {
+          // Usar medidas individuales si están disponibles
+          const areaPieza = pieza.medidas.reduce((sum, medida) => {
+            return sum + ((medida.ancho || 0) * (medida.alto || 0));
+          }, 0);
+          return total + areaPieza;
+        } else {
+          // Fallback a medidas directas
+          const area = (pieza.ancho || 0) * (pieza.alto || 0) * (pieza.cantidad || 1);
+          return total + area;
+        }
       }, 0);
 
       const precioGeneral = etapa.precioGeneral || 750;
 
+      // PAYLOAD COMPLETO - Incluir TODA la información de la etapa
       const payload = {
         prospectoId: id,
         piezas: etapa.piezas,
         precioGeneral,
         totalM2,
-        unidadMedida: etapa.unidadMedida || 'm'
+        unidadMedida: etapa.unidadMedida || 'm²',
+        
+        // Información financiera completa
+        resumenEconomico: {
+          subtotalProductos: etapa.subtotalProductos || (totalM2 * precioGeneral),
+          instalacionEspecial: etapa.instalacionEspecial || 0,
+          descuentos: etapa.descuentos || 0,
+          subtotal: etapa.subtotal || (totalM2 * precioGeneral),
+          iva: etapa.iva || 0,
+          total: etapa.total || (totalM2 * precioGeneral)
+        },
+        
+        // Información de facturación
+        facturacion: {
+          requiereFactura: etapa.requiereFactura || false,
+          iva: etapa.iva || 0,
+          totalConIVA: etapa.totalConIVA || 0
+        },
+        
+        // Método de pago
+        metodoPago: {
+          anticipo: etapa.anticipo || (etapa.total || totalM2 * precioGeneral) * 0.6,
+          saldo: etapa.saldo || (etapa.total || totalM2 * precioGeneral) * 0.4,
+          porcentajeAnticipo: 60,
+          porcentajeSaldo: 40
+        },
+        
+        // Instalación especial
+        instalacionEspecial: etapa.instalacionEspecial ? {
+          activa: true,
+          tipo: etapa.tipoInstalacion || 'especial',
+          precio: Number(etapa.precioInstalacion) || 0,
+          precioPorPieza: Number(etapa.precioInstalacionPorPieza) || 0
+        } : { activa: false },
+        
+        // Descuentos
+        descuentos: etapa.descuentos ? {
+          activo: true,
+          tipo: etapa.tipoDescuento || 'monto',
+          valor: Number(etapa.valorDescuento) || 0
+        } : { activo: false },
+        
+        // Información técnica
+        tipoVisita: etapa.tipoVisita || 'levantamiento',
+        observacionesGenerales: etapa.observaciones || etapa.comentarios || '',
+        
+        // Información de la etapa
+        nombreEtapa: etapa.nombreEtapa,
+        fechaEtapa: etapa.fechaEtapa,
+        horaEtapa: etapa.horaEtapa,
+        
+        // Total final
+        totalFinal: etapa.totalFinal || etapa.total || (totalM2 * precioGeneral)
       };
+
+      console.log('📊 PAYLOAD COMPLETO PARA EXCEL (ProspectoDetalle):', payload);
+      console.log('🔍 Información de la etapa original:', etapa);
+      console.log('💰 Cálculos realizados:', {
+        totalM2,
+        precioGeneral,
+        totalCalculado: totalM2 * precioGeneral
+      });
 
       const response = await axiosConfig.post('/etapas/levantamiento-excel', payload, {
         responseType: 'blob'
