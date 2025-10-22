@@ -521,19 +521,6 @@ async function ejecutarTriggersEstado(proyecto, estadoAnterior, nuevoEstado, usu
   }
 }
 
-module.exports = {
-  crearProyecto,
-  obtenerProyectos,
-  obtenerProyectoPorId,
-  actualizarProyecto,
-  cambiarEstado,
-  eliminarProyecto,
-  crearDesdeProspecto,
-  obtenerDatosExportacion,
-  sincronizarProyecto,
-  obtenerEstadisticasProyecto
-};
-
 // Sincronizar proyecto manualmente
 exports.sincronizarProyecto = async (req, res) => {
   try {
@@ -684,4 +671,17 @@ exports.obtenerEstadisticasProyecto = async (req, res) => {
       error: error.message
     });
   }
+};
+
+module.exports = {
+  crearProyecto: exports.crearProyecto,
+  obtenerProyectos: exports.obtenerProyectos,
+  obtenerProyectoPorId: exports.obtenerProyectoPorId,
+  actualizarProyecto: exports.actualizarProyecto,
+  cambiarEstado: exports.cambiarEstado,
+  eliminarProyecto: exports.eliminarProyecto,
+  crearDesdeProspecto: exports.crearDesdeProspecto,
+  obtenerDatosExportacion: exports.obtenerDatosExportacion,
+  sincronizarProyecto: exports.sincronizarProyecto,
+  obtenerEstadisticasProyecto: exports.obtenerEstadisticasProyecto
 };
