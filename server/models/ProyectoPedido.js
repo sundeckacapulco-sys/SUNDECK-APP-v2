@@ -146,6 +146,117 @@ const proyectoPedidoSchema = new mongoose.Schema({
     fechaEntrega: Date,
     fechaCompletado: Date
   },
+
+  // ===== FABRICACIÓN DETALLADA =====
+  fabricacion: {
+    // Estado general de fabricación
+    estado: {
+      type: String,
+      enum: ['pendiente', 'materiales_pedidos', 'en_proceso', 'control_calidad', 'terminado', 'empacado'],
+      default: 'pendiente'
+    },
+    
+    // Asignación y responsables
+    asignadoA: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Usuario'
+    },
+    prioridad: {
+      type: String,
+      enum: ['baja', 'media', 'alta', 'urgente'],
+      default: 'media'
+    },
+    
+    // Materiales necesarios
+    materiales: [{
+      nombre: String,
+      cantidad: Number,
+      unidad: String,
+      disponible: { type: Boolean, default: false },
+      fechaPedido: Date,
+      fechaLlegada: Date,
+      proveedor: String,
+      costo: Number
+    }],
+    
+    // Procesos de fabricación
+    procesos: [{
+      nombre: String,
+      descripcion: String,
+      orden: Number,
+      tiempoEstimado: Number, // en horas
+      tiempoReal: Number,
+      fechaInicio: Date,
+      fechaFin: Date,
+      responsable: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Usuario'
+      },
+      estado: {
+        type: String,
+        enum: ['pendiente', 'en_proceso', 'completado', 'pausado'],
+        default: 'pendiente'
+      },
+      observaciones: String,
+      evidenciasFotos: [String]
+    }],
+    
+    // Control de calidad
+    controlCalidad: {
+      realizado: { type: Boolean, default: false },
+      fechaRevision: Date,
+      revisadoPor: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Usuario'
+      },
+      resultado: {
+        type: String,
+        enum: ['aprobado', 'rechazado', 'requiere_ajustes']
+      },
+      observaciones: String,
+      evidenciasFotos: [String],
+      defectosEncontrados: [{
+        descripcion: String,
+        gravedad: {
+          type: String,
+          enum: ['menor', 'mayor', 'critico']
+        },
+        corregido: { type: Boolean, default: false }
+      }]
+    },
+    
+    // Empaque y preparación para entrega
+    empaque: {
+      realizado: { type: Boolean, default: false },
+      fechaEmpaque: Date,
+      responsable: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Usuario'
+      },
+      tipoEmpaque: String,
+      observaciones: String,
+      evidenciasFotos: [String]
+    },
+    
+    // Costos de fabricación
+    costos: {
+      materiales: { type: Number, default: 0 },
+      manoObra: { type: Number, default: 0 },
+      overhead: { type: Number, default: 0 },
+      total: { type: Number, default: 0 }
+    },
+    
+    // Observaciones generales de fabricación
+    observaciones: String,
+    
+    // Progreso general (calculado automáticamente)
+    progreso: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    }
+  },
   
   // ===== PAGOS Y MONTOS (UNIFICADO) =====
   pagos: {
@@ -283,7 +394,185 @@ const proyectoPedidoSchema = new mongoose.Schema({
       horarioPreferido: String
     },
     instrucciones: String,
-    evidencias: [String] // URLs de fotos de entrega
+    evidencias: [String] // URLs de fotos
+  },
+  
+  // ===== INSTALACIÓN DETALLADA (Integrada del modelo existente) =====
+  instalacion: {
+    // Estado de instalación
+    estado: {
+      type: String,
+      enum: ['pendiente', 'programada', 'en_proceso', 'pausada', 'completada', 'cancelada'],
+      default: 'pendiente'
+    },
+    
+    // Información básica
+    numero: String, // Se genera automáticamente
+    fechaProgramada: Date,
+    fechaRealizada: Date,
+    
+    // Equipo de instalación (del modelo existente)
+    instaladores: [{
+      usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+      rol: {
+        type: String,
+        enum: ['jefe_cuadrilla', 'instalador', 'ayudante']
+      },
+      presente: { type: Boolean, default: true }
+    }],
+    
+    // Información del sitio
+    direccion: {
+      calle: String,
+      colonia: String,
+      ciudad: String,
+      codigoPostal: String,
+      referencias: String
+    },
+    contactoSitio: {
+      nombre: String,
+      telefono: String,
+      disponibilidad: String
+    },
+    
+    // Checklist de instalación (del modelo existente)
+    checklist: [{
+      item: String,
+      categoria: {
+        type: String,
+        enum: ['preparacion', 'medicion', 'instalacion', 'acabados', 'limpieza', 'entrega']
+      },
+      completado: { type: Boolean, default: false },
+      fechaCompletado: Date,
+      responsable: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+      notas: String,
+      fotos: [String]
+    }],
+    
+    // Productos instalados
+    productosInstalacion: [{
+      productoId: { type: mongoose.Schema.Types.ObjectId, ref: 'Producto' },
+      nombre: String,
+      ubicacion: String, // sala, cocina, recámara, etc.
+      estado: {
+        type: String,
+        enum: ['pendiente', 'en_proceso', 'instalado', 'con_problema'],
+        default: 'pendiente'
+      },
+      fechaInicio: Date,
+      fechaTermino: Date,
+      problemas: [String],
+      solucionProblemas: [String]
+    }],
+    
+    // Mediciones finales
+    medicionesFinales: [{
+      producto: String,
+      ubicacion: String,
+      medidas: {
+        ancho: Number,
+        alto: Number,
+        area: Number
+      },
+      diferenciasPlano: String,
+      ajustesRealizados: String
+    }],
+    
+    // Materiales y herramientas
+    materialesUsados: [{
+      nombre: String,
+      cantidad: Number,
+      unidad: String,
+      sobrante: Number
+    }],
+    herramientasUsadas: [String],
+    
+    // Documentación fotográfica
+    fotos: [{
+      categoria: {
+        type: String,
+        enum: ['antes', 'proceso', 'terminado', 'problema', 'solucion']
+      },
+      descripcion: String,
+      url: String,
+      ubicacion: String,
+      fecha: { type: Date, default: Date.now }
+    }],
+    
+    // Control de tiempo
+    tiempos: {
+      inicioReal: Date,
+      finReal: Date,
+      tiempoEstimado: Number, // horas
+      tiempoReal: Number, // horas
+      pausas: [{
+        motivo: String,
+        inicio: Date,
+        fin: Date,
+        duracion: Number // minutos
+      }]
+    },
+    
+    // Problemas y soluciones (incidencias del modelo existente)
+    incidencias: [{
+      fecha: { type: Date, default: Date.now },
+      tipo: {
+        type: String,
+        enum: ['medida_incorrecta', 'material_defectuoso', 'problema_sitio', 'herramienta', 'otro']
+      },
+      descripcion: String,
+      solucion: String,
+      responsable: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+      tiempoResolucion: Number, // minutos
+      costoAdicional: Number
+    }],
+    
+    // Entrega y conformidad
+    entrega: {
+      fecha: Date,
+      recibidoPor: String,
+      documentoIdentidad: String,
+      conformidad: { type: Boolean, default: false },
+      observaciones: String,
+      firmaCliente: String, // URL de imagen de firma
+      fotos: [String]
+    },
+    
+    // Garantía
+    garantia: {
+      fechaInicio: Date,
+      vigencia: Number, // meses
+      cobertura: String,
+      exclusiones: [String]
+    },
+    
+    // Notas y observaciones
+    notas: [{
+      fecha: { type: Date, default: Date.now },
+      usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+      contenido: String,
+      tipo: {
+        type: String,
+        enum: ['general', 'problema', 'solucion', 'cliente', 'tecnica']
+      }
+    }],
+    
+    // Costos de instalación
+    costos: {
+      manoObra: { type: Number, default: 0 },
+      materiales: { type: Number, default: 0 },
+      transporte: { type: Number, default: 0 },
+      extras: { type: Number, default: 0 },
+      total: { type: Number, default: 0 }
+    },
+    
+    // Progreso general (calculado automáticamente)
+    progreso: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0
+    }
   },
   
   // ===== INFORMACIÓN DE CANCELACIÓN =====

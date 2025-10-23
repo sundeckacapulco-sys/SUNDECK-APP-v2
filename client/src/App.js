@@ -5,23 +5,21 @@ import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout/Layout';
 import Login from './components/Auth/Login';
 import Dashboard from './components/Dashboard/Dashboard';
-import ProspectosList from './components/Prospectos/ProspectosList';
-import ProspectoForm from './components/Prospectos/ProspectoForm';
-import ProspectoDetalle from './components/Prospectos/ProspectoDetalle';
-import KanbanBoard from './components/Kanban/KanbanBoard';
-import CotizacionesList from './components/Cotizaciones/CotizacionesList';
-import CotizacionForm from './components/Cotizaciones/CotizacionForm';
-import CotizacionDirecta from './components/Cotizaciones/CotizacionDirecta';
 import CatalogoProductos from './components/Productos/CatalogoProductos';
-import PedidosList from './components/Pedidos/PedidosList';
-import DashboardComercialSimple from './components/Pedidos/DashboardComercialSimple';
-import DashboardFabricacionSimple from './components/Fabricacion/DashboardFabricacionSimple';
 import PlantillasWhatsAppAdmin from './components/Admin/PlantillasWhatsAppAdmin';
-import PapeleraProspectos from './components/Prospectos/PapeleraProspectos';
+import DashboardKPIs from './components/KPIs/DashboardKPIs';
+import DashboardFabricacion from './components/Fabricacion/DashboardFabricacion.jsx';
+import DashboardInstalaciones from './components/Dashboards/DashboardInstalaciones';
 import LoadingSpinner from './components/Common/LoadingSpinner';
-// Módulo de Proyectos Unificados
+// Sistema Unificado - Único flujo de trabajo
 import ProyectosList from './modules/proyectos/ProyectosList';
 import ProyectoDetail from './modules/proyectos/ProyectoDetail';
+import ProyectoForm from './modules/proyectos/ProyectoForm';
+// Módulo de Instalaciones - Área específica
+import InstalacionesList from './modules/instalaciones/InstalacionesList';
+import InstalacionDetail from './modules/instalaciones/InstalacionDetail';
+import ProgramarInstalacion from './modules/instalaciones/ProgramarInstalacion';
+import CalendarioInstalaciones from './modules/instalaciones/CalendarioInstalaciones';
 
 function App() {
   const { user, loading } = useAuth();
@@ -38,48 +36,38 @@ function App() {
     <Layout>
       <Box sx={{ flexGrow: 1, p: 3 }}>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/proyectos" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           
-          {/* Prospectos */}
-          <Route path="/prospectos" element={<ProspectosList />} />
-          <Route path="/prospectos/nuevo" element={<ProspectoForm />} />
-          <Route path="/prospectos/papelera" element={<PapeleraProspectos />} />
-          <Route path="/prospectos/:id" element={<ProspectoDetalle />} />
-          <Route path="/prospectos/:id/editar" element={<ProspectoForm />} />
-          
-          {/* Kanban */}
-          <Route path="/kanban" element={<KanbanBoard />} />
-          
-          {/* Cotizaciones */}
-          <Route path="/cotizaciones" element={<CotizacionesList />} />
-          <Route path="/cotizaciones/nueva" element={<CotizacionForm />} />
-          <Route path="/cotizaciones/directa" element={<CotizacionDirecta />} />
-          <Route path="/cotizaciones/:id" element={<CotizacionForm />} />
-          <Route path="/cotizaciones/:id/editar" element={<CotizacionForm />} />
-          
-          {/* Productos */}
-          <Route path="/productos" element={<CatalogoProductos />} />
-          
-          {/* Proyectos Unificados */}
+          {/* SISTEMA UNIFICADO - Flujo único de proyectos */}
           <Route path="/proyectos" element={<ProyectosList />} />
+          <Route path="/proyectos/nuevo" element={<ProyectoForm />} />
           <Route path="/proyectos/:id" element={<ProyectoDetail />} />
+          <Route path="/proyectos/:id/editar" element={<ProyectoForm />} />
           
-          {/* Pedidos y Fabricación */}
-          <Route path="/pedidos" element={<DashboardComercialSimple />} />
-          <Route path="/pedidos/lista" element={<PedidosList />} />
-          <Route path="/fabricacion" element={<DashboardFabricacionSimple />} />
+          {/* MÓDULO INSTALACIONES - Área específica */}
+          <Route path="/instalaciones" element={<InstalacionesList />} />
+          <Route path="/instalaciones/:id" element={<InstalacionDetail />} />
+          <Route path="/instalaciones/programar" element={<ProgramarInstalacion />} />
+          <Route path="/instalaciones/calendario" element={<CalendarioInstalaciones />} />
           
-          {/* Administración */}
+          {/* Módulos auxiliares */}
+          <Route path="/productos" element={<CatalogoProductos />} />
+          <Route path="/kpis" element={<DashboardKPIs />} />
+          <Route path="/fabricacion" element={<DashboardFabricacion />} />
           <Route path="/admin/plantillas-whatsapp" element={<PlantillasWhatsAppAdmin />} />
           
-          {/* Rutas futuras */}
-          <Route path="/instalaciones" element={<div>Módulo de Instalaciones (En desarrollo)</div>} />
-          <Route path="/postventa" element={<div>Módulo de Postventa (En desarrollo)</div>} />
-          <Route path="/reportes" element={<div>Módulo de Reportes (En desarrollo)</div>} />
+          {/* Redirecciones del sistema anterior */}
+          <Route path="/prospectos" element={<Navigate to="/proyectos" replace />} />
+          <Route path="/prospectos/*" element={<Navigate to="/proyectos" replace />} />
+          <Route path="/cotizaciones" element={<Navigate to="/proyectos" replace />} />
+          <Route path="/cotizaciones/*" element={<Navigate to="/proyectos" replace />} />
+          <Route path="/pedidos" element={<Navigate to="/proyectos" replace />} />
+          <Route path="/pedidos/*" element={<Navigate to="/proyectos" replace />} />
+          <Route path="/kanban" element={<Navigate to="/proyectos" replace />} />
           
           {/* 404 */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/proyectos" replace />} />
         </Routes>
       </Box>
     </Layout>

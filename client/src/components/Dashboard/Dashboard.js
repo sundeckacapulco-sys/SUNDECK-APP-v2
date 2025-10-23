@@ -138,16 +138,29 @@ const Dashboard = () => {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Dashboard
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<Refresh />}
-          onClick={fetchDashboardData}
-        >
-          Actualizar
-        </Button>
+        <Box>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+            Dashboard - Sistema Unificado
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            Gestión completa de proyectos desde prospecto hasta entrega
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="contained"
+            onClick={() => navigate('/proyectos/nuevo')}
+          >
+            Nuevo Proyecto
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={fetchDashboardData}
+          >
+            Actualizar
+          </Button>
+        </Box>
       </Box>
 
       {/* Métricas principales */}

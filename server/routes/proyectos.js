@@ -96,6 +96,127 @@ router.get('/:id/estadisticas',
   obtenerEstadisticasProyecto
 );
 
+// POST /api/proyectos/:id/fabricacion/iniciar - Iniciar fabricación
+router.post('/:id/fabricacion/iniciar', 
+  auth, 
+  verificarPermiso('proyectos', 'editar'), 
+  async (req, res) => {
+    try {
+      const FabricacionService = require('../services/fabricacionService');
+      const resultado = await FabricacionService.iniciarFabricacion(req.params.id, req.body);
+      res.json(resultado);
+    } catch (error) {
+      console.error('Error iniciando fabricación:', error);
+      res.status(500).json({ message: 'Error iniciando fabricación', error: error.message });
+    }
+  }
+);
+
+// PUT /api/proyectos/:id/fabricacion/proceso/:procesoId - Actualizar proceso
+router.put('/:id/fabricacion/proceso/:procesoId', 
+  auth, 
+  verificarPermiso('proyectos', 'editar'), 
+  async (req, res) => {
+    try {
+      const FabricacionService = require('../services/fabricacionService');
+      const resultado = await FabricacionService.actualizarProgreso(req.params.id, {
+        procesoId: req.params.procesoId,
+        ...req.body
+      });
+      res.json(resultado);
+    } catch (error) {
+      console.error('Error actualizando proceso:', error);
+      res.status(500).json({ message: 'Error actualizando proceso', error: error.message });
+    }
+  }
+);
+
+// POST /api/proyectos/:id/fabricacion/control-calidad - Control de calidad
+router.post('/:id/fabricacion/control-calidad', 
+  auth, 
+  verificarPermiso('proyectos', 'editar'), 
+  async (req, res) => {
+    try {
+      const FabricacionService = require('../services/fabricacionService');
+      const resultado = await FabricacionService.realizarControlCalidad(req.params.id, req.body);
+      res.json(resultado);
+    } catch (error) {
+      console.error('Error en control de calidad:', error);
+      res.status(500).json({ message: 'Error en control de calidad', error: error.message });
+    }
+  }
+);
+
+// POST /api/proyectos/:id/fabricacion/empaque - Completar empaque
+router.post('/:id/fabricacion/empaque', 
+  auth, 
+  verificarPermiso('proyectos', 'editar'), 
+  async (req, res) => {
+    try {
+      const FabricacionService = require('../services/fabricacionService');
+      const resultado = await FabricacionService.completarEmpaque(req.params.id, req.body);
+      res.json(resultado);
+    } catch (error) {
+      console.error('Error completando empaque:', error);
+      res.status(500).json({ message: 'Error completando empaque', error: error.message });
+    }
+  }
+);
+
+// GET /api/proyectos/:id/pdf - Generar PDF del proyecto
+router.get('/:id/pdf', 
+  auth, 
+  verificarPermiso('proyectos', 'leer'), 
+  async (req, res) => {
+    try {
+      const pdfService = require('../services/pdfService');
+      const proyecto = await require('../models/Proyecto').findById(req.params.id)
+        .populate('prospecto')
+        .populate('cotizacion');
+      
+      if (!proyecto) {
+        return res.status(404).json({ message: 'Proyecto no encontrado' });
+      }
+
+      const pdfBuffer = await pdfService.generarPDFProyecto(proyecto);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Proyecto-${proyecto.numero}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('Error generando PDF del proyecto:', error);
+      res.status(500).json({ message: 'Error generando PDF', error: error.message });
+    }
+  }
+);
+
+// GET /api/proyectos/:id/excel - Generar Excel del proyecto
+router.get('/:id/excel', 
+  auth, 
+  verificarPermiso('proyectos', 'leer'), 
+  async (req, res) => {
+    try {
+      const excelService = require('../services/excelService');
+      const proyecto = await require('../models/Proyecto').findById(req.params.id)
+        .populate('prospecto')
+        .populate('cotizacion');
+      
+      if (!proyecto) {
+        return res.status(404).json({ message: 'Proyecto no encontrado' });
+      }
+
+      const excelBuffer = await excelService.generarExcelProyecto(proyecto);
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="Proyecto-${proyecto.numero}.xlsx"`);
+      res.send(excelBuffer);
+    } catch (error) {
+      console.error('Error generando Excel del proyecto:', error);
+      res.status(500).json({ message: 'Error generando Excel', error: error.message });
+    }
+  }
+);
+
 // GET /api/proyectos/transiciones/:estado - Obtener transiciones válidas para un estado
 router.get('/transiciones/:estado', 
   auth, 

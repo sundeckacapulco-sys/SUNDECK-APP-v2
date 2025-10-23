@@ -1,36 +1,34 @@
 const express = require('express');
-const OrdenFabricacion = require('../models/OrdenFabricacion');
-const Pedido = require('../models/Pedido');
+const ProyectoPedido = require('../models/ProyectoPedido');
+const FabricacionService = require('../services/fabricacionService');
 const { auth, verificarPermiso } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Obtener órdenes de fabricación
-router.get('/', auth, verificarPermiso('fabricacion', 'leer'), async (req, res) => {
+// GET /api/fabricacion/cola - Obtener cola de fabricación
+router.get('/cola', auth, verificarPermiso('fabricacion', 'leer'), async (req, res) => {
   try {
-    const { estado, prioridad, fechaDesde, fechaHasta } = req.query;
-    const filtros = {};
-    
-    if (estado) filtros.estado = estado;
-    if (prioridad) filtros.prioridad = prioridad;
-    
-    if (fechaDesde && fechaHasta) {
-      filtros.fechaInicio = {
-        $gte: new Date(fechaDesde),
-        $lte: new Date(fechaHasta)
-      };
-    }
-
-    const ordenes = await Fabricacion.find(filtros)
-      .populate('pedido', 'numero total')
-      .populate('prospecto', 'nombre telefono')
-      .populate('asignadoA', 'nombre apellido')
-      .sort({ prioridad: -1, fechaInicio: 1 });
-
-    res.json(ordenes);
+    const filtros = req.query;
+    const proyectos = await FabricacionService.obtenerColaFabricacion(filtros);
+    res.json(proyectos);
   } catch (error) {
-    console.error('Error obteniendo órdenes de fabricación:', error);
-    res.status(500).json({ message: 'Error interno del servidor' });
+    console.error('Error obteniendo cola de fabricación:', error);
+    res.status(500).json({ message: 'Error obteniendo cola de fabricación', error: error.message });
+  }
+});
+
+// GET /api/fabricacion/metricas - Obtener métricas de fabricación
+router.get('/metricas', auth, verificarPermiso('fabricacion', 'leer'), async (req, res) => {
+  try {
+    const fechaInicio = new Date();
+    fechaInicio.setMonth(fechaInicio.getMonth() - 1);
+    const fechaFin = new Date();
+    
+    const metricas = await FabricacionService.obtenerMetricas(fechaInicio, fechaFin);
+    res.json(metricas);
+  } catch (error) {
+    console.error('Error obteniendo métricas de fabricación:', error);
+    res.status(500).json({ message: 'Error obteniendo métricas', error: error.message });
   }
 });
 

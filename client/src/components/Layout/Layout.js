@@ -35,7 +35,8 @@ import {
   Settings,
   Inventory,
   WhatsApp,
-  Security
+  Security,
+  Home
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -50,17 +51,12 @@ const drawerWidth = 240;
 
 const menuItems = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
-  { text: 'Kanban', icon: <ViewKanban />, path: '/kanban' },
-  { text: 'Prospectos', icon: <People />, path: '/prospectos' },
-  { text: 'Proyectos Unificados', icon: <Assignment />, path: '/proyectos', badge: 'NUEVO' },
-  { text: 'Cotizaciones', icon: <Assignment />, path: '/cotizaciones' },
-  { text: 'Catálogo Productos', icon: <Inventory />, path: '/productos' },
-  { text: 'Pedidos', icon: <Build />, path: '/pedidos' },
+  { text: 'Proyectos', icon: <Assignment />, path: '/proyectos', badge: 'PRINCIPAL' },
   { text: 'Fabricación', icon: <Construction />, path: '/fabricacion' },
-  { text: 'Instalaciones', icon: <Construction />, path: '/instalaciones' },
-  { text: 'Postventa', icon: <RateReview />, path: '/postventa' },
-  { text: 'Plantillas WhatsApp', icon: <WhatsApp />, path: '/admin/plantillas-whatsapp' },
-  { text: 'Reportes', icon: <Assessment />, path: '/reportes' }
+  { text: 'Instalaciones', icon: <Home />, path: '/proyectos', badge: 'UNIFICADO' },
+  { text: 'KPIs y Ventas', icon: <Assessment />, path: '/kpis' },
+  { text: 'Catálogo Productos', icon: <Inventory />, path: '/productos' },
+  { text: 'Plantillas WhatsApp', icon: <WhatsApp />, path: '/admin/plantillas-whatsapp' }
 ];
 
 const Layout = ({ children }) => {

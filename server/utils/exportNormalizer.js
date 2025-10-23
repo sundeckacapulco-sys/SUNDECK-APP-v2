@@ -37,8 +37,8 @@ async function getProyectoExportData(proyectoId) {
       zona: proyecto.cliente?.zona || ''
     };
 
-    // Normalizar medidas con cálculos
-    const medidas = proyecto.medidas.map((medida, index) => {
+    // Normalizar medidas con cálculos (proteger contra undefined)
+    const medidas = (proyecto.medidas ?? []).map((medida, index) => {
       const area = (medida.ancho || 0) * (medida.alto || 0) * (medida.cantidad || 1);
       
       return {
@@ -87,8 +87,8 @@ async function getProyectoExportData(proyectoId) {
     const totalMotores = medidas.reduce((sum, medida) => sum + (medida.motorPrecio || 0), 0);
     const totalControles = medidas.reduce((sum, medida) => sum + (medida.controlPrecio || 0), 0);
 
-    // Normalizar productos
-    const productos = proyecto.productos.map((producto, index) => ({
+    // Normalizar productos (proteger contra undefined)
+    const productos = (proyecto.productos ?? []).map((producto, index) => ({
       id: index + 1,
       nombre: producto.nombre || '',
       descripcion: producto.descripcion || '',
@@ -97,8 +97,8 @@ async function getProyectoExportData(proyectoId) {
       subtotal: producto.subtotal || (producto.cantidad * producto.precio_unitario) || 0
     }));
 
-    // Normalizar materiales
-    const materiales = proyecto.materiales.map((material, index) => ({
+    // Normalizar materiales (proteger contra undefined)
+    const materiales = (proyecto.materiales ?? []).map((material, index) => ({
       id: index + 1,
       nombre: material.nombre || '',
       cantidad: material.cantidad || 0,
@@ -113,8 +113,9 @@ async function getProyectoExportData(proyectoId) {
     const subtotalExtras = totalKits + totalMotores + totalControles;
     const subtotalGeneral = subtotalProductos + subtotalMateriales + subtotalExtras;
     
-    const iva = proyecto.iva || (subtotalGeneral * 0.16);
-    const total = proyecto.total || (subtotalGeneral + iva);
+    // Usar coalescencia nula para respetar valores 0 legítimos
+    const iva = proyecto.iva ?? (subtotalGeneral * 0.16);
+    const total = proyecto.total ?? (subtotalGeneral + iva);
 
     // Información de responsables
     const responsables = {
