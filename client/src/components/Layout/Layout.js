@@ -36,7 +36,8 @@ import {
   Inventory,
   WhatsApp,
   Security,
-  Home
+  Home,
+  Calculate
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -52,8 +53,20 @@ const drawerWidth = 240;
 const menuItems = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
   { text: 'Proyectos', icon: <Assignment />, path: '/proyectos', badge: 'PRINCIPAL' },
+  { text: 'Cotización Directa', icon: <Calculate />, path: '/cotizacion-directa', badge: 'RÁPIDO' },
   { text: 'Fabricación', icon: <Construction />, path: '/fabricacion' },
-  { text: 'Instalaciones', icon: <Home />, path: '/proyectos', badge: 'UNIFICADO' },
+  { 
+    text: 'Instalaciones', 
+    icon: <Home />, 
+    path: '/instalaciones', 
+    badge: 'SEPARADO',
+    submenu: [
+      { text: 'Lista de Instalaciones', path: '/instalaciones' },
+      { text: 'Programar Instalación', path: '/instalaciones/programar' },
+      { text: 'Calendario', path: '/instalaciones/calendario' },
+      { text: 'KPIs Instalaciones', path: '/instalaciones/kpis' }
+    ]
+  },
   { text: 'KPIs y Ventas', icon: <Assessment />, path: '/kpis' },
   { text: 'Catálogo Productos', icon: <Inventory />, path: '/productos' },
   { text: 'Plantillas WhatsApp', icon: <WhatsApp />, path: '/admin/plantillas-whatsapp' }

@@ -150,8 +150,8 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
               startIcon={<AddIcon />}
               sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } }}
               onClick={() => {
-                // Navegar a crear nueva cotización
-                window.open(`/cotizaciones/nueva?proyectoId=${proyecto._id}`, '_blank');
+                // Navegar a crear nueva cotización desde proyecto
+                window.open(`/cotizacion-directa?proyectoId=${proyecto._id}`, '_blank');
               }}
             >
               Nueva Cotización
@@ -160,17 +160,19 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
 
           {cotizaciones.length === 0 ? (
             <Alert severity="info">
-              No hay cotizaciones registradas para este proyecto.
+              <strong>💰 No hay cotizaciones para este proyecto</strong>
+              <br />
+              Usa el botón "Nueva Cotización" para generar una cotización basada en los datos del cliente de este proyecto.
               <br />
               <Button 
                 variant="text" 
                 sx={{ mt: 1 }}
                 onClick={() => {
                   // Crear cotización automática desde el proyecto
-                  console.log('Crear cotización automática');
+                  window.open(`/cotizacion-directa?proyectoId=${proyecto._id}`, '_blank');
                 }}
               >
-                Crear cotización automática desde levantamiento
+                🚀 Crear cotización ahora
               </Button>
             </Alert>
           ) : (

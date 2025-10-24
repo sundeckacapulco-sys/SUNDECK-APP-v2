@@ -2,15 +2,19 @@ const mongoose = require('mongoose');
 const ValidacionTecnicaService = require('../services/validacionTecnicaService');
 
 const instalacionSchema = new mongoose.Schema({
-  // Referencia al pedido y fabricación
+  // Referencias opcionales (para instalaciones desde fabricación)
   pedido: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Pedido',
-    required: true
+    ref: 'Pedido'
   },
   fabricacion: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Fabricacion',
+    ref: 'Fabricacion'
+  },
+  
+  // Referencia al proyecto (para instalaciones directas)
+  proyectoId: {
+    type: String,
     required: true
   },
   
@@ -33,14 +37,46 @@ const instalacionSchema = new mongoose.Schema({
     default: 'programada'
   },
   
+  // Configuración de la instalación
+  tipoInstalacion: {
+    type: String,
+    enum: ['estandar', 'electrica', 'estructural', 'altura_especial', 'acceso_dificil', 'personalizada'],
+    default: 'estandar'
+  },
+  prioridad: {
+    type: String,
+    enum: ['baja', 'media', 'alta', 'urgente'],
+    default: 'media'
+  },
+  tiempoEstimado: {
+    type: Number,
+    default: 4
+  },
+  
+  // Herramientas y materiales específicos
+  herramientasEspeciales: [String],
+  materialesAdicionales: String,
+  observaciones: String,
+  
+  // Configuración adicional
+  configuracion: {
+    notificarCliente: { type: Boolean, default: false },
+    confirmarFecha: { type: Boolean, default: false }
+  },
+  
+  // Metadatos
+  creadoPor: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: false },
+  fechaCreacion: { type: Date, default: Date.now },
+  
   // Equipo de instalación
   instaladores: [{
     usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
     rol: {
       type: String,
-      enum: ['jefe_cuadrilla', 'instalador', 'ayudante']
+      enum: ['responsable', 'instalador', 'ayudante'],
+      default: 'instalador'
     },
-    presente: { type: Boolean, default: true }
+    presente: { type: Boolean, default: false }
   }],
   
   // Información del sitio

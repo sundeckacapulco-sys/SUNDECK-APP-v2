@@ -274,6 +274,12 @@ const ProyectosList = () => {
         </Button>
       </Box>
 
+      {/* Alert informativo */}
+      <Alert severity="success" sx={{ mb: 3 }}>
+        <strong>🏗️ Gestión de Proyectos Unificada</strong><br />
+        Desde aquí gestionas proyectos existentes. Para cotizaciones de clientes nuevos (llamadas en frío), usa "Cotización Directa" del menú principal.
+      </Alert>
+
       {/* Barra de búsqueda y filtros */}
       <Card sx={{ mb: 3 }}>
         <CardContent>

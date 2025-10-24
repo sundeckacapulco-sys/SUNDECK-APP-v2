@@ -107,6 +107,7 @@ app.use('/api/pedidos', require('./routes/pedidos'));
 app.use('/api/pedidos/dashboard', require('./routes/dashboardPedidos'));
 app.use('/api/fabricacion', require('./routes/fabricacion'));
 app.use('/api/instalaciones', require('./routes/instalaciones'));
+app.use('/api/kpis-instalaciones', require('./routes/kpisInstalaciones'));
 app.use('/api/postventa', require('./routes/postventa'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/usuarios', require('./routes/usuarios'));

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -62,8 +62,12 @@ const CotizacionDirecta = () => {
   const [showCalculadoraMotores, setShowCalculadoraMotores] = useState(false);
   const [showCalcularYAgregar, setShowCalcularYAgregar] = useState(false);
   const [tipoDescuento, setTipoDescuento] = useState('porcentaje'); // 'porcentaje' o 'monto'
+  const [proyectoOrigen, setProyectoOrigen] = useState(null);
+  const [cargandoProyecto, setCargandoProyecto] = useState(false);
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const proyectoId = searchParams.get('proyectoId');
 
   const steps = ['Datos del Cliente', 'Productos y Medidas', 'Totales y Condiciones'];
 
@@ -122,6 +126,50 @@ const CotizacionDirecta = () => {
     control,
     name: 'productos'
   });
+
+  // Cargar datos del proyecto si viene desde un proyecto
+  useEffect(() => {
+    if (proyectoId) {
+      cargarProyecto();
+    }
+  }, [proyectoId]);
+
+  const cargarProyecto = async () => {
+    try {
+      setCargandoProyecto(true);
+      console.log('🔍 Cargando proyecto con ID:', proyectoId);
+      const response = await axiosConfig.get(`/proyectos/${proyectoId}`);
+      console.log('📋 Respuesta del proyecto:', response.data);
+      
+      const proyecto = response.data.proyecto || response.data;
+      setProyectoOrigen(proyecto);
+      
+      console.log('👤 Datos del cliente en proyecto:', proyecto.cliente);
+      
+      // Pre-llenar datos del cliente desde el proyecto
+      if (proyecto.cliente) {
+        setValue('cliente.nombre', proyecto.cliente.nombre || '');
+        setValue('cliente.telefono', proyecto.cliente.telefono || '');
+        setValue('cliente.email', proyecto.cliente.correo || proyecto.cliente.email || ''); // Usar 'correo' del modelo
+        setValue('cliente.direccion', proyecto.cliente.direccion || ''); // En el modelo es un string simple
+        
+        console.log('✅ Datos del cliente pre-llenados:', {
+          nombre: proyecto.cliente.nombre,
+          telefono: proyecto.cliente.telefono,
+          email: proyecto.cliente.correo || proyecto.cliente.email,
+          direccion: proyecto.cliente.direccion
+        });
+      } else {
+        console.log('⚠️ No se encontraron datos del cliente en el proyecto');
+      }
+    } catch (error) {
+      console.error('❌ Error cargando proyecto:', error);
+      console.error('Response:', error.response?.data);
+      setError(`Error cargando datos del proyecto: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setCargandoProyecto(false);
+    }
+  };
 
   const watchedProductos = watch('productos');
   const watchedDescuento = watch('descuento');
@@ -315,8 +363,8 @@ const CotizacionDirecta = () => {
 💰 Total: $${totales.total.toLocaleString()}
 📅 Válida hasta: ${new Date(data.validoHasta).toLocaleDateString('es-MX')}`);
       
-      // Redirigir al detalle del prospecto creado para seguimiento
-      setTimeout(() => navigate(`/prospectos/${prospecto._id}`), 4000);
+      // Redirigir a la lista de proyectos para ver el nuevo proyecto creado
+      setTimeout(() => navigate('/proyectos'), 4000);
 
     } catch (error) {
       console.error('Error creando cotización directa:', error);
@@ -1155,7 +1203,7 @@ const CotizacionDirecta = () => {
       }}>
         <Button
           startIcon={<ArrowBack />}
-          onClick={() => navigate('/cotizaciones')}
+          onClick={() => navigate('/proyectos')}
           sx={{ 
             mr: 2,
             color: 'white',
@@ -1166,10 +1214,10 @@ const CotizacionDirecta = () => {
         </Button>
         <Box>
           <Typography variant="h4" component="h1" sx={{ color: 'white', fontWeight: 'bold' }}>
-            Nueva Cotización Directa
+            {proyectoOrigen ? `Cotización para Proyecto: ${proyectoOrigen.cliente?.nombre}` : 'Nueva Cotización Directa'}
           </Typography>
           <Typography variant="subtitle1" sx={{ color: '#6c757d' }}>
-            Crear cotización y prospecto en un solo paso
+            {proyectoOrigen ? 'Generar cotización desde proyecto existente' : 'Crear cotización y prospecto en un solo paso'}
           </Typography>
         </Box>
       </Box>
@@ -1185,6 +1233,18 @@ const CotizacionDirecta = () => {
           {success && (
             <Alert severity="success" sx={{ mb: 2 }}>
               {success}
+            </Alert>
+          )}
+
+          {cargandoProyecto && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              🔄 Cargando datos del proyecto...
+            </Alert>
+          )}
+
+          {proyectoOrigen && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              ✅ Datos cargados del proyecto: <strong>{proyectoOrigen.cliente?.nombre}</strong>
             </Alert>
           )}
 

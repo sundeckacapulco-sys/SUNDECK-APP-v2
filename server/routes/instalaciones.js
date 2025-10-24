@@ -5,7 +5,34 @@ const Pedido = require('../models/Pedido');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const ValidacionTecnicaService = require('../services/validacionTecnicaService');
 
+// Función para generar número de instalación
+async function generarNumeroInstalacion() {
+  const año = new Date().getFullYear();
+  const mes = String(new Date().getMonth() + 1).padStart(2, '0');
+  
+  // Buscar el último número del mes
+  const ultimaInstalacion = await Instalacion.findOne({
+    numero: { $regex: `^INS-${año}-${mes}-` }
+  }).sort({ numero: -1 });
+  
+  let siguienteNumero = 1;
+  if (ultimaInstalacion) {
+    const numeroActual = parseInt(ultimaInstalacion.numero.split('-')[3]);
+    siguienteNumero = numeroActual + 1;
+  }
+  
+  return `INS-${año}-${mes}-${String(siguienteNumero).padStart(4, '0')}`;
+}
+
 const router = express.Router();
+
+// Endpoint de prueba (temporal)
+router.get('/test', (req, res) => {
+  res.json({ 
+    message: 'Endpoint de instalaciones funcionando correctamente',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Obtener instalaciones
 router.get('/', auth, verificarPermiso('instalaciones', 'leer'), async (req, res) => {
@@ -23,6 +50,94 @@ router.get('/', auth, verificarPermiso('instalaciones', 'leer'), async (req, res
     res.json(instalaciones);
   } catch (error) {
     res.status(500).json({ message: 'Error interno del servidor' });
+  }
+});
+
+// Programar nueva instalación directamente
+router.post('/', async (req, res) => {
+  try {
+    console.log('📅 Programando nueva instalación...');
+    console.log('📦 Payload recibido:', JSON.stringify(req.body, null, 2));
+    
+    const {
+      proyectoId,
+      fechaProgramada,
+      tipoInstalacion,
+      prioridad,
+      tiempoEstimado,
+      instaladores,
+      responsable,
+      herramientasEspeciales,
+      materialesAdicionales,
+      observaciones,
+      configuracion
+    } = req.body;
+
+    // Validar datos requeridos
+    if (!proyectoId || !fechaProgramada) {
+      return res.status(400).json({ 
+        message: 'Proyecto y fecha programada son requeridos' 
+      });
+    }
+
+    // Generar número de instalación
+    const numeroInstalacion = await generarNumeroInstalacion();
+
+    // Crear nueva instalación
+    const nuevaInstalacion = new Instalacion({
+      numero: numeroInstalacion,
+      proyectoId: proyectoId,
+      fechaProgramada: new Date(fechaProgramada),
+      estado: 'programada',
+      
+      // Configuración de la instalación
+      tipoInstalacion: tipoInstalacion || 'estandar',
+      prioridad: prioridad || 'media',
+      tiempoEstimado: tiempoEstimado || 4,
+      
+      // Equipo de instalación
+      instaladores: (instaladores || []).map(instaladorId => ({
+        usuario: instaladorId,
+        rol: instaladorId === responsable ? 'responsable' : 'instalador',
+        presente: false
+      })),
+      
+      // Herramientas y materiales
+      herramientasEspeciales: herramientasEspeciales || [],
+      materialesAdicionales: materialesAdicionales || '',
+      observaciones: observaciones || '',
+      
+      // Configuración adicional
+      configuracion: {
+        notificarCliente: configuracion?.notificarCliente || false,
+        confirmarFecha: configuracion?.confirmarFecha || false
+      },
+      
+      // Metadatos
+      creadoPor: req.user?.id || null,
+      fechaCreacion: new Date()
+    });
+
+    const instalacionGuardada = await nuevaInstalacion.save();
+    
+    // Poblar datos para respuesta
+    const instalacionCompleta = await Instalacion.findById(instalacionGuardada._id)
+      .populate('instaladores.usuario', 'nombre apellido')
+      .populate('creadoPor', 'nombre apellido');
+
+    console.log('✅ Instalación programada exitosamente:', instalacionCompleta.numero);
+
+    res.status(201).json({
+      message: 'Instalación programada exitosamente',
+      instalacion: instalacionCompleta
+    });
+
+  } catch (error) {
+    console.error('❌ Error programando instalación:', error);
+    res.status(500).json({ 
+      message: 'Error interno del servidor al programar instalación',
+      error: error.message 
+    });
   }
 });
 

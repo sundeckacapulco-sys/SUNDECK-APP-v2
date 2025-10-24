@@ -20,6 +20,9 @@ import InstalacionesList from './modules/instalaciones/InstalacionesList';
 import InstalacionDetail from './modules/instalaciones/InstalacionDetail';
 import ProgramarInstalacion from './modules/instalaciones/ProgramarInstalacion';
 import CalendarioInstalaciones from './modules/instalaciones/CalendarioInstalaciones';
+import KPIsInstalaciones from './modules/instalaciones/KPIsInstalaciones';
+// Componentes de cotización
+import CotizacionDirecta from './components/Cotizaciones/CotizacionDirecta';
 
 function App() {
   const { user, loading } = useAuth();
@@ -45,11 +48,16 @@ function App() {
           <Route path="/proyectos/:id" element={<ProyectoDetail />} />
           <Route path="/proyectos/:id/editar" element={<ProyectoForm />} />
           
+          {/* COTIZACIONES */}
+          <Route path="/cotizaciones/nueva" element={<CotizacionDirecta />} />
+          <Route path="/cotizacion-directa" element={<CotizacionDirecta />} />
+          
           {/* MÓDULO INSTALACIONES - Área específica */}
           <Route path="/instalaciones" element={<InstalacionesList />} />
           <Route path="/instalaciones/:id" element={<InstalacionDetail />} />
           <Route path="/instalaciones/programar" element={<ProgramarInstalacion />} />
           <Route path="/instalaciones/calendario" element={<CalendarioInstalaciones />} />
+          <Route path="/instalaciones/kpis" element={<KPIsInstalaciones />} />
           
           {/* Módulos auxiliares */}
           <Route path="/productos" element={<CatalogoProductos />} />
