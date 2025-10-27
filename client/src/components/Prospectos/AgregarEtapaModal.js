@@ -235,6 +235,13 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   // const etapaManager = useEtapaManager();
   
   // VOLVER AL SISTEMA ANTIGUO TEMPORALMENTE PARA IDENTIFICAR EL PROBLEMA
+  const piezasManager = usePiezasManager({
+    unidad,
+    todosLosProductos,
+    precioGeneral,
+    setErrorLocal
+  });
+
   const {
     piezas,
     piezaForm,
@@ -250,12 +257,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     handleEliminarPieza,
     handleEditarPieza,
     handleCancelarEdicion
-  } = usePiezasManager({
-    unidad,
-    todosLosProductos,
-    precioGeneral,
-    setErrorLocal
-  });
+  } = piezasManager;
   
   // Funciones placeholder para compatibilidad
   const configurarFlujo = () => {};
