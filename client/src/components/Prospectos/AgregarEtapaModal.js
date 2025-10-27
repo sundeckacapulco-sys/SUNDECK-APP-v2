@@ -125,11 +125,34 @@ const AgregarEtapaModal = ({
   
   // Estado para persona que realizó visita (global para levantamiento)
   const [personaVisita, setPersonaVisita] = useState('');
-  
+
   // Estados para fecha y hora
   const [fechaEtapa, setFechaEtapa] = useState('');
   const [horaEtapa, setHoraEtapa] = useState('');
-  
+
+  const todosLosProductos = useMemo(() => {
+    const productosEstaticos = [...productosOptions];
+
+    // Remover la opción de producto personalizado temporalmente
+    const sinPersonalizado = productosEstaticos.filter(p => p.value !== 'nuevo');
+
+    // Combinar todos los tipos de productos
+    return [
+      ...sinPersonalizado,
+      ...productosFromAPI,
+      ...productosPersonalizados,
+      { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
+    ];
+  }, [productosFromAPI, productosPersonalizados]);
+
+  // Gestor de piezas reutilizable
+  const piezasManager = usePiezasManager({
+    unidad,
+    todosLosProductos,
+    precioGeneral,
+    setErrorLocal,
+  });
+
   // Estado para captura de pantalla e inspector
   const [capturaModalOpen, setCapturaModalOpen] = useState(false);
   const [inspectorModalOpen, setInspectorModalOpen] = useState(false);
@@ -267,21 +290,6 @@ const AgregarEtapaModal = ({
   };
 
   // Combinar productos estáticos con productos de la API y personalizados
-  const todosLosProductos = useMemo(() => {
-    const productosEstaticos = [...productosOptions];
-
-    // Remover la opción de producto personalizado temporalmente
-    const sinPersonalizado = productosEstaticos.filter(p => p.value !== 'nuevo');
-
-    // Combinar todos los tipos de productos
-    return [
-      ...sinPersonalizado,
-      ...productosFromAPI,
-      ...productosPersonalizados,
-      { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
-    ];
-  }, [productosFromAPI, productosPersonalizados]);
-
   // TEMPORALMENTE DESACTIVADO: Hook unificado para debug
   // const etapaManager = useEtapaManager();
   

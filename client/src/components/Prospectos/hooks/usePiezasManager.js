@@ -1,7 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import { createEmptyPieza } from '../AgregarEtapaModal.constants';
 
-const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLocal }) => {
+const usePiezasManager = (params = {}) => {
+  const {
+    unidad = 'm',
+    todosLosProductos = [],
+    precioGeneral = 0,
+    setErrorLocal = () => {}
+  } = params;
   const [piezas, setPiezas] = useState([]);
   const [agregandoPieza, setAgregandoPieza] = useState(false);
   const [piezaForm, setPiezaForm] = useState(() => createEmptyPieza());
@@ -231,10 +237,6 @@ const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLo
     setPiezaForm(createEmptyPieza());
   }, []);
 
-  const reemplazarPiezas = useCallback((nuevasPiezas) => {
-    setPiezas(nuevasPiezas);
-  }, []);
-
   const estadoPiezas = useMemo(() => ({
     piezas,
     piezaForm,
@@ -258,8 +260,7 @@ const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLo
     handleAgregarPieza,
     handleEliminarPieza,
     handleEditarPieza,
-    handleCancelarEdicion,
-    reemplazarPiezas
+    handleCancelarEdicion
   };
 };
 
