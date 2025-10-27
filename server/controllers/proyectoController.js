@@ -4,7 +4,7 @@ const Cotizacion = require('../models/Cotizacion');
 const mongoose = require('mongoose');
 
 // Crear nuevo proyecto
-exports.crearProyecto = async (req, res) => {
+const crearProyecto = async (req, res) => {
   try {
     const {
       cliente,
@@ -74,7 +74,7 @@ exports.crearProyecto = async (req, res) => {
 };
 
 // Obtener todos los proyectos con filtros y paginación
-exports.obtenerProyectos = async (req, res) => {
+const obtenerProyectos = async (req, res) => {
   try {
     const {
       page = 1,
@@ -176,7 +176,7 @@ exports.obtenerProyectos = async (req, res) => {
 };
 
 // Obtener proyecto por ID
-exports.obtenerProyectoPorId = async (req, res) => {
+const obtenerProyectoPorId = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -223,7 +223,7 @@ exports.obtenerProyectoPorId = async (req, res) => {
 };
 
 // Actualizar proyecto
-exports.actualizarProyecto = async (req, res) => {
+const actualizarProyecto = async (req, res) => {
   try {
     const { id } = req.params;
     const actualizaciones = req.body;
@@ -282,7 +282,7 @@ exports.actualizarProyecto = async (req, res) => {
 };
 
 // Cambiar estado del proyecto
-exports.cambiarEstado = async (req, res) => {
+const cambiarEstado = async (req, res) => {
   try {
     const { id } = req.params;
     const { nuevo_estado, observaciones } = req.body;
@@ -349,7 +349,7 @@ exports.cambiarEstado = async (req, res) => {
 };
 
 // Eliminar proyecto (soft delete)
-exports.eliminarProyecto = async (req, res) => {
+const eliminarProyecto = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -393,7 +393,7 @@ exports.eliminarProyecto = async (req, res) => {
 };
 
 // Crear proyecto desde prospecto existente
-exports.crearDesdeProspecto = async (req, res) => {
+const crearDesdeProspecto = async (req, res) => {
   try {
     const { prospectoId } = req.params;
     const { tipo_fuente = 'formal' } = req.body;
@@ -450,7 +450,7 @@ exports.crearDesdeProspecto = async (req, res) => {
 };
 
 // Obtener datos para exportación
-exports.obtenerDatosExportacion = async (req, res) => {
+const obtenerDatosExportacion = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -538,7 +538,7 @@ async function ejecutarTriggersEstado(proyecto, estadoAnterior, nuevoEstado, usu
 }
 
 // Sincronizar proyecto manualmente
-exports.sincronizarProyecto = async (req, res) => {
+const sincronizarProyecto = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -573,7 +573,7 @@ exports.sincronizarProyecto = async (req, res) => {
 };
 
 // Obtener estadísticas del proyecto
-exports.obtenerEstadisticasProyecto = async (req, res) => {
+const obtenerEstadisticasProyecto = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -690,14 +690,14 @@ exports.obtenerEstadisticasProyecto = async (req, res) => {
 };
 
 module.exports = {
-  crearProyecto: exports.crearProyecto,
-  obtenerProyectos: exports.obtenerProyectos,
-  obtenerProyectoPorId: exports.obtenerProyectoPorId,
-  actualizarProyecto: exports.actualizarProyecto,
-  cambiarEstado: exports.cambiarEstado,
-  eliminarProyecto: exports.eliminarProyecto,
-  crearDesdeProspecto: exports.crearDesdeProspecto,
-  obtenerDatosExportacion: exports.obtenerDatosExportacion,
-  sincronizarProyecto: exports.sincronizarProyecto,
-  obtenerEstadisticasProyecto: exports.obtenerEstadisticasProyecto
+  crearProyecto,
+  obtenerProyectos,
+  obtenerProyectoPorId,
+  actualizarProyecto,
+  cambiarEstado,
+  eliminarProyecto,
+  crearDesdeProspecto,
+  obtenerDatosExportacion,
+  sincronizarProyecto,
+  obtenerEstadisticasProyecto
 };
