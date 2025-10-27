@@ -214,7 +214,7 @@ const AgregarEtapaModal = ({
           console.log('📦 Importando partidas del levantamiento:', levantamientoConPartidas.piezas);
           
           // Importar las partidas al piezasManager
-          piezasManager.setPiezas(levantamientoConPartidas.piezas);
+          piezasManager.reemplazarPiezas(levantamientoConPartidas.piezas);
           
           // Establecer tipo de visita como cotización
           setTipoVisitaInicial('cotizacion');
@@ -238,7 +238,7 @@ const AgregarEtapaModal = ({
         }
       }
     }
-  }, [open, modoProyecto, datosProyecto]);
+  }, [open, modoProyecto, datosProyecto, piezasManager]);
 
   // Función para cargar productos desde la API
   const cargarProductosDesdeAPI = async () => {
@@ -286,6 +286,15 @@ const AgregarEtapaModal = ({
   // const etapaManager = useEtapaManager();
   
   // VOLVER AL SISTEMA ANTIGUO TEMPORALMENTE PARA IDENTIFICAR EL PROBLEMA
+  // Instanciar el hook primero para mantener referencia concreta
+  const piezasManager = usePiezasManager({
+    unidad,
+    todosLosProductos,
+    precioGeneral,
+    setErrorLocal
+  });
+  
+  // Desestructurar después de la instanciación
   const {
     piezas,
     piezaForm,
@@ -301,12 +310,7 @@ const AgregarEtapaModal = ({
     handleEliminarPieza,
     handleEditarPieza,
     handleCancelarEdicion
-  } = usePiezasManager({
-    unidad,
-    todosLosProductos,
-    precioGeneral,
-    setErrorLocal
-  });
+  } = piezasManager;
   
   // Funciones placeholder para compatibilidad
   const configurarFlujo = () => {};

@@ -71,14 +71,14 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
         
         // Cargar partidas si existen
         if (medidaEditando.piezas && medidaEditando.piezas.length > 0) {
-          piezasManager.setPiezas(medidaEditando.piezas);
+          piezasManager.reemplazarPiezas(medidaEditando.piezas);
         }
       } else {
         // Limpiar formulario
         resetFormulario();
       }
     }
-  }, [open, medidaEditando]);
+  }, [open, medidaEditando, piezasManager]);
 
   const resetFormulario = () => {
     setPersonaVisita('');

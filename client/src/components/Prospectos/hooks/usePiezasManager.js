@@ -231,7 +231,7 @@ const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLo
     setPiezaForm(createEmptyPieza());
   }, []);
 
-  const setPiezas = useCallback((nuevasPiezas) => {
+  const reemplazarPiezas = useCallback((nuevasPiezas) => {
     setPiezas(nuevasPiezas);
   }, []);
 
@@ -247,7 +247,7 @@ const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLo
     ...estadoPiezas,
     setAgregandoPieza,
     setPiezaForm,
-    setPiezas,
+    reemplazarPiezas,
     resetPiezas,
     sincronizarColores,
     actualizarMedidas,
