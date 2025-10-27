@@ -57,7 +57,16 @@ import {
 import usePiezasManager from './hooks/usePiezasManager';
 import { esProductoMotorizable, esProductoToldo } from './utils/piezaUtils';
 
-const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => {
+const AgregarEtapaModal = ({ 
+  open, 
+  onClose, 
+  prospectoId, 
+  prospecto, 
+  onSaved, 
+  onError, 
+  modoProyecto = false, 
+  datosProyecto = null 
+}) => {
   const [nombreEtapa, setNombreEtapa] = useState(etapaOptions[0]);
   const [unidad, setUnidad] = useState('m');
   const [comentarios, setComentarios] = useState('');
@@ -125,6 +134,11 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   const [capturaModalOpen, setCapturaModalOpen] = useState(false);
   const [inspectorModalOpen, setInspectorModalOpen] = useState(false);
 
+  // Obtener el ID del prospecto (de la nueva prop prospecto o la antigua prospectoId)
+  const getProspectoId = () => {
+    return prospecto?._id || prospectoId;
+  };
+
   // Store central de cotización (legacy - se eliminará)
   const comercialStore = useCotizacionStore((state) => state.comercial);
   const setProductosStore = useCotizacionStore((state) => state.setProductos);
@@ -186,8 +200,45 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       establecerFechaHoraActual();
       // Cargar productos desde la API cuando se abre el modal
       cargarProductosDesdeAPI();
+      
+      // Si estamos en modo proyecto y hay datos, importar partidas
+      if (modoProyecto && datosProyecto && datosProyecto.medidas && datosProyecto.medidas.length > 0) {
+        console.log('🔄 Importando datos del proyecto:', datosProyecto);
+        
+        // Buscar el primer levantamiento con partidas
+        const levantamientoConPartidas = datosProyecto.medidas.find(medida => 
+          medida.piezas && medida.piezas.length > 0
+        );
+        
+        if (levantamientoConPartidas) {
+          console.log('📦 Importando partidas del levantamiento:', levantamientoConPartidas.piezas);
+          
+          // Importar las partidas al piezasManager
+          piezasManager.setPiezas(levantamientoConPartidas.piezas);
+          
+          // Establecer tipo de visita como cotización
+          setTipoVisitaInicial('cotizacion');
+          
+          // Importar información técnica si existe
+          if (levantamientoConPartidas.personaVisita) {
+            setPersonaVisita(levantamientoConPartidas.personaVisita);
+          }
+          if (levantamientoConPartidas.fechaCompromiso) {
+            setFechaEtapa(levantamientoConPartidas.fechaCompromiso);
+          }
+          if (levantamientoConPartidas.codigoReferencia) {
+            // Podríamos agregar un campo para esto si es necesario
+          }
+          if (levantamientoConPartidas.quienRecibe) {
+            // Podríamos agregar un campo para esto si es necesario
+          }
+          if (levantamientoConPartidas.observacionesGenerales) {
+            setComentarios(levantamientoConPartidas.observacionesGenerales);
+          }
+        }
+      }
     }
-  }, [open]);
+  }, [open, modoProyecto, datosProyecto]);
 
   // Función para cargar productos desde la API
   const cargarProductosDesdeAPI = async () => {
@@ -277,7 +328,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       // Inicializar configuración
       if (updateConfiguracion) {
         updateConfiguracion({
-          prospectoId,
+          prospectoId: getProspectoId(),
           nombreEtapa: etapaOptions[0],
           unidadMedida: unidad,
           precioGeneral,
@@ -973,7 +1024,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       const formData = new FormData();
       formData.append('foto', file);
       formData.append('tipo', 'pieza');
-      formData.append('prospectoId', prospectoId);
+      formData.append('prospectoId', getProspectoId());
 
       const { data } = await axiosConfig.post('/storage/upload', formData, {
         headers: {
@@ -998,7 +1049,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   };
 
   const handleDescargarLevantamiento = async () => {
-    if (!prospectoId) {
+    if (!getProspectoId()) {
       setErrorLocal('No se encontró el identificador del prospecto.');
       return;
     }
@@ -1017,7 +1068,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
       );
 
       const payload = {
-        prospectoId,
+        prospectoId: getProspectoId(),
         piezas: piezasNormalizadas,
         ...resumenEconomico,
         facturacion: infoFacturacion,
@@ -1144,7 +1195,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   
   // Función para proceder con descarga de Excel después de confirmación
   const handleDescargarExcel = async () => {
-    if (!prospectoId) {
+    if (!getProspectoId()) {
       setErrorLocal('No se encontró el identificador del prospecto.');
       return;
     }
@@ -1165,7 +1216,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
 
       // Incluir TODA la información del modal
       const payload = {
-        prospectoId,
+        prospectoId: getProspectoId(),
         piezas: piezasNormalizadas,
         ...resumenEconomico,
         facturacion: infoFacturacion,
@@ -1438,7 +1489,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
     setErrorLocal('');
     setGenerandoCotizacion(true);
     try {
-      if (!prospectoId) {
+      if (!getProspectoId()) {
         throw new Error('No se ha proporcionado un ID de prospecto.');
       }
 
@@ -1476,7 +1527,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         : { activa: false };
 
       const payload = {
-        prospectoId,
+        prospectoId: getProspectoId(),
         piezas: piezasNormalizadas,
         precioGeneral: precioGeneralNormalizado,
         totalM2,
@@ -1511,7 +1562,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
   };
 
   const handleGuardarEtapa = async () => {
-    if (!prospectoId) {
+    if (!getProspectoId()) {
       setErrorLocal('No se encontró el identificador del prospecto.');
       return;
     }
@@ -1571,7 +1622,7 @@ const AgregarEtapaModal = ({ open, onClose, prospectoId, onSaved, onError }) => 
         : { activa: false };
 
       let payload = {
-        prospectoId,
+        prospectoId: getProspectoId(),
         nombreEtapa,
         comentarios,
         unidadMedida: resumenEconomico.unidadMedida,
@@ -1626,7 +1677,7 @@ const handleAgregarPedido = async () => {
     );
 
     const cotizacionPayload = {
-      prospectoId,
+      prospectoId: getProspectoId(),
       piezas: piezasNormalizadas,
       ...resumenEconomico,
       comentarios,
@@ -1712,7 +1763,7 @@ const handleAgregarPedido = async () => {
     }
 
     console.log('📋 Datos disponibles:', {
-      prospectoId,
+      prospectoId: getProspectoId(),
       piezasCount: piezas.length,
       precioGeneral,
       totalM2: calcularTotalM2
@@ -1747,7 +1798,7 @@ const handleAgregarPedido = async () => {
 
       // Solo agregar los datos necesarios para el PDF (no guardar la etapa)
       const pdfData = {
-        prospectoId,
+        prospectoId: getProspectoId(),
         piezas: piezasNormalizadas,
         ...resumenEconomico,
         facturacion: infoFacturacion,

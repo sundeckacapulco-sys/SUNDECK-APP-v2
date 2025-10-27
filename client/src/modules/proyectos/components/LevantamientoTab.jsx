@@ -28,13 +28,19 @@ import {
   Edit as EditIcon,
   Photo as PhotoIcon,
   Straighten as StraightenIcon,
-  Build as BuildIcon
+  Build as BuildIcon,
+  MonetizationOn as MonetizationOnIcon,
+  Calculate as CalculateIcon
 } from '@mui/icons-material';
 import AgregarMedidaProyectoModal from './AgregarMedidaProyectoModal';
+import AgregarMedidaPartidasModal from './AgregarMedidaPartidasModal';
+import AgregarEtapaModal from '../../../components/Prospectos/AgregarEtapaModal';
 
 const LevantamientoTab = ({ proyecto, onActualizar }) => {
   const [dialogoMedida, setDialogoMedida] = useState(false);
   const [medidaEditando, setMedidaEditando] = useState(null);
+  const [dialogoCotizacion, setDialogoCotizacion] = useState(false);
+  const [dialogoPartidas, setDialogoPartidas] = useState(false);
 
   // Funciones para manejar el modal
   const abrirDialogoMedida = (medida = null) => {
@@ -44,6 +50,26 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
 
   const cerrarDialogoMedida = () => {
     setDialogoMedida(false);
+    setMedidaEditando(null);
+  };
+
+  // Función para abrir cotización en vivo
+  const abrirCotizacionEnVivo = () => {
+    setDialogoCotizacion(true);
+  };
+
+  const cerrarCotizacionEnVivo = () => {
+    setDialogoCotizacion(false);
+  };
+
+  // Funciones para el modal de partidas
+  const abrirDialogoPartidas = (medida = null) => {
+    setMedidaEditando(medida);
+    setDialogoPartidas(true);
+  };
+
+  const cerrarDialogoPartidas = () => {
+    setDialogoPartidas(false);
     setMedidaEditando(null);
   };
 
@@ -165,14 +191,46 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
             <Typography variant="h6">
               📏 Medidas del Levantamiento
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => abrirDialogoMedida()}
-              sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } }}
-            >
-              Agregar Medida
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {/* Botón de Cotización en Vivo */}
+              <Button
+                variant="contained"
+                startIcon={<MonetizationOnIcon />}
+                onClick={abrirCotizacionEnVivo}
+                sx={{
+                  bgcolor: '#4caf50',
+                  '&:hover': { bgcolor: '#45a049' },
+                  fontWeight: 'bold'
+                }}
+                disabled={!proyecto.medidas || proyecto.medidas.length === 0}
+              >
+                Cotización en Vivo
+              </Button>
+              
+              {/* Botón de Agregar Partidas */}
+              <Button
+                variant="contained"
+                startIcon={<StraightenIcon />}
+                onClick={() => abrirDialogoPartidas()}
+                sx={{
+                  bgcolor: '#2196f3',
+                  '&:hover': { bgcolor: '#1976d2' },
+                  fontWeight: 'bold'
+                }}
+              >
+                Agregar Partidas
+              </Button>
+              
+              {/* Botón de Agregar Medida (antiguo) */}
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => abrirDialogoMedida()}
+                sx={{ borderColor: '#D4AF37', color: '#D4AF37' }}
+              >
+                Medida Simple
+              </Button>
+            </Box>
           </Box>
 
           {!proyecto.medidas || proyecto.medidas.length === 0 ? (
@@ -411,6 +469,35 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
         proyecto={proyecto}
         onActualizar={onActualizar}
         medidaEditando={medidaEditando}
+      />
+
+      {/* Modal para agregar/editar partidas */}
+      <AgregarMedidaPartidasModal
+        open={dialogoPartidas}
+        onClose={cerrarDialogoPartidas}
+        proyecto={proyecto}
+        onActualizar={onActualizar}
+        medidaEditando={medidaEditando}
+      />
+
+      {/* Modal para Cotización en Vivo */}
+      <AgregarEtapaModal
+        open={dialogoCotizacion}
+        onClose={cerrarCotizacionEnVivo}
+        prospecto={{
+          _id: proyecto._id,
+          nombre: proyecto.cliente?.nombre || proyecto.nombre,
+          telefono: proyecto.cliente?.telefono || '',
+          email: proyecto.cliente?.email || '',
+          direccion: proyecto.cliente?.direccion || '',
+          etapa: 'cotizacion'
+        }}
+        onSaved={(mensaje) => {
+          console.log('Cotización guardada:', mensaje);
+          onActualizar();
+        }}
+        modoProyecto={true}
+        datosProyecto={proyecto}
       />
     </Box>
   );
