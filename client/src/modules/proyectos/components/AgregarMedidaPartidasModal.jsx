@@ -90,16 +90,6 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
     setErrorLocal('');
   };
 
-  const calcularAreaPieza = (pieza) => {
-    if (!pieza.medidas || pieza.medidas.length === 0) return 0;
-    
-    return pieza.medidas.reduce((total, medida) => {
-      const ancho = parseFloat(medida.ancho) || 0;
-      const alto = parseFloat(medida.alto) || 0;
-      return total + (ancho * alto);
-    }, 0);
-  };
-
   const handleGuardar = async () => {
     try {
       setGuardando(true);
@@ -177,7 +167,7 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
 
   const calcularAreaPieza = (pieza) => {
     if (!pieza.medidas || pieza.medidas.length === 0) return 0;
-    
+
     return pieza.medidas.reduce((total, medida) => {
       const ancho = parseFloat(medida.ancho) || 0;
       const alto = parseFloat(medida.alto) || 0;
@@ -547,21 +537,5 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
     </Dialog>
   );
 };
-
-export default AgregarMedidaPartidasModal;
-
-import AgregarMedidaProyectoModal from './AgregarMedidaProyectoModal';
-
-/**
- * Este modal es un alias del modal de proyecto para mantener compatibilidad con
- * rutas y componentes existentes que aún esperan la antigua versión enfocada en
- * partidas. Al reutilizar la misma implementación evitamos duplicar lógica y
- * garantizamos que las validaciones, cálculos y mejoras recientes aplican por
- * igual sin provocar conflictos de nombres como el de `calcularAreaPieza` que
- * surgía en la implementación previa.
- */
-const AgregarMedidaPartidasModal = (props) => (
-  <AgregarMedidaProyectoModal {...props} />
-);
 
 export default AgregarMedidaPartidasModal;

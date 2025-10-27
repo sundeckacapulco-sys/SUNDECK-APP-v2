@@ -125,11 +125,51 @@ const AgregarEtapaModal = ({
   
   // Estado para persona que realizó visita (global para levantamiento)
   const [personaVisita, setPersonaVisita] = useState('');
-  
+
   // Estados para fecha y hora
   const [fechaEtapa, setFechaEtapa] = useState('');
   const [horaEtapa, setHoraEtapa] = useState('');
-  
+
+  const catalogoProductos = useMemo(() => {
+    const productosEstaticos = [...productosOptions];
+
+    // Remover la opción de producto personalizado temporalmente
+    const sinPersonalizado = productosEstaticos.filter(p => p.value !== 'nuevo');
+
+    // Combinar todos los tipos de productos
+    return [
+      ...sinPersonalizado,
+      ...productosFromAPI,
+      ...productosPersonalizados,
+      { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
+    ];
+  }, [productosFromAPI, productosPersonalizados]);
+
+  const todosLosProductos = useMemo(() => {
+    if (catalogoProductos.length > 0) {
+      return catalogoProductos;
+    }
+
+    // Garantizar que siempre exista una opción neutral y la opción para crear productos personalizados
+    return [
+      { label: 'Selecciona un producto', value: '' },
+      { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
+    ];
+  }, [catalogoProductos]);
+
+  const primerProductoDisponible = useMemo(
+    () => todosLosProductos.find(producto => producto.value && producto.value !== 'nuevo') || todosLosProductos[0],
+    [todosLosProductos]
+  );
+
+  // Gestor de piezas reutilizable
+  const piezasManager = usePiezasManager({
+    unidad,
+    todosLosProductos,
+    precioGeneral,
+    setErrorLocal,
+  });
+
   // Estado para captura de pantalla e inspector
   const [capturaModalOpen, setCapturaModalOpen] = useState(false);
   const [inspectorModalOpen, setInspectorModalOpen] = useState(false);
@@ -267,21 +307,6 @@ const AgregarEtapaModal = ({
   };
 
   // Combinar productos estáticos con productos de la API y personalizados
-  const todosLosProductos = useMemo(() => {
-    const productosEstaticos = [...productosOptions];
-
-    // Remover la opción de producto personalizado temporalmente
-    const sinPersonalizado = productosEstaticos.filter(p => p.value !== 'nuevo');
-
-    // Combinar todos los tipos de productos
-    return [
-      ...sinPersonalizado,
-      ...productosFromAPI,
-      ...productosPersonalizados,
-      { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
-    ];
-  }, [productosFromAPI, productosPersonalizados]);
-
   // TEMPORALMENTE DESACTIVADO: Hook unificado para debug
   // const etapaManager = useEtapaManager();
   
@@ -3347,10 +3372,10 @@ const handleAgregarPedido = async () => {
                           setNuevoProductoNombre('');
                           setErrorLocal('');
                           // Resetear el selector de producto al primer valor
-                          setPiezaForm(prev => ({ 
-                            ...prev, 
-                            producto: todosLosProductos[0].value,
-                            productoLabel: todosLosProductos[0].label
+                          setPiezaForm(prev => ({
+                            ...prev,
+                            producto: primerProductoDisponible?.value || '',
+                            productoLabel: primerProductoDisponible?.label || ''
                           }));
                         }}
                       >
