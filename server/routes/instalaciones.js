@@ -54,10 +54,16 @@ router.get('/', auth, verificarPermiso('instalaciones', 'leer'), async (req, res
 });
 
 // Programar nueva instalación directamente
-router.post('/', async (req, res) => {
+router.post('/', auth, verificarPermiso('instalaciones', 'crear'), async (req, res) => {
   try {
     console.log('📅 Programando nueva instalación...');
     console.log('📦 Payload recibido:', JSON.stringify(req.body, null, 2));
+
+    if (!req.user) {
+      return res.status(401).json({
+        message: 'Usuario no autenticado'
+      });
+    }
     
     const {
       proyectoId,
@@ -112,9 +118,9 @@ router.post('/', async (req, res) => {
         notificarCliente: configuracion?.notificarCliente || false,
         confirmarFecha: configuracion?.confirmarFecha || false
       },
-      
+
       // Metadatos
-      creadoPor: req.user?.id || null,
+      creadoPor: req.user.id,
       fechaCreacion: new Date()
     });
 
