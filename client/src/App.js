@@ -23,6 +23,7 @@ import CalendarioInstalaciones from './modules/instalaciones/CalendarioInstalaci
 import KPIsInstalaciones from './modules/instalaciones/KPIsInstalaciones';
 // Componentes de cotización
 import CotizacionDirecta from './components/Cotizaciones/CotizacionDirecta';
+import CotizacionForm from './components/Cotizaciones/CotizacionForm';
 
 function App() {
   const { user, loading } = useAuth();
@@ -49,7 +50,7 @@ function App() {
           <Route path="/proyectos/:id/editar" element={<ProyectoForm />} />
           
           {/* COTIZACIONES */}
-          <Route path="/cotizaciones/nueva" element={<CotizacionDirecta />} />
+          <Route path="/cotizaciones/nueva" element={<CotizacionForm />} />
           <Route path="/cotizacion-directa" element={<CotizacionDirecta />} />
           
           {/* MÓDULO INSTALACIONES - Área específica */}
