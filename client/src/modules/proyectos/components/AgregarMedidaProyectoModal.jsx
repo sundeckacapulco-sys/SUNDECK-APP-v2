@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -64,15 +64,46 @@ import {
 } from '../../../components/Prospectos/AgregarEtapaModal.constants';
 import { esProductoMotorizable, esProductoToldo } from '../../../components/Prospectos/utils/piezaUtils';
 import { useModalEtapasSharedLogic } from '../../../hooks/useModalEtapasSharedLogic';
-import axiosConfig from '../../../config/axios';
+
+const TIPO_FUENTE_CONFIG = {
+  simple: {
+    titulo: '📋 Levantamiento Simple',
+    descripcion: 'Captura de medidas, fotos y notas técnicas sin cálculos de precio.',
+    chip: 'Levantamiento Simple',
+    chipColor: 'primary'
+  },
+  en_vivo: {
+    titulo: '💰 Cotización en Vivo',
+    descripcion: 'Registro completo con precios, instalación y totales calculados durante la visita.',
+    chip: 'Cotización en Vivo',
+    chipColor: 'success'
+  },
+  formal: {
+    titulo: '📄 Cotización Formal',
+    descripcion: 'Escenario enfocado a documentación formal y seguimiento comercial.',
+    chip: 'Cotización Formal',
+    chipColor: 'info'
+  },
+  directo: {
+    titulo: '⚡ Cotización Directa',
+    descripcion: 'Ingreso rápido de partidas sin levantamiento previo.',
+    chip: 'Cotización Directa',
+    chipColor: 'warning'
+  }
+};
 
 const AgregarMedidaProyectoModal = ({ open, onClose, proyecto, onActualizar, medidaEditando = null }) => {
-  // Usar el hook compartido configurado para proyectos (sin cotización ni precios)
+  const tipoFuente = proyecto?.tipo_fuente || 'simple';
+  const tipoFuenteInfo = TIPO_FUENTE_CONFIG[tipoFuente] || TIPO_FUENTE_CONFIG.simple;
+  const esCotizacionEnVivo = tipoFuente === 'en_vivo';
+  const estadoProyecto = proyecto?.estado ? proyecto.estado.toUpperCase() : 'SIN ESTADO';
+
+  // Usar el hook compartido configurado según el tipo de fuente del proyecto
   const modalLogic = useModalEtapasSharedLogic({
     modo: 'proyecto',
     entidadId: proyecto?._id,
-    incluirCotizacion: false,
-    incluirPrecios: false,
+    incluirCotizacion: esCotizacionEnVivo,
+    incluirPrecios: esCotizacionEnVivo,
     onSaved: (mensaje) => {
       console.log('✅ Medidas guardadas:', mensaje);
       if (onActualizar) {
@@ -109,13 +140,40 @@ const AgregarMedidaProyectoModal = ({ open, onClose, proyecto, onActualizar, med
         modalLogic.setMostrarFormularioPieza(true);
         modalLogic.setPiezaEditandoIndex(0);
         modalLogic.setNuevaPieza(medidaEditando);
+
+        if (esCotizacionEnVivo) {
+          if (medidaEditando.precio) {
+            modalLogic.setPrecioGeneral(Number(medidaEditando.precio));
+          }
+
+          if (medidaEditando.precioInstalacion) {
+            modalLogic.setCobraInstalacion(true);
+            modalLogic.setPrecioInstalacion(medidaEditando.precioInstalacion);
+            modalLogic.setPrecioInstalacionPorPieza(medidaEditando.precioInstalacion);
+          } else {
+            modalLogic.setCobraInstalacion(false);
+            modalLogic.setPrecioInstalacion('');
+            modalLogic.setPrecioInstalacionPorPieza('');
+          }
+        } else {
+          modalLogic.setCobraInstalacion(false);
+          modalLogic.setPrecioInstalacion('');
+          modalLogic.setPrecioInstalacionPorPieza('');
+        }
       } else {
         // Si estamos agregando nuevas medidas
         modalLogic.limpiarFormulario();
+        modalLogic.setCobraInstalacion(false);
+        modalLogic.setPrecioInstalacion('');
+        modalLogic.setPrecioInstalacionPorPieza('');
+
+        if (esCotizacionEnVivo) {
+          modalLogic.setPrecioGeneral(750);
+        }
       }
       setPasoActual(0);
     }
-  }, [open, medidaEditando]);
+  }, [open, medidaEditando, esCotizacionEnVivo]);
 
   // Funciones específicas del modal
   const pasos = [
@@ -155,6 +213,12 @@ const AgregarMedidaProyectoModal = ({ open, onClose, proyecto, onActualizar, med
 
   const cerrarModal = () => {
     modalLogic.limpiarFormulario();
+    modalLogic.setCobraInstalacion(false);
+    modalLogic.setPrecioInstalacion('');
+    modalLogic.setPrecioInstalacionPorPieza('');
+    if (esCotizacionEnVivo) {
+      modalLogic.setPrecioGeneral(750);
+    }
     setPasoActual(0);
     setMostrarCaptura(false);
     onClose();
@@ -176,7 +240,12 @@ const AgregarMedidaProyectoModal = ({ open, onClose, proyecto, onActualizar, med
             📏 {medidaEditando ? 'Editar Medida' : 'Agregar Medidas al Proyecto'}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Chip 
+            <Chip
+              label={tipoFuenteInfo.chip}
+              color={tipoFuenteInfo.chipColor}
+              size="small"
+            />
+            <Chip
               label={`${modalLogic.piezas.length} medida${modalLogic.piezas.length !== 1 ? 's' : ''}`}
               color="primary"
               size="small"
@@ -201,6 +270,43 @@ const AgregarMedidaProyectoModal = ({ open, onClose, proyecto, onActualizar, med
               {modalLogic.errorLocal}
             </Alert>
           )}
+
+          {/* Información del flujo del proyecto */}
+          <Card sx={{ mb: 3, border: '1px solid', borderColor: esCotizacionEnVivo ? 'success.light' : 'primary.light', bgcolor: esCotizacionEnVivo ? 'rgba(56, 142, 60, 0.08)' : 'rgba(25, 118, 210, 0.08)' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    {tipoFuenteInfo.titulo}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 480 }}>
+                    {tipoFuenteInfo.descripcion}
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Estado actual
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                    {estadoProyecto}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {`Fuente: ${tipoFuenteInfo.chip}`}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {esCotizacionEnVivo ? (
+                <Alert severity="success" sx={{ mt: 2 }}>
+                  Esta etapa requiere capturar precios y costos de instalación. Los totales se calcularán automáticamente con base en las medidas.
+                </Alert>
+              ) : (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  Esta etapa está enfocada en levantar medidas y observaciones técnicas detalladas. Los precios se gestionan en una cotización posterior.
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Información del proyecto */}
           <Card sx={{ mb: 3, bgcolor: '#f8f9fa' }}>
@@ -237,6 +343,11 @@ const AgregarMedidaProyectoModal = ({ open, onClose, proyecto, onActualizar, med
                         <Typography variant="body2" color="text.secondary">
                           {pieza.ancho} × {pieza.alto} m • {pieza.cantidad} piezas • {modalLogic.calcularAreaPieza(pieza)} m²
                         </Typography>
+                        {esCotizacionEnVivo && (
+                          <Typography variant="body2" color="success.main" sx={{ ml: 'auto' }}>
+                            Total: ${modalLogic.calcularPrecioPieza(pieza).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Typography>
+                        )}
                       </Box>
                     </AccordionSummary>
                     <AccordionDetails>
@@ -248,6 +359,11 @@ const AgregarMedidaProyectoModal = ({ open, onClose, proyecto, onActualizar, med
                           {pieza.observaciones && (
                             <Typography variant="body2">
                               <strong>Observaciones:</strong> {pieza.observaciones}
+                            </Typography>
+                          )}
+                          {esCotizacionEnVivo && (
+                            <Typography variant="body2" color="text.secondary">
+                              <strong>Precio M²:</strong> ${Number(pieza.precio || modalLogic.precioGeneral).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {modalLogic.cobraInstalacion && pieza.precioInstalacion ? `• Instalación: $${Number(pieza.precioInstalacion).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
                             </Typography>
                           )}
                         </Box>
@@ -379,7 +495,56 @@ const AgregarMedidaProyectoModal = ({ open, onClose, proyecto, onActualizar, med
                       onChange={(e) => modalLogic.setNuevaPieza({...modalLogic.nuevaPieza, telaMarca: e.target.value})}
                     />
                   </Grid>
-                  
+
+                  {esCotizacionEnVivo && (
+                    <>
+                      <Grid item xs={12} md={4}>
+                        <TextField
+                          fullWidth
+                          label="Precio por m²"
+                          type="number"
+                          value={modalLogic.nuevaPieza.precio}
+                          onChange={(e) => modalLogic.setNuevaPieza({ ...modalLogic.nuevaPieza, precio: e.target.value })}
+                          inputProps={{ min: 0, step: 0.01 }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <FormControl fullWidth>
+                          <InputLabel>Tipo de Instalación</InputLabel>
+                          <Select
+                            value={modalLogic.tipoInstalacion}
+                            label="Tipo de Instalación"
+                            onChange={(e) => modalLogic.setTipoInstalacion(e.target.value)}
+                          >
+                            <MenuItem value="fijo">Monto fijo</MenuItem>
+                            <MenuItem value="por_pieza">Por pieza</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12} md={4}>
+                        <TextField
+                          fullWidth
+                          label={modalLogic.tipoInstalacion === 'fijo' ? 'Costo instalación total' : 'Costo instalación por pieza'}
+                          type="number"
+                          value={modalLogic.tipoInstalacion === 'fijo' ? modalLogic.precioInstalacion : modalLogic.precioInstalacionPorPieza}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (modalLogic.tipoInstalacion === 'fijo') {
+                              modalLogic.setPrecioInstalacion(value);
+                              modalLogic.setNuevaPieza({ ...modalLogic.nuevaPieza, precioInstalacion: value });
+                            } else {
+                              modalLogic.setPrecioInstalacionPorPieza(value);
+                              modalLogic.setNuevaPieza({ ...modalLogic.nuevaPieza, precioInstalacion: value });
+                            }
+                          }}
+                          inputProps={{ min: 0, step: 0.01 }}
+                          disabled={!modalLogic.cobraInstalacion}
+                          helperText={modalLogic.cobraInstalacion ? '' : 'Activa el costo de instalación en la sección de totales'}
+                        />
+                      </Grid>
+                    </>
+                  )}
+
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
@@ -446,6 +611,68 @@ const AgregarMedidaProyectoModal = ({ open, onClose, proyecto, onActualizar, med
               />
             </CardContent>
           </Card>
+
+          {esCotizacionEnVivo && (
+            <Card sx={{ mt: 3 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  📊 Resumen económico del levantamiento
+                </Typography>
+
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={3}>
+                    <Box sx={{ p: 2, bgcolor: 'rgba(56, 142, 60, 0.08)', borderRadius: 2 }}>
+                      <Typography variant="caption" color="text.secondary">Subtotal</Typography>
+                      <Typography variant="h6">
+                        ${Number(modalLogic.totales.subtotal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Box sx={{ p: 2, bgcolor: 'rgba(2, 136, 209, 0.08)', borderRadius: 2 }}>
+                      <Typography variant="caption" color="text.secondary">Instalación</Typography>
+                      <Typography variant="h6">
+                        ${Number(modalLogic.totales.costoInstalacion).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Box sx={{ p: 2, bgcolor: 'rgba(237, 108, 2, 0.1)', borderRadius: 2 }}>
+                      <Typography variant="caption" color="text.secondary">Total</Typography>
+                      <Typography variant="h6">
+                        ${Number(modalLogic.totales.totalFinal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 2 }}>
+                      <Typography variant="caption" color="text.secondary">m² levantados</Typography>
+                      <Typography variant="h6">{modalLogic.totales.totalM2}</Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={modalLogic.cobraInstalacion}
+                        onChange={(e) => modalLogic.setCobraInstalacion(e.target.checked)}
+                      />
+                    }
+                    label="Incluir costo de instalación"
+                  />
+                  <TextField
+                    label="Precio base por m²"
+                    type="number"
+                    value={modalLogic.precioGeneral}
+                    onChange={(e) => modalLogic.setPrecioGeneral(Number(e.target.value) || 0)}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Box>
+              </CardContent>
+            </Card>
+          )}
         </Box>
       </DialogContent>
 
