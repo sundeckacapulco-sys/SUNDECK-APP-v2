@@ -9,7 +9,7 @@ const mongoose = require('mongoose');
  */
 
 // Generar PDF unificado
-exports.generarPDFUnificado = async (req, res) => {
+const generarPDFUnificado = async (req, res) => {
   try {
     const { id } = req.params;
     const { tipo = 'completo' } = req.query;
@@ -40,7 +40,7 @@ exports.generarPDFUnificado = async (req, res) => {
 };
 
 // Generar Excel unificado
-exports.generarExcelUnificado = async (req, res) => {
+const generarExcelUnificado = async (req, res) => {
   try {
     const { id } = req.params;
     const { tipo = 'completo' } = req.query;
@@ -71,7 +71,7 @@ exports.generarExcelUnificado = async (req, res) => {
 };
 
 // Generar ambos formatos (ZIP)
-exports.generarPaqueteCompleto = async (req, res) => {
+const generarPaqueteCompleto = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -115,7 +115,7 @@ exports.generarPaqueteCompleto = async (req, res) => {
 };
 
 // Obtener vista previa de datos de exportación
-exports.vistaPrevia = async (req, res) => {
+const vistaPrevia = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -173,7 +173,7 @@ exports.vistaPrevia = async (req, res) => {
 };
 
 // Validar datos antes de exportación
-exports.validarExportacion = async (req, res) => {
+const validarExportacion = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -246,7 +246,7 @@ exports.validarExportacion = async (req, res) => {
 };
 
 // Obtener formatos disponibles
-exports.formatosDisponibles = (req, res) => {
+const formatosDisponibles = (req, res) => {
   const formatos = {
     pdf: {
       nombre: 'PDF',
