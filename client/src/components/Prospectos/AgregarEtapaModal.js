@@ -286,15 +286,6 @@ const AgregarEtapaModal = ({
   // const etapaManager = useEtapaManager();
   
   // VOLVER AL SISTEMA ANTIGUO TEMPORALMENTE PARA IDENTIFICAR EL PROBLEMA
-  // Instanciar el hook primero para mantener referencia concreta
-  const piezasManager = usePiezasManager({
-    unidad,
-    todosLosProductos,
-    precioGeneral,
-    setErrorLocal
-  });
-  
-  // Desestructurar después de la instanciación
   const {
     piezas,
     piezaForm,

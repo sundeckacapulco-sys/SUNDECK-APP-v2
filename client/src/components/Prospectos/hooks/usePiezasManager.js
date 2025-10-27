@@ -243,6 +243,10 @@ const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLo
     indiceEditando
   }), [agregandoPieza, editandoPieza, indiceEditando, piezaForm, piezas]);
 
+  const reemplazarPiezas = useCallback((nuevasPiezas) => {
+    setPiezas(Array.isArray(nuevasPiezas) ? nuevasPiezas : []);
+  }, []);
+
   return {
     ...estadoPiezas,
     setAgregandoPieza,
@@ -254,7 +258,8 @@ const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLo
     handleAgregarPieza,
     handleEliminarPieza,
     handleEditarPieza,
-    handleCancelarEdicion
+    handleCancelarEdicion,
+    reemplazarPiezas
   };
 };
 
