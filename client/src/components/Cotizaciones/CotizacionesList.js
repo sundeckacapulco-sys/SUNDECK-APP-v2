@@ -375,7 +375,7 @@ const CotizacionesList = () => {
           <Button
             variant="outlined"
             startIcon={<Add />}
-            onClick={() => navigate('/cotizaciones/directa')}
+            onClick={() => navigate('/cotizacion-directa')}
             sx={{
               borderColor: '#28a745',
               color: '#28a745',
