@@ -125,10 +125,13 @@ const AgregarEtapaModal = ({
   
   // Estado para persona que realizó visita (global para levantamiento)
   const [personaVisita, setPersonaVisita] = useState('');
-  
+
   // Estados para fecha y hora
   const [fechaEtapa, setFechaEtapa] = useState('');
   const [horaEtapa, setHoraEtapa] = useState('');
+
+  // Gestor de piezas reutilizable
+  const piezasManager = usePiezasManager();
   
   // Estado para captura de pantalla e inspector
   const [capturaModalOpen, setCapturaModalOpen] = useState(false);

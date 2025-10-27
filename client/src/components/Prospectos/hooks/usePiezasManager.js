@@ -231,10 +231,6 @@ const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLo
     setPiezaForm(createEmptyPieza());
   }, []);
 
-  const reemplazarPiezas = useCallback((nuevasPiezas) => {
-    setPiezas(nuevasPiezas);
-  }, []);
-
   const estadoPiezas = useMemo(() => ({
     piezas,
     piezaForm,
@@ -258,8 +254,7 @@ const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLo
     handleAgregarPieza,
     handleEliminarPieza,
     handleEditarPieza,
-    handleCancelarEdicion,
-    reemplazarPiezas
+    handleCancelarEdicion
   };
 };
 
