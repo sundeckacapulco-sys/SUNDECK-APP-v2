@@ -42,6 +42,8 @@ const ProgramarInstalacion = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [catalogosCargando, setCatalogosCargando] = useState(true);
+  const [catalogosError, setCatalogosError] = useState(null);
 
   // Estados del formulario
   const [formData, setFormData] = useState({
@@ -120,32 +122,35 @@ const ProgramarInstalacion = () => {
 
   const cargarDatosIniciales = async () => {
     try {
-      // Cargar proyectos listos para instalación
-      // const proyectos = await instalacionesApi.obtenerProyectosListos();
-      // setProyectosDisponibles(proyectos);
+      setCatalogosCargando(true);
+      setCatalogosError(null);
+      setError(null);
 
-      // Cargar cuadrillas disponibles
-      // const cuadrillas = await instalacionesApi.obtenerCuadrillasDisponibles();
-      // setCuadrillasDisponibles(cuadrillas);
-
-      // Mock data para desarrollo
-      setProyectosDisponibles([
-        { id: '671234567890abcdef123456', numero: 'PROY-2024-001', cliente: 'Juan Pérez', direccion: 'Av. Principal 123', productos: 3 },
-        { id: '671234567890abcdef123457', numero: 'PROY-2024-002', cliente: 'María García', direccion: 'Calle Secundaria 456', productos: 2 },
-        { id: '671234567890abcdef123458', numero: 'PROY-2024-003', cliente: 'Carlos López', direccion: 'Boulevard Norte 789', productos: 5 }
+      const [proyectos, instaladores] = await Promise.all([
+        instalacionesApi.obtenerProyectosListos(),
+        instalacionesApi.obtenerInstaladoresDisponibles()
       ]);
 
-      setInstalaadoresDisponibles([
-        { id: '671234567890abcdef123460', nombre: 'Roberto Martínez', especialidad: 'Persianas', experiencia: '5 años' },
-        { id: '671234567890abcdef123461', nombre: 'Luis Hernández', especialidad: 'Toldos', experiencia: '3 años' },
-        { id: '671234567890abcdef123462', nombre: 'Miguel Sánchez', especialidad: 'Motorización', experiencia: '7 años' },
-        { id: '671234567890abcdef123463', nombre: 'José Ramírez', especialidad: 'General', experiencia: '4 años' }
-      ]);
+      setProyectosDisponibles(proyectos);
+      setInstalaadoresDisponibles(instaladores);
 
+      if (proyectoIdParam) {
+        const proyectoPreseleccionado = proyectos.find((p) => p.id === proyectoIdParam);
+        if (proyectoPreseleccionado) {
+          setFormData((prev) => ({
+            ...prev,
+            proyectoId: proyectoPreseleccionado.id,
+            proyecto: proyectoPreseleccionado
+          }));
+        }
+      }
     } catch (error) {
       console.error('Error cargando datos:', error);
-      setError('Error cargando datos iniciales');
+      const mensajeError = error.response?.data?.message || error.message || 'Error cargando datos iniciales';
+      setCatalogosError(mensajeError);
+      setError(`Error cargando datos iniciales: ${mensajeError}`);
     }
+    setCatalogosCargando(false);
   };
 
   // Generar sugerencias inteligentes cuando se selecciona un proyecto
@@ -300,6 +305,37 @@ const ProgramarInstalacion = () => {
   const renderStepContent = (step) => {
     switch (step) {
       case 0:
+        if (catalogosCargando) {
+          return (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <CircularProgress />
+              <Typography variant="body2" color="text.secondary">
+                Cargando proyectos disponibles...
+              </Typography>
+            </Box>
+          );
+        }
+
+        if (catalogosError) {
+          return (
+            <Alert severity="error" action={
+              <Button color="inherit" size="small" onClick={cargarDatosIniciales}>
+                Reintentar
+              </Button>
+            }>
+              {catalogosError}
+            </Alert>
+          );
+        }
+
+        if (!proyectosDisponibles.length) {
+          return (
+            <Alert severity="info">
+              No hay proyectos listos para instalación en este momento. Vuelve a intentarlo más tarde.
+            </Alert>
+          );
+        }
+
         return (
           <Grid container spacing={3}>
             <Grid item xs={12}>
@@ -612,6 +648,37 @@ const ProgramarInstalacion = () => {
         );
 
       case 2:
+        if (catalogosCargando) {
+          return (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <CircularProgress />
+              <Typography variant="body2" color="text.secondary">
+                Cargando instaladores disponibles...
+              </Typography>
+            </Box>
+          );
+        }
+
+        if (catalogosError) {
+          return (
+            <Alert severity="error" action={
+              <Button color="inherit" size="small" onClick={cargarDatosIniciales}>
+                Reintentar
+              </Button>
+            }>
+              {catalogosError}
+            </Alert>
+          );
+        }
+
+        if (!instaladoresDisponibles.length) {
+          return (
+            <Alert severity="warning">
+              No se encontraron instaladores activos. Verifica la configuración de usuarios o intenta recargar los datos.
+            </Alert>
+          );
+        }
+
         return (
           <Grid container spacing={3}>
             <Grid item xs={12}>
