@@ -1,7 +1,78 @@
 import axiosConfig from '../../../config/axios';
 
 class InstalacionesAPI {
-  
+
+  // Obtener proyectos listos para instalación
+  async obtenerProyectosListos(params = {}) {
+    try {
+      const response = await axiosConfig.get('/proyecto-pedido', {
+        params: {
+          estado: 'fabricado',
+          limit: 100,
+          page: 1,
+          ...params
+        }
+      });
+
+      if (!response.data?.success) {
+        throw new Error(response.data?.message || 'No se pudieron obtener los proyectos listos para instalación');
+      }
+
+      const proyectos = response.data?.data?.docs || [];
+
+      return proyectos.map((proyecto) => {
+        const direccionInstalacion = proyecto.entrega?.direccion || proyecto.cliente?.direccion || {};
+        const direccion = [
+          direccionInstalacion.calle,
+          direccionInstalacion.colonia,
+          direccionInstalacion.ciudad
+        ].filter(Boolean).join(', ');
+
+        return {
+          id: proyecto._id,
+          numero: proyecto.numero,
+          cliente: proyecto.cliente?.nombre || 'Cliente sin nombre',
+          direccion: direccion || 'Dirección no disponible',
+          productos: Array.isArray(proyecto.productos) ? proyecto.productos.length : 0,
+          datosOriginales: proyecto
+        };
+      });
+    } catch (error) {
+      console.error('Error obteniendo proyectos listos para instalación:', error);
+      throw error;
+    }
+  }
+
+  // Obtener instaladores activos disponibles
+  async obtenerInstaladoresDisponibles(params = {}) {
+    try {
+      const response = await axiosConfig.get('/usuarios', {
+        params: {
+          rol: 'instalador',
+          activo: true,
+          ...params
+        }
+      });
+
+      const usuarios = Array.isArray(response.data) ? response.data : [];
+
+      return usuarios
+        .filter(usuario => usuario?.rol === 'instalador')
+        .map((usuario) => ({
+          id: usuario._id,
+          nombre: `${usuario.nombre || ''} ${usuario.apellido || ''}`.trim() || usuario.email,
+          especialidad: usuario.especialidad || 'Instalaciones generales',
+          experiencia: usuario.experiencia || 'Sin registro',
+          telefono: usuario.telefono,
+          email: usuario.email,
+          datosOriginales: usuario
+        }));
+    } catch (error) {
+      console.error('Error obteniendo instaladores disponibles:', error);
+      throw error;
+    }
+  }
+
   // Obtener todas las instalaciones con filtros
   async obtenerInstalaciones(filtros = {}) {
     try {
