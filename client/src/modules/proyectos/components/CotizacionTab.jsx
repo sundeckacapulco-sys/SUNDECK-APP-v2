@@ -80,6 +80,15 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
   const datosFinancieros = estadisticas?.financiero || {};
   const cotizaciones = proyecto.cotizaciones || [];
 
+  const prospectoOriginal = proyecto?.prospecto_original;
+  const prospectoId = typeof prospectoOriginal === 'string'
+    ? prospectoOriginal
+    : prospectoOriginal?._id;
+
+  const nuevaCotizacionUrl = prospectoId
+    ? `/cotizaciones/nueva?prospecto=${prospectoId}`
+    : '/cotizaciones/nueva';
+
   return (
     <Box>
       {/* Resumen financiero */}
@@ -150,8 +159,7 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
               startIcon={<AddIcon />}
               sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } }}
               onClick={() => {
-                // Navegar a crear nueva cotización desde proyecto
-                window.open(`/cotizacion-directa?proyectoId=${proyecto._id}`, '_blank');
+                window.open(nuevaCotizacionUrl, '_blank');
               }}
             >
               Nueva Cotización
@@ -168,8 +176,7 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                 variant="text" 
                 sx={{ mt: 1 }}
                 onClick={() => {
-                  // Crear cotización automática desde el proyecto
-                  window.open(`/cotizacion-directa?proyectoId=${proyecto._id}`, '_blank');
+                  window.open(nuevaCotizacionUrl, '_blank');
                 }}
               >
                 🚀 Crear cotización ahora
