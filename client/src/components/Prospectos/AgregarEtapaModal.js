@@ -130,46 +130,9 @@ const AgregarEtapaModal = ({
   const [fechaEtapa, setFechaEtapa] = useState('');
   const [horaEtapa, setHoraEtapa] = useState('');
 
-  const catalogoProductos = useMemo(() => {
-    const productosEstaticos = [...productosOptions];
-
-    // Remover la opción de producto personalizado temporalmente
-    const sinPersonalizado = productosEstaticos.filter(p => p.value !== 'nuevo');
-
-    // Combinar todos los tipos de productos
-    return [
-      ...sinPersonalizado,
-      ...productosFromAPI,
-      ...productosPersonalizados,
-      { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
-    ];
-  }, [productosFromAPI, productosPersonalizados]);
-
-  const todosLosProductos = useMemo(() => {
-    if (catalogoProductos.length > 0) {
-      return catalogoProductos;
-    }
-
-    // Garantizar que siempre exista una opción neutral y la opción para crear productos personalizados
-    return [
-      { label: 'Selecciona un producto', value: '' },
-      { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
-    ];
-  }, [catalogoProductos]);
-
-  const primerProductoDisponible = useMemo(
-    () => todosLosProductos.find(producto => producto.value && producto.value !== 'nuevo') || todosLosProductos[0],
-    [todosLosProductos]
-  );
-
   // Gestor de piezas reutilizable
-  const piezasManager = usePiezasManager({
-    unidad,
-    todosLosProductos,
-    precioGeneral,
-    setErrorLocal,
-  });
-
+  const piezasManager = usePiezasManager();
+  
   // Estado para captura de pantalla e inspector
   const [capturaModalOpen, setCapturaModalOpen] = useState(false);
   const [inspectorModalOpen, setInspectorModalOpen] = useState(false);
