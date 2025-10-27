@@ -1,7 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import { createEmptyPieza } from '../AgregarEtapaModal.constants';
 
-const usePiezasManager = ({ unidad, todosLosProductos, precioGeneral, setErrorLocal }) => {
+const usePiezasManager = (params = {}) => {
+  const {
+    unidad = 'm',
+    todosLosProductos = [],
+    precioGeneral = 0,
+    setErrorLocal = () => {}
+  } = params;
   const [piezas, setPiezas] = useState([]);
   const [agregandoPieza, setAgregandoPieza] = useState(false);
   const [piezaForm, setPiezaForm] = useState(() => createEmptyPieza());
