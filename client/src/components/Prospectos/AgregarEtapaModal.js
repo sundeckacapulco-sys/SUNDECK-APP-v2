@@ -3335,10 +3335,10 @@ const handleAgregarPedido = async () => {
                           setNuevoProductoNombre('');
                           setErrorLocal('');
                           // Resetear el selector de producto al primer valor
-                          setPiezaForm(prev => ({ 
-                            ...prev, 
-                            producto: todosLosProductos[0].value,
-                            productoLabel: todosLosProductos[0].label
+                          setPiezaForm(prev => ({
+                            ...prev,
+                            producto: primerProductoDisponible?.value || '',
+                            productoLabel: primerProductoDisponible?.label || ''
                           }));
                         }}
                       >
