@@ -118,6 +118,9 @@ const ProyectoDetail = () => {
             setTransicionesValidas(transiciones.data.transiciones_validas || []);
           }
         }
+        
+        // Recargar estadísticas después de actualizar el proyecto
+        await cargarEstadisticas();
       } else {
         setError('Error cargando proyecto');
       }

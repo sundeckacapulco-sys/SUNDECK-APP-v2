@@ -71,25 +71,58 @@ const proyectoSchema = new mongoose.Schema({
     trim: true
   },
 
-  // Medidas estructuradas
+  // Medidas estructuradas (Levantamientos con partidas)
   medidas: [{
-    ubicacion: String,
-    ancho: Number,
-    alto: Number,
-    cantidad: Number,
-    producto: String,
-    color: String,
-    observaciones: String,
-    // Campos técnicos específicos
-    tipoControl: String,
-    orientacion: String,
-    tipoInstalacion: String,
-    eliminacion: String,
-    risoAlto: String,
-    risoBajo: String,
-    sistema: String,
-    telaMarca: String,
-    baseTabla: String,
+    // Información general del levantamiento
+    tipo: String, // 'levantamiento'
+    personaVisita: String,
+    fechaCotizacion: Date,
+    quienRecibe: String,
+    observacionesGenerales: String,
+    fechaHora: Date,
+    
+    // Partidas (piezas)
+    piezas: [{
+      ubicacion: String,
+      cantidad: Number,
+      producto: String,
+      productoLabel: String,
+      modeloCodigo: String,
+      color: String,
+      observaciones: String,
+      areaTotal: Number,
+      totalPiezas: Number,
+      
+      // Medidas individuales por pieza
+      medidas: [{
+        ancho: Number,
+        alto: Number,
+        producto: String,
+        productoLabel: String,
+        modeloCodigo: String,
+        color: String,
+        
+        // Especificaciones técnicas
+        galeria: String, // 'galeria', 'cassette', 'cabezal', 'sin_galeria'
+        tipoControl: String, // 'izquierda', 'derecha', 'centro', 'motorizado'
+        caida: String, // 'normal', 'frente'
+        tipoInstalacion: String, // 'techo', 'muro', 'piso_techo', 'empotrado'
+        tipoFijacion: String, // 'concreto', 'tablaroca', 'aluminio', 'madera', 'otro'
+        modoOperacion: String, // 'manual', 'motorizado'
+        detalleTecnico: String, // 'traslape', 'corte', 'sin_traslape'
+        sistema: String,
+        telaMarca: String,
+        baseTabla: String,
+        observacionesTecnicas: String,
+      }]
+    }],
+    
+    // Totales del levantamiento
+    totales: {
+      totalPartidas: Number,
+      totalPiezas: Number,
+      areaTotal: Number
+    },
     // Información de toldos
     esToldo: Boolean,
     tipoToldo: String,

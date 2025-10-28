@@ -26,6 +26,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   Add as AddIcon,
   Edit as EditIcon,
+  Delete as DeleteIcon,
   Photo as PhotoIcon,
   Straighten as StraightenIcon,
   Build as BuildIcon,
@@ -35,6 +36,7 @@ import {
 import AgregarMedidaProyectoModal from './AgregarMedidaProyectoModal';
 import AgregarMedidaPartidasModal from './AgregarMedidaPartidasModal';
 import AgregarEtapaModal from '../../../components/Prospectos/AgregarEtapaModal';
+import axiosConfig from '../../../config/axios';
 
 const LevantamientoTab = ({ proyecto, onActualizar }) => {
   const [dialogoMedida, setDialogoMedida] = useState(false);
@@ -71,6 +73,26 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
   const cerrarDialogoPartidas = () => {
     setDialogoPartidas(false);
     setMedidaEditando(null);
+  };
+
+  // Función para eliminar levantamiento/medida
+  const eliminarMedida = async (index) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este levantamiento? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      const nuevasMedidas = proyecto.medidas.filter((_, i) => i !== index);
+      
+      await axiosConfig.put(`/proyectos/${proyecto._id}`, {
+        medidas: nuevasMedidas
+      });
+
+      onActualizar();
+    } catch (error) {
+      console.error('Error eliminando medida:', error);
+      alert('Error al eliminar el levantamiento');
+    }
   };
 
   // Calcular totales
@@ -239,7 +261,259 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
             </Alert>
           ) : (
             <Box>
-              {proyecto.medidas.map((medida, index) => (
+              {proyecto.medidas.map((medida, index) => {
+                // Detectar si es un levantamiento nuevo con partidas o medida antigua
+                const esLevantamientoConPartidas = medida.tipo === 'levantamiento' && medida.piezas && medida.piezas.length > 0;
+                
+                if (esLevantamientoConPartidas) {
+                  // RENDERIZAR LEVANTAMIENTO NUEVO CON PARTIDAS
+                  return (
+                    <Box key={index} sx={{ mb: 3 }}>
+                      {/* Información general del levantamiento */}
+                      <Paper sx={{ p: 2, mb: 2, bgcolor: '#f5f5f5' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                          <Typography variant="h6">
+                            📋 Levantamiento {index + 1}
+                          </Typography>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            startIcon={<DeleteIcon />}
+                            onClick={() => eliminarMedida(index)}
+                          >
+                            Eliminar
+                          </Button>
+                        </Box>
+                        <Grid container spacing={2}>
+                          {medida.personaVisita && (
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Typography variant="body2">
+                                <strong>Persona que visitó:</strong> {medida.personaVisita}
+                              </Typography>
+                            </Grid>
+                          )}
+                          {medida.quienRecibe && (
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Typography variant="body2">
+                                <strong>Quien recibe:</strong> {medida.quienRecibe}
+                              </Typography>
+                            </Grid>
+                          )}
+                          {medida.fechaCotizacion && (
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Typography variant="body2">
+                                <strong>Fecha cotización:</strong> {new Date(medida.fechaCotizacion).toLocaleDateString()}
+                              </Typography>
+                            </Grid>
+                          )}
+                          {medida.totales && (
+                            <Grid item xs={12} sm={6} md={3}>
+                              <Typography variant="body2">
+                                <strong>Total:</strong> {medida.totales.totalPartidas} partidas, {medida.totales.totalPiezas} piezas, {medida.totales.areaTotal?.toFixed(2)} m²
+                              </Typography>
+                            </Grid>
+                          )}
+                        </Grid>
+                        {medida.observacionesGenerales && (
+                          <Typography variant="body2" sx={{ mt: 1 }}>
+                            <strong>Observaciones:</strong> {medida.observacionesGenerales}
+                          </Typography>
+                        )}
+                      </Paper>
+
+                      {/* Partidas */}
+                      {medida.piezas.map((pieza, piezaIndex) => (
+                        <Accordion key={piezaIndex} sx={{ mb: 1 }}>
+                          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mr: 2 }}>
+                                📍 {pieza.ubicacion}
+                              </Typography>
+                              <Chip
+                                label={pieza.productoLabel || pieza.producto || 'Sin producto'}
+                                size="small"
+                                sx={{ mr: 2 }}
+                              />
+                              <Typography variant="body2" color="text.secondary">
+                                {pieza.cantidad || 1} piezas • {pieza.areaTotal?.toFixed(2) || 0} m²
+                              </Typography>
+                            </Box>
+                          </AccordionSummary>
+                          <AccordionDetails>
+                            {/* Usar el mismo componente que AgregarMedidaPartidasModal */}
+                            <Grid container spacing={2}>
+                              {/* Especificaciones generales */}
+                              <Grid item xs={12} md={6}>
+                                <Typography variant="subtitle2" gutterBottom>
+                                  📐 Especificaciones
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                  <Typography variant="body2">
+                                    <strong>Cantidad:</strong> {pieza.cantidad || 1} piezas
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    <strong>Área total:</strong> {pieza.areaTotal?.toFixed(2) || 0} m²
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    <strong>Color:</strong> {pieza.color || 'No especificado'}
+                                  </Typography>
+                                  {pieza.modeloCodigo && (
+                                    <Typography variant="body2">
+                                      <strong>Modelo/Código:</strong> {pieza.modeloCodigo}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </Grid>
+
+                              {/* Medidas individuales */}
+                              <Grid item xs={12} md={6}>
+                                <Typography variant="subtitle2" gutterBottom>
+                                  📏 Medidas Individuales
+                                </Typography>
+                                {(pieza.medidas || []).map((medidaIndiv, idx) => (
+                                  <Box key={idx} sx={{ mb: 1, p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                                    <Typography variant="body2">
+                                      <strong>Pieza {idx + 1}:</strong> {medidaIndiv.ancho} × {medidaIndiv.alto} m
+                                    </Typography>
+                                    <Typography variant="body2">
+                                      <strong>Producto:</strong> {medidaIndiv.productoLabel || medidaIndiv.producto}
+                                    </Typography>
+                                    <Typography variant="body2">
+                                      <strong>Color:</strong> {medidaIndiv.color}
+                                    </Typography>
+                                  </Box>
+                                ))}
+                              </Grid>
+
+                              {/* Especificaciones Técnicas Completas */}
+                              {pieza.medidas && pieza.medidas[0] && (
+                                <Grid item xs={12}>
+                                  <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', color: '#2196f3' }}>
+                                    🔧 Especificaciones Técnicas
+                                  </Typography>
+                                  <Grid container spacing={2}>
+                                    {pieza.medidas[0].galeria && (
+                                      <Grid item xs={6} md={4}>
+                                        <Typography variant="body2">
+                                          <strong>Galería/Cabezal:</strong> {
+                                            pieza.medidas[0].galeria === 'galeria' ? 'Galería' :
+                                            pieza.medidas[0].galeria === 'cassette' ? 'Cassette' :
+                                            pieza.medidas[0].galeria === 'cabezal' ? 'Cabezal' :
+                                            pieza.medidas[0].galeria === 'sin_galeria' ? 'Sin Galería' :
+                                            pieza.medidas[0].galeria
+                                          }
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                    {pieza.medidas[0].tipoControl && (
+                                      <Grid item xs={6} md={4}>
+                                        <Typography variant="body2">
+                                          <strong>Tipo de Control:</strong> {pieza.medidas[0].tipoControl}
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                    {pieza.medidas[0].caida && (
+                                      <Grid item xs={6} md={4}>
+                                        <Typography variant="body2">
+                                          <strong>Caída:</strong> {
+                                            pieza.medidas[0].caida === 'normal' ? 'Caída Normal' :
+                                            pieza.medidas[0].caida === 'frente' ? 'Caída hacia el Frente' :
+                                            pieza.medidas[0].caida
+                                          }
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                    {pieza.medidas[0].tipoInstalacion && (
+                                      <Grid item xs={6} md={4}>
+                                        <Typography variant="body2">
+                                          <strong>Tipo de Instalación:</strong> {pieza.medidas[0].tipoInstalacion}
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                    {pieza.medidas[0].tipoFijacion && (
+                                      <Grid item xs={6} md={4}>
+                                        <Typography variant="body2">
+                                          <strong>Tipo de Fijación:</strong> {pieza.medidas[0].tipoFijacion}
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                    {pieza.medidas[0].modoOperacion && (
+                                      <Grid item xs={6} md={4}>
+                                        <Typography variant="body2">
+                                          <strong>Modo de Operación:</strong> {
+                                            pieza.medidas[0].modoOperacion === 'manual' ? 'Manual' :
+                                            pieza.medidas[0].modoOperacion === 'motorizado' ? 'Motorizado' :
+                                            pieza.medidas[0].modoOperacion
+                                          }
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                    {pieza.medidas[0].detalleTecnico && (
+                                      <Grid item xs={6} md={4}>
+                                        <Typography variant="body2">
+                                          <strong>Detalle Técnico:</strong> {
+                                            pieza.medidas[0].detalleTecnico === 'traslape' ? 'Traslape' :
+                                            pieza.medidas[0].detalleTecnico === 'corte' ? 'Corte' :
+                                            pieza.medidas[0].detalleTecnico === 'sin_traslape' ? 'Sin traslape' :
+                                            pieza.medidas[0].detalleTecnico
+                                          }
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                    {pieza.medidas[0].sistema && (
+                                      <Grid item xs={6} md={4}>
+                                        <Typography variant="body2">
+                                          <strong>Sistema:</strong> {pieza.medidas[0].sistema}
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                    {pieza.medidas[0].telaMarca && (
+                                      <Grid item xs={6} md={4}>
+                                        <Typography variant="body2">
+                                          <strong>Tela/Marca:</strong> {pieza.medidas[0].telaMarca}
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                    {pieza.medidas[0].baseTabla && (
+                                      <Grid item xs={6} md={4}>
+                                        <Typography variant="body2">
+                                          <strong>Base Tabla:</strong> {pieza.medidas[0].baseTabla}
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                    {pieza.medidas[0].observacionesTecnicas && (
+                                      <Grid item xs={12}>
+                                        <Typography variant="body2">
+                                          <strong>Observaciones Técnicas:</strong> {pieza.medidas[0].observacionesTecnicas}
+                                        </Typography>
+                                      </Grid>
+                                    )}
+                                  </Grid>
+                                </Grid>
+                              )}
+
+                              {/* Observaciones de la partida */}
+                              {pieza.observaciones && (
+                                <Grid item xs={12}>
+                                  <Typography variant="subtitle2" gutterBottom>
+                                    💬 Observaciones
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {pieza.observaciones}
+                                  </Typography>
+                                </Grid>
+                              )}
+                            </Grid>
+                          </AccordionDetails>
+                        </Accordion>
+                      ))}
+                    </Box>
+                  );
+                }
+                
+                // RENDERIZAR MEDIDA ANTIGUA (formato simple)
+                return (
                 <Accordion key={index} sx={{ mb: 1 }}>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
@@ -442,21 +716,33 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
                         </Grid>
                       )}
 
-                      {/* Botón de editar */}
+                      {/* Botones de acción */}
                       <Grid item xs={12}>
-                        <Button
-                          variant="outlined"
-                          startIcon={<EditIcon />}
-                          onClick={() => abrirDialogoMedida({ ...medida, index })}
-                          size="small"
-                        >
-                          Editar Medida
-                        </Button>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="outlined"
+                            startIcon={<EditIcon />}
+                            onClick={() => abrirDialogoMedida({ ...medida, index })}
+                            size="small"
+                          >
+                            Editar Medida
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            startIcon={<DeleteIcon />}
+                            onClick={() => eliminarMedida(index)}
+                            size="small"
+                          >
+                            Eliminar
+                          </Button>
+                        </Box>
                       </Grid>
                     </Grid>
                   </AccordionDetails>
                 </Accordion>
-              ))}
+                );
+              })}
             </Box>
           )}
         </CardContent>

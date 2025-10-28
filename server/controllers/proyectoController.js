@@ -228,6 +228,16 @@ const actualizarProyecto = async (req, res) => {
     const { id } = req.params;
     const actualizaciones = req.body;
 
+    console.log('🔍 [BACKEND] Actualizando proyecto:', id);
+    console.log('📦 [BACKEND] Actualizaciones recibidas:', JSON.stringify(actualizaciones, null, 2));
+    
+    if (actualizaciones.medidas) {
+      console.log('📏 [BACKEND] Medidas recibidas:', actualizaciones.medidas.length);
+      if (actualizaciones.medidas.length > 0) {
+        console.log('📊 [BACKEND] Primera medida:', JSON.stringify(actualizaciones.medidas[0], null, 2));
+      }
+    }
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -263,6 +273,12 @@ const actualizarProyecto = async (req, res) => {
       proyecto.iva = proyecto.subtotal * 0.16;
       proyecto.total = proyecto.subtotal + proyecto.iva;
       await proyecto.save();
+    }
+
+    console.log('✅ [BACKEND] Proyecto guardado exitosamente');
+    console.log('📏 [BACKEND] Medidas guardadas:', proyecto.medidas?.length || 0);
+    if (proyecto.medidas && proyecto.medidas.length > 0) {
+      console.log('📊 [BACKEND] Primera medida guardada:', JSON.stringify(proyecto.medidas[0], null, 2));
     }
 
     res.json({

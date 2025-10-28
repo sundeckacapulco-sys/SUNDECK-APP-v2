@@ -441,6 +441,25 @@ const AgregarEtapaModal = ({
     });
   }, [tipoVisitaInicial, piezas, unidad, precioGeneral]);
 
+  // Combinar productos estáticos con productos de la API y personalizados
+  const todosLosProductos = useMemo(() => {
+    const productosEstaticos = [...productosOptions];
+
+    // Remover la opción de producto personalizado temporalmente
+    const sinPersonalizado = productosEstaticos.filter(p => p.value !== 'nuevo');
+
+    // Combinar todos los tipos de productos
+    return [
+      ...sinPersonalizado,
+      ...productosFromAPI,
+      ...productosPersonalizados,
+      { label: "🆕 PRODUCTO PERSONALIZADO", value: "nuevo" }
+    ];
+  }, [productosFromAPI, productosPersonalizados]);
+
+  // Primer producto disponible para reseteo
+  const primerProductoDisponible = todosLosProductos[0];
+
   // ELIMINADOS: useEffect problemáticos que causaban loop infinito
   // La sincronización ahora se hace en el momento de guardar
 
