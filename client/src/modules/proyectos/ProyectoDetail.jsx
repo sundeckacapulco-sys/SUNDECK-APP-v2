@@ -381,60 +381,6 @@ const ProyectoDetail = () => {
         </Grid>
       </Grid>
 
-      {/* Estadísticas rápidas */}
-      {estadisticas && (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={6} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" color="primary">
-                  {estadisticas.resumen.total_medidas}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Medidas
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" color="primary">
-                  {estadisticas.resumen.area_total} m²
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Área Total
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" color="primary">
-                  {formatearMoneda(estadisticas.financiero.total)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Total
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h4" color="primary">
-                  {estadisticas.resumen.dias_transcurridos}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Días
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
-
       {/* Pestañas principales */}
       <Card>
         <Tabs

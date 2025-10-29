@@ -37,6 +37,7 @@ import {
 import usePiezasManager from '../../../components/Prospectos/hooks/usePiezasManager';
 import { productosOptions, createEmptyPieza } from '../../../components/Prospectos/AgregarEtapaModal.constants';
 import axiosConfig from '../../../config/axios';
+import PiezaCard from './PiezaCard';
 
 const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, medidaEditando }) => {
   const [personaVisita, setPersonaVisita] = useState('');
@@ -272,198 +273,121 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
               </Typography>
               
               {piezasManager.piezas.map((pieza, index) => (
-                <Accordion key={index} sx={{ mb: 1 }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mr: 2 }}>
-                        📍 {pieza.ubicacion}
-                      </Typography>
-                      <Chip
-                        label={pieza.productoLabel || 'Producto'}
-                        size="small"
-                        sx={{ mr: 2 }}
-                      />
-                      <Typography variant="body2" color="text.secondary">
-                        {pieza.cantidad || 1} piezas • {calcularAreaPieza(pieza).toFixed(2)} m²
+                <Accordion key={index} sx={{ mb: 1.5, border: '1px solid rgba(226, 232, 240, 1)', borderRadius: '12px !important', '&:before': { display: 'none' } }}>
+                  <AccordionSummary 
+                    expandIcon={<ExpandMoreIcon />}
+                    sx={{ 
+                      borderRadius: '12px',
+                      '&:hover': { bgcolor: 'rgba(241, 245, 249, 0.5)' }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'rgba(30, 41, 59, 1)' }}>
+                          📍 {pieza.ubicacion}
+                        </Typography>
+                        <Chip
+                          label={pieza.productoLabel || 'Producto'}
+                          size="small"
+                          sx={{ 
+                            bgcolor: 'rgba(59, 130, 246, 0.1)', 
+                            color: 'rgba(37, 99, 235, 1)',
+                            fontWeight: 600,
+                            fontSize: '0.75rem'
+                          }}
+                        />
+                      </Box>
+                      <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600 }}>
+                        {pieza.cantidad || 1} {(pieza.cantidad || 1) === 1 ? 'pieza' : 'piezas'} • {calcularAreaPieza(pieza).toFixed(2)} m²
                       </Typography>
                     </Box>
                   </AccordionSummary>
-                  <AccordionDetails>
+                  <AccordionDetails sx={{ pt: 2 }}>
                     <Grid container spacing={2}>
-                      {/* Información básica */}
-                      <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          📐 Especificaciones
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <Typography variant="body2">
-                            <strong>Cantidad:</strong> {pieza.cantidad || 1} piezas
-                          </Typography>
-                          <Typography variant="body2">
-                            <strong>Área total:</strong> {calcularAreaPieza(pieza).toFixed(2)} m²
-                          </Typography>
-                          <Typography variant="body2">
-                            <strong>Color:</strong> {pieza.color || 'No especificado'}
-                          </Typography>
-                        </Box>
-                      </Grid>
-
-                      {/* Medidas individuales */}
-                      <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          📏 Medidas Individuales
-                        </Typography>
-                        {(pieza.medidas || []).map((medida, idx) => (
-                          <Box key={idx} sx={{ mb: 1, p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
-                            <Typography variant="body2">
-                              <strong>Pieza {idx + 1}:</strong> {medida.ancho} × {medida.alto} m
-                            </Typography>
-                            <Typography variant="body2">
-                              <strong>Producto:</strong> {medida.productoLabel || medida.producto}
-                            </Typography>
-                            <Typography variant="body2">
-                              <strong>Color:</strong> {medida.color}
-                            </Typography>
-                          </Box>
-                        ))}
-                      </Grid>
-
-                      {/* Especificaciones Técnicas Completas */}
-                      {pieza.medidas && pieza.medidas[0] && (
-                        <Grid item xs={12}>
-                          <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', color: '#2196f3' }}>
-                            🔧 Especificaciones Técnicas
+                      {/* Especificaciones Generales de la Partida */}
+                      <Grid item xs={12}>
+                        <Box sx={{ 
+                          bgcolor: 'rgba(241, 245, 249, 1)', 
+                          p: 2, 
+                          borderRadius: '8px',
+                          mb: 2
+                        }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, color: 'rgba(100, 116, 139, 1)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', mb: 1 }}>
+                            📐 Especificaciones Generales
                           </Typography>
                           <Grid container spacing={2}>
-                            {/* Modelo/Código */}
+                            <Grid item xs={6} md={3}>
+                              <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600, display: 'block' }}>
+                                Cantidad
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)', fontWeight: 600 }}>
+                                {pieza.cantidad || 1} {(pieza.cantidad || 1) === 1 ? 'pieza' : 'piezas'}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={6} md={3}>
+                              <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600, display: 'block' }}>
+                                Área Total
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)', fontWeight: 600 }}>
+                                {calcularAreaPieza(pieza).toFixed(2)} m²
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={6} md={3}>
+                              <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600, display: 'block' }}>
+                                Color
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)', fontWeight: 600 }}>
+                                {pieza.color || 'No especificado'}
+                              </Typography>
+                            </Grid>
                             {pieza.modeloCodigo && (
-                              <Grid item xs={6} md={4}>
-                                <Typography variant="body2">
-                                  <strong>Modelo/Código:</strong> {pieza.modeloCodigo}
+                              <Grid item xs={6} md={3}>
+                                <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600, display: 'block' }}>
+                                  Modelo/Código
                                 </Typography>
-                              </Grid>
-                            )}
-                            
-                            {/* Galería/Cabezal */}
-                            {pieza.medidas[0].galeria && (
-                              <Grid item xs={6} md={4}>
-                                <Typography variant="body2">
-                                  <strong>Galería/Cabezal:</strong> {
-                                    pieza.medidas[0].galeria === 'galeria' ? 'Galería' :
-                                    pieza.medidas[0].galeria === 'cassette' ? 'Cassette' :
-                                    pieza.medidas[0].galeria === 'cabezal' ? 'Cabezal' :
-                                    pieza.medidas[0].galeria === 'sin_galeria' ? 'Sin Galería' :
-                                    pieza.medidas[0].galeria
-                                  }
-                                </Typography>
-                              </Grid>
-                            )}
-                            
-                            {/* Tipo de Control */}
-                            {pieza.medidas[0].tipoControl && (
-                              <Grid item xs={6} md={4}>
-                                <Typography variant="body2">
-                                  <strong>Tipo de Control:</strong> {pieza.medidas[0].tipoControl}
-                                </Typography>
-                              </Grid>
-                            )}
-                            
-                            {/* Caída */}
-                            {pieza.medidas[0].caida && (
-                              <Grid item xs={6} md={4}>
-                                <Typography variant="body2">
-                                  <strong>Caída:</strong> {
-                                    pieza.medidas[0].caida === 'normal' ? 'Caída Normal' :
-                                    pieza.medidas[0].caida === 'frente' ? 'Caída hacia el Frente' :
-                                    pieza.medidas[0].caida
-                                  }
-                                </Typography>
-                              </Grid>
-                            )}
-                            
-                            {/* Tipo de Instalación */}
-                            {pieza.medidas[0].tipoInstalacion && (
-                              <Grid item xs={6} md={4}>
-                                <Typography variant="body2">
-                                  <strong>Tipo de Instalación:</strong> {pieza.medidas[0].tipoInstalacion}
-                                </Typography>
-                              </Grid>
-                            )}
-                            
-                            {/* Tipo de Fijación */}
-                            {pieza.medidas[0].tipoFijacion && (
-                              <Grid item xs={6} md={4}>
-                                <Typography variant="body2">
-                                  <strong>Tipo de Fijación:</strong> {pieza.medidas[0].tipoFijacion}
-                                </Typography>
-                              </Grid>
-                            )}
-                            
-                            {/* Modo de Operación */}
-                            {pieza.medidas[0].modoOperacion && (
-                              <Grid item xs={6} md={4}>
-                                <Typography variant="body2">
-                                  <strong>Modo de Operación:</strong> {
-                                    pieza.medidas[0].modoOperacion === 'manual' ? 'Manual' :
-                                    pieza.medidas[0].modoOperacion === 'motorizado' ? 'Motorizado' :
-                                    pieza.medidas[0].modoOperacion
-                                  }
-                                </Typography>
-                              </Grid>
-                            )}
-                            
-                            {/* Detalle Técnico */}
-                            {pieza.medidas[0].detalleTecnico && (
-                              <Grid item xs={6} md={4}>
-                                <Typography variant="body2">
-                                  <strong>Detalle Técnico:</strong> {
-                                    pieza.medidas[0].detalleTecnico === 'traslape' ? 'Traslape' :
-                                    pieza.medidas[0].detalleTecnico === 'corte' ? 'Corte' :
-                                    pieza.medidas[0].detalleTecnico === 'sin_traslape' ? 'Sin traslape' :
-                                    pieza.medidas[0].detalleTecnico
-                                  }
-                                </Typography>
-                              </Grid>
-                            )}
-                            
-                            {/* Sistema */}
-                            {pieza.medidas[0].sistema && (
-                              <Grid item xs={6} md={4}>
-                                <Typography variant="body2">
-                                  <strong>Sistema:</strong> {pieza.medidas[0].sistema}
-                                </Typography>
-                              </Grid>
-                            )}
-                            
-                            {/* Tela/Marca */}
-                            {pieza.medidas[0].telaMarca && (
-                              <Grid item xs={6} md={4}>
-                                <Typography variant="body2">
-                                  <strong>Tela/Marca:</strong> {pieza.medidas[0].telaMarca}
-                                </Typography>
-                              </Grid>
-                            )}
-                            
-                            {/* Base Tabla */}
-                            {pieza.medidas[0].baseTabla && (
-                              <Grid item xs={6} md={4}>
-                                <Typography variant="body2">
-                                  <strong>Base Tabla:</strong> {pieza.medidas[0].baseTabla}
-                                </Typography>
-                              </Grid>
-                            )}
-                            
-                            {/* Observaciones Técnicas */}
-                            {pieza.medidas[0].observacionesTecnicas && (
-                              <Grid item xs={12}>
-                                <Typography variant="body2">
-                                  <strong>Observaciones Técnicas:</strong> {pieza.medidas[0].observacionesTecnicas}
+                                <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)', fontWeight: 600 }}>
+                                  {pieza.modeloCodigo}
                                 </Typography>
                               </Grid>
                             )}
                           </Grid>
-                        </Grid>
-                      )}
+                        </Box>
+                      </Grid>
+
+                      {/* Medidas individuales con especificaciones técnicas por pieza */}
+                      <Grid item xs={12}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                          <Typography variant="subtitle2">
+                            📏 Medidas Individuales y Especificaciones Técnicas
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600 }}>
+                            {pieza.cantidad || pieza.medidas?.length || 0} {(pieza.cantidad || pieza.medidas?.length || 0) === 1 ? 'pieza' : 'piezas'} • {calcularAreaPieza(pieza).toFixed(2)} m² totales
+                          </Typography>
+                        </Box>
+                        {(pieza.medidas || []).map((medida, idx) => (
+                          <PiezaCard
+                            key={idx}
+                            numero={idx + 1}
+                            ancho={medida.ancho}
+                            alto={medida.alto}
+                            area={medida.area || 0}
+                            producto={medida.productoLabel || medida.producto}
+                            color={medida.color}
+                            modeloCodigo={pieza.modeloCodigo}
+                            galeria={medida.galeria}
+                            tipoControl={medida.tipoControl}
+                            caida={medida.caida}
+                            tipoInstalacion={medida.tipoInstalacion}
+                            tipoFijacion={medida.tipoFijacion}
+                            modoOperacion={medida.modoOperacion}
+                            detalleTecnico={medida.detalleTecnico}
+                            sistema={medida.sistema}
+                            telaMarca={medida.telaMarca}
+                            baseTabla={medida.baseTabla}
+                            observacionesTecnicas={medida.observacionesTecnicas}
+                          />
+                        ))}
+                      </Grid>
 
                       {/* Observaciones */}
                       {pieza.observaciones && (
@@ -479,27 +403,28 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
 
                       {/* Botones de acción */}
                       <Grid item xs={12}>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
                           <Button
-                            variant="contained"
-                            startIcon={piezasManager.editandoPieza ? <Save /> : <Add />}
+                            variant="outlined"
+                            color="primary"
+                            startIcon={<Edit />}
                             onClick={() => {
-                              console.log('🔍 DEBUG - Intentando agregar partida');
-                              console.log('🔍 DEBUG - piezaForm completo:', piezasManager.piezaForm);
-                              console.log('🔍 DEBUG - ubicacion:', piezasManager.piezaForm.ubicacion);
-                              console.log('🔍 DEBUG - cantidad:', piezasManager.piezaForm.cantidad);
-                              console.log('🔍 DEBUG - medidas:', piezasManager.piezaForm.medidas);
-                              piezasManager.handleAgregarPieza();
+                              console.log('🔍 DEBUG - Editando partida:', index);
+                              piezasManager.handleEditarPieza(index);
+                              piezasManager.setAgregandoPieza(true);
                             }}
-                            sx={{ bgcolor: '#16A34A', '&:hover': { bgcolor: '#15803D' } }}
                           >
-                            {piezasManager.editandoPieza ? 'Actualizar' : 'Agregar'} Partida
+                            Editar
                           </Button>
                           <Button
-                            size="small"
+                            variant="outlined"
                             color="error"
                             startIcon={<Delete />}
-                            onClick={() => piezasManager.handleEliminarPieza(index)}
+                            onClick={() => {
+                              if (window.confirm('¿Estás seguro de eliminar esta partida?')) {
+                                piezasManager.handleEliminarPieza(index);
+                              }
+                            }}
                           >
                             Eliminar
                           </Button>

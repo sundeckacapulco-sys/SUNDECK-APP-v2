@@ -90,6 +90,9 @@ const usePiezasManager = (params = {}) => {
       const area = unidad === 'cm' ? (ancho * alto) / 10000 : ancho * alto;
 
       return {
+        // CRÍTICO: Preservar TODOS los campos de la medida original
+        ...medida,
+        // Sobrescribir solo los campos calculados
         ancho,
         alto,
         area,

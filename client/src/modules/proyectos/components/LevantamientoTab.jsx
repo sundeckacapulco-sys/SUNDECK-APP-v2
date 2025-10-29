@@ -37,6 +37,8 @@ import AgregarMedidaProyectoModal from './AgregarMedidaProyectoModal';
 import AgregarMedidaPartidasModal from './AgregarMedidaPartidasModal';
 import AgregarEtapaModal from '../../../components/Prospectos/AgregarEtapaModal';
 import axiosConfig from '../../../config/axios';
+import PiezaCard from './PiezaCard';
+import KpiCard from './KpiCard';
 
 const LevantamientoTab = ({ proyecto, onActualizar }) => {
   const [dialogoMedida, setDialogoMedida] = useState(false);
@@ -98,24 +100,58 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
   // Calcular totales
   const calcularTotales = () => {
     if (!proyecto.medidas || proyecto.medidas.length === 0) {
-      return { totalMedidas: 0, areaTotal: 0, totalPiezas: 0 };
+      return { 
+        totalMedidas: 0, 
+        areaTotal: 0, 
+        totalPiezas: 0,
+        totalEstimado: 0,
+        diasEnProceso: 0
+      };
     }
 
     let totalPiezas = 0;
     let areaTotal = 0;
+    let totalEstimado = 0;
 
     proyecto.medidas.forEach(medida => {
-      const cantidad = medida.cantidad || 1;
-      const area = (medida.ancho || 0) * (medida.alto || 0) * cantidad;
-      
-      totalPiezas += cantidad;
-      areaTotal += area;
+      // Para levantamientos con partidas
+      if (medida.tipo === 'levantamiento' && medida.piezas && medida.piezas.length > 0) {
+        medida.piezas.forEach(pieza => {
+          const cantidadPieza = pieza.cantidad || 1;
+          const areaPieza = pieza.areaTotal || 0;
+          const precioPieza = pieza.precioTotal || 0;
+          
+          totalPiezas += cantidadPieza;
+          areaTotal += areaPieza;
+          totalEstimado += precioPieza;
+        });
+      } else {
+        // Para medidas antiguas
+        const cantidad = medida.cantidad || 1;
+        const area = (medida.ancho || 0) * (medida.alto || 0) * cantidad;
+        const precio = (medida.precioM2 || 0) * area;
+        
+        totalPiezas += cantidad;
+        areaTotal += area;
+        totalEstimado += precio;
+      }
     });
+
+    // Calcular días en proceso
+    let diasEnProceso = 0;
+    if (proyecto.createdAt) {
+      const fechaCreacion = new Date(proyecto.createdAt);
+      const fechaActual = new Date();
+      const diferencia = fechaActual - fechaCreacion;
+      diasEnProceso = Math.floor(diferencia / (1000 * 60 * 60 * 24));
+    }
 
     return {
       totalMedidas: proyecto.medidas.length,
       areaTotal: areaTotal.toFixed(2),
-      totalPiezas
+      totalPiezas,
+      totalEstimado: totalEstimado,
+      diasEnProceso
     };
   };
 
@@ -149,48 +185,59 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
 
   return (
     <Box>
-      {/* Resumen del levantamiento */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <StraightenIcon sx={{ fontSize: 40, color: '#D4AF37', mb: 1 }} />
-              <Typography variant="h4" color="primary">
-                {totales.totalMedidas}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Partidas
-              </Typography>
-            </CardContent>
-          </Card>
+      {/* Dashboard de Indicadores */}
+      <Box 
+        sx={{ 
+          bgcolor: 'rgba(248, 250, 252, 1)', // slate-50
+          p: 2,
+          borderRadius: '16px',
+          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+          mb: 3
+        }}
+      >
+        <Grid container spacing={2}>
+          <Grid item xs={6} md={3}>
+            <KpiCard
+              icon="Grid"
+              label="Partidas"
+              value={totales.totalMedidas}
+              tooltip="Número total de partidas en el levantamiento"
+              color="#2196f3"
+              animate={true}
+            />
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <KpiCard
+              icon="Ruler"
+              label="Área Total"
+              value={`${totales.areaTotal} m²`}
+              tooltip="Área total de todas las piezas"
+              color="#4caf50"
+              animate={false}
+            />
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <KpiCard
+              icon="DollarSign"
+              label="Total Estimado"
+              value={`$${totales.totalEstimado?.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`}
+              tooltip="Costo estimado total del proyecto"
+              color="#ff9800"
+              animate={false}
+            />
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <KpiCard
+              icon="Clock"
+              label="Tiempo en Proceso"
+              value={`${totales.diasEnProceso || 0} días`}
+              tooltip="Días transcurridos desde la creación del proyecto"
+              color="#9c27b0"
+              animate={false}
+            />
+          </Grid>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <BuildIcon sx={{ fontSize: 40, color: '#D4AF37', mb: 1 }} />
-              <Typography variant="h4" color="primary">
-                {totales.totalPiezas}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Piezas Total
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <PhotoIcon sx={{ fontSize: 40, color: '#D4AF37', mb: 1 }} />
-              <Typography variant="h4" color="primary">
-                {totales.areaTotal}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                m² Total
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      </Box>
 
       {/* Información general del levantamiento */}
       {proyecto.observaciones && (
@@ -307,13 +354,6 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
                               </Typography>
                             </Grid>
                           )}
-                          {medida.totales && (
-                            <Grid item xs={12} sm={6} md={3}>
-                              <Typography variant="body2">
-                                <strong>Total:</strong> {medida.totales.totalPartidas} partidas, {medida.totales.totalPiezas} piezas, {medida.totales.areaTotal?.toFixed(2)} m²
-                              </Typography>
-                            </Grid>
-                          )}
                         </Grid>
                         {medida.observacionesGenerales && (
                           <Typography variant="body2" sx={{ mt: 1 }}>
@@ -324,174 +364,121 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
 
                       {/* Partidas */}
                       {medida.piezas.map((pieza, piezaIndex) => (
-                        <Accordion key={piezaIndex} sx={{ mb: 1 }}>
-                          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mr: 2 }}>
-                                📍 {pieza.ubicacion}
-                              </Typography>
-                              <Chip
-                                label={pieza.productoLabel || pieza.producto || 'Sin producto'}
-                                size="small"
-                                sx={{ mr: 2 }}
-                              />
-                              <Typography variant="body2" color="text.secondary">
-                                {pieza.cantidad || 1} piezas • {pieza.areaTotal?.toFixed(2) || 0} m²
+                        <Accordion key={piezaIndex} sx={{ mb: 1.5, border: '1px solid rgba(226, 232, 240, 1)', borderRadius: '12px !important', '&:before': { display: 'none' } }}>
+                          <AccordionSummary 
+                            expandIcon={<ExpandMoreIcon />}
+                            sx={{ 
+                              borderRadius: '12px',
+                              '&:hover': { bgcolor: 'rgba(241, 245, 249, 0.5)' }
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', pr: 2 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'rgba(30, 41, 59, 1)' }}>
+                                  📍 {pieza.ubicacion}
+                                </Typography>
+                                <Chip
+                                  label={pieza.productoLabel || pieza.producto || 'Sin producto'}
+                                  size="small"
+                                  sx={{ 
+                                    bgcolor: 'rgba(59, 130, 246, 0.1)', 
+                                    color: 'rgba(37, 99, 235, 1)',
+                                    fontWeight: 600,
+                                    fontSize: '0.75rem'
+                                  }}
+                                />
+                              </Box>
+                              <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600 }}>
+                                {pieza.cantidad || 1} {(pieza.cantidad || 1) === 1 ? 'pieza' : 'piezas'} • {pieza.areaTotal?.toFixed(2) || 0} m²
                               </Typography>
                             </Box>
                           </AccordionSummary>
-                          <AccordionDetails>
-                            {/* Usar el mismo componente que AgregarMedidaPartidasModal */}
+                          <AccordionDetails sx={{ pt: 2 }}>
                             <Grid container spacing={2}>
-                              {/* Especificaciones generales */}
-                              <Grid item xs={12} md={6}>
-                                <Typography variant="subtitle2" gutterBottom>
-                                  📐 Especificaciones
-                                </Typography>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                  <Typography variant="body2">
-                                    <strong>Cantidad:</strong> {pieza.cantidad || 1} piezas
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    <strong>Área total:</strong> {pieza.areaTotal?.toFixed(2) || 0} m²
-                                  </Typography>
-                                  <Typography variant="body2">
-                                    <strong>Color:</strong> {pieza.color || 'No especificado'}
-                                  </Typography>
-                                  {pieza.modeloCodigo && (
-                                    <Typography variant="body2">
-                                      <strong>Modelo/Código:</strong> {pieza.modeloCodigo}
-                                    </Typography>
-                                  )}
-                                </Box>
-                              </Grid>
-
-                              {/* Medidas individuales */}
-                              <Grid item xs={12} md={6}>
-                                <Typography variant="subtitle2" gutterBottom>
-                                  📏 Medidas Individuales
-                                </Typography>
-                                {(pieza.medidas || []).map((medidaIndiv, idx) => (
-                                  <Box key={idx} sx={{ mb: 1, p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
-                                    <Typography variant="body2">
-                                      <strong>Pieza {idx + 1}:</strong> {medidaIndiv.ancho} × {medidaIndiv.alto} m
-                                    </Typography>
-                                    <Typography variant="body2">
-                                      <strong>Producto:</strong> {medidaIndiv.productoLabel || medidaIndiv.producto}
-                                    </Typography>
-                                    <Typography variant="body2">
-                                      <strong>Color:</strong> {medidaIndiv.color}
-                                    </Typography>
-                                  </Box>
-                                ))}
-                              </Grid>
-
-                              {/* Especificaciones Técnicas Completas */}
-                              {pieza.medidas && pieza.medidas[0] && (
-                                <Grid item xs={12}>
-                                  <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold', color: '#2196f3' }}>
-                                    🔧 Especificaciones Técnicas
+                              {/* Especificaciones Generales de la Partida */}
+                              <Grid item xs={12}>
+                                <Box sx={{ 
+                                  bgcolor: 'rgba(241, 245, 249, 1)', 
+                                  p: 2, 
+                                  borderRadius: '8px',
+                                  mb: 2
+                                }}>
+                                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'rgba(100, 116, 139, 1)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', mb: 1 }}>
+                                    📐 Especificaciones Generales
                                   </Typography>
                                   <Grid container spacing={2}>
-                                    {pieza.medidas[0].galeria && (
-                                      <Grid item xs={6} md={4}>
-                                        <Typography variant="body2">
-                                          <strong>Galería/Cabezal:</strong> {
-                                            pieza.medidas[0].galeria === 'galeria' ? 'Galería' :
-                                            pieza.medidas[0].galeria === 'cassette' ? 'Cassette' :
-                                            pieza.medidas[0].galeria === 'cabezal' ? 'Cabezal' :
-                                            pieza.medidas[0].galeria === 'sin_galeria' ? 'Sin Galería' :
-                                            pieza.medidas[0].galeria
-                                          }
+                                    <Grid item xs={6} md={3}>
+                                      <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600, display: 'block' }}>
+                                        Cantidad
+                                      </Typography>
+                                      <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)', fontWeight: 600 }}>
+                                        {pieza.cantidad || 1} {(pieza.cantidad || 1) === 1 ? 'pieza' : 'piezas'}
+                                      </Typography>
+                                    </Grid>
+                                    <Grid item xs={6} md={3}>
+                                      <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600, display: 'block' }}>
+                                        Área Total
+                                      </Typography>
+                                      <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)', fontWeight: 600 }}>
+                                        {pieza.areaTotal?.toFixed(2) || 0} m²
+                                      </Typography>
+                                    </Grid>
+                                    <Grid item xs={6} md={3}>
+                                      <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600, display: 'block' }}>
+                                        Color
+                                      </Typography>
+                                      <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)', fontWeight: 600 }}>
+                                        {pieza.color || 'No especificado'}
+                                      </Typography>
+                                    </Grid>
+                                    {pieza.modeloCodigo && (
+                                      <Grid item xs={6} md={3}>
+                                        <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600, display: 'block' }}>
+                                          Modelo/Código
                                         </Typography>
-                                      </Grid>
-                                    )}
-                                    {pieza.medidas[0].tipoControl && (
-                                      <Grid item xs={6} md={4}>
-                                        <Typography variant="body2">
-                                          <strong>Tipo de Control:</strong> {pieza.medidas[0].tipoControl}
-                                        </Typography>
-                                      </Grid>
-                                    )}
-                                    {pieza.medidas[0].caida && (
-                                      <Grid item xs={6} md={4}>
-                                        <Typography variant="body2">
-                                          <strong>Caída:</strong> {
-                                            pieza.medidas[0].caida === 'normal' ? 'Caída Normal' :
-                                            pieza.medidas[0].caida === 'frente' ? 'Caída hacia el Frente' :
-                                            pieza.medidas[0].caida
-                                          }
-                                        </Typography>
-                                      </Grid>
-                                    )}
-                                    {pieza.medidas[0].tipoInstalacion && (
-                                      <Grid item xs={6} md={4}>
-                                        <Typography variant="body2">
-                                          <strong>Tipo de Instalación:</strong> {pieza.medidas[0].tipoInstalacion}
-                                        </Typography>
-                                      </Grid>
-                                    )}
-                                    {pieza.medidas[0].tipoFijacion && (
-                                      <Grid item xs={6} md={4}>
-                                        <Typography variant="body2">
-                                          <strong>Tipo de Fijación:</strong> {pieza.medidas[0].tipoFijacion}
-                                        </Typography>
-                                      </Grid>
-                                    )}
-                                    {pieza.medidas[0].modoOperacion && (
-                                      <Grid item xs={6} md={4}>
-                                        <Typography variant="body2">
-                                          <strong>Modo de Operación:</strong> {
-                                            pieza.medidas[0].modoOperacion === 'manual' ? 'Manual' :
-                                            pieza.medidas[0].modoOperacion === 'motorizado' ? 'Motorizado' :
-                                            pieza.medidas[0].modoOperacion
-                                          }
-                                        </Typography>
-                                      </Grid>
-                                    )}
-                                    {pieza.medidas[0].detalleTecnico && (
-                                      <Grid item xs={6} md={4}>
-                                        <Typography variant="body2">
-                                          <strong>Detalle Técnico:</strong> {
-                                            pieza.medidas[0].detalleTecnico === 'traslape' ? 'Traslape' :
-                                            pieza.medidas[0].detalleTecnico === 'corte' ? 'Corte' :
-                                            pieza.medidas[0].detalleTecnico === 'sin_traslape' ? 'Sin traslape' :
-                                            pieza.medidas[0].detalleTecnico
-                                          }
-                                        </Typography>
-                                      </Grid>
-                                    )}
-                                    {pieza.medidas[0].sistema && (
-                                      <Grid item xs={6} md={4}>
-                                        <Typography variant="body2">
-                                          <strong>Sistema:</strong> {pieza.medidas[0].sistema}
-                                        </Typography>
-                                      </Grid>
-                                    )}
-                                    {pieza.medidas[0].telaMarca && (
-                                      <Grid item xs={6} md={4}>
-                                        <Typography variant="body2">
-                                          <strong>Tela/Marca:</strong> {pieza.medidas[0].telaMarca}
-                                        </Typography>
-                                      </Grid>
-                                    )}
-                                    {pieza.medidas[0].baseTabla && (
-                                      <Grid item xs={6} md={4}>
-                                        <Typography variant="body2">
-                                          <strong>Base Tabla:</strong> {pieza.medidas[0].baseTabla}
-                                        </Typography>
-                                      </Grid>
-                                    )}
-                                    {pieza.medidas[0].observacionesTecnicas && (
-                                      <Grid item xs={12}>
-                                        <Typography variant="body2">
-                                          <strong>Observaciones Técnicas:</strong> {pieza.medidas[0].observacionesTecnicas}
+                                        <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)', fontWeight: 600 }}>
+                                          {pieza.modeloCodigo}
                                         </Typography>
                                       </Grid>
                                     )}
                                   </Grid>
-                                </Grid>
-                              )}
+                                </Box>
+                              </Grid>
+
+                              {/* Medidas individuales con especificaciones técnicas por pieza */}
+                              <Grid item xs={12}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                                  <Typography variant="subtitle2">
+                                    📏 Medidas Individuales y Especificaciones Técnicas
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600 }}>
+                                    {pieza.cantidad || pieza.medidas?.length || 0} {(pieza.cantidad || pieza.medidas?.length || 0) === 1 ? 'pieza' : 'piezas'} • {((pieza.medidas || []).reduce((sum, m) => sum + (m.area || 0), 0)).toFixed(2)} m² totales
+                                  </Typography>
+                                </Box>
+                                {(pieza.medidas || []).map((medidaIndiv, idx) => (
+                                  <PiezaCard
+                                    key={idx}
+                                    numero={idx + 1}
+                                    ancho={medidaIndiv.ancho}
+                                    alto={medidaIndiv.alto}
+                                    area={medidaIndiv.area || 0}
+                                    producto={medidaIndiv.productoLabel || medidaIndiv.producto}
+                                    color={medidaIndiv.color}
+                                    modeloCodigo={pieza.modeloCodigo}
+                                    galeria={medidaIndiv.galeria}
+                                    tipoControl={medidaIndiv.tipoControl}
+                                    caida={medidaIndiv.caida}
+                                    tipoInstalacion={medidaIndiv.tipoInstalacion}
+                                    tipoFijacion={medidaIndiv.tipoFijacion}
+                                    modoOperacion={medidaIndiv.modoOperacion}
+                                    detalleTecnico={medidaIndiv.detalleTecnico}
+                                    sistema={medidaIndiv.sistema}
+                                    telaMarca={medidaIndiv.telaMarca}
+                                    baseTabla={medidaIndiv.baseTabla}
+                                    observacionesTecnicas={medidaIndiv.observacionesTecnicas}
+                                  />
+                                ))}
+                              </Grid>
 
                               {/* Observaciones de la partida */}
                               {pieza.observaciones && (
