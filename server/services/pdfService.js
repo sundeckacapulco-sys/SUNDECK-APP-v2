@@ -52,6 +52,18 @@ if (!handlebars.helpers.gt) {
   handlebars.registerHelper('gt', (a, b) => a > b);
 }
 
+if (!handlebars.helpers.subtract) {
+  handlebars.registerHelper('subtract', (a, b) => {
+    return (Number(a) || 0) - (Number(b) || 0);
+  });
+}
+
+if (!handlebars.helpers.multiply) {
+  handlebars.registerHelper('multiply', (a, b) => {
+    return (Number(a) || 0) * (Number(b) || 0);
+  });
+}
+
 async function ensurePartialsLoaded() {
   if (partialsLoadingPromise) {
     return partialsLoadingPromise;
@@ -158,7 +170,12 @@ class PDFService {
           '--force-color-profile=srgb',
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding'
+          '--disable-renderer-backgrounding',
+          '--font-render-hinting=none',
+          '--enable-font-antialiasing',
+          '--disable-gpu',
+          '--force-device-scale-factor=1.5',
+          '--high-dpi-support=1'
         ]
       });
       
@@ -408,6 +425,14 @@ class PDFService {
 
     try {
       page = await browser.newPage();
+      
+      // Configurar viewport estándar con buena resolución
+      await page.setViewport({
+        width: 1920,
+        height: 1080,
+        deviceScaleFactor: 1.5
+      });
+      
       await page.setContent(html, { waitUntil: 'networkidle0' });
 
       try {
@@ -419,8 +444,12 @@ class PDFService {
       return await page.pdf({
         format,
         printBackground: true,
-        preferCSSPageSize: true,
-        margin: defaultMargin
+        preferCSSPageSize: false,
+        margin: defaultMargin,
+        scale: 1.0,
+        displayHeaderFooter: false,
+        tagged: true,
+        omitBackground: false
       });
     } finally {
       if (page) {
@@ -442,7 +471,7 @@ class PDFService {
       const [proyecto, cotizacion] = await Promise.all([
         Proyecto.findById(proyectoId).lean(),
         Cotizacion.findById(cotizacionId)
-          .populate('creado_por', 'nombre apellido email telefono telefonoCelular')
+          .populate('elaboradaPor', 'nombre email telefono')
           .lean()
       ]);
 
@@ -549,7 +578,7 @@ class PDFService {
           vigencia: cotizacion.vigencia || '30 días'
         },
         cliente: proyecto?.cliente || {},
-        asesor: cotizacion?.creado_por || {},
+        asesor: cotizacion?.elaboradaPor || {},
         partidas,
         totales,
         precioReglas: cotizacion?.precioReglas || {},

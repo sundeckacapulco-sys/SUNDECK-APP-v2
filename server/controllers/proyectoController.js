@@ -3,6 +3,7 @@ const Prospecto = require('../models/Prospecto');
 const Cotizacion = require('../models/Cotizacion');
 const mongoose = require('mongoose');
 const pdfService = require('../services/pdfService');
+const excelService = require('../services/excelService');
 
 const toNumber = (value, defaultValue = 0) => {
   if (value === null || value === undefined || value === '') {
@@ -71,6 +72,64 @@ const generarPDFProyecto = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al generar el PDF',
+      error: error.message
+    });
+  }
+};
+
+// Generación de Excel para Levantamiento
+const generarExcelLevantamiento = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log(`📊 Generando Excel de levantamiento para proyecto ${id}`);
+
+    // Obtener el proyecto con sus datos
+    const proyecto = await Proyecto.findById(id).populate('prospecto_original');
+    
+    if (!proyecto) {
+      return res.status(404).json({
+        success: false,
+        message: 'Proyecto no encontrado'
+      });
+    }
+
+    // Obtener datos del levantamiento
+    const partidas = proyecto.levantamiento?.partidas || [];
+    const prospecto = proyecto.prospecto_original || proyecto.cliente || {};
+    const precioGeneral = proyecto.levantamiento?.precioGeneral || 0;
+    const totalM2 = proyecto.levantamiento?.totalM2 || 0;
+    const unidadMedida = proyecto.levantamiento?.unidadMedida || 'm';
+
+    // Generar Excel usando el servicio
+    const excelBuffer = await excelService.generarLevantamientoExcel(
+      prospecto,
+      partidas,
+      precioGeneral,
+      totalM2,
+      unidadMedida,
+      'levantamiento' // tipo de visita
+    );
+
+    console.log('📊 AUDIT: EXCEL_GENERADO', {
+      proyectoId: id,
+      tipo: 'levantamiento',
+      usuario: req.usuario?.id,
+      fecha: new Date()
+    });
+
+    const clienteNombre = prospecto?.nombre || proyecto.cliente?.nombre || id;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Levantamiento-${clienteNombre}.xlsx"`
+    );
+    res.send(excelBuffer);
+  } catch (error) {
+    console.error('❌ Error generando Excel:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al generar el Excel',
       error: error.message
     });
   }
@@ -1278,5 +1337,6 @@ module.exports = {
   obtenerEstadisticasProyecto,
   guardarLevantamiento,
   crearCotizacionDesdeProyecto,
-  generarPDFProyecto
+  generarPDFProyecto,
+  generarExcelLevantamiento
 };

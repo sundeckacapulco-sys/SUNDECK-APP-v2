@@ -4,352 +4,317 @@
   <meta charset="UTF-8">
   <title>Cotización {{documento.numero}}</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      font-size: 10pt;
-      color: #1e293b;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11px;
+      color: #1a1a1a;
       line-height: 1.5;
-      padding: 24px 32px 40px;
+      padding: 0;
+      margin: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
-
-    h1, h2, h3 {
-      font-weight: 600;
-      color: #0ea5e9;
-    }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      border-bottom: 3px solid #0ea5e9;
-      padding-bottom: 16px;
-      margin-bottom: 20px;
-    }
-
-    .header-left {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-    }
-
-    .logo {
-      width: 140px;
-      height: auto;
-    }
-
-    .empresa-texto h1 {
-      font-size: 18pt;
-      color: #0ea5e9;
-      margin-bottom: 4px;
-    }
-
-    .empresa-texto p {
-      color: #475569;
-      font-size: 9pt;
-    }
-
-    .header-right {
-      text-align: right;
-      font-size: 9pt;
-      color: #475569;
-    }
-
-    .documento-tipo {
-      font-size: 10pt;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #0ea5e9;
-      margin-bottom: 4px;
-    }
-
-    .documento-info {
-      background-color: #f1f5f9;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 18px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-    }
-
-    .documento-info p {
-      font-size: 9pt;
-      color: #334155;
-    }
-
-    .cliente-info {
-      margin-bottom: 24px;
-      padding: 16px;
-      background: #fef3c7;
-      border-left: 4px solid #f59e0b;
-      border-radius: 4px;
-    }
-
-    .cliente-info h3 {
-      color: #b45309;
-      margin-bottom: 8px;
-    }
-
-    .cliente-info p {
-      font-size: 9pt;
-      color: #1f2937;
-    }
-
-    .partida {
-      margin-bottom: 28px;
-      page-break-inside: avoid;
-    }
-
-    .partida h2 {
-      font-size: 13pt;
-      color: #0f172a;
-      margin-bottom: 12px;
-    }
-
-    .especificaciones-generales {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 12px;
-      background: #f8fafc;
-      padding: 12px;
-      border-radius: 6px;
-      margin-bottom: 12px;
-    }
-
-    .spec-item {
-      text-align: center;
-    }
-
-    .spec-label {
-      font-size: 8pt;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .spec-value {
-      font-size: 12pt;
-      font-weight: 600;
-      color: #1e293b;
-    }
-
-    .tabla-piezas {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      margin-bottom: 14px;
-      font-size: 9pt;
-    }
-
-    .tabla-piezas th {
-      background: #0ea5e9;
-      color: #fff;
-      padding: 8px;
-      text-align: left;
-    }
-
-    .tabla-piezas td {
-      border-bottom: 1px solid #e2e8f0;
-      padding: 6px 8px;
-      color: #1f2937;
-    }
-
-    .tabla-piezas tr:nth-child(even) {
-      background: #f8fafc;
-    }
-
-    .tabla-vacia {
-      text-align: center;
-      color: #94a3b8;
-      font-style: italic;
-    }
-
-    .seccion-resaltada {
-      padding: 12px;
-      border-radius: 6px;
-      margin-top: 10px;
-      font-size: 9pt;
-    }
-
-    .motorizacion {
-      background: #fef3c7;
-      border-left: 4px solid #f59e0b;
-    }
-
-    .instalacion {
-      background: #dbeafe;
-      border-left: 4px solid #3b82f6;
-    }
-
-    .totales {
-      margin-top: 24px;
-      width: 280px;
-      margin-left: auto;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .total-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 14px;
-      font-size: 10pt;
-      border-bottom: 1px solid #e2e8f0;
-      background: #fff;
-    }
-
-    .total-row span:first-child {
-      color: #475569;
-    }
-
-    .total-row span:last-child {
-      font-weight: 600;
-      color: #0f172a;
-    }
-
-    .total-row.final {
-      background: #0ea5e9;
-      color: #fff;
-      font-weight: 700;
-    }
-
-    .condiciones {
-      margin-top: 36px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 16px 20px;
-      font-size: 9pt;
-    }
-
-    .condiciones h3 {
-      color: #0f172a;
-      margin-bottom: 10px;
-    }
-
-    .condiciones ul {
-      margin-left: 18px;
-    }
-
-    .condiciones li {
-      margin-bottom: 6px;
-      color: #334155;
-    }
-
-    .observaciones {
-      margin-top: 18px;
-      padding: 12px;
-      background: #fff7ed;
-      border-left: 4px solid #f97316;
-      border-radius: 4px;
-      font-size: 9pt;
-    }
-
-    .footer {
-      margin-top: 32px;
-      text-align: center;
-      font-size: 8pt;
-      color: #64748b;
-      border-top: 1px solid #e2e8f0;
-      padding-top: 14px;
-    }
-
-    .page-break {
-      page-break-after: always;
-    }
+    table { border-collapse: collapse; width: 100%; }
+    a { color: inherit; text-decoration: none; }
   </style>
 </head>
 <body>
-  {{> header empresa=empresa documento=documento asesor=asesor}}
 
-  <div class="documento-info">
-    <p><strong>Documento:</strong> {{documento.numero}}</p>
-    <p><strong>Fecha:</strong> {{formatDate documento.fecha}}</p>
-    <p><strong>Vigencia:</strong> {{documento.vigencia}}</p>
-    {{#if asesor.email}}
-      <p><strong>Contacto:</strong> {{asesor.email}}</p>
-    {{/if}}
+  <!-- HEADER ULTRA COMPACTO -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(90deg,#1e3a8a,#2563eb);color:white;margin:0;padding:0;">
+    <tr>
+      <td style="padding:12px 28px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="28%" align="left" valign="middle">
+              {{#if empresa.logo}}
+                <table cellpadding="0" cellspacing="0" style="background:white;border-radius:8px;padding:10px 20px;">
+                  <tr>
+                    <td>
+                      <img src="{{empresa.logo}}" alt="Sundeck" style="height:65px;width:auto;display:block;">
+                    </td>
+                  </tr>
+                </table>
+              {{else}}
+                <table cellpadding="0" cellspacing="0" style="background:white;border-radius:8px;padding:10px 20px;">
+                  <tr>
+                    <td>
+                      <strong style="color:#2563eb;font-size:16px;font-weight:bold;display:block;">SUNDECK</strong>
+                    </td>
+                  </tr>
+                </table>
+              {{/if}}
+            </td>
+            <td width="72%" align="right" valign="middle" style="font-size:11px;line-height:1.6;padding-left:20px;">
+              <strong style="font-size:16px;display:block;margin-bottom:4px;">Sundeck Persianas y Decoraciones</strong>
+              <span style="font-style:italic;font-size:10px;display:block;margin-bottom:6px;">Gracias por confiar en nosotros. Sundeck: tu espacio, nuestro compromiso.</span>
+              <span style="font-size:10.5px;">
+                📍 Almirante Damián Churruca 5, Fracc. Costa Azul, Acapulco, Gro.<br>
+                📞 <a href="tel:+527444334126" style="color:white;">744-433-4126</a> &nbsp;|&nbsp;
+                🟢 <a href="https://wa.me/527444522540" style="color:white;">WhatsApp: 744-452-2540</a><br>
+                🌐 <a href="https://www.sundeckcortinasypersianas.com/" style="color:white;">www.sundeckcortinasypersianas.com</a><br>
+                📧 <a href="mailto:sac@sundeckcyp.com" style="color:white;">sac@sundeckcyp.com</a> &nbsp;|&nbsp;
+                📸 <a href="https://www.instagram.com/sundeck_oficial/" style="color:white;">@sundeck_oficial</a>
+              </span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- BANDA DE METADATOS ULTRA COMPACTA -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;border-top:3px solid #D4AF37;margin:0 0 12px 0;padding:0;">
+    <tr>
+      <td style="padding:6px 28px;">
+        <table width="100%" cellpadding="4" cellspacing="0">
+          <tr style="text-align:center;font-size:10px;color:#111827;">
+            <td width="25%">
+              <strong style="display:block;font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">COTIZACIÓN</strong>
+              <span style="font-weight:700;font-size:10.5px;">{{documento.numero}}</span>
+            </td>
+            <td width="25%">
+              <strong style="display:block;font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">FECHA</strong>
+              <span style="font-weight:700;font-size:10.5px;">{{formatDate documento.fecha}}</span>
+            </td>
+            <td width="25%">
+              <strong style="display:block;font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">VIGENCIA</strong>
+              <span style="font-weight:700;font-size:10.5px;">{{documento.vigencia}}</span>
+            </td>
+            <td width="25%">
+              <strong style="display:block;font-size:8px;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:2px;">ELABORADA POR</strong>
+              <span style="font-weight:700;font-size:10.5px;">{{asesor.nombre}}</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div style="padding:0 28px;">
+
+  <!-- CLIENTE -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border-left:4px solid #3b82f6;border-radius:6px;margin-bottom:12px;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <strong style="color:#1e40af;font-size:12px;display:block;margin-bottom:10px;">👤 Información del Cliente</strong>
+        <table width="100%" cellpadding="4" cellspacing="0" style="font-size:10.5px;color:#475569;">
+          <tr>
+            <td width="50%"><strong style="color:#1e293b;">Nombre:</strong> {{cliente.nombre}}</td>
+            <td width="50%"><strong style="color:#1e293b;">Teléfono:</strong> {{cliente.telefono}}</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#1e293b;">Email:</strong> {{cliente.correo}}</td>
+            <td><strong style="color:#1e293b;">Dirección:</strong> {{cliente.direccion}}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- PRODUCTOS -->
+  <strong style="color:#1e40af;font-size:12px;display:block;margin-bottom:8px;">🛍️ Productos Cotizados</strong>
+  
+  <table width="100%" cellpadding="8" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:6px;margin-bottom:16px;font-size:10px;">
+    <thead>
+      <tr style="background:#1e40af;color:white;">
+        <th style="padding:12px 10px;text-align:left;font-size:9px;text-transform:uppercase;font-weight:700;">DESCRIPCIÓN</th>
+        <th style="padding:12px 10px;text-align:center;font-size:9px;text-transform:uppercase;font-weight:700;">MEDIDAS</th>
+        <th style="padding:12px 10px;text-align:center;font-size:9px;text-transform:uppercase;font-weight:700;">ÁREA (m²)</th>
+        <th style="padding:12px 10px;text-align:center;font-size:9px;text-transform:uppercase;font-weight:700;">PRECIO UNIT.</th>
+        <th style="padding:12px 10px;text-align:center;font-size:9px;text-transform:uppercase;font-weight:700;">CANT.</th>
+        <th style="padding:12px 10px;text-align:center;font-size:9px;text-transform:uppercase;font-weight:700;">SUBTOTAL</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each partidas}}
+        <tr style="border-bottom:1px solid #e2e8f0;">
+          <td style="padding:12px 10px;">
+            <strong style="color:#1e293b;display:block;margin-bottom:4px;">{{this.ubicacion}} - {{this.producto}}</strong>
+            <span style="font-size:9px;color:#64748b;">
+              {{#if this.color}}🎨 Color: {{this.color}}{{/if}}
+              {{#if this.modelo}} | 📋 Modelo: {{this.modelo}}{{/if}}
+              {{#if this.motorizacion.activa}}<br>⚡ Motorizado: {{this.motorizacion.modeloMotor}}{{/if}}
+            </span>
+          </td>
+          <td style="padding:12px 10px;text-align:center;font-size:9.5px;">
+            {{#each this.piezas}}
+              {{this.ancho}}m × {{this.alto}}m<br>
+            {{/each}}
+          </td>
+          <td style="padding:12px 10px;text-align:center;font-weight:600;">{{formatNumber this.totales.m2 2}} m²</td>
+          <td style="padding:12px 10px;text-align:center;">{{formatCurrency this.precioM2}}</td>
+          <td style="padding:12px 10px;text-align:center;font-weight:600;">{{this.cantidad}}</td>
+          <td style="padding:12px 10px;text-align:center;font-weight:700;color:#1e40af;">{{formatCurrency this.totales.subtotal}}</td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <!-- TOTALES -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+    <tr>
+      <td width="60%" valign="top">
+        <!-- Términos rápidos -->
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px;margin-right:10px;">
+          <strong style="color:#15803d;font-size:11px;display:block;margin-bottom:8px;">💰 Condiciones de Pago</strong>
+          <ul style="margin:0;padding-left:18px;font-size:9.5px;color:#166534;line-height:1.6;">
+            <li>Anticipo del 60% al confirmar pedido</li>
+            <li>Saldo del 40% contra entrega</li>
+            <li>Productos antihuracán: 70% de anticipo</li>
+          </ul>
+        </div>
+      </td>
+      <td width="40%" valign="top">
+        <!-- Resumen -->
+        <table width="100%" cellpadding="8" cellspacing="0" style="border:2px solid #e5e7eb;border-radius:8px;font-size:10.5px;">
+          <tr>
+            <td colspan="2" style="background:#1e40af;color:white;padding:10px;text-align:center;font-weight:700;border-radius:6px 6px 0 0;">
+              📊 RESUMEN DE COSTOS
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 12px;color:#475569;">Subtotal:</td>
+            <td style="padding:8px 12px;text-align:right;font-weight:600;">{{formatCurrency totales.subtotal}}</td>
+          </tr>
+          {{#if totales.descuento}}
+          <tr>
+            <td style="padding:8px 12px;color:#475569;">Descuento:</td>
+            <td style="padding:8px 12px;text-align:right;font-weight:600;color:#ef4444;">-{{formatCurrency totales.descuento}}</td>
+          </tr>
+          {{/if}}
+          {{#if facturacion.requiere}}
+          <tr>
+            <td style="padding:8px 12px;color:#475569;">IVA (16%):</td>
+            <td style="padding:8px 12px;text-align:right;font-weight:600;">{{formatCurrency totales.iva}}</td>
+          </tr>
+          {{/if}}
+          <tr style="background:#fef3c7;">
+            <td style="padding:10px 12px;font-weight:700;color:#92400e;">TOTAL:</td>
+            <td style="padding:10px 12px;text-align:right;font-weight:700;font-size:13px;color:#92400e;">{{formatCurrency totales.total}}</td>
+          </tr>
+          <tr style="background:#f0fdf4;">
+            <td style="padding:8px 12px;color:#166534;">Anticipo (60%):</td>
+            <td style="padding:8px 12px;text-align:right;font-weight:700;color:#166534;">{{formatCurrency (multiply totales.total 0.6)}}</td>
+          </tr>
+          <tr style="background:#f0fdf4;">
+            <td style="padding:8px 12px;color:#166534;">Saldo (40%):</td>
+            <td style="padding:8px 12px;text-align:right;font-weight:700;color:#166534;">{{formatCurrency (multiply totales.total 0.4)}}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
   </div>
+  <!-- FIN CONTENEDOR PRINCIPAL -->
 
-  <div class="cliente-info">
-    <h3>Cliente</h3>
-    <p><strong>{{cliente.nombre}}</strong></p>
-    {{#if cliente.telefono}}<p>Tel: {{cliente.telefono}}</p>{{/if}}
-    {{#if cliente.email}}<p>Email: {{cliente.email}}</p>{{/if}}
-    {{#if cliente.direccion}}<p>Dirección: {{cliente.direccion}}</p>{{/if}}
-  </div>
+  <!-- SALTO DE PÁGINA ANTES DE TÉRMINOS -->
+  <div style="page-break-before:always;"></div>
 
-  {{#each partidas}}
-    <div class="partida">
-      <h2>Partida {{numero}} · {{ubicacion}}</h2>
-      <div class="especificaciones-generales">
-        <div class="spec-item">
-          <div class="spec-label">Cantidad</div>
-          <div class="spec-value">{{cantidad}} pzas</div>
-        </div>
-        <div class="spec-item">
-          <div class="spec-label">Área Total</div>
-          <div class="spec-value">{{formatNumber especificaciones.m2Total}} m²</div>
-        </div>
-        <div class="spec-item">
-          <div class="spec-label">Color</div>
-          <div class="spec-value">{{especificaciones.color}}</div>
-        </div>
-        <div class="spec-item">
-          <div class="spec-label">Modelo</div>
-          <div class="spec-value">{{especificaciones.modelo}}</div>
-        </div>
-      </div>
-
-      {{> tablaPiezas piezas=piezas incluirObservaciones=true}}
-
-      {{#if motorizacion}}
-        <div class="seccion-resaltada motorizacion">
-          <strong>Motorización:</strong>
-          <p>Modelo: {{motorizacion.modelo}} · Cantidad: {{motorizacion.cantidad}}</p>
-          <p>Motor: {{formatCurrency motorizacion.precio}} · Control: {{motorizacion.control}} ({{formatCurrency motorizacion.precioControl}})</p>
-          <p>Total motorización: {{formatCurrency motorizacion.total}}</p>
-        </div>
-      {{/if}}
-
-      {{#if instalacion}}
-        <div class="seccion-resaltada instalacion">
-          <strong>Instalación especial:</strong>
-          <p>Tipo: {{instalacion.tipo}}</p>
-          <p>Total instalación: {{formatCurrency instalacion.total}}</p>
-        </div>
-      {{/if}}
+  <!-- TÉRMINOS COMERCIALES COMPLETOS - SIEMPRE EN PÁGINA FINAL -->
+  <div style="padding:20px 28px 0 28px;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <strong style="color:#1e40af;font-size:14px;">📋 TÉRMINOS COMERCIALES</strong>
     </div>
-  {{/each}}
+    
+    <!-- FILA 1: Plazos de Entrega | Instalación -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px;">
+      <tr>
+        <td width="50%" valign="top" style="padding-right:8px;">
+          <div style="background:#f8fafc;border-left:4px solid #3b82f6;padding:14px;border-radius:6px;height:100%;min-height:120px;">
+            <strong style="color:#1e40af;font-size:11px;display:block;margin-bottom:8px;">⏰ Plazos de Entrega</strong>
+            <ul style="margin:0 0 8px 0;padding-left:18px;font-size:10px;color:#475569;line-height:1.7;">
+              <li>Fabricación: 15-20 días hábiles</li>
+              <li>Instalación: 1-2 días hábiles</li>
+              <li>Productos antihuracán: 6-8 semanas</li>
+            </ul>
+            <p style="margin:0;font-size:9px;color:#475569;line-height:1.6;font-style:italic;">🚪 Accesos y Condiciones del Sitio: El cliente deberá asegurar que el área de trabajo esté libre y accesible el día de la instalación. Si existen restricciones de acceso, desniveles, o condiciones fuera del alcance normal, se coordinarán nuevos tiempos o adaptaciones previo aviso.</p>
+          </div>
+        </td>
+        <td width="50%" valign="top" style="padding-left:8px;">
+          <div style="background:#f8fafc;border-left:4px solid #3b82f6;padding:14px;border-radius:6px;height:100%;min-height:120px;">
+            <strong style="color:#1e40af;font-size:11px;display:block;margin-bottom:8px;">📋 Instalación</strong>
+            <p style="margin:0 0 8px 0;font-size:10px;color:#475569;line-height:1.7;">Incluye instalación profesional con personal capacitado. No incluye trabajos de albañilería, electricidad o herrería adicionales.</p>
+            <p style="margin:0;font-size:9.5px;color:#475569;line-height:1.7;font-style:italic;">En caso de detectarse desniveles, irregularidades en muros, techos o superficies, o cualquier condición que modifique el punto de fijación o el proceso de montaje, se informará al cliente antes de continuar. Estas condiciones pueden afectar el tiempo estimado de instalación y, si requieren materiales o adaptaciones adicionales, podrán generar costos extra previamente autorizados.</p>
+          </div>
+        </td>
+      </tr>
+    </table>
 
-  {{> totales totales=totales precioReglas=precioReglas facturacion=facturacion}}
+    <!-- FILA 2: Cambios y Devoluciones | Mantenimiento -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      <tr>
+        <td width="50%" valign="top" style="padding-right:10px;">
+          <div style="background:#f8fafc;border-left:4px solid #3b82f6;padding:20px 16px;border-radius:6px;height:100%;min-height:100px;">
+            <strong style="color:#1e40af;font-size:11px;display:block;margin-bottom:10px;">🔄 Cambios y Devoluciones</strong>
+            <p style="margin:0;font-size:10px;color:#475569;line-height:1.8;">Los productos son fabricados a medida. No se aceptan cambios ni devoluciones una vez iniciada la fabricación.</p>
+          </div>
+        </td>
+        <td width="50%" valign="top" style="padding-left:10px;">
+          <div style="background:#f8fafc;border-left:4px solid #3b82f6;padding:20px 16px;border-radius:6px;height:100%;min-height:100px;">
+            <strong style="color:#1e40af;font-size:11px;display:block;margin-bottom:10px;">🛠️ Mantenimiento</strong>
+            <p style="margin:0;font-size:10px;color:#475569;line-height:1.8;">Incluye 1 año de servicio de mantenimiento preventivo sin costo (aplica términos y condiciones).</p>
+          </div>
+        </td>
+      </tr>
+    </table>
 
-  <div class="condiciones">
-    <h3>Condiciones Comerciales</h3>
-    <ul>
-      <li><strong>Anticipo:</strong> {{condiciones.anticipo}}</li>
-      <li><strong>Liquidación:</strong> {{condiciones.liquidacion}}</li>
-      <li><strong>Productos Antihuracán:</strong> {{condiciones.antihuracán}}</li>
-      <li><strong>Garantía:</strong> {{condiciones.garantia}}</li>
-      <li><strong>Instalación:</strong> {{condiciones.instalacion}}</li>
-      <li><strong>Tiempo de entrega:</strong> {{condiciones.tiempoEntrega}}</li>
-    </ul>
+    <!-- Garantías -->
+    <div style="background:#fef3c7;border:3px solid #f59e0b;border-radius:10px;padding:24px 20px;margin-bottom:20px;">
+      <strong style="color:#92400e;font-size:12px;display:block;margin-bottom:18px;text-align:center;">🛡️ Garantías</strong>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr style="text-align:center;font-size:10px;">
+          <td width="33%" style="padding:0 10px;">
+            <div style="background:white;border-radius:8px;padding:18px 14px;min-height:80px;display:flex;flex-direction:column;justify-content:center;">
+              <strong style="color:#92400e;display:block;margin-bottom:8px;font-size:11px;">Motores</strong>
+              <span style="color:#78716c;font-size:10px;">5 años</span>
+            </div>
+          </td>
+          <td width="33%" style="padding:0 10px;">
+            <div style="background:white;border-radius:8px;padding:18px 14px;min-height:80px;display:flex;flex-direction:column;justify-content:center;">
+              <strong style="color:#92400e;display:block;margin-bottom:8px;font-size:11px;">Telas y Materiales</strong>
+              <span style="color:#78716c;font-size:10px;">3 años</span>
+            </div>
+          </td>
+          <td width="33%" style="padding:0 10px;">
+            <div style="background:white;border-radius:8px;padding:18px 14px;min-height:80px;display:flex;flex-direction:column;justify-content:center;">
+              <strong style="color:#92400e;display:block;margin-bottom:8px;font-size:11px;">Instalación</strong>
+              <span style="color:#78716c;font-size:10px;">1 año</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
 
-    {{#if observaciones}}
-      <div class="observaciones">
-        <strong>Observaciones:</strong>
-        <p>{{observaciones}}</p>
-      </div>
-    {{/if}}
+    <!-- Advertencia Importante -->
+    <div style="background:#fef2f2;border:3px solid #ef4444;border-radius:10px;padding:20px;">
+      <strong style="color:#dc2626;font-size:12px;display:block;margin-bottom:12px;">⚠️ IMPORTANTE: PRODUCTOS A MEDIDA</strong>
+      <p style="margin:0 0 12px 0;font-size:10px;color:#991b1b;line-height:1.7;font-weight:700;">Esta cotización NO representa un pedido. Es necesario confirmar el pedido y realizar el anticipo para iniciar la fabricación.</p>
+      <p style="margin:0 0 12px 0;font-size:10px;color:#991b1b;line-height:1.7;">Esta cotización es para productos fabricados a medida según las especificaciones del cliente.</p>
+      <ul style="margin:0;padding-left:20px;font-size:10px;color:#991b1b;line-height:1.8;">
+        <li style="margin-bottom:6px;">Las medidas deben ser verificadas por nuestro personal técnico antes de fabricar.</li>
+        <li style="margin-bottom:6px;">Una vez confirmado el pedido y realizado el anticipo, no se aceptan cancelaciones.</li>
+        <li style="margin-bottom:6px;">Los colores pueden variar ligeramente respecto a las muestras debido al proceso de fabricación.</li>
+        <li>El tiempo de entrega comienza a partir de la confirmación del anticipo.</li>
+      </ul>
+    </div>
   </div>
 
-  {{> footer empresa=empresa documento=documento}}
+  <!-- FOOTER -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(90deg,#1e3a8a,#2563eb);color:white;border-radius:8px;margin-top:24px;">
+    <tr>
+      <td style="padding:16px 20px;text-align:center;">
+        <span style="font-size:10px;line-height:1.6;">
+          📍 Almirante Damián Churruca 5, Fracc. Costa Azul, Acapulco, Gro. &nbsp;|&nbsp;
+          📞 <a href="tel:+527444334126" style="color:white;text-decoration:none;">744-433-4126</a> &nbsp;|&nbsp;
+          📧 <a href="mailto:sac@sundeckcyp.com" style="color:white;text-decoration:none;">sac@sundeckcyp.com</a>
+        </span>
+      </td>
+    </tr>
+  </table>
+
 </body>
 </html>

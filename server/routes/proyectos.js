@@ -18,7 +18,8 @@ const {
   obtenerEstadisticasProyecto,
   guardarLevantamiento,
   crearCotizacionDesdeProyecto,
-  generarPDFProyecto
+  generarPDFProyecto,
+  generarExcelLevantamiento
 } = require('../controllers/proyectoController');
 
 const router = express.Router();
@@ -104,6 +105,13 @@ router.get('/:id/generar-pdf',
   auth,
   verificarPermiso('proyectos', 'leer'),
   generarPDFProyecto
+);
+
+// GET /api/proyectos/:id/generar-excel - Generar Excel de levantamiento
+router.get('/:id/generar-excel',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
+  generarExcelLevantamiento
 );
 
 // FASE 4: PATCH /api/proyectos/:id/levantamiento - Guardar levantamiento técnico
