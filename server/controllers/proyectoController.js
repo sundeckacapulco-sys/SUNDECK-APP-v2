@@ -2,6 +2,7 @@ const Proyecto = require('../models/Proyecto');
 const Prospecto = require('../models/Prospecto');
 const Cotizacion = require('../models/Cotizacion');
 const mongoose = require('mongoose');
+const pdfService = require('../services/pdfService');
 
 const toNumber = (value, defaultValue = 0) => {
   if (value === null || value === undefined || value === '') {
@@ -15,6 +16,64 @@ const toNumber = (value, defaultValue = 0) => {
 const roundNumber = (value, decimals = 2) => {
   const factor = 10 ** decimals;
   return Math.round(toNumber(value) * factor) / factor;
+};
+
+// FASE 5: Generación de PDF
+const generarPDFProyecto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tipo, documentoId } = req.query;
+
+    if (!tipo) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debes especificar el tipo de documento a generar.'
+      });
+    }
+
+    console.log(`📄 Generando PDF de ${tipo} para proyecto ${id}`);
+
+    let pdfBuffer;
+
+    if (tipo === 'cotizacion') {
+      if (!documentoId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Se requiere el ID de la cotización para generar el PDF.'
+        });
+      }
+      pdfBuffer = await pdfService.generarPDFCotizacion(id, documentoId);
+    } else if (tipo === 'levantamiento') {
+      pdfBuffer = await pdfService.generarPDFLevantamiento(id);
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Tipo de documento no válido'
+      });
+    }
+
+    console.log('📊 AUDIT: PDF_GENERADO', {
+      proyectoId: id,
+      tipo,
+      documentoId: documentoId || null,
+      usuario: req.usuario?.id,
+      fecha: new Date()
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${tipo}-${id}.pdf"`
+    );
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('❌ Error generando PDF:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al generar el PDF',
+      error: error.message
+    });
+  }
 };
 
 const normalizarPartidas = (partidas = [], { incluirPrecios = false } = {}) => {
@@ -1218,5 +1277,6 @@ module.exports = {
   sincronizarProyecto,
   obtenerEstadisticasProyecto,
   guardarLevantamiento,
-  crearCotizacionDesdeProyecto
+  crearCotizacionDesdeProyecto,
+  generarPDFProyecto
 };

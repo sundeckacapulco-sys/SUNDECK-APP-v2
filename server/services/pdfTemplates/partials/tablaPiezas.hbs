@@ -1,0 +1,42 @@
+<table class="tabla-piezas">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Ancho</th>
+      <th>Alto</th>
+      <th>m²</th>
+      <th>Sistema</th>
+      <th>Control</th>
+      <th>Instalación</th>
+      <th>Galería</th>
+      <th>Operación</th>
+      {{#if incluirObservaciones}}<th>Observaciones</th>{{/if}}
+    </tr>
+  </thead>
+  <tbody>
+    {{#if piezas.length}}
+      {{#each piezas}}
+        <tr>
+          <td>{{numero}}</td>
+          <td>{{formatNumber ancho}}</td>
+          <td>{{formatNumber alto}}</td>
+          <td>{{formatNumber m2}}</td>
+          <td>{{sistema}}</td>
+          <td>{{control}}</td>
+          <td>{{instalacion}}</td>
+          <td>{{galeria}}</td>
+          <td>{{operacion}}</td>
+          {{#if ../incluirObservaciones}}
+            <td>{{observaciones}}</td>
+          {{/if}}
+        </tr>
+      {{/each}}
+    {{else}}
+      <tr>
+        <td colspan="{{#if incluirObservaciones}}10{{else}}9{{/if}}" class="tabla-vacia">
+          Sin piezas registradas
+        </td>
+      </tr>
+    {{/if}}
+  </tbody>
+</table>

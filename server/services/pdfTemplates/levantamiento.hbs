@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Levantamiento {{documento.numero}}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 10pt;
+      color: #1f2937;
+      line-height: 1.5;
+      padding: 24px 32px 40px;
+    }
+
+    h2 {
+      color: #0ea5e9;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .header {
+      margin-bottom: 18px;
+    }
+
+    .documento-info {
+      background: #eff6ff;
+      padding: 14px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      font-size: 9pt;
+    }
+
+    .cliente-info {
+      margin-bottom: 18px;
+      padding: 14px;
+      border-radius: 6px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+
+    .cliente-info h3 {
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .resumen-proyecto {
+      margin-bottom: 22px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .resumen-card {
+      flex: 1 1 160px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .resumen-label {
+      font-size: 8pt;
+      text-transform: uppercase;
+      color: #64748b;
+      letter-spacing: 0.5px;
+    }
+
+    .resumen-value {
+      font-size: 14pt;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .partida {
+      margin-bottom: 26px;
+      page-break-inside: avoid;
+    }
+
+    .partida h2 {
+      font-size: 12pt;
+      color: #0f172a;
+    }
+
+    .especificaciones-generales {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 6px;
+      margin: 10px 0;
+    }
+
+    .spec-item {
+      text-align: center;
+    }
+
+    .spec-label {
+      font-size: 8pt;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    .spec-value {
+      font-size: 11pt;
+      font-weight: 600;
+    }
+
+    .tabla-piezas {
+      margin-top: 6px;
+      margin-bottom: 12px;
+    }
+
+    .nota-seccion {
+      font-size: 9pt;
+      background: #fff7ed;
+      border-left: 4px solid #fb923c;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+
+    .observaciones-generales {
+      margin-top: 24px;
+      padding: 14px;
+      background: #fef2f2;
+      border-left: 4px solid #ef4444;
+      border-radius: 6px;
+      font-size: 9pt;
+    }
+
+    .footer {
+      margin-top: 30px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 12px;
+      text-align: center;
+      font-size: 8pt;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  {{> header empresa=empresa documento=documento asesor=asesor}}
+
+  <div class="documento-info">
+    <p><strong>Documento:</strong> {{documento.numero}}</p>
+    <p><strong>Fecha:</strong> {{formatDate documento.fecha}}</p>
+    {{#if personaVisita}}<p><strong>Levantó:</strong> {{personaVisita}}</p>{{/if}}
+    <p><strong>Total piezas:</strong> {{totales.piezas}}</p>
+    <p><strong>Total m²:</strong> {{formatNumber totales.m2}}</p>
+  </div>
+
+  <div class="cliente-info">
+    <h3>Cliente</h3>
+    <p><strong>{{cliente.nombre}}</strong></p>
+    {{#if cliente.telefono}}<p>Tel: {{cliente.telefono}}</p>{{/if}}
+    {{#if cliente.email}}<p>Email: {{cliente.email}}</p>{{/if}}
+    {{#if cliente.direccion}}<p>Dirección: {{cliente.direccion}}</p>{{/if}}
+  </div>
+
+  <div class="resumen-proyecto">
+    <div class="resumen-card">
+      <div class="resumen-label">Partidas</div>
+      <div class="resumen-value">{{partidas.length}}</div>
+    </div>
+    <div class="resumen-card">
+      <div class="resumen-label">Total piezas</div>
+      <div class="resumen-value">{{totales.piezas}}</div>
+    </div>
+    <div class="resumen-card">
+      <div class="resumen-label">Área total</div>
+      <div class="resumen-value">{{formatNumber totales.m2}} m²</div>
+    </div>
+  </div>
+
+  {{#each partidas}}
+    <div class="partida">
+      <h2>Partida {{numero}} · {{ubicacion}}</h2>
+      <div class="especificaciones-generales">
+        <div class="spec-item">
+          <div class="spec-label">Producto</div>
+          <div class="spec-value">{{producto}}</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Cantidad</div>
+          <div class="spec-value">{{cantidad}} pzas</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Área total</div>
+          <div class="spec-value">{{formatNumber especificaciones.m2Total}} m²</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Color</div>
+          <div class="spec-value">{{especificaciones.color}}</div>
+        </div>
+      </div>
+
+      {{> tablaPiezas piezas=piezas incluirObservaciones=true}}
+
+      {{#if motorizacion}}
+        <div class="nota-seccion">
+          <strong>Motorización:</strong> {{motorizacion.modelo}} · {{motorizacion.cantidad}} unidades
+        </div>
+      {{/if}}
+
+      {{#if instalacion}}
+        <div class="nota-seccion">
+          <strong>Instalación especial:</strong> {{instalacion.tipo}}
+          {{#if instalacion.observaciones}}· {{instalacion.observaciones}}{{/if}}
+        </div>
+      {{/if}}
+    </div>
+  {{/each}}
+
+  {{#if observaciones}}
+    <div class="observaciones-generales">
+      <strong>Observaciones generales:</strong>
+      <p>{{observaciones}}</p>
+    </div>
+  {{/if}}
+
+  {{> footer empresa=empresa documento=documento}}
+</body>
+</html>

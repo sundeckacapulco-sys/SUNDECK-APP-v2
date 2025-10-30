@@ -1,0 +1,31 @@
+<div class="header">
+  <div class="header-left">
+    {{#if empresa.logo}}
+      <img class="logo" src="{{empresa.logo}}" alt="{{empresa.nombre}}" />
+    {{/if}}
+    <div class="empresa-texto">
+      <h1>{{empresa.nombre}}</h1>
+      <p>{{empresa.direccion}}</p>
+    </div>
+  </div>
+  <div class="header-right">
+    {{#if documento.tipo}}
+      <p class="documento-tipo">{{documento.tipo}}</p>
+    {{/if}}
+    {{#if documento.numero}}
+      <p><strong>Documento:</strong> {{documento.numero}}</p>
+    {{/if}}
+    {{#if documento.fecha}}
+      <p><strong>Fecha:</strong> {{formatDate documento.fecha}}</p>
+    {{/if}}
+    {{#if documento.vigencia}}
+      <p><strong>Vigencia:</strong> {{documento.vigencia}}</p>
+    {{/if}}
+    {{#if asesor.nombre}}
+      <p><strong>Asesor:</strong> {{asesor.nombre}}{{#if asesor.telefono}} · {{asesor.telefono}}{{/if}}</p>
+    {{/if}}
+    <p><strong>Tel:</strong> {{empresa.telefono}}</p>
+    <p><strong>Email:</strong> {{empresa.email}}</p>
+    <p><strong>Web:</strong> {{empresa.web}}</p>
+  </div>
+</div>
