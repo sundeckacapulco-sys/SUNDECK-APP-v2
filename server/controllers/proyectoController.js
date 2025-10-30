@@ -3,6 +3,279 @@ const Prospecto = require('../models/Prospecto');
 const Cotizacion = require('../models/Cotizacion');
 const mongoose = require('mongoose');
 
+const toNumber = (value, defaultValue = 0) => {
+  if (value === null || value === undefined || value === '') {
+    return defaultValue;
+  }
+
+  const number = Number(value);
+  return Number.isFinite(number) ? number : defaultValue;
+};
+
+const roundNumber = (value, decimals = 2) => {
+  const factor = 10 ** decimals;
+  return Math.round(toNumber(value) * factor) / factor;
+};
+
+const normalizarPartidas = (partidas = [], { incluirPrecios = false } = {}) => {
+  return partidas.map(partida => {
+    const piezas = (partida.piezas || []).map(pieza => {
+      const ancho = roundNumber(pieza.ancho, 4);
+      const alto = roundNumber(pieza.alto, 4);
+      const m2 = roundNumber(ancho * alto, 4);
+
+      return {
+        ancho,
+        alto,
+        m2,
+        sistema: Array.isArray(pieza.sistema)
+          ? pieza.sistema.filter(Boolean).join(', ')
+          : (pieza.sistema || ''),
+        control: pieza.control || pieza.tipoControl || '',
+        instalacion: pieza.instalacion || pieza.tipoInstalacion || '',
+        fijacion: pieza.fijacion || pieza.tipoFijacion || '',
+        caida: pieza.caida || pieza.orientacion || '',
+        galeria: pieza.galeria || '',
+        telaMarca: pieza.telaMarca || '',
+        baseTabla: pieza.baseTabla || '',
+        operacion: pieza.operacion || pieza.modoOperacion || '',
+        detalle: pieza.detalle || pieza.detalleTecnico || '',
+        traslape: pieza.traslape || '',
+        modeloCodigo: pieza.modeloCodigo || partida.modelo || '',
+        color: pieza.color || partida.color || '',
+        observacionesTecnicas: pieza.observacionesTecnicas || '',
+        precioM2: incluirPrecios ? roundNumber(pieza.precioM2 ?? partida.precioM2) : undefined
+      };
+    });
+
+    const fallbackArea = piezas.reduce((sum, pieza) => sum + pieza.m2, 0);
+    const areaTotal = roundNumber(partida?.totales?.m2 ?? fallbackArea);
+
+    const subtotal = incluirPrecios
+      ? roundNumber(partida?.totales?.subtotal ?? piezas.reduce((sum, pieza) => {
+          if (pieza.precioM2 === undefined) return sum;
+          return sum + (pieza.precioM2 * pieza.m2);
+        }, 0))
+      : 0;
+
+    const costoMotorizacion = incluirPrecios
+      ? roundNumber(partida?.totales?.costoMotorizacion)
+      : 0;
+
+    const costoInstalacion = incluirPrecios
+      ? roundNumber(partida?.totales?.costoInstalacion)
+      : 0;
+
+    const motorizacionPayload = partida.motorizacion || {};
+    const instalacionEspecialPayload = partida.instalacionEspecial || {};
+
+    const cantidadNormalizada = Math.max(1, Math.round(toNumber(partida.cantidad, piezas.length || 1)));
+    const cantidadMotoresNormalizada = Math.max(
+      0,
+      Math.round(
+        toNumber(
+          motorizacionPayload.cantidadMotores ?? motorizacionPayload.numMotores,
+          0
+        )
+      )
+    );
+    const piezasPorControlNormalizado = Math.max(
+      0,
+      Math.round(toNumber(motorizacionPayload.piezasPorControl, 0))
+    );
+
+    return {
+      ubicacion: partida.ubicacion || '',
+      producto: partida.producto || '',
+      color: partida.color || '',
+      modelo: partida.modelo || partida.modeloCodigo || '',
+      cantidad: cantidadNormalizada,
+      piezas,
+      motorizacion: {
+        activa: Boolean(motorizacionPayload.activa),
+        modeloMotor: motorizacionPayload.modeloMotor || '',
+        precioMotor: incluirPrecios ? roundNumber(motorizacionPayload.precioMotor) : 0,
+        cantidadMotores: cantidadMotoresNormalizada,
+        modeloControl: motorizacionPayload.modeloControl || '',
+        precioControl: incluirPrecios ? roundNumber(motorizacionPayload.precioControl) : 0,
+        tipoControl: motorizacionPayload.tipoControl || '',
+        piezasPorControl: piezasPorControlNormalizado
+      },
+      instalacionEspecial: {
+        activa: Boolean(instalacionEspecialPayload.activa),
+        tipoCobro: instalacionEspecialPayload.tipoCobro || '',
+        precioBase: incluirPrecios ? roundNumber(instalacionEspecialPayload.precioBase) : 0,
+        precioPorPieza: incluirPrecios ? roundNumber(instalacionEspecialPayload.precioPorPieza) : 0,
+        observaciones: instalacionEspecialPayload.observaciones || ''
+      },
+      totales: {
+        m2: areaTotal,
+        subtotal,
+        costoMotorizacion,
+        costoInstalacion
+      }
+    };
+  });
+};
+
+const construirTotalesProyecto = (partidasNormalizadas, totalesPayload = {}) => {
+  const areaCalculada = partidasNormalizadas.reduce(
+    (sum, partida) => sum + (partida.totales?.m2 || 0),
+    0
+  );
+  const subtotalCalculado = partidasNormalizadas.reduce(
+    (sum, partida) => sum + (partida.totales?.subtotal || 0),
+    0
+  );
+
+  const resumen = {
+    m2: roundNumber(totalesPayload.m2 ?? areaCalculada),
+    subtotal: roundNumber(totalesPayload.subtotal ?? subtotalCalculado),
+    descuento: roundNumber(totalesPayload.descuento),
+    iva: roundNumber(totalesPayload.iva)
+  };
+
+  const totalCalculado = resumen.subtotal - resumen.descuento + resumen.iva;
+  resumen.total = roundNumber(totalesPayload.total ?? totalCalculado);
+
+  return resumen;
+};
+
+const construirRegistroMedidas = (
+  partidasNormalizadas,
+  { personaVisita = '', observaciones = '', incluirPrecios = false }
+) => {
+  const totalPartidas = partidasNormalizadas.length;
+  const totalPiezas = partidasNormalizadas.reduce(
+    (sum, partida) => sum + (partida.piezas?.length || 0),
+    0
+  );
+  const areaTotal = partidasNormalizadas.reduce(
+    (sum, partida) => sum + (partida.totales?.m2 || 0),
+    0
+  );
+  const precioTotal = partidasNormalizadas.reduce(
+    (sum, partida) => sum + (partida.totales?.subtotal || 0),
+    0
+  );
+
+  return {
+    tipo: 'levantamiento',
+    personaVisita,
+    observacionesGenerales: observaciones,
+    fechaHora: new Date(),
+    esPartidasV2: true,
+    piezas: partidasNormalizadas.map(partida => ({
+      ubicacion: partida.ubicacion,
+      cantidad: partida.cantidad,
+      producto: partida.producto,
+      productoLabel: partida.producto,
+      modeloCodigo: partida.modelo,
+      color: partida.color,
+      observaciones: partida.observaciones || '',
+      areaTotal: roundNumber(partida.totales?.m2 || 0),
+      precioTotal: incluirPrecios ? roundNumber(partida.totales?.subtotal || 0) : undefined,
+      totalPiezas: partida.piezas?.length || 0,
+      motorizado: partida.motorizacion?.activa || false,
+      motorModelo: partida.motorizacion?.modeloMotor,
+      motorPrecio: incluirPrecios ? partida.motorizacion?.precioMotor : undefined,
+      controlModelo: partida.motorizacion?.modeloControl,
+      controlPrecio: incluirPrecios ? partida.motorizacion?.precioControl : undefined,
+      medidas: partida.piezas.map(medida => ({
+        ancho: medida.ancho,
+        alto: medida.alto,
+        producto: partida.producto,
+        productoLabel: partida.producto,
+        modeloCodigo: medida.modeloCodigo,
+        color: medida.color,
+        galeria: medida.galeria,
+        tipoControl: medida.control,
+        caida: medida.caida,
+        tipoInstalacion: medida.instalacion,
+        tipoFijacion: medida.fijacion,
+        modoOperacion: medida.operacion,
+        detalleTecnico: medida.detalle,
+        sistema: medida.sistema,
+        telaMarca: medida.telaMarca,
+        baseTabla: medida.baseTabla,
+        observacionesTecnicas: medida.observacionesTecnicas,
+        traslape: medida.traslape,
+        precioM2: incluirPrecios ? medida.precioM2 : undefined
+      }))
+    })),
+    totales: {
+      totalPartidas,
+      totalPiezas,
+      areaTotal: roundNumber(areaTotal),
+      precioTotal: incluirPrecios ? roundNumber(precioTotal) : undefined
+    }
+  };
+};
+
+const normalizarPrecioReglas = (precioReglas = {}) => ({
+  precio_m2: roundNumber(precioReglas.precio_m2),
+  aplicaDescuento: Boolean(precioReglas.aplicaDescuento),
+  tipoDescuento: precioReglas.tipoDescuento === 'monto' ? 'monto' : 'porcentaje',
+  valorDescuento: roundNumber(precioReglas.valorDescuento)
+});
+
+const normalizarFacturacion = (facturacion = {}) => ({
+  requiereFactura: Boolean(facturacion.requiereFactura),
+  razonSocial: facturacion.razonSocial ? String(facturacion.razonSocial).trim() : '',
+  rfc: facturacion.rfc ? String(facturacion.rfc).trim() : ''
+});
+
+const construirProductosDesdePartidas = partidasNormalizadas => {
+  return partidasNormalizadas.map(partida => {
+    const area = roundNumber(partida.totales?.m2 || 0);
+    const subtotal = roundNumber(partida.totales?.subtotal || 0);
+    const cantidad = toNumber(partida.cantidad, 1) || 1;
+    const precioM2 = area > 0 ? roundNumber(subtotal / area) : 0;
+    const precioUnitario = cantidad > 0 ? roundNumber(subtotal / cantidad) : subtotal;
+
+    return {
+      ubicacion: partida.ubicacion,
+      cantidad,
+      area,
+      nombre: partida.producto,
+      nombreProducto: partida.producto,
+      productoLabel: partida.producto,
+      modeloCodigo: partida.modelo,
+      color: partida.color,
+      precioM2,
+      precioUnitario,
+      subtotal,
+      observaciones: '',
+      medidas: {
+        ancho: null,
+        alto: null,
+        area
+      },
+      motorizado: partida.motorizacion?.activa || false,
+      motorModelo: partida.motorizacion?.modeloMotor,
+      motorPrecio: partida.motorizacion?.precioMotor,
+      controlModelo: partida.motorizacion?.modeloControl,
+      controlPrecio: partida.motorizacion?.precioControl
+    };
+  });
+};
+
+const generarNumeroCotizacionSecuencial = async () => {
+  const ultimaCotizacion = await Cotizacion.findOne({ numero: /^COT-\d{4}$/ })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  let secuencia = 1;
+  if (ultimaCotizacion?.numero) {
+    const match = ultimaCotizacion.numero.match(/COT-(\d{4})$/);
+    if (match) {
+      secuencia = parseInt(match[1], 10) + 1;
+    }
+  }
+
+  return `COT-${String(secuencia).padStart(4, '0')}`;
+};
+
 // Crear nuevo proyecto
 const crearProyecto = async (req, res) => {
   try {
@@ -709,11 +982,17 @@ const obtenerEstadisticasProyecto = async (req, res) => {
 const guardarLevantamiento = async (req, res) => {
   try {
     const { id } = req.params;
-    const { tipo, partidas, totales, observaciones, personaVisita } = req.body;
+    const { partidas = [], totales = {}, observaciones = '', personaVisita = '' } = req.body;
 
     console.log('🔧 Guardando levantamiento para proyecto:', id);
 
-    // Buscar el proyecto
+    if (!Array.isArray(partidas) || partidas.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debes proporcionar al menos una partida para guardar el levantamiento.'
+      });
+    }
+
     const proyecto = await Proyecto.findById(id);
     if (!proyecto) {
       return res.status(404).json({
@@ -722,22 +1001,41 @@ const guardarLevantamiento = async (req, res) => {
       });
     }
 
-    // Actualizar proyecto con datos del levantamiento
-    proyecto.partidas = partidas;
-    proyecto.totales = totales;
-    proyecto.observaciones = observaciones;
-    proyecto.personaVisita = personaVisita;
+    const partidasNormalizadas = normalizarPartidas(partidas, { incluirPrecios: false });
+    const totalesProyecto = construirTotalesProyecto(partidasNormalizadas, totales);
+    const registroMedidas = construirRegistroMedidas(partidasNormalizadas, {
+      personaVisita,
+      observaciones,
+      incluirPrecios: false
+    });
+
+    proyecto.levantamiento = {
+      partidas: partidasNormalizadas,
+      totales: totalesProyecto,
+      observaciones,
+      personaVisita,
+      actualizadoEn: new Date()
+    };
+
+    const medidasExistentes = Array.isArray(proyecto.medidas)
+      ? proyecto.medidas.filter(medida => !medida.esPartidasV2)
+      : [];
+    proyecto.medidas = [...medidasExistentes, registroMedidas];
+
+    if (observaciones) {
+      proyecto.observaciones = observaciones;
+    }
+
     proyecto.estado = 'levantamiento';
     proyecto.actualizado_por = req.usuario.id;
 
     await proyecto.save();
 
-    // Registrar evento de auditoría
     console.log('📊 AUDIT: LEVANTAMIENTO_GUARDADO', {
       proyectoId: id,
       usuario: req.usuario.id,
-      partidas: partidas.length,
-      m2Total: totales.m2,
+      partidas: partidasNormalizadas.length,
+      m2Total: totalesProyecto.m2,
       fecha: new Date()
     });
 
@@ -746,7 +1044,6 @@ const guardarLevantamiento = async (req, res) => {
       message: 'Levantamiento guardado exitosamente',
       data: proyecto
     });
-
   } catch (error) {
     console.error('❌ Error al guardar levantamiento:', error);
     res.status(500).json({
@@ -761,19 +1058,24 @@ const guardarLevantamiento = async (req, res) => {
 const crearCotizacionDesdeProyecto = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      tipo, 
-      partidas, 
-      precioReglas, 
-      facturacion, 
-      totales, 
-      observaciones, 
-      personaVisita 
+    const {
+      partidas = [],
+      precioReglas = {},
+      facturacion = {},
+      totales = {},
+      observaciones = '',
+      personaVisita = ''
     } = req.body;
 
     console.log('💰 Creando cotización para proyecto:', id);
 
-    // Buscar el proyecto
+    if (!Array.isArray(partidas) || partidas.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debes proporcionar al menos una partida para generar la cotización.'
+      });
+    }
+
     const proyecto = await Proyecto.findById(id);
     if (!proyecto) {
       return res.status(404).json({
@@ -782,53 +1084,107 @@ const crearCotizacionDesdeProyecto = async (req, res) => {
       });
     }
 
-    // Generar número de cotización
-    const ultimaCotizacion = await Cotizacion.findOne().sort({ numero: -1 });
-    let numeroSecuencial = 1;
-    if (ultimaCotizacion && ultimaCotizacion.numero) {
-      const match = ultimaCotizacion.numero.match(/COT-(\d+)/);
-      if (match) {
-        numeroSecuencial = parseInt(match[1]) + 1;
-      }
-    }
-    const numeroCotizacion = `COT-${String(numeroSecuencial).padStart(4, '0')}`;
+    const partidasNormalizadas = normalizarPartidas(partidas, { incluirPrecios: true });
+    const totalesProyecto = construirTotalesProyecto(partidasNormalizadas, totales);
+    const precioReglasNormalizado = normalizarPrecioReglas(precioReglas);
+    const facturacionNormalizada = normalizarFacturacion(facturacion);
+    const registroMedidas = construirRegistroMedidas(partidasNormalizadas, {
+      personaVisita,
+      observaciones,
+      incluirPrecios: true
+    });
 
-    // Crear cotización
+    const productosCotizacion = construirProductosDesdePartidas(partidasNormalizadas);
+    const costoInstalacionTotal = partidasNormalizadas.reduce(
+      (sum, partida) => sum + (partida.totales?.costoInstalacion || 0),
+      0
+    );
+
+    const numeroCotizacion = await generarNumeroCotizacionSecuencial();
+
     const nuevaCotizacion = new Cotizacion({
       numero: numeroCotizacion,
-      proyectoId: id,
-      cliente: proyecto.cliente,
-      partidas,
-      precioReglas,
-      facturacion,
-      totales,
-      observaciones,
-      personaVisita,
-      estado: 'borrador',
-      creado_por: req.usuario.id
+      proyecto: proyecto._id,
+      prospecto: proyecto.prospecto_original,
+      origen: 'cotizacion_vivo',
+      comentarios: observaciones,
+      precioGeneralM2: precioReglasNormalizado.precio_m2 || undefined,
+      unidadMedida: 'm2',
+      productos: productosCotizacion,
+      instalacion: {
+        incluye: costoInstalacionTotal > 0,
+        costo: roundNumber(costoInstalacionTotal),
+        tipo: costoInstalacionTotal > 0 ? 'personalizado' : undefined
+      },
+      descuento: {
+        aplica: precioReglasNormalizado.aplicaDescuento && totalesProyecto.descuento > 0,
+        tipo: precioReglasNormalizado.tipoDescuento === 'monto' ? 'monto' : 'porcentaje',
+        valor: precioReglasNormalizado.valorDescuento,
+        monto: totalesProyecto.descuento
+      },
+      facturacion: {
+        requiere: facturacionNormalizada.requiereFactura,
+        iva: totalesProyecto.iva
+      },
+      subtotal: totalesProyecto.subtotal,
+      iva: totalesProyecto.iva,
+      total: totalesProyecto.total,
+      elaboradaPor: req.usuario.id
     });
 
     await nuevaCotizacion.save();
 
-    // Actualizar proyecto
-    proyecto.partidas = partidas;
-    proyecto.totales = totales;
-    proyecto.observaciones = observaciones;
-    proyecto.personaVisita = personaVisita;
+    const medidasExistentes = Array.isArray(proyecto.medidas)
+      ? proyecto.medidas.filter(medida => !medida.esPartidasV2)
+      : [];
+    proyecto.medidas = [...medidasExistentes, registroMedidas];
+
+    proyecto.levantamiento = {
+      partidas: partidasNormalizadas,
+      totales: totalesProyecto,
+      observaciones,
+      personaVisita,
+      actualizadoEn: new Date()
+    };
+
+    proyecto.cotizacionActual = {
+      cotizacion: nuevaCotizacion._id,
+      numero: numeroCotizacion,
+      totales: totalesProyecto,
+      precioReglas: precioReglasNormalizado,
+      facturacion: facturacionNormalizada,
+      observaciones,
+      personaVisita,
+      fechaCreacion: new Date()
+    };
+
+    if (observaciones) {
+      proyecto.observaciones = observaciones;
+    }
+
     proyecto.estado = 'cotizacion';
-    proyecto.cotizacion_id = nuevaCotizacion._id;
+    proyecto.subtotal = totalesProyecto.subtotal;
+    proyecto.iva = totalesProyecto.iva;
+    proyecto.total = totalesProyecto.total;
     proyecto.actualizado_por = req.usuario.id;
+
+    if (!Array.isArray(proyecto.cotizaciones)) {
+      proyecto.cotizaciones = [];
+    }
+
+    if (!proyecto.cotizaciones.some(cotId => cotId.equals(nuevaCotizacion._id))) {
+      proyecto.cotizaciones.push(nuevaCotizacion._id);
+    }
 
     await proyecto.save();
 
-    // Registrar evento de auditoría
     console.log('📊 AUDIT: COTIZACION_CREADA', {
       proyectoId: id,
       cotizacionId: nuevaCotizacion._id,
       numero: numeroCotizacion,
       usuario: req.usuario.id,
-      total: totales.total,
-      m2Total: totales.m2,
+      total: totalesProyecto.total,
+      m2Total: totalesProyecto.m2,
       fecha: new Date()
     });
 
@@ -840,7 +1196,6 @@ const crearCotizacionDesdeProyecto = async (req, res) => {
         cotizacion: nuevaCotizacion
       }
     });
-
   } catch (error) {
     console.error('❌ Error al crear cotización:', error);
     res.status(500).json({

@@ -4,8 +4,11 @@ const mongoosePaginate = require('mongoose-paginate-v2');
 const cotizacionSchema = new mongoose.Schema({
   prospecto: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Prospecto',
-    required: true
+    ref: 'Prospecto'
+  },
+  proyecto: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Proyecto'
   },
   numero: {
     type: String,
@@ -188,6 +191,7 @@ cotizacionSchema.index({ estado: 1 });
 cotizacionSchema.index({ fecha: 1 });
 cotizacionSchema.index({ elaboradaPor: 1 });
 cotizacionSchema.index({ archivada: 1 });
+cotizacionSchema.index({ proyecto: 1 });
 
 cotizacionSchema.plugin(mongoosePaginate);
 
