@@ -71,6 +71,106 @@ const proyectoSchema = new mongoose.Schema({
     trim: true
   },
 
+  // Levantamiento técnico normalizado (FASE 4)
+  levantamiento: {
+    partidas: [{
+      ubicacion: String,
+      producto: String,
+      color: String,
+      modelo: String,
+      cantidad: Number,
+      piezas: [{
+        ancho: Number,
+        alto: Number,
+        m2: Number,
+        sistema: String,
+        control: String,
+        instalacion: String,
+        fijacion: String,
+        caida: String,
+        galeria: String,
+        telaMarca: String,
+        baseTabla: String,
+        operacion: String,
+        detalle: String,
+        traslape: String,
+        modeloCodigo: String,
+        color: String,
+        observacionesTecnicas: String,
+        precioM2: Number
+      }],
+      motorizacion: {
+        activa: Boolean,
+        modeloMotor: String,
+        precioMotor: Number,
+        cantidadMotores: Number,
+        modeloControl: String,
+        precioControl: Number,
+        tipoControl: String,
+        piezasPorControl: Number
+      },
+      instalacionEspecial: {
+        activa: Boolean,
+        tipoCobro: String,
+        precioBase: Number,
+        precioPorPieza: Number,
+        observaciones: String
+      },
+      totales: {
+        m2: Number,
+        subtotal: Number,
+        costoMotorizacion: Number,
+        costoInstalacion: Number
+      }
+    }],
+    totales: {
+      m2: Number,
+      subtotal: Number,
+      descuento: Number,
+      iva: Number,
+      total: Number
+    },
+    observaciones: String,
+    personaVisita: String,
+    actualizadoEn: {
+      type: Date,
+      default: Date.now
+    }
+  },
+
+  // Resumen de la última cotización generada desde proyectos
+  cotizacionActual: {
+    cotizacion: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Cotizacion'
+    },
+    numero: String,
+    totales: {
+      m2: Number,
+      subtotal: Number,
+      descuento: Number,
+      iva: Number,
+      total: Number
+    },
+    precioReglas: {
+      precio_m2: Number,
+      aplicaDescuento: Boolean,
+      tipoDescuento: String,
+      valorDescuento: Number
+    },
+    facturacion: {
+      requiereFactura: Boolean,
+      razonSocial: String,
+      rfc: String
+    },
+    observaciones: String,
+    personaVisita: String,
+    fechaCreacion: {
+      type: Date,
+      default: Date.now
+    }
+  },
+
   // Medidas estructuradas (Levantamientos con partidas)
   medidas: [{
     // Información general del levantamiento
@@ -80,7 +180,11 @@ const proyectoSchema = new mongoose.Schema({
     quienRecibe: String,
     observacionesGenerales: String,
     fechaHora: Date,
-    
+    esPartidasV2: {
+      type: Boolean,
+      default: false
+    },
+
     // Partidas (piezas)
     piezas: [{
       ubicacion: String,
@@ -91,8 +195,14 @@ const proyectoSchema = new mongoose.Schema({
       color: String,
       observaciones: String,
       areaTotal: Number,
+      precioTotal: Number,
       totalPiezas: Number,
-      
+      motorizado: Boolean,
+      motorModelo: String,
+      motorPrecio: Number,
+      controlModelo: String,
+      controlPrecio: Number,
+
       // Medidas individuales por pieza
       medidas: [{
         ancho: Number,
@@ -114,14 +224,17 @@ const proyectoSchema = new mongoose.Schema({
         telaMarca: String,
         baseTabla: String,
         observacionesTecnicas: String,
+        traslape: String,
+        precioM2: Number,
       }]
     }],
-    
+
     // Totales del levantamiento
     totales: {
       totalPartidas: Number,
       totalPiezas: Number,
-      areaTotal: Number
+      areaTotal: Number,
+      precioTotal: Number
     },
     // Información de toldos
     esToldo: Boolean,
