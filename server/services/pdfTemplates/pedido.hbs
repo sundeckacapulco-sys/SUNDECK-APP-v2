@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Pedido {{documento.numero}}</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 11pt;
+      color: #1f2937;
+      line-height: 1.5;
+      padding: 32px;
+      background: #f8fafc;
+    }
+
+    .placeholder {
+      margin-top: 120px;
+      text-align: center;
+      color: #64748b;
+    }
+
+    .placeholder h1 {
+      font-size: 18pt;
+      margin-bottom: 12px;
+      color: #0ea5e9;
+    }
+  </style>
+</head>
+<body>
+  {{> header empresa=empresa documento=documento asesor=asesor}}
+  <div class="placeholder">
+    <h1>Plantilla de pedido en construcción</h1>
+    <p>Esta plantilla se completará en futuras iteraciones.</p>
+  </div>
+  {{> footer empresa=empresa documento=documento}}
+</body>
+</html>

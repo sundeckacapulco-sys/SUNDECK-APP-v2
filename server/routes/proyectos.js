@@ -3,7 +3,7 @@ const { auth, verificarPermiso } = require('../middleware/auth');
 const { 
   validarTransicionEstado, 
   registrarCambioEstado,
-  obtenerTransicionesValidas 
+  obtenerTransicionesValidas
 } = require('../middleware/transicionesEstado');
 const {
   crearProyecto,
@@ -17,7 +17,8 @@ const {
   sincronizarProyecto,
   obtenerEstadisticasProyecto,
   guardarLevantamiento,
-  crearCotizacionDesdeProyecto
+  crearCotizacionDesdeProyecto,
+  generarPDFProyecto
 } = require('../controllers/proyectoController');
 
 const router = express.Router();
@@ -92,10 +93,17 @@ router.post('/:id/sincronizar',
 );
 
 // GET /api/proyectos/:id/estadisticas - Obtener estadísticas del proyecto
-router.get('/:id/estadisticas', 
-  auth, 
-  verificarPermiso('proyectos', 'leer'), 
+router.get('/:id/estadisticas',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
   obtenerEstadisticasProyecto
+);
+
+// FASE 5: GET /api/proyectos/:id/generar-pdf
+router.get('/:id/generar-pdf',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
+  generarPDFProyecto
 );
 
 // FASE 4: PATCH /api/proyectos/:id/levantamiento - Guardar levantamiento técnico

@@ -1,7 +1,101 @@
 const handlebars = require('handlebars');
 const path = require('path');
 const fs = require('fs').promises;
+const Proyecto = require('../models/Proyecto');
+const Cotizacion = require('../models/Cotizacion');
 const companyConfig = require('../config/company');
+
+const templatesDir = path.join(__dirname, 'pdfTemplates');
+const partialsDir = path.join(templatesDir, 'partials');
+
+let partialsLoadingPromise = null;
+const templatesCache = new Map();
+
+if (!handlebars.helpers.formatCurrency) {
+  handlebars.registerHelper('formatCurrency', (value) => {
+    const amount = Number(value) || 0;
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(amount);
+  });
+}
+
+if (!handlebars.helpers.formatNumber) {
+  handlebars.registerHelper('formatNumber', (value, decimals = 2) => {
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+      return (0).toFixed(decimals);
+    }
+    return number.toFixed(decimals);
+  });
+}
+
+if (!handlebars.helpers.formatDate) {
+  handlebars.registerHelper('formatDate', (date) => {
+    if (!date) return '';
+    const safeDate = date instanceof Date ? date : new Date(date);
+    if (Number.isNaN(safeDate.getTime())) return '';
+    return safeDate.toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  });
+}
+
+if (!handlebars.helpers.eq) {
+  handlebars.registerHelper('eq', (a, b) => a === b);
+}
+
+if (!handlebars.helpers.gt) {
+  handlebars.registerHelper('gt', (a, b) => a > b);
+}
+
+async function ensurePartialsLoaded() {
+  if (partialsLoadingPromise) {
+    return partialsLoadingPromise;
+  }
+
+  partialsLoadingPromise = (async () => {
+    try {
+      const files = await fs.readdir(partialsDir);
+      await Promise.all(
+        files
+          .filter((file) => file.endsWith('.hbs'))
+          .map(async (file) => {
+            const content = await fs.readFile(path.join(partialsDir, file), 'utf8');
+            const partialName = path.basename(file, '.hbs');
+            handlebars.registerPartial(partialName, content);
+          })
+      );
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  })()
+    .catch((error) => {
+      partialsLoadingPromise = null;
+      throw error;
+    });
+
+  return partialsLoadingPromise;
+}
+
+async function getCompiledTemplate(templateName) {
+  await ensurePartialsLoaded();
+
+  if (templatesCache.has(templateName)) {
+    return templatesCache.get(templateName);
+  }
+
+  const templatePath = path.join(templatesDir, `${templateName}.hbs`);
+  const content = await fs.readFile(templatePath, 'utf8');
+  const compiled = handlebars.compile(content);
+  templatesCache.set(templateName, compiled);
+  return compiled;
+}
 
 // Variable para carga lazy de puppeteer
 let puppeteerLib;
@@ -9,6 +103,8 @@ let puppeteerLib;
 class PDFService {
   constructor() {
     this.browser = null;
+    this.logoBase64 = null;
+    this.logoCargado = false;
     // Definición de controles multicanal
     this.modelosControles = [
       { label: "Control Monocanal (1 cortina)", value: "monocanal", canales: 1, esMulticanal: false },
@@ -267,6 +363,337 @@ class PDFService {
     console.log(`🎯 TIEMPO FINAL: ${tiempoFinal} días`);
     
     return tiempoFinal;
+  }
+
+  async obtenerLogoBase64() {
+    if (this.logoCargado) {
+      return this.logoBase64;
+    }
+
+    const logoPath = path.join(__dirname, '../public/images/logo-sundeck.png');
+
+    try {
+      const logoBuffer = await fs.readFile(logoPath);
+      this.logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+    } catch (error) {
+      console.warn('⚠️ No se pudo cargar el logo de Sundeck:', error.message);
+      this.logoBase64 = null;
+    }
+
+    this.logoCargado = true;
+    return this.logoBase64;
+  }
+
+  async renderHTMLToPDF(html, { format = 'Letter', margin } = {}) {
+    const defaultMargin =
+      margin || { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' };
+
+    const initResult = await this.initBrowser();
+
+    if (initResult?.isAlternative) {
+      const pdfBuffer = await initResult.htmlPdf.generatePdf(
+        { content: html },
+        {
+          format,
+          printBackground: true,
+          margin: defaultMargin
+        }
+      );
+
+      return Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
+    }
+
+    const browser = initResult.browser || initResult;
+    let page;
+
+    try {
+      page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+
+      try {
+        await page.evaluateHandle('document.fonts && document.fonts.ready');
+      } catch (error) {
+        console.warn('⚠️ No se pudo esperar la carga de fuentes:', error.message);
+      }
+
+      return await page.pdf({
+        format,
+        printBackground: true,
+        preferCSSPageSize: true,
+        margin: defaultMargin
+      });
+    } finally {
+      if (page) {
+        await page.close().catch(() => {});
+      }
+
+      if (browser && typeof browser.close === 'function') {
+        await browser.close().catch(() => {});
+      }
+    }
+  }
+
+  async generarPDFCotizacion(proyectoId, cotizacionId) {
+    if (!cotizacionId) {
+      throw new Error('Se requiere el ID de la cotización para generar el PDF.');
+    }
+
+    try {
+      const [proyecto, cotizacion] = await Promise.all([
+        Proyecto.findById(proyectoId).lean(),
+        Cotizacion.findById(cotizacionId)
+          .populate('creado_por', 'nombre apellido email telefono telefonoCelular')
+          .lean()
+      ]);
+
+      if (!proyecto || !cotizacion) {
+        throw new Error('Proyecto o cotización no encontrados');
+      }
+
+      const logoBase64 = await this.obtenerLogoBase64();
+
+      const partidas = (cotizacion.partidas || []).map((partida, idx) => {
+        const piezas = (partida.piezas || []).map((pieza, piezaIdx) => {
+          const ancho = Number(pieza.ancho) || 0;
+          const alto = Number(pieza.alto) || 0;
+          const m2 = Number(pieza.m2) || ancho * alto;
+
+          return {
+            numero: piezaIdx + 1,
+            ancho,
+            alto,
+            m2,
+            sistema: Array.isArray(pieza.sistema)
+              ? pieza.sistema.filter(Boolean).join(', ')
+              : pieza.sistema || '',
+            control: pieza.control || '',
+            instalacion: pieza.instalacion || '',
+            fijacion: pieza.fijacion || '',
+            caida: pieza.caida || '',
+            galeria: pieza.galeria || '',
+            telaMarca: pieza.telaMarca || '',
+            baseTabla: pieza.baseTabla || '',
+            operacion: pieza.operacion || '',
+            detalle: pieza.detalle || '',
+            traslape: pieza.traslape || '',
+            observaciones: pieza.observacionesTecnicas || ''
+          };
+        });
+
+        const piezasM2 = piezas.reduce((total, pieza) => total + (pieza.m2 || 0), 0);
+        const totalesPartida = partida.totales || {};
+
+        return {
+          numero: idx + 1,
+          ubicacion: partida.ubicacion || `Partida ${idx + 1}`,
+          producto: partida.producto || '',
+          color: partida.color || '',
+          modelo: partida.modelo || '',
+          cantidad: Number(partida.cantidad) || piezas.length || 0,
+          especificaciones: {
+            m2Total: Number(totalesPartida.m2) || piezasM2,
+            color: partida.color || '',
+            modelo: partida.modelo || ''
+          },
+          piezas,
+          motorizacion:
+            partida.motorizacion && partida.motorizacion.activa
+              ? {
+                  modelo: partida.motorizacion.modeloMotor || '',
+                  cantidad: Number(partida.motorizacion.cantidadMotores) || 0,
+                  precio: Number(partida.motorizacion.precioMotor) || 0,
+                  control: partida.motorizacion.modeloControl || '',
+                  precioControl: Number(partida.motorizacion.precioControl) || 0,
+                  total: Number(totalesPartida.costoMotorizacion) || 0
+                }
+              : null,
+          instalacion:
+            partida.instalacionEspecial && partida.instalacionEspecial.activa
+              ? {
+                  tipo: partida.instalacionEspecial.tipoCobro || '',
+                  precio: Number(partida.instalacionEspecial.precioBase) || 0,
+                  total: Number(totalesPartida.costoInstalacion) || 0
+                }
+              : null,
+          totales: {
+            m2: Number(totalesPartida.m2) || piezasM2,
+            subtotal: Number(totalesPartida.subtotal) || 0,
+            costoMotorizacion: Number(totalesPartida.costoMotorizacion) || 0,
+            costoInstalacion: Number(totalesPartida.costoInstalacion) || 0
+          }
+        };
+      });
+
+      const totales = {
+        subtotal: Number(cotizacion?.totales?.subtotal) || 0,
+        descuento: Number(cotizacion?.totales?.descuento) || 0,
+        iva: Number(cotizacion?.totales?.iva) || 0,
+        total: Number(cotizacion?.totales?.total) || 0
+      };
+
+      const documentoFecha =
+        cotizacion?.fecha || cotizacion?.createdAt || cotizacion?.actualizadoEn;
+
+      const datos = {
+        empresa: {
+          nombre: 'Sundeck Cortinas, Persianas y Decoraciones',
+          direccion: 'Av. Principal #123, Acapulco, Guerrero',
+          telefono: '(744) 123-4567',
+          email: 'contacto@sundeck.com.mx',
+          web: 'www.sundeck.com.mx',
+          logo: logoBase64
+        },
+        documento: {
+          numero: cotizacion.numero || cotizacion.codigo || cotizacionId,
+          fecha: documentoFecha ? new Date(documentoFecha) : new Date(),
+          vigencia: cotizacion.vigencia || '30 días'
+        },
+        cliente: proyecto?.cliente || {},
+        asesor: cotizacion?.creado_por || {},
+        partidas,
+        totales,
+        precioReglas: cotizacion?.precioReglas || {},
+        facturacion: cotizacion?.facturacion || {},
+        condiciones: {
+          anticipo: '60% al confirmar pedido',
+          liquidacion: '40% contra entrega',
+          antihuracán: '70% anticipo para productos antihuracán',
+          garantia: '1 año en mecanismos y motores',
+          instalacion: 'Incluye instalación profesional',
+          tiempoEntrega: '15-20 días hábiles'
+        },
+        observaciones:
+          cotizacion?.observaciones ||
+          cotizacion?.notas ||
+          proyecto?.cotizacionActual?.observaciones ||
+          ''
+      };
+
+      const template = await getCompiledTemplate('cotizacion');
+      const html = template(datos);
+
+      return await this.renderHTMLToPDF(html, {
+        format: 'Letter',
+        margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
+      });
+    } catch (error) {
+      console.error('❌ Error generando PDF de cotización:', error);
+      throw error;
+    }
+  }
+
+  async generarPDFLevantamiento(proyectoId) {
+    try {
+      const proyecto = await Proyecto.findById(proyectoId).lean();
+
+      if (!proyecto) {
+        throw new Error('Proyecto no encontrado');
+      }
+
+      const logoBase64 = await this.obtenerLogoBase64();
+      const levantamiento = proyecto.levantamiento || {};
+      const partidasOrigen = levantamiento.partidas || [];
+
+      const partidas = partidasOrigen.map((partida, idx) => {
+        const piezas = (partida.piezas || []).map((pieza, piezaIdx) => {
+          const ancho = Number(pieza.ancho) || 0;
+          const alto = Number(pieza.alto) || 0;
+          const m2 = Number(pieza.m2) || ancho * alto;
+
+          return {
+            numero: piezaIdx + 1,
+            ancho,
+            alto,
+            m2,
+            sistema: pieza.sistema || '',
+            control: pieza.control || '',
+            instalacion: pieza.instalacion || '',
+            galeria: pieza.galeria || '',
+            operacion: pieza.operacion || '',
+            observaciones: pieza.observacionesTecnicas || ''
+          };
+        });
+
+        const piezasM2 = piezas.reduce((total, pieza) => total + (pieza.m2 || 0), 0);
+
+        return {
+          numero: idx + 1,
+          ubicacion: partida.ubicacion || `Partida ${idx + 1}`,
+          producto: partida.producto || '',
+          color: partida.color || '',
+          modelo: partida.modelo || '',
+          cantidad: Number(partida.cantidad) || piezas.length || 0,
+          especificaciones: {
+            m2Total: Number(partida?.totales?.m2) || piezasM2,
+            color: partida.color || '',
+            modelo: partida.modelo || ''
+          },
+          piezas,
+          motorizacion:
+            partida.motorizacion && partida.motorizacion.activa
+              ? {
+                  modelo: partida.motorizacion.modeloMotor || '',
+                  cantidad: Number(partida.motorizacion.cantidadMotores) || 0
+                }
+              : null,
+          instalacion:
+            partida.instalacionEspecial && partida.instalacionEspecial.activa
+              ? {
+                  tipo: partida.instalacionEspecial.tipoCobro || '',
+                  observaciones: partida.instalacionEspecial.observaciones || ''
+                }
+              : null
+        };
+      });
+
+      const totalM2 = partidas.reduce(
+        (total, partida) => total + (partida.especificaciones?.m2Total || 0),
+        0
+      );
+      const totalPiezas = partidas.reduce(
+        (total, partida) => total + (partida.piezas?.length || 0),
+        0
+      );
+
+      const documentoFecha =
+        levantamiento?.actualizadoEn || proyecto?.actualizadoEn || new Date();
+
+      const datos = {
+        empresa: {
+          nombre: 'Sundeck Cortinas, Persianas y Decoraciones',
+          direccion: 'Av. Principal #123, Acapulco, Guerrero',
+          telefono: '(744) 123-4567',
+          email: 'contacto@sundeck.com.mx',
+          web: 'www.sundeck.com.mx',
+          logo: logoBase64
+        },
+        documento: {
+          numero: proyecto.numero || proyecto._id?.toString() || 'LEVANTAMIENTO',
+          fecha: new Date(documentoFecha),
+          tipo: 'Levantamiento Técnico'
+        },
+        cliente: proyecto?.cliente || {},
+        personaVisita: levantamiento?.personaVisita || '',
+        observaciones:
+          levantamiento?.observaciones || proyecto?.observaciones || '',
+        partidas,
+        totales: {
+          m2: totalM2,
+          piezas: totalPiezas
+        }
+      };
+
+      const template = await getCompiledTemplate('levantamiento');
+      const html = template(datos);
+
+      return await this.renderHTMLToPDF(html, {
+        format: 'Letter',
+        margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
+      });
+    } catch (error) {
+      console.error('❌ Error generando PDF de levantamiento:', error);
+      throw error;
+    }
   }
 
   async generarCotizacionPDF(cotizacion) {

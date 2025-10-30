@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cotización {{documento.numero}}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 10pt;
+      color: #1e293b;
+      line-height: 1.5;
+      padding: 24px 32px 40px;
+    }
+
+    h1, h2, h3 {
+      font-weight: 600;
+      color: #0ea5e9;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #0ea5e9;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+
+    .header-left {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .logo {
+      width: 140px;
+      height: auto;
+    }
+
+    .empresa-texto h1 {
+      font-size: 18pt;
+      color: #0ea5e9;
+      margin-bottom: 4px;
+    }
+
+    .empresa-texto p {
+      color: #475569;
+      font-size: 9pt;
+    }
+
+    .header-right {
+      text-align: right;
+      font-size: 9pt;
+      color: #475569;
+    }
+
+    .documento-tipo {
+      font-size: 10pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #0ea5e9;
+      margin-bottom: 4px;
+    }
+
+    .documento-info {
+      background-color: #f1f5f9;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .documento-info p {
+      font-size: 9pt;
+      color: #334155;
+    }
+
+    .cliente-info {
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      border-radius: 4px;
+    }
+
+    .cliente-info h3 {
+      color: #b45309;
+      margin-bottom: 8px;
+    }
+
+    .cliente-info p {
+      font-size: 9pt;
+      color: #1f2937;
+    }
+
+    .partida {
+      margin-bottom: 28px;
+      page-break-inside: avoid;
+    }
+
+    .partida h2 {
+      font-size: 13pt;
+      color: #0f172a;
+      margin-bottom: 12px;
+    }
+
+    .especificaciones-generales {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+
+    .spec-item {
+      text-align: center;
+    }
+
+    .spec-label {
+      font-size: 8pt;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .spec-value {
+      font-size: 12pt;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .tabla-piezas {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 14px;
+      font-size: 9pt;
+    }
+
+    .tabla-piezas th {
+      background: #0ea5e9;
+      color: #fff;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .tabla-piezas td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 6px 8px;
+      color: #1f2937;
+    }
+
+    .tabla-piezas tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .tabla-vacia {
+      text-align: center;
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    .seccion-resaltada {
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+      font-size: 9pt;
+    }
+
+    .motorizacion {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+    }
+
+    .instalacion {
+      background: #dbeafe;
+      border-left: 4px solid #3b82f6;
+    }
+
+    .totales {
+      margin-top: 24px;
+      width: 280px;
+      margin-left: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 14px;
+      font-size: 10pt;
+      border-bottom: 1px solid #e2e8f0;
+      background: #fff;
+    }
+
+    .total-row span:first-child {
+      color: #475569;
+    }
+
+    .total-row span:last-child {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .total-row.final {
+      background: #0ea5e9;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .condiciones {
+      margin-top: 36px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-size: 9pt;
+    }
+
+    .condiciones h3 {
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+
+    .condiciones ul {
+      margin-left: 18px;
+    }
+
+    .condiciones li {
+      margin-bottom: 6px;
+      color: #334155;
+    }
+
+    .observaciones {
+      margin-top: 18px;
+      padding: 12px;
+      background: #fff7ed;
+      border-left: 4px solid #f97316;
+      border-radius: 4px;
+      font-size: 9pt;
+    }
+
+    .footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 8pt;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 14px;
+    }
+
+    .page-break {
+      page-break-after: always;
+    }
+  </style>
+</head>
+<body>
+  {{> header empresa=empresa documento=documento asesor=asesor}}
+
+  <div class="documento-info">
+    <p><strong>Documento:</strong> {{documento.numero}}</p>
+    <p><strong>Fecha:</strong> {{formatDate documento.fecha}}</p>
+    <p><strong>Vigencia:</strong> {{documento.vigencia}}</p>
+    {{#if asesor.email}}
+      <p><strong>Contacto:</strong> {{asesor.email}}</p>
+    {{/if}}
+  </div>
+
+  <div class="cliente-info">
+    <h3>Cliente</h3>
+    <p><strong>{{cliente.nombre}}</strong></p>
+    {{#if cliente.telefono}}<p>Tel: {{cliente.telefono}}</p>{{/if}}
+    {{#if cliente.email}}<p>Email: {{cliente.email}}</p>{{/if}}
+    {{#if cliente.direccion}}<p>Dirección: {{cliente.direccion}}</p>{{/if}}
+  </div>
+
+  {{#each partidas}}
+    <div class="partida">
+      <h2>Partida {{numero}} · {{ubicacion}}</h2>
+      <div class="especificaciones-generales">
+        <div class="spec-item">
+          <div class="spec-label">Cantidad</div>
+          <div class="spec-value">{{cantidad}} pzas</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Área Total</div>
+          <div class="spec-value">{{formatNumber especificaciones.m2Total}} m²</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Color</div>
+          <div class="spec-value">{{especificaciones.color}}</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Modelo</div>
+          <div class="spec-value">{{especificaciones.modelo}}</div>
+        </div>
+      </div>
+
+      {{> tablaPiezas piezas=piezas incluirObservaciones=true}}
+
+      {{#if motorizacion}}
+        <div class="seccion-resaltada motorizacion">
+          <strong>Motorización:</strong>
+          <p>Modelo: {{motorizacion.modelo}} · Cantidad: {{motorizacion.cantidad}}</p>
+          <p>Motor: {{formatCurrency motorizacion.precio}} · Control: {{motorizacion.control}} ({{formatCurrency motorizacion.precioControl}})</p>
+          <p>Total motorización: {{formatCurrency motorizacion.total}}</p>
+        </div>
+      {{/if}}
+
+      {{#if instalacion}}
+        <div class="seccion-resaltada instalacion">
+          <strong>Instalación especial:</strong>
+          <p>Tipo: {{instalacion.tipo}}</p>
+          <p>Total instalación: {{formatCurrency instalacion.total}}</p>
+        </div>
+      {{/if}}
+    </div>
+  {{/each}}
+
+  {{> totales totales=totales precioReglas=precioReglas facturacion=facturacion}}
+
+  <div class="condiciones">
+    <h3>Condiciones Comerciales</h3>
+    <ul>
+      <li><strong>Anticipo:</strong> {{condiciones.anticipo}}</li>
+      <li><strong>Liquidación:</strong> {{condiciones.liquidacion}}</li>
+      <li><strong>Productos Antihuracán:</strong> {{condiciones.antihuracán}}</li>
+      <li><strong>Garantía:</strong> {{condiciones.garantia}}</li>
+      <li><strong>Instalación:</strong> {{condiciones.instalacion}}</li>
+      <li><strong>Tiempo de entrega:</strong> {{condiciones.tiempoEntrega}}</li>
+    </ul>
+
+    {{#if observaciones}}
+      <div class="observaciones">
+        <strong>Observaciones:</strong>
+        <p>{{observaciones}}</p>
+      </div>
+    {{/if}}
+  </div>
+
+  {{> footer empresa=empresa documento=documento}}
+</body>
+</html>

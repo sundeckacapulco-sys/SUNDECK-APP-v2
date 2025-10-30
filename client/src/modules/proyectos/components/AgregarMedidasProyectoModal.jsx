@@ -29,15 +29,16 @@ import {
   Paper
 } from '@mui/material';
 import {
-  Add, 
-  Delete, 
-  Close, 
-  ContentCopy, 
-  BugReport, 
-  Search, 
+  Add,
+  Delete,
+  Close,
+  ContentCopy,
+  BugReport,
+  Search,
   Edit,
   ExpandMore,
-  ExpandLess
+  ExpandLess,
+  PictureAsPdf
 } from '@mui/icons-material';
 
 // Importar hooks y utilidades
@@ -705,7 +706,58 @@ const AgregarMedidasProyectoModal = ({
    */
   const handleVerPDF = async () => {
     console.log('📄 Generando PDF...');
-    // TODO: Implementar en FASE 5
+    setGuardandoPDF(true);
+    setErrorLocal('');
+
+    try {
+      if (!proyecto?.cotizacion_id && conPrecios) {
+        setErrorLocal('Debes guardar la cotización antes de generar el PDF.');
+        setGuardandoPDF(false);
+        return;
+      }
+
+      const ahora = Date.now();
+      if (ahora - ultimoClickPDF < 3000) {
+        console.log('⏳ Esperando generación anterior...');
+        return;
+      }
+      setUltimoClickPDF(ahora);
+
+      const tipo = conPrecios ? 'cotizacion' : 'levantamiento';
+      const documentoId = conPrecios ? proyecto?.cotizacion_id : proyecto?._id;
+
+      const response = await axiosConfig.get(
+        `/proyectos/${proyecto?._id}/generar-pdf`,
+        {
+          params: { tipo, documentoId },
+          responseType: 'blob'
+        }
+      );
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      const fecha = new Date().toISOString().split('T')[0];
+      const nombreCliente = proyecto?.cliente?.nombre?.replace(/\s+/g, '_') || 'Cliente';
+      link.download = `${tipo.toUpperCase()}-${nombreCliente}-${fecha}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      console.log('✅ PDF generado y descargado');
+    } catch (error) {
+      console.error('❌ Error al generar PDF:', error);
+      setErrorLocal(
+        error?.response?.data?.message ||
+          'Error al generar el PDF. Intenta nuevamente.'
+      );
+    } finally {
+      setGuardandoPDF(false);
+    }
   };
   
   // ==================== RENDER ====================
@@ -2859,13 +2911,16 @@ const AgregarMedidasProyectoModal = ({
             {piezas.length > 0 && (
               <Button
                 onClick={handleVerPDF}
-                disabled={guardandoPDF || guardando}
-                variant="contained"
-                startIcon={guardandoPDF ? <span>⏳</span> : <span>📄</span>}
-                sx={{ 
-                  bgcolor: guardandoPDF ? '#9CA3AF' : '#DC2626', 
-                  '&:hover': { bgcolor: guardandoPDF ? '#9CA3AF' : '#B91C1C' },
-                  '&:disabled': { bgcolor: '#9CA3AF', color: '#6B7280' }
+                disabled={guardando || guardandoPDF || piezas.length === 0}
+                variant="outlined"
+                startIcon={<PictureAsPdf />}
+                sx={{
+                  borderColor: '#DC2626',
+                  color: '#DC2626',
+                  '&:hover': {
+                    borderColor: '#B91C1C',
+                    bgcolor: 'rgba(220, 38, 38, 0.04)'
+                  }
                 }}
               >
                 {guardandoPDF ? 'Generando PDF...' : 'Ver PDF'}
