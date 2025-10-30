@@ -705,6 +705,152 @@ const obtenerEstadisticasProyecto = async (req, res) => {
   }
 };
 
+// FASE 4: Guardar levantamiento técnico (sin precios)
+const guardarLevantamiento = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tipo, partidas, totales, observaciones, personaVisita } = req.body;
+
+    console.log('🔧 Guardando levantamiento para proyecto:', id);
+
+    // Buscar el proyecto
+    const proyecto = await Proyecto.findById(id);
+    if (!proyecto) {
+      return res.status(404).json({
+        success: false,
+        message: 'Proyecto no encontrado'
+      });
+    }
+
+    // Actualizar proyecto con datos del levantamiento
+    proyecto.partidas = partidas;
+    proyecto.totales = totales;
+    proyecto.observaciones = observaciones;
+    proyecto.personaVisita = personaVisita;
+    proyecto.estado = 'levantamiento';
+    proyecto.actualizado_por = req.usuario.id;
+
+    await proyecto.save();
+
+    // Registrar evento de auditoría
+    console.log('📊 AUDIT: LEVANTAMIENTO_GUARDADO', {
+      proyectoId: id,
+      usuario: req.usuario.id,
+      partidas: partidas.length,
+      m2Total: totales.m2,
+      fecha: new Date()
+    });
+
+    res.json({
+      success: true,
+      message: 'Levantamiento guardado exitosamente',
+      data: proyecto
+    });
+
+  } catch (error) {
+    console.error('❌ Error al guardar levantamiento:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al guardar el levantamiento',
+      error: error.message
+    });
+  }
+};
+
+// FASE 4: Crear/actualizar cotización desde proyecto
+const crearCotizacionDesdeProyecto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      tipo, 
+      partidas, 
+      precioReglas, 
+      facturacion, 
+      totales, 
+      observaciones, 
+      personaVisita 
+    } = req.body;
+
+    console.log('💰 Creando cotización para proyecto:', id);
+
+    // Buscar el proyecto
+    const proyecto = await Proyecto.findById(id);
+    if (!proyecto) {
+      return res.status(404).json({
+        success: false,
+        message: 'Proyecto no encontrado'
+      });
+    }
+
+    // Generar número de cotización
+    const ultimaCotizacion = await Cotizacion.findOne().sort({ numero: -1 });
+    let numeroSecuencial = 1;
+    if (ultimaCotizacion && ultimaCotizacion.numero) {
+      const match = ultimaCotizacion.numero.match(/COT-(\d+)/);
+      if (match) {
+        numeroSecuencial = parseInt(match[1]) + 1;
+      }
+    }
+    const numeroCotizacion = `COT-${String(numeroSecuencial).padStart(4, '0')}`;
+
+    // Crear cotización
+    const nuevaCotizacion = new Cotizacion({
+      numero: numeroCotizacion,
+      proyectoId: id,
+      cliente: proyecto.cliente,
+      partidas,
+      precioReglas,
+      facturacion,
+      totales,
+      observaciones,
+      personaVisita,
+      estado: 'borrador',
+      creado_por: req.usuario.id
+    });
+
+    await nuevaCotizacion.save();
+
+    // Actualizar proyecto
+    proyecto.partidas = partidas;
+    proyecto.totales = totales;
+    proyecto.observaciones = observaciones;
+    proyecto.personaVisita = personaVisita;
+    proyecto.estado = 'cotizacion';
+    proyecto.cotizacion_id = nuevaCotizacion._id;
+    proyecto.actualizado_por = req.usuario.id;
+
+    await proyecto.save();
+
+    // Registrar evento de auditoría
+    console.log('📊 AUDIT: COTIZACION_CREADA', {
+      proyectoId: id,
+      cotizacionId: nuevaCotizacion._id,
+      numero: numeroCotizacion,
+      usuario: req.usuario.id,
+      total: totales.total,
+      m2Total: totales.m2,
+      fecha: new Date()
+    });
+
+    res.json({
+      success: true,
+      message: 'Cotización creada exitosamente',
+      data: {
+        proyecto,
+        cotizacion: nuevaCotizacion
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error al crear cotización:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al crear la cotización',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   crearProyecto,
   obtenerProyectos,
@@ -715,5 +861,7 @@ module.exports = {
   crearDesdeProspecto,
   obtenerDatosExportacion,
   sincronizarProyecto,
-  obtenerEstadisticasProyecto
+  obtenerEstadisticasProyecto,
+  guardarLevantamiento,
+  crearCotizacionDesdeProyecto
 };

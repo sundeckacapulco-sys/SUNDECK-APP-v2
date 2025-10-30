@@ -94,6 +94,8 @@ const AgregarMedidasProyectoModal = ({
   const [tipoDescuento, setTipoDescuento] = useState('porcentaje');
   const [valorDescuento, setValorDescuento] = useState('');
   const [requiereFactura, setRequiereFactura] = useState(false);
+  const [razonSocial, setRazonSocial] = useState('');
+  const [rfc, setRfc] = useState('');
   const [cobraInstalacion, setCobraInstalacion] = useState(false);
   const [precioInstalacion, setPrecioInstalacion] = useState('');
   const [precioInstalacionPorPieza, setPrecioInstalacionPorPieza] = useState('');
@@ -308,19 +310,394 @@ const AgregarMedidasProyectoModal = ({
   // ==================== FUNCIONES DE GUARDADO (Implementaremos en FASE 4) ====================
   
   /**
-   * Guardar medidas técnicas (sin precios)
+   * FASE 4: Validar 13 campos técnicos obligatorios por pieza
    */
-  const handleGuardarMedidasTecnicas = async () => {
-    console.log('🔧 Guardando medidas técnicas...');
-    // TODO: Implementar en FASE 4
+  const validarCamposTecnicos = (pieza) => {
+    const errores = [];
+    
+    // Validar medidas
+    pieza.medidas.forEach((medida, index) => {
+      if (!medida.ancho || medida.ancho <= 0) {
+        errores.push(`Pieza ${index + 1}: Ancho debe ser mayor a 0`);
+      }
+      if (!medida.alto || medida.alto <= 0) {
+        errores.push(`Pieza ${index + 1}: Alto debe ser mayor a 0`);
+      }
+      
+      // Campos técnicos obligatorios
+      if (!medida.sistema || medida.sistema.length === 0) {
+        errores.push(`Pieza ${index + 1}: Sistema es obligatorio`);
+      }
+      if (!medida.tipoControl) {
+        errores.push(`Pieza ${index + 1}: Control es obligatorio`);
+      }
+      if (!medida.tipoInstalacion) {
+        errores.push(`Pieza ${index + 1}: Tipo de instalación es obligatorio`);
+      }
+      if (!medida.tipoFijacion) {
+        errores.push(`Pieza ${index + 1}: Tipo de fijación es obligatorio`);
+      }
+      if (!medida.caida && !medida.orientacion) {
+        errores.push(`Pieza ${index + 1}: Caída/Orientación es obligatoria`);
+      }
+      if (!medida.galeria) {
+        errores.push(`Pieza ${index + 1}: Galería es obligatoria`);
+      }
+      if (!medida.modoOperacion) {
+        errores.push(`Pieza ${index + 1}: Modo de operación es obligatorio`);
+      }
+      
+      // Si es motorizado, validar motorización
+      if (medida.modoOperacion === 'motorizado' && pieza.motorizado) {
+        if (!pieza.motorModelo) {
+          errores.push(`Partida ${pieza.ubicacion}: Modelo de motor es obligatorio`);
+        }
+      }
+    });
+    
+    return errores;
   };
   
   /**
-   * Guardar cotización en vivo (con precios)
+   * FASE 4: Calcular totales de partida
+   */
+  const calcularTotalesPartida = (pieza, conPrecios = false) => {
+    let totalM2 = 0;
+    let subtotal = 0;
+    
+    // Calcular m² totales
+    pieza.medidas.forEach(medida => {
+      const ancho = parseFloat(medida.ancho) || 0;
+      const alto = parseFloat(medida.alto) || 0;
+      const m2 = ancho * alto;
+      totalM2 += m2;
+      
+      if (conPrecios) {
+        const precio = parseFloat(medida.precioM2) || parseFloat(precioGeneral) || 0;
+        subtotal += m2 * precio;
+      }
+    });
+    
+    // Agregar motorización si aplica
+    let costoMotorizacion = 0;
+    if (pieza.motorizado && conPrecios) {
+      const precioMotor = parseFloat(pieza.motorPrecio) || 0;
+      const numMotores = parseInt(pieza.numMotores) || 0;
+      const precioControl = parseFloat(pieza.controlPrecio) || 0;
+      
+      costoMotorizacion = (numMotores * precioMotor) + precioControl;
+      subtotal += costoMotorizacion;
+    }
+    
+    // Agregar instalación especial si aplica
+    let costoInstalacion = 0;
+    if (pieza.cobraInstalacion && conPrecios) {
+      const precioBase = parseFloat(pieza.precioInstalacion) || 0;
+      const precioPorPieza = parseFloat(pieza.precioInstalacionPorPieza) || 0;
+      const cantidad = parseInt(pieza.cantidad) || 1;
+      
+      if (pieza.tipoInstalacion === 'fijo') {
+        costoInstalacion = precioBase;
+      } else if (pieza.tipoInstalacion === 'por_pieza') {
+        costoInstalacion = cantidad * precioBase;
+      } else if (pieza.tipoInstalacion === 'base_mas_pieza') {
+        costoInstalacion = precioBase + ((cantidad - 1) * precioPorPieza);
+      }
+      
+      subtotal += costoInstalacion;
+    }
+    
+    return {
+      m2: parseFloat(totalM2.toFixed(2)),
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      costoMotorizacion: parseFloat(costoMotorizacion.toFixed(2)),
+      costoInstalacion: parseFloat(costoInstalacion.toFixed(2))
+    };
+  };
+  
+  /**
+   * FASE 4: Guardar medidas técnicas (sin precios)
+   */
+  const handleGuardarMedidasTecnicas = async () => {
+    console.log('🔧 Guardando medidas técnicas...');
+    setGuardando(true);
+    setErrorLocal('');
+    
+    try {
+      // Validar que hay partidas
+      if (piezas.length === 0) {
+        setErrorLocal('Debes agregar al menos una partida.');
+        setGuardando(false);
+        return;
+      }
+      
+      // Validar campos técnicos de todas las partidas
+      const erroresValidacion = [];
+      piezas.forEach((pieza, index) => {
+        const errores = validarCamposTecnicos(pieza);
+        if (errores.length > 0) {
+          erroresValidacion.push(`Partida ${index + 1} (${pieza.ubicacion}):`);
+          erroresValidacion.push(...errores);
+        }
+      });
+      
+      if (erroresValidacion.length > 0) {
+        setErrorLocal(
+          'Completa los campos obligatorios:\n' + erroresValidacion.join('\n')
+        );
+        setGuardando(false);
+        return;
+      }
+      
+      // Preparar partidas con totales
+      const partidasConTotales = piezas.map(pieza => {
+        const totales = calcularTotalesPartida(pieza, false);
+        
+        return {
+          ubicacion: pieza.ubicacion,
+          producto: pieza.productoLabel || pieza.producto,
+          color: pieza.color,
+          modelo: pieza.modeloCodigo,
+          cantidad: pieza.cantidad,
+          piezas: pieza.medidas.map(medida => ({
+            ancho: parseFloat(medida.ancho),
+            alto: parseFloat(medida.alto),
+            m2: parseFloat(medida.ancho) * parseFloat(medida.alto),
+            sistema: Array.isArray(medida.sistema) ? medida.sistema : [medida.sistema],
+            control: medida.tipoControl,
+            instalacion: medida.tipoInstalacion,
+            fijacion: medida.tipoFijacion,
+            caida: medida.caida || medida.orientacion,
+            galeria: medida.galeria,
+            telaMarca: medida.telaMarca,
+            baseTabla: medida.baseTabla,
+            operacion: medida.modoOperacion,
+            detalle: medida.detalleTecnico === 'otro' ? medida.detalleTecnicoManual : medida.detalleTecnico,
+            traslape: medida.traslape === 'otro' ? medida.traslapeManual : medida.traslape,
+            modeloCodigo: medida.modeloCodigo,
+            color: medida.color,
+            observacionesTecnicas: medida.observacionesTecnicas || ''
+          })),
+          totales
+        };
+      });
+      
+      // Calcular totales del proyecto
+      const totalesProyecto = partidasConTotales.reduce((acc, partida) => ({
+        m2: acc.m2 + partida.totales.m2
+      }), { m2: 0 });
+      
+      // Preparar payload
+      const payload = {
+        tipo: 'levantamiento',
+        partidas: partidasConTotales,
+        totales: totalesProyecto,
+        observaciones: comentarios,
+        personaVisita: personaVisita
+      };
+      
+      console.log('📤 Enviando payload:', payload);
+      
+      // Enviar al backend
+      const response = await axiosConfig.patch(
+        `/proyectos/${proyecto._id}/levantamiento`,
+        payload
+      );
+      
+      console.log('✅ Levantamiento guardado:', response.data);
+      
+      // Cerrar modal y actualizar
+      if (onActualizar) {
+        await onActualizar();
+      }
+      
+      cerrarModal();
+      
+    } catch (error) {
+      console.error('❌ Error al guardar levantamiento:', error);
+      setErrorLocal(
+        error.response?.data?.message || 
+        'Error al guardar el levantamiento. Intenta nuevamente.'
+      );
+    } finally {
+      setGuardando(false);
+    }
+  };
+  
+  /**
+   * FASE 4: Guardar cotización en vivo (con precios)
    */
   const handleGuardarCotizacionEnVivo = async () => {
     console.log('💰 Guardando cotización en vivo...');
-    // TODO: Implementar en FASE 4
+    setGuardando(true);
+    setErrorLocal('');
+    
+    try {
+      // Validar que hay partidas
+      if (piezas.length === 0) {
+        setErrorLocal('Debes agregar al menos una partida.');
+        setGuardando(false);
+        return;
+      }
+      
+      // Validar campos técnicos
+      const erroresValidacion = [];
+      piezas.forEach((pieza, index) => {
+        const errores = validarCamposTecnicos(pieza);
+        if (errores.length > 0) {
+          erroresValidacion.push(`Partida ${index + 1} (${pieza.ubicacion}):`);
+          erroresValidacion.push(...errores);
+        }
+      });
+      
+      if (erroresValidacion.length > 0) {
+        setErrorLocal(
+          'Completa los campos obligatorios:\n' + erroresValidacion.join('\n')
+        );
+        setGuardando(false);
+        return;
+      }
+      
+      // Validar precio general
+      if (!precioGeneral || precioGeneral <= 0) {
+        setErrorLocal('El precio general debe ser mayor a 0.');
+        setGuardando(false);
+        return;
+      }
+      
+      // Preparar partidas con totales y precios
+      const partidasConTotales = piezas.map(pieza => {
+        const totales = calcularTotalesPartida(pieza, true);
+        
+        return {
+          ubicacion: pieza.ubicacion,
+          producto: pieza.productoLabel || pieza.producto,
+          color: pieza.color,
+          modelo: pieza.modeloCodigo,
+          cantidad: pieza.cantidad,
+          piezas: pieza.medidas.map(medida => ({
+            ancho: parseFloat(medida.ancho),
+            alto: parseFloat(medida.alto),
+            m2: parseFloat(medida.ancho) * parseFloat(medida.alto),
+            sistema: Array.isArray(medida.sistema) ? medida.sistema : [medida.sistema],
+            control: medida.tipoControl,
+            instalacion: medida.tipoInstalacion,
+            fijacion: medida.tipoFijacion,
+            caida: medida.caida || medida.orientacion,
+            galeria: medida.galeria,
+            telaMarca: medida.telaMarca,
+            baseTabla: medida.baseTabla,
+            operacion: medida.modoOperacion,
+            detalle: medida.detalleTecnico === 'otro' ? medida.detalleTecnicoManual : medida.detalleTecnico,
+            traslape: medida.traslape === 'otro' ? medida.traslapeManual : medida.traslape,
+            modeloCodigo: medida.modeloCodigo,
+            color: medida.color,
+            precioM2: parseFloat(medida.precioM2) || parseFloat(precioGeneral),
+            observacionesTecnicas: medida.observacionesTecnicas || ''
+          })),
+          // Motorización
+          motorizacion: pieza.motorizado ? {
+            activa: true,
+            modeloMotor: pieza.motorModelo === 'otro' ? pieza.motorModeloEspecificar : pieza.motorModelo,
+            precioMotor: parseFloat(pieza.motorPrecio) || 0,
+            cantidadMotores: parseInt(pieza.numMotores) || 1,
+            modeloControl: pieza.controlModelo,
+            precioControl: parseFloat(pieza.controlPrecio) || 0,
+            tipoControl: pieza.esControlMulticanal ? 'Multicanal' : 'Individual',
+            piezasPorControl: parseInt(pieza.piezasPorControl) || 1
+          } : { activa: false },
+          // Instalación Especial
+          instalacionEspecial: pieza.cobraInstalacion ? {
+            activa: true,
+            tipoCobro: pieza.tipoInstalacion === 'fijo' ? 'Fijo' : 
+                       pieza.tipoInstalacion === 'por_pieza' ? 'Por pieza' : 'Base + Por pieza',
+            precioBase: parseFloat(pieza.precioInstalacion) || 0,
+            precioPorPieza: parseFloat(pieza.precioInstalacionPorPieza) || 0,
+            observaciones: ''
+          } : { activa: false },
+          totales
+        };
+      });
+      
+      // Calcular totales del proyecto
+      let subtotalProyecto = 0;
+      let m2Proyecto = 0;
+      
+      partidasConTotales.forEach(partida => {
+        subtotalProyecto += partida.totales.subtotal;
+        m2Proyecto += partida.totales.m2;
+      });
+      
+      // Aplicar descuento
+      let descuento = 0;
+      if (aplicaDescuento && valorDescuento) {
+        if (tipoDescuento === 'porcentaje') {
+          descuento = subtotalProyecto * (parseFloat(valorDescuento) / 100);
+        } else {
+          descuento = parseFloat(valorDescuento);
+        }
+      }
+      
+      const subtotalConDescuento = subtotalProyecto - descuento;
+      
+      // Calcular IVA
+      const iva = requiereFactura ? subtotalConDescuento * 0.16 : 0;
+      
+      // Total final
+      const total = subtotalConDescuento + iva;
+      
+      // Preparar payload de cotización
+      const payload = {
+        tipo: 'cotizacion',
+        partidas: partidasConTotales,
+        precioReglas: {
+          precio_m2: parseFloat(precioGeneral),
+          aplicaDescuento,
+          tipoDescuento,
+          valorDescuento: parseFloat(valorDescuento) || 0
+        },
+        facturacion: {
+          requiereFactura,
+          razonSocial: razonSocial || '',
+          rfc: rfc || ''
+        },
+        totales: {
+          m2: parseFloat(m2Proyecto.toFixed(2)),
+          subtotal: parseFloat(subtotalProyecto.toFixed(2)),
+          descuento: parseFloat(descuento.toFixed(2)),
+          iva: parseFloat(iva.toFixed(2)),
+          total: parseFloat(total.toFixed(2))
+        },
+        observaciones: comentarios,
+        personaVisita: personaVisita
+      };
+      
+      console.log('📤 Enviando payload de cotización:', payload);
+      
+      // Enviar al backend
+      const response = await axiosConfig.post(
+        `/proyectos/${proyecto._id}/cotizaciones`,
+        payload
+      );
+      
+      console.log('✅ Cotización guardada:', response.data);
+      
+      // Cerrar modal y actualizar
+      if (onActualizar) {
+        await onActualizar();
+      }
+      
+      cerrarModal();
+      
+    } catch (error) {
+      console.error('❌ Error al guardar cotización:', error);
+      setErrorLocal(
+        error.response?.data?.message || 
+        'Error al guardar la cotización. Intenta nuevamente.'
+      );
+    } finally {
+      setGuardando(false);
+    }
   };
   
   /**

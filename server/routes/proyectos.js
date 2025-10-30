@@ -15,7 +15,9 @@ const {
   crearDesdeProspecto,
   obtenerDatosExportacion,
   sincronizarProyecto,
-  obtenerEstadisticasProyecto
+  obtenerEstadisticasProyecto,
+  guardarLevantamiento,
+  crearCotizacionDesdeProyecto
 } = require('../controllers/proyectoController');
 
 const router = express.Router();
@@ -94,6 +96,20 @@ router.get('/:id/estadisticas',
   auth, 
   verificarPermiso('proyectos', 'leer'), 
   obtenerEstadisticasProyecto
+);
+
+// FASE 4: PATCH /api/proyectos/:id/levantamiento - Guardar levantamiento técnico
+router.patch('/:id/levantamiento', 
+  auth, 
+  verificarPermiso('proyectos', 'editar'), 
+  guardarLevantamiento
+);
+
+// FASE 4: POST /api/proyectos/:id/cotizaciones - Crear cotización desde proyecto
+router.post('/:id/cotizaciones', 
+  auth, 
+  verificarPermiso('proyectos', 'editar'), 
+  crearCotizacionDesdeProyecto
 );
 
 // POST /api/proyectos/:id/fabricacion/iniciar - Iniciar fabricación
