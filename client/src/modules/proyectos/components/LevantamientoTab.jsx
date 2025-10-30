@@ -20,7 +20,11 @@ import {
   AccordionDetails,
   ImageList,
   ImageListItem,
-  ImageListItemBar
+  ImageListItemBar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -36,6 +40,7 @@ import {
 import AgregarMedidaProyectoModal from './AgregarMedidaProyectoModal';
 import AgregarMedidaPartidasModal from './AgregarMedidaPartidasModal';
 import AgregarEtapaModal from '../../../components/Prospectos/AgregarEtapaModal';
+import AgregarMedidasProyectoModal from './AgregarMedidasProyectoModal';
 import axiosConfig from '../../../config/axios';
 import PiezaCard from './PiezaCard';
 import KpiCard from './KpiCard';
@@ -45,6 +50,14 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
   const [medidaEditando, setMedidaEditando] = useState(null);
   const [dialogoCotizacion, setDialogoCotizacion] = useState(false);
   const [dialogoPartidas, setDialogoPartidas] = useState(false);
+  
+  // Estado para el modal inteligente unificado
+  const [modalSelectorAbierto, setModalSelectorAbierto] = useState(false);
+  const [opcionSeleccionada, setOpcionSeleccionada] = useState(null);
+  
+  // Estados para el nuevo modal unificado de proyectos
+  const [nuevoModalAbierto, setNuevoModalAbierto] = useState(false);
+  const [nuevoModalConPrecios, setNuevoModalConPrecios] = useState(false);
 
   // Funciones para manejar el modal
   const abrirDialogoMedida = (medida = null) => {
@@ -75,6 +88,35 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
   const cerrarDialogoPartidas = () => {
     setDialogoPartidas(false);
     setMedidaEditando(null);
+  };
+
+  // Funciones para el modal selector inteligente
+  const abrirModalSelector = () => {
+    setModalSelectorAbierto(true);
+    setOpcionSeleccionada(null);
+  };
+
+  const cerrarModalSelector = () => {
+    setModalSelectorAbierto(false);
+    setOpcionSeleccionada(null);
+  };
+
+  const seleccionarTipoMedida = (tipo) => {
+    setOpcionSeleccionada(tipo);
+    
+    // Pequeño delay para mostrar el estado activo antes de cerrar
+    setTimeout(() => {
+      cerrarModalSelector();
+      
+      if (tipo === 'con_precios') {
+        // Usar el nuevo modal unificado para cotización con precios
+        setNuevoModalConPrecios(true);
+        setNuevoModalAbierto(true);
+      } else if (tipo === 'sin_precios') {
+        // Usar el modal de partidas de ayer para levantamiento sin precios
+        abrirDialogoPartidas();
+      }
+    }, 200);
   };
 
   // Función para eliminar levantamiento/medida
@@ -261,43 +303,19 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
               📏 Medidas del Levantamiento
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {/* Botón de Cotización en Vivo */}
-              <Button
-                variant="contained"
-                startIcon={<MonetizationOnIcon />}
-                onClick={abrirCotizacionEnVivo}
-                sx={{
-                  bgcolor: '#4caf50',
-                  '&:hover': { bgcolor: '#45a049' },
-                  fontWeight: 'bold'
-                }}
-                disabled={!proyecto.medidas || proyecto.medidas.length === 0}
-              >
-                Cotización en Vivo
-              </Button>
-              
-              {/* Botón de Agregar Partidas */}
+              {/* Botón Unificado Inteligente */}
               <Button
                 variant="contained"
                 startIcon={<StraightenIcon />}
-                onClick={() => abrirDialogoPartidas()}
+                onClick={abrirModalSelector}
                 sx={{
                   bgcolor: '#2196f3',
                   '&:hover': { bgcolor: '#1976d2' },
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  fontSize: '1rem'
                 }}
               >
-                Agregar Partidas
-              </Button>
-              
-              {/* Botón de Agregar Medida (antiguo) */}
-              <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={() => abrirDialogoMedida()}
-                sx={{ borderColor: '#D4AF37', color: '#D4AF37' }}
-              >
-                Medida Simple
+                📏 Agregar Medidas
               </Button>
             </Box>
           </Box>
@@ -771,6 +789,272 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
         }}
         modoProyecto={true}
         datosProyecto={proyecto}
+      />
+
+      {/* Modal Selector Inteligente - Rediseñado */}
+      <Dialog 
+        open={modalSelectorAbierto} 
+        onClose={cerrarModalSelector}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+          color: 'white',
+          textAlign: 'center',
+          py: 4,
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <Box sx={{ position: 'relative', zIndex: 1 }}>
+            <Box sx={{ fontSize: '2.5rem', mb: 1 }}>📏</Box>
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, letterSpacing: '-0.5px' }}>
+              Agregar Medidas
+            </Typography>
+            <Typography variant="body1" sx={{ opacity: 0.95, fontWeight: 400 }}>
+              Selecciona el tipo de levantamiento según tu necesidad
+            </Typography>
+          </Box>
+          {/* Decoración de fondo */}
+          <Box sx={{
+            position: 'absolute',
+            top: -50,
+            right: -50,
+            width: 200,
+            height: 200,
+            borderRadius: '50%',
+            bgcolor: 'rgba(255,255,255,0.1)',
+            zIndex: 0
+          }} />
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 4, bgcolor: '#f8fafc' }}>
+          <Grid container spacing={3} sx={{ mt: 0.5 }}>
+            {/* Opción: Sin Precios (Levantamiento Técnico) */}
+            <Grid item xs={12} md={6}>
+              <Card 
+                sx={{ 
+                  cursor: 'pointer',
+                  border: opcionSeleccionada === 'sin_precios' ? '3px solid #D4AF37' : '2px solid #e2e8f0',
+                  borderRadius: 3,
+                  transition: 'all 0.3s ease',
+                  height: '100%',
+                  boxShadow: opcionSeleccionada === 'sin_precios' 
+                    ? '0 8px 24px rgba(212, 175, 55, 0.3)' 
+                    : '0 2px 8px rgba(0,0,0,0.08)',
+                  transform: opcionSeleccionada === 'sin_precios' ? 'scale(1.02)' : 'scale(1)',
+                  '&:hover': { 
+                    transform: 'translateY(-6px) scale(1.02)',
+                    boxShadow: '0 12px 32px rgba(59, 130, 246, 0.2)',
+                    borderColor: '#3b82f6'
+                  }
+                }}
+                onClick={() => seleccionarTipoMedida('sin_precios')}
+              >
+                <CardContent sx={{ p: 3.5 }}>
+                  {/* Icono y Badge */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box sx={{ 
+                      bgcolor: '#eff6ff', 
+                      p: 2, 
+                      borderRadius: 2,
+                      display: 'inline-flex'
+                    }}>
+                      <Box sx={{ fontSize: '2.5rem' }}>📋</Box>
+                    </Box>
+                    {opcionSeleccionada === 'sin_precios' && (
+                      <Chip 
+                        label="Seleccionado" 
+                        size="small"
+                        sx={{ 
+                          bgcolor: '#D4AF37', 
+                          color: 'white',
+                          fontWeight: 600,
+                          fontSize: '0.7rem'
+                        }} 
+                      />
+                    )}
+                  </Box>
+                  
+                  {/* Título */}
+                  <Typography variant="h5" sx={{ color: '#1e40af', mb: 1.5, fontWeight: 700 }}>
+                    Sin Precios
+                  </Typography>
+                  
+                  {/* Descripción */}
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, lineHeight: 1.6 }}>
+                    Levantamiento técnico con medidas y especificaciones
+                  </Typography>
+                  
+                  {/* Badge destacado */}
+                  <Box sx={{ 
+                    bgcolor: '#dbeafe', 
+                    p: 1.5, 
+                    borderRadius: 2,
+                    border: '1px solid #93c5fd',
+                    mb: 2.5
+                  }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e40af', fontSize: '0.85rem' }}>
+                      ✓ Solo medidas técnicas • Sin cotización
+                    </Typography>
+                  </Box>
+                  
+                  {/* Lista de características */}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#3b82f6' }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                        Partidas con medidas exactas
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#3b82f6' }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                        Especificaciones técnicas detalladas
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#3b82f6' }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                        Fotos y observaciones del sitio
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Opción: Con Precios (Cotización en Vivo) */}
+            <Grid item xs={12} md={6}>
+              <Card 
+                sx={{ 
+                  cursor: 'pointer',
+                  border: opcionSeleccionada === 'con_precios' ? '3px solid #D4AF37' : '2px solid #e2e8f0',
+                  borderRadius: 3,
+                  transition: 'all 0.3s ease',
+                  height: '100%',
+                  boxShadow: opcionSeleccionada === 'con_precios' 
+                    ? '0 8px 24px rgba(212, 175, 55, 0.3)' 
+                    : '0 2px 8px rgba(0,0,0,0.08)',
+                  transform: opcionSeleccionada === 'con_precios' ? 'scale(1.02)' : 'scale(1)',
+                  '&:hover': { 
+                    transform: 'translateY(-6px) scale(1.02)',
+                    boxShadow: '0 12px 32px rgba(34, 197, 94, 0.2)',
+                    borderColor: '#22c55e'
+                  }
+                }}
+                onClick={() => seleccionarTipoMedida('con_precios')}
+              >
+                <CardContent sx={{ p: 3.5 }}>
+                  {/* Icono y Badge */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <Box sx={{ 
+                      bgcolor: '#f0fdf4', 
+                      p: 2, 
+                      borderRadius: 2,
+                      display: 'inline-flex'
+                    }}>
+                      <Box sx={{ fontSize: '2.5rem' }}>💰</Box>
+                    </Box>
+                    {opcionSeleccionada === 'con_precios' && (
+                      <Chip 
+                        label="Seleccionado" 
+                        size="small"
+                        sx={{ 
+                          bgcolor: '#D4AF37', 
+                          color: 'white',
+                          fontWeight: 600,
+                          fontSize: '0.7rem'
+                        }} 
+                      />
+                    )}
+                  </Box>
+                  
+                  {/* Título */}
+                  <Typography variant="h5" sx={{ color: '#15803d', mb: 1.5, fontWeight: 700 }}>
+                    Con Precios
+                  </Typography>
+                  
+                  {/* Descripción */}
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, lineHeight: 1.6 }}>
+                    Levantamiento con cotización y precios incluidos
+                  </Typography>
+                  
+                  {/* Badge destacado */}
+                  <Box sx={{ 
+                    bgcolor: '#dcfce7', 
+                    p: 1.5, 
+                    borderRadius: 2,
+                    border: '1px solid #86efac',
+                    mb: 2.5
+                  }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#15803d', fontSize: '0.85rem' }}>
+                      ✓ Cotización completa • Precios en tiempo real
+                    </Typography>
+                  </Box>
+                  
+                  {/* Lista de características */}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22c55e' }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                        Medidas y especificaciones técnicas
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22c55e' }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                        Precios por m² y cálculos automáticos
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22c55e' }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                        Facturación, descuentos, IVA y totales
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 3, justifyContent: 'center', bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+          <Button 
+            onClick={cerrarModalSelector}
+            variant="outlined"
+            sx={{ 
+              minWidth: 140,
+              borderRadius: 2,
+              borderColor: '#cbd5e1',
+              color: '#64748b',
+              fontWeight: 600,
+              py: 1,
+              '&:hover': {
+                borderColor: '#94a3b8',
+                bgcolor: '#f1f5f9'
+              }
+            }}
+          >
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Nuevo Modal Unificado de Proyectos - FASE 1 */}
+      <AgregarMedidasProyectoModal
+        open={nuevoModalAbierto}
+        onClose={() => setNuevoModalAbierto(false)}
+        proyecto={proyecto}
+        onActualizar={onActualizar}
+        conPrecios={nuevoModalConPrecios}
       />
     </Box>
   );

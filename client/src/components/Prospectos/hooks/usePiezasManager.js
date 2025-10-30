@@ -55,7 +55,9 @@ const usePiezasManager = (params = {}) => {
           producto: prev.producto,
           productoLabel: prev.productoLabel,
           color: prev.color,
-          precioM2: prev.precioM2 || ''
+          precioM2: prev.precioM2 || '',
+          sistema: [],
+          sistemaEspecial: []
         });
       }
 
@@ -135,7 +137,24 @@ const usePiezasManager = (params = {}) => {
       medidas: medidasProcesadas,
       precioM2: parseFloat(piezaForm.precioM2) || precioGeneral,
       productoLabel: productoLabel || piezaForm.productoLabel,
-      observaciones: `${piezaForm.observaciones ? `${piezaForm.observaciones} - ` : ''}Partida de ${cantidad} pieza${cantidad > 1 ? 's' : ''}`
+      observaciones: `${piezaForm.observaciones ? `${piezaForm.observaciones} - ` : ''}Partida de ${cantidad} pieza${cantidad > 1 ? 's' : ''}`,
+      // MOTORIZACIÓN: Preservar todos los campos de motorización
+      motorizado: piezaForm.motorizado || false,
+      motorModelo: piezaForm.motorModelo || '',
+      motorModeloEspecificar: piezaForm.motorModeloEspecificar || '',
+      motorPrecio: piezaForm.motorPrecio || '',
+      numMotores: piezaForm.numMotores || 1,
+      piezasPorMotor: piezaForm.piezasPorMotor || 1,
+      controlModelo: piezaForm.controlModelo || '',
+      controlPrecio: piezaForm.controlPrecio || '',
+      esControlMulticanal: piezaForm.esControlMulticanal || false,
+      piezasPorControl: piezaForm.piezasPorControl || 1,
+      // INSTALACIÓN ESPECIAL: Preservar todos los campos de instalación
+      cobraInstalacion: piezaForm.cobraInstalacion || false,
+      tipoInstalacion: piezaForm.tipoInstalacion || 'fijo',
+      precioInstalacion: piezaForm.precioInstalacion || '',
+      precioInstalacionPorPieza: piezaForm.precioInstalacionPorPieza || '',
+      observacionesInstalacion: piezaForm.observacionesInstalacion || ''
     };
 
     console.log('🔍 AGREGANDO PIEZA - piezaForm completo:', piezaForm);
@@ -204,7 +223,9 @@ const usePiezasManager = (params = {}) => {
             producto: piezaAEditar.producto,
             productoLabel: piezaAEditar.productoLabel,
             color: piezaAEditar.color,
-            precioM2: piezaAEditar.precioM2
+            precioM2: piezaAEditar.precioM2,
+            sistema: piezaAEditar.sistema || [],
+            sistemaEspecial: piezaAEditar.sistemaEspecial || []
           }
         ],
         producto: piezaAEditar.producto,
@@ -225,7 +246,9 @@ const usePiezasManager = (params = {}) => {
         motorPrecio: piezaAEditar.motorPrecio || '',
         controlModelo: piezaAEditar.controlModelo || '',
         controlModeloManual: piezaAEditar.controlModeloManual || '',
-        controlPrecio: piezaAEditar.controlPrecio || ''
+        controlPrecio: piezaAEditar.controlPrecio || '',
+        sistema: piezaAEditar.sistema || [],
+        sistemaEspecial: piezaAEditar.sistemaEspecial || []
       };
     });
 

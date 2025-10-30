@@ -67,7 +67,9 @@ export const createEmptyPieza = () => ({
       producto: productosOptions[0].value,
       productoLabel: productosOptions[0].label,
       color: 'Blanco',
-      precioM2: ''
+      precioM2: '',
+      sistema: [],
+      sistemaEspecial: []
     }
   ],
   producto: productosOptions[0].value,
@@ -88,5 +90,7 @@ export const createEmptyPieza = () => ({
   motorPrecio: '',
   controlModelo: '',
   controlModeloManual: '',
-  controlPrecio: ''
+  controlPrecio: '',
+  sistema: [],
+  sistemaEspecial: []
 });

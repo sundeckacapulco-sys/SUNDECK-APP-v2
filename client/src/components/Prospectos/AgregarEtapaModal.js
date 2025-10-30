@@ -3880,8 +3880,8 @@ const handleAgregarPedido = async () => {
                                     {(medida.sistema || medida.sistemaEspecial || medida.galeria || medida.baseTabla) && (
                                       <Typography variant="caption" color="primary.main" sx={{ ml: 1 }}>
                                         {[
-                                          medida.sistema && medida.sistema.length > 0 && `Sistema: ${medida.sistema.join(', ')}`,
-                                          medida.sistemaEspecial && medida.sistemaEspecial.length > 0 && `Especial: ${medida.sistemaEspecial.join(', ')}`,
+                                          medida.sistema && Array.isArray(medida.sistema) && medida.sistema.length > 0 && `Sistema: ${medida.sistema.join(', ')}`,
+                                          medida.sistemaEspecial && Array.isArray(medida.sistemaEspecial) && medida.sistemaEspecial.length > 0 && `Especial: ${medida.sistemaEspecial.join(', ')}`,
                                           medida.galeria && `Galería: ${medida.galeria}`,
                                           medida.baseTabla && `Base: ${medida.baseTabla}`
                                         ].filter(Boolean).join(' | ')}
