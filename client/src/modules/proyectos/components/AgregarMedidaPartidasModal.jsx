@@ -222,42 +222,44 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
         </Card>
 
         {/* Información técnica general */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
+        <Card sx={{ mb: 2 }}>
+          <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+            <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 'bold', fontSize: '0.95rem' }}>
               🔧 Información Técnica General
             </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+            <Grid container spacing={1}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
+                  size="small"
                   label="Persona que realizó visita"
                   value={personaVisita}
                   onChange={(e) => {
                     console.log('🔍 DEBUG - Cambiando personaVisita:', e.target.value);
                     setPersonaVisita(e.target.value);
                   }}
-                  placeholder="Nombre del asesor/técnico"
+                  placeholder="Asesor/técnico"
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth
+                  size="small"
                   type="date"
-                  label="Fecha de cotización (opcional)"
+                  label="Fecha de Creación"
                   value={fechaCotizacion}
                   onChange={(e) => setFechaCotizacion(e.target.value)}
-                  helperText="Solo si el cliente solicita una cotización adicional"
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth
+                  size="small"
                   label="Quien recibe"
                   value={quienRecibe}
                   onChange={(e) => setQuienRecibe(e.target.value)}
-                  placeholder="Nombre de quien recibió la visita"
+                  placeholder="Cliente"
                 />
               </Grid>
             </Grid>
@@ -266,7 +268,7 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
 
         {/* Partidas agregadas */}
         {piezasManager.piezas.length > 0 && (
-          <Card sx={{ mb: 3 }}>
+          <Card sx={{ mb: 2 }}>
             <CardContent>
               <Typography variant="h6" sx={{ mb: 2 }}>
                 📋 Partidas Agregadas ({piezasManager.piezas.length})
@@ -440,49 +442,51 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
 
         {/* Formulario para agregar partida */}
         {piezasManager.agregandoPieza && (
-          <Card sx={{ mb: 3, border: '2px solid #2196f3' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ color: '#2196f3' }}>
+          <Card sx={{ mb: 2, border: '2px solid #2196f3' }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                <Typography variant="subtitle1" sx={{ color: '#2196f3', fontWeight: 'bold', fontSize: '0.95rem' }}>
                   {piezasManager.editandoPieza ? '✏️ Editando Partida' : '➕ Nueva Partida'}
                 </Typography>
                 {piezasManager.piezaForm.cantidad > 1 && (
                   <Chip 
-                    label={`📦 ${piezasManager.piezaForm.cantidad} piezas en esta partida`}
+                    label={`${piezasManager.piezaForm.cantidad} piezas`}
                     color="success"
                     size="small"
+                    sx={{ fontSize: '0.75rem', height: '24px' }}
                   />
                 )}
               </Box>
               
-              <Grid container spacing={2}>
+              <Grid container spacing={1}>
                 {/* Ubicación y Cantidad */}
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
+                    size="small"
                     label="Ubicación *"
                     value={piezasManager.piezaForm.ubicacion}
                     onChange={(e) => piezasManager.setPiezaForm(prev => ({ ...prev, ubicacion: e.target.value }))}
-                    placeholder="Ej: Sala-Comedor, Recámara Principal"
+                    placeholder="Sala, Recámara..."
                     required
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} sm={3}>
                   <TextField
                     fullWidth
+                    size="small"
                     type="number"
-                    label="Cantidad de piezas *"
+                    label="Cantidad *"
                     value={piezasManager.piezaForm.cantidad}
                     onChange={(e) => piezasManager.actualizarMedidas(e.target.value)}
                     inputProps={{ min: 1, max: 20 }}
-                    helperText="Número de piezas en esta partida"
                     required
                   />
                 </Grid>
 
                 {/* Producto */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
+                <Grid item xs={12} sm={3}>
+                  <FormControl fullWidth size="small">
                     <InputLabel>Producto *</InputLabel>
                     <Select
                       value={piezasManager.piezaForm.producto}
@@ -519,9 +523,10 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                 </Grid>
 
                 {/* Modelo/Código del Producto */}
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
+                    size="small"
                     label="Modelo / Código"
                     value={piezasManager.piezaForm.modeloCodigo || ''}
                     onChange={(e) => {
@@ -538,15 +543,15 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                         };
                       });
                     }}
-                    placeholder="Ej. SH-3000, BL-500"
-                    helperText="Modelo o código específico del producto"
+                    placeholder="SH-3000, BL-500..."
                   />
                 </Grid>
 
                 {/* Color */}
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
+                    size="small"
                     label="Color / Acabado"
                     value={piezasManager.piezaForm.color}
                     onChange={(e) => {
@@ -622,13 +627,18 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                             </Button>
                           )}
                         </Box>
-                        <Grid container spacing={2}>
-                          {/* Medidas básicas */}
-                          <Grid item xs={12} sm={6}>
+                        {/* NIVEL 1: Medidas Críticas */}
+                        <Typography variant="caption" sx={{ display: 'block', mb: 0.5, fontWeight: 600, color: 'text.secondary' }}>
+                          📏 Medidas y Configuración Principal
+                        </Typography>
+                        <Grid container spacing={1} sx={{ mb: 1.5 }}>
+                          {/* Ancho */}
+                          <Grid item xs={6} sm={4}>
                             <TextField
-                              label={`Ancho pieza ${index + 1} (m) *`}
+                              label="Ancho (m)"
                               type="number"
                               fullWidth
+                              size="small"
                               value={medida.ancho}
                               onChange={(e) => {
                                 const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
@@ -636,15 +646,18 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                                 piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
                               }}
                               inputProps={{ step: 0.01 }}
-                              placeholder="Ej. 2.50"
+                              placeholder="2.50"
                               required
                             />
                           </Grid>
-                          <Grid item xs={12} sm={6}>
+                          
+                          {/* Alto */}
+                          <Grid item xs={6} sm={4}>
                             <TextField
-                              label={`Alto pieza ${index + 1} (m) *`}
+                              label="Alto (m)"
                               type="number"
                               fullWidth
+                              size="small"
                               value={medida.alto}
                               onChange={(e) => {
                                 const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
@@ -652,18 +665,18 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                                 piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
                               }}
                               inputProps={{ step: 0.01 }}
-                              placeholder="Ej. 3.00"
+                              placeholder="3.00"
                               required
                             />
                           </Grid>
 
                           {/* Galería/Cabezal */}
-                          <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth>
-                              <InputLabel>Galería/Cabezal</InputLabel>
+                          <Grid item xs={12} sm={4}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Galería</InputLabel>
                               <Select
                                 value={medida.galeria || ''}
-                                label="Galería/Cabezal"
+                                label="Galería"
                                 onChange={(e) => {
                                   const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
                                   nuevasMedidas[index] = { ...nuevasMedidas[index], galeria: e.target.value };
@@ -679,20 +692,13 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                             </FormControl>
                           </Grid>
 
-                          {/* Campos técnicos */}
-                          <Grid item xs={12}>
-                            <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#666', display: 'block', mb: 1, mt: 1 }}>
-                              🔧 Especificaciones Técnicas
-                            </Typography>
-                          </Grid>
-
                           {/* Tipo de Control */}
-                          <Grid item xs={12} sm={6} md={4}>
-                            <FormControl fullWidth>
-                              <InputLabel>Tipo de Control</InputLabel>
+                          <Grid item xs={6} sm={4}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Control</InputLabel>
                               <Select
                                 value={medida.tipoControl || ''}
-                                label="Tipo de Control"
+                                label="Control"
                                 onChange={(e) => {
                                   const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
                                   nuevasMedidas[index] = { ...nuevasMedidas[index], tipoControl: e.target.value };
@@ -709,8 +715,8 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                           </Grid>
 
                           {/* Caída */}
-                          <Grid item xs={12} sm={6} md={4}>
-                            <FormControl fullWidth>
+                          <Grid item xs={6} sm={4}>
+                            <FormControl fullWidth size="small">
                               <InputLabel>Caída</InputLabel>
                               <Select
                                 value={medida.caida || ''}
@@ -729,12 +735,12 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                           </Grid>
 
                           {/* Tipo de Instalación */}
-                          <Grid item xs={12} sm={6} md={4}>
-                            <FormControl fullWidth>
-                              <InputLabel>Tipo de Instalación</InputLabel>
+                          <Grid item xs={12} sm={4}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Tipo Instalación</InputLabel>
                               <Select
                                 value={medida.tipoInstalacion || ''}
-                                label="Tipo de Instalación"
+                                label="Tipo Instalación"
                                 onChange={(e) => {
                                   const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
                                   nuevasMedidas[index] = { ...nuevasMedidas[index], tipoInstalacion: e.target.value };
@@ -751,12 +757,12 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                           </Grid>
 
                           {/* Tipo de Fijación */}
-                          <Grid item xs={12} sm={6} md={4}>
-                            <FormControl fullWidth>
-                              <InputLabel>Tipo de Fijación</InputLabel>
+                          <Grid item xs={6} sm={4}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Tipo Fijación</InputLabel>
                               <Select
                                 value={medida.tipoFijacion || ''}
-                                label="Tipo de Fijación"
+                                label="Tipo Fijación"
                                 onChange={(e) => {
                                   const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
                                   nuevasMedidas[index] = { ...nuevasMedidas[index], tipoFijacion: e.target.value };
@@ -774,12 +780,12 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                           </Grid>
 
                           {/* Modo de operación */}
-                          <Grid item xs={12} sm={6} md={4}>
-                            <FormControl fullWidth>
-                              <InputLabel>Modo de Operación</InputLabel>
+                          <Grid item xs={6} sm={4}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Modo Operación</InputLabel>
                               <Select
                                 value={medida.modoOperacion || ''}
-                                label="Modo de Operación"
+                                label="Modo Operación"
                                 onChange={(e) => {
                                   const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
                                   nuevasMedidas[index] = { ...nuevasMedidas[index], modoOperacion: e.target.value };
@@ -793,16 +799,20 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                             </FormControl>
                           </Grid>
 
-                          {/* Detalle Técnico (Traslape) */}
-                          <Grid item xs={12} sm={6} md={4}>
-                            <FormControl fullWidth>
+                          {/* Detalle Técnico */}
+                          <Grid item xs={6} sm={4}>
+                            <FormControl fullWidth size="small">
                               <InputLabel>Detalle Técnico</InputLabel>
                               <Select
                                 value={medida.detalleTecnico || ''}
                                 label="Detalle Técnico"
                                 onChange={(e) => {
                                   const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
-                                  nuevasMedidas[index] = { ...nuevasMedidas[index], detalleTecnico: e.target.value };
+                                  nuevasMedidas[index] = { 
+                                    ...nuevasMedidas[index], 
+                                    detalleTecnico: e.target.value,
+                                    detalleTecnicoManual: e.target.value === 'otro' ? nuevasMedidas[index]?.detalleTecnicoManual : ''
+                                  };
                                   piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
                                 }}
                               >
@@ -810,14 +820,81 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                                 <MenuItem value="traslape">Traslape</MenuItem>
                                 <MenuItem value="corte">Corte</MenuItem>
                                 <MenuItem value="sin_traslape">Sin traslape</MenuItem>
+                                <MenuItem value="empalme">Empalme</MenuItem>
+                                <MenuItem value="doble_sistema">Doble Sistema</MenuItem>
+                                <MenuItem value="otro">Otro (especificar)</MenuItem>
                               </Select>
                             </FormControl>
                           </Grid>
 
+                          {/* Campo manual para Detalle (cuando selecciona "Otro") */}
+                          {medida.detalleTecnico === 'otro' && (
+                            <Grid item xs={12} sm={8}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="Especificar Detalle Técnico"
+                                value={medida.detalleTecnicoManual || ''}
+                                onChange={(e) => {
+                                  const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                  nuevasMedidas[index] = { ...nuevasMedidas[index], detalleTecnicoManual: e.target.value };
+                                  piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                }}
+                                placeholder="Ej: Sistema triple con guías laterales"
+                              />
+                            </Grid>
+                          )}
+
+                          {/* Traslape */}
+                          <Grid item xs={6} sm={4}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Traslape</InputLabel>
+                              <Select
+                                value={medida.traslape || ''}
+                                label="Traslape"
+                                onChange={(e) => {
+                                  const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                  nuevasMedidas[index] = { 
+                                    ...nuevasMedidas[index], 
+                                    traslape: e.target.value,
+                                    traslapeManual: e.target.value === 'otro' ? nuevasMedidas[index]?.traslapeManual : ''
+                                  };
+                                  piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                }}
+                              >
+                                <MenuItem value="">No aplica</MenuItem>
+                                <MenuItem value="5cm">5 cm</MenuItem>
+                                <MenuItem value="10cm">10 cm</MenuItem>
+                                <MenuItem value="15cm">15 cm</MenuItem>
+                                <MenuItem value="20cm">20 cm</MenuItem>
+                                <MenuItem value="otro">Otro (especificar)</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </Grid>
+
+                          {/* Campo manual para Traslape (cuando selecciona "Otro") */}
+                          {medida.traslape === 'otro' && (
+                            <Grid item xs={12} sm={8}>
+                              <TextField
+                                fullWidth
+                                size="small"
+                                label="Especificar Traslape"
+                                value={medida.traslapeManual || ''}
+                                onChange={(e) => {
+                                  const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                  nuevasMedidas[index] = { ...nuevasMedidas[index], traslapeManual: e.target.value };
+                                  piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                }}
+                                placeholder="Ej: 25 cm o traslape personalizado"
+                              />
+                            </Grid>
+                          )}
+
                           {/* Sistema */}
-                          <Grid item xs={12} sm={6} md={4}>
+                          <Grid item xs={12} sm={4}>
                             <TextField
                               fullWidth
+                              size="small"
                               label="Sistema"
                               value={medida.sistema || ''}
                               onChange={(e) => {
@@ -825,14 +902,15 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                                 nuevasMedidas[index] = { ...nuevasMedidas[index], sistema: e.target.value };
                                 piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
                               }}
-                              placeholder="Ej. Enrollable, Sheer Elegance"
+                              placeholder="Enrollable, Sheer..."
                             />
                           </Grid>
 
                           {/* Tela/Marca */}
-                          <Grid item xs={12} sm={6} md={3}>
+                          <Grid item xs={6} sm={4}>
                             <TextField
                               fullWidth
+                              size="small"
                               label="Tela/Marca"
                               value={medida.telaMarca || ''}
                               onChange={(e) => {
@@ -840,13 +918,13 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                                 nuevasMedidas[index] = { ...nuevasMedidas[index], telaMarca: e.target.value };
                                 piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
                               }}
-                              placeholder="Marca o tipo de tela"
+                              placeholder="Marca o tela"
                             />
                           </Grid>
 
                           {/* Base Tabla */}
-                          <Grid item xs={12} sm={6} md={3}>
-                            <FormControl fullWidth>
+                          <Grid item xs={6} sm={4}>
+                            <FormControl fullWidth size="small">
                               <InputLabel>Base Tabla</InputLabel>
                               <Select
                                 value={medida.baseTabla || ''}
@@ -858,11 +936,29 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                                 }}
                               >
                                 <MenuItem value="">No aplica</MenuItem>
-                                <MenuItem value="7">7</MenuItem>
-                                <MenuItem value="15">15</MenuItem>
-                                <MenuItem value="18">18</MenuItem>
+                                <MenuItem value="7">7 cm</MenuItem>
+                                <MenuItem value="15">15 cm</MenuItem>
+                                <MenuItem value="18">18 cm</MenuItem>
                               </Select>
                             </FormControl>
+                          </Grid>
+
+                          {/* Observaciones técnicas de la pieza */}
+                          <Grid item xs={12}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              multiline
+                              rows={2}
+                              label="Observaciones técnicas"
+                              value={medida.observacionesTecnicas || ''}
+                              onChange={(e) => {
+                                const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                nuevasMedidas[index] = { ...nuevasMedidas[index], observacionesTecnicas: e.target.value };
+                                piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                              }}
+                              placeholder="Obstáculos, accesos, cableado, nivel..."
+                            />
                           </Grid>
 
                           {/* Sugerencias inteligentes */}
@@ -927,23 +1023,6 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                               </Grid>
                             ) : null;
                           })()}
-
-                          {/* Observaciones técnicas de la pieza */}
-                          <Grid item xs={12}>
-                            <TextField
-                              fullWidth
-                              multiline
-                              rows={2}
-                              label={`Observaciones técnicas pieza ${index + 1}`}
-                              value={medida.observacionesTecnicas || ''}
-                              onChange={(e) => {
-                                const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
-                                nuevasMedidas[index] = { ...nuevasMedidas[index], observacionesTecnicas: e.target.value };
-                                piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
-                              }}
-                              placeholder="Interferencias, obstáculos, pendiente eléctrica, etc."
-                            />
-                          </Grid>
                         </Grid>
                       </Box>
                     ))}
