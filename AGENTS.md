@@ -133,6 +133,16 @@ logger.warn('Situación inusual detectada', {
 ### ⚠️ CRÍTICO
 **Cada archivo debe quedar con 0 console.log. Si un archivo tiene console.log, la tarea NO está completa.**
 
+### 🔍 CÓMO VERIFICAR QUE ELIMINASTE LOS CONSOLE.LOG
+
+Después de editar cada archivo, ejecuta:
+```bash
+grep "console.log" server/scripts/migrarDatos.js
+```
+
+**Si ves resultados = NO terminaste** ❌  
+**Si NO ves resultados = Archivo completo** ✅
+
 ---
 
 ## 🧪 VERIFICACIÓN
@@ -187,6 +197,30 @@ grep "console.log" server/scripts/migrarDatos.js
 ```
 
 Si hay resultados, la tarea NO está completa.
+
+### 📝 EJEMPLO PASO A PASO
+
+**Archivo:** `server/scripts/migrarDatos.js` (45 console.log)
+
+**Paso 1:** Leer el archivo
+```bash
+# Ver cuántos console.log tiene
+grep -c "console.log" server/scripts/migrarDatos.js
+# Resultado: 45
+```
+
+**Paso 2:** Editar el archivo
+- Buscar CADA console.log
+- ELIMINAR la línea con console.log
+- AGREGAR línea con logger.info/warn/error
+
+**Paso 3:** Verificar que quedó en 0
+```bash
+grep -c "console.log" server/scripts/migrarDatos.js
+# Resultado esperado: 0
+```
+
+**Si el resultado NO es 0, el archivo NO está completo.**
 
 ---
 
