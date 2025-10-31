@@ -1,121 +1,212 @@
-# 🚀 CONTINUAR AQUÍ - FASE 1: Desacoplo y Confiabilidad
+# 🚀 CONTINUAR AQUÍ - Próxima Sesión
 
-**Fecha:** 31 Oct 2025
-**Estado:** Fase 0 COMPLETADA ✅ | Iniciando Fase 1
-
----
-
-## ✅ FASE 0 COMPLETADA AL 100%
-
-### Sprint 1: Logger Estructurado ✅
-- Winston operativo en backend
-- 419/419 console.log reemplazados (100%)
-- Rutas, services, middleware y scripts alineados al estándar
-- 4/4 pruebas pasando
-
-### Sprint 2: Métricas Baseline ✅
-- Modelo Metric, middleware y API listos
-- 15/15 pruebas pasando
-- Sistema capturando métricas automáticamente
-
-**Fase 0:** 100% completada 🎉
+**Última actualización:** 31 Octubre 2025  
+**Estado:** Fase 0 ✅ COMPLETADA | Fase 1 🔄 EN PROGRESO (40%)
 
 ---
 
-## 🎯 FASE 1: Plan de Acción Inmediato
+## ✅ FASE 0 COMPLETADA (100%)
 
-### Bloqueante #1: Unificar Dominio de Pedidos (5-7 días)
-**Problema:** Duplicidad entre `Pedido.js` y `ProyectoPedido.js`
-
-**Análisis requerido:**
-1. Comparar schemas de ambos modelos
-2. Identificar diferencias funcionales
-3. Determinar modelo a mantener
-4. Crear script de migración de datos
-5. Actualizar controladores y rutas
-
-**Archivos afectados:**
-- `server/models/Pedido.js`
-- `server/models/ProyectoPedido.js`
-- `server/controllers/pedidoController.js`
-- `server/routes/pedidos.js`
-
-### Bloqueante #2: Corregir Fabricación (2-3 días)
-**Problema:** Módulo sin imports, no funcional
-
-**Acciones:**
-1. Agregar imports faltantes en `fabricacionController.js`
-2. Verificar dependencias del modelo `Fabricacion`
-3. Crear pruebas unitarias básicas
-4. Validar flujo completo
-
-**Archivos afectados:**
-- `server/controllers/fabricacionController.js`
-- `server/models/Fabricacion.js`
-
-### Tarea #3: Pruebas Unitarias (3-4 días)
-**Objetivo:** Alcanzar 60% cobertura en módulos críticos
-
-**Módulos prioritarios:**
-1. PDF Service (generación de documentos)
-2. Excel Service (exportaciones)
-3. Pedidos (CRUD y validaciones)
-4. Fabricación (flujo de producción)
+- ✅ 419/419 console.log migrados
+- ✅ 15/15 pruebas pasando
+- ✅ Logger Winston operativo
+- ✅ Sistema de métricas capturando automáticamente
 
 ---
 
-## 🧾 LOGROS CLAVE
+## 🚀 FASE 1: ESTADO ACTUAL (40%)
 
-- Parte 1: Middleware, modelos y services críticos ✅
-- Parte 2: Rutas operativas y scripts de migración ✅
-- Parte 3: Scripts utilitarios y plantillas iniciales ✅
-- Sin `console.log` residuales en `server/`
-- Scripts ahora registran conexiones, IDs creados y cierres controlados
+### ✅ COMPLETADO HOY (31 Oct 2025)
+
+**1. Modelo `Proyecto.js` Unificado** ⭐
+- ✅ Agregados 5 secciones principales:
+  - `cronograma` - Fechas unificadas del ciclo de vida
+  - `fabricacion` - Con etiquetas de producción y QR
+  - `instalacion` - Con rutas optimizadas
+  - `pagos` - Estructurados con comprobantes
+  - `notas` - Historial completo
+- ✅ Archivo: `server/models/Proyecto.js` (502 → 1,241 líneas)
+
+**2. Métodos Inteligentes Implementados** ⭐
+- ✅ `generarEtiquetasProduccion()` - Etiquetas para empaques con QR
+- ✅ `calcularTiempoInstalacion()` - Algoritmo inteligente de tiempos
+- ✅ `generarRecomendacionesInstalacion()` - Sugerencias personalizadas
+- ✅ `optimizarRutaDiaria()` - Optimización de rutas (Nearest Neighbor)
+
+**3. Documentación Completa** ⭐
+- ✅ `docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md`
+- ✅ `docschecklists/IMPLEMENTACION_COMPLETADA.md`
+- ✅ `docschecklists/FASE_1_UNIFICACION_MODELOS.md`
+- ✅ `docschecklists/ANALISIS_FABRICACION_ACTUAL.md`
 
 ---
 
-## 🔍 CHECKLIST RÁPIDO ANTES DE ENTREGAR
+## 📋 PRÓXIMA SESIÓN: Día 1 - Crear Endpoints
 
+### Tareas Pendientes
+
+#### 1. Instalar Dependencia
 ```bash
-rg "console\.log" server              # Debe retornar sin resultados
-npm test -- --runInBand                # 15/15 pruebas pasando
+npm install qrcode
 ```
 
-Los logs generados durante pruebas se guardan en `/logs/` (ignorados por git).
+#### 2. Crear Endpoint: Etiquetas de Producción
+```javascript
+// POST /api/proyectos/:id/etiquetas-produccion
+// Archivo: server/controllers/proyectoController.js
+
+exports.generarEtiquetasProduccion = async (req, res) => {
+  try {
+    const proyecto = await Proyecto.findById(req.params.id);
+    if (!proyecto) {
+      return res.status(404).json({ message: 'Proyecto no encontrado' });
+    }
+    
+    const etiquetas = proyecto.generarEtiquetasProduccion();
+    
+    // Generar QR codes
+    const QRCode = require('qrcode');
+    for (let etiqueta of etiquetas) {
+      etiqueta.codigoQR = await QRCode.toDataURL(etiqueta.codigoQR);
+    }
+    
+    res.json(etiquetas);
+  } catch (error) {
+    logger.error('Error generando etiquetas', { error: error.message });
+    res.status(500).json({ message: 'Error generando etiquetas' });
+  }
+};
+```
+
+#### 3. Crear Endpoint: Calcular Tiempo de Instalación
+```javascript
+// POST /api/proyectos/:id/calcular-tiempo-instalacion
+// Archivo: server/controllers/proyectoController.js
+
+exports.calcularTiempoInstalacion = async (req, res) => {
+  try {
+    const proyecto = await Proyecto.findById(req.params.id);
+    if (!proyecto) {
+      return res.status(404).json({ message: 'Proyecto no encontrado' });
+    }
+    
+    const calculo = proyecto.calcularTiempoInstalacion();
+    res.json(calculo);
+  } catch (error) {
+    logger.error('Error calculando tiempo', { error: error.message });
+    res.status(500).json({ message: 'Error calculando tiempo' });
+  }
+};
+```
+
+#### 4. Crear Endpoint: Optimizar Ruta Diaria
+```javascript
+// GET /api/proyectos/ruta-diaria/:fecha
+// Archivo: server/controllers/proyectoController.js
+
+exports.optimizarRutaDiaria = async (req, res) => {
+  try {
+    const fecha = new Date(req.params.fecha);
+    const rutaOptimizada = await Proyecto.optimizarRutaDiaria(fecha);
+    res.json(rutaOptimizada);
+  } catch (error) {
+    logger.error('Error optimizando ruta', { error: error.message });
+    res.status(500).json({ message: 'Error optimizando ruta' });
+  }
+};
+```
+
+#### 5. Agregar Rutas
+```javascript
+// Archivo: server/routes/proyectos.js
+// Agregar estas líneas
+
+router.post('/:id/etiquetas-produccion', auth, proyectoController.generarEtiquetasProduccion);
+router.post('/:id/calcular-tiempo-instalacion', auth, proyectoController.calcularTiempoInstalacion);
+router.get('/ruta-diaria/:fecha', auth, proyectoController.optimizarRutaDiaria);
+```
 
 ---
 
-## 📌 ACCIÓN INMEDIATA REQUERIDA
+## 📅 PLAN DE 5 DÍAS
 
-### Paso 1: Análisis de Pedidos (Día 1)
+### ✅ Día 0 (HOY - COMPLETADO)
+- ✅ Actualizar modelo `Proyecto.js`
+- ✅ Implementar métodos inteligentes
+- ✅ Documentar requisitos y cambios
+
+### ⏳ Día 1 (PRÓXIMA SESIÓN)
+- [ ] Instalar `qrcode` package
+- [ ] Crear 3 endpoints en `proyectoController.js`
+- [ ] Agregar rutas en `routes/proyectos.js`
+- [ ] Probar endpoints con Postman/Thunder Client
+
+### ⏳ Día 2
+- [ ] Actualizar `FabricacionService` para usar `Proyecto.fabricacion`
+- [ ] Actualizar `instalacionesInteligentesService` para usar `Proyecto.instalacion`
+- [ ] Actualizar rutas de fabricación e instalación
+
+### ⏳ Día 3
+- [ ] Crear script `migrarProyectoPedidoAProyecto.js`
+- [ ] Ejecutar migración en entorno de prueba
+- [ ] Validar integridad de datos
+
+### ⏳ Día 4
+- [ ] Renombrar `Fabricacion.js` → `Fabricacion.legacy.js`
+- [ ] Renombrar `ProyectoPedido.js` → `ProyectoPedido.legacy.js`
+- [ ] Actualizar imports en archivos afectados
+
+### ⏳ Día 5
+- [ ] Verificar KPIs comerciales intactos
+- [ ] Pruebas de integración completas
+- [ ] Actualizar documentación final
+
+---
+
+## 🔍 VERIFICACIÓN RÁPIDA
+
 ```bash
-# Comparar modelos
-code server/models/Pedido.js
-code server/models/ProyectoPedido.js
+# Verificar que el modelo se cargó correctamente
+node -e "const P = require('./server/models/Proyecto'); console.log('Métodos:', Object.keys(P.schema.methods))"
 
-# Buscar usos en el código
-rg "Pedido" server --type js
-rg "ProyectoPedido" server --type js
+# Debe mostrar:
+# generarEtiquetasProduccion
+# calcularTiempoInstalacion
+# generarRecomendacionesInstalacion
+# (y otros métodos existentes)
 ```
 
-### Paso 2: Análisis de Fabricación (Día 1)
-```bash
-# Revisar imports faltantes
-code server/controllers/fabricacionController.js
+---
 
-# Verificar modelo
-code server/models/Fabricacion.js
-```
+## 📚 DOCUMENTOS DE REFERENCIA
 
-### Paso 3: Crear Plan Detallado (Día 1)
-- Documentar hallazgos del análisis
-- Definir estrategia de unificación
-- Estimar esfuerzo real
-- Crear checklist de tareas
+### Para Implementar Endpoints
+- `docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md` - Especificaciones completas
+- `docschecklists/IMPLEMENTACION_COMPLETADA.md` - Métodos implementados
+- `server/models/Proyecto.js` (líneas 884-1235) - Código de los métodos
 
-**Documentación de referencia:**
-- `docschecklists/ROADMAP_TASKS.md` - Fase 1 completa
-- `docschecklists/ESTADO_ACTUAL.md` - Bloqueantes identificados
-- `docs/architecture_map.md` - Arquitectura actual
+### Para Migración
+- `docschecklists/FASE_1_UNIFICACION_MODELOS.md` - Plan de unificación
+- `server/scripts/migrarAProyectos.js` - Script de referencia
 
-_¡Fase 0 completada! Iniciando Fase 1 con bloqueantes críticos._ 🚀
+### Para Validación
+- `AGENTS.md` - Estándares y verificaciones
+- `docschecklists/ROADMAP_TASKS.md` - Roadmap completo
+
+---
+
+## ⚠️ IMPORTANTE: KPIs Comerciales
+
+**NO ALTERAR estos campos:**
+- `total`, `anticipo`, `saldo_pendiente`
+- `monto_estimado`, `subtotal`, `iva`
+- `cliente.*`, `estado`, `fecha_*`
+
+Estos campos son la base de los reportes comerciales y deben mantenerse intactos.
+
+---
+
+**Responsable:** Equipo Desarrollo CRM Sundeck  
+**Próxima acción:** Crear 3 endpoints para etiquetas, tiempos y rutas  
+**Duración estimada:** 2-3 horas  
+**Progreso Fase 1:** 40% completado

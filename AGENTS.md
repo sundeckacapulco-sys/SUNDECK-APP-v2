@@ -1,29 +1,76 @@
 # 🤖 INSTRUCCIONES PARA AGENTES
 
 **Fecha:** 31 Oct 2025
-**Estado:** Fase 0 - COMPLETADA al 100%
+**Estado:** Fase 0 ✅ COMPLETADA | Fase 1 🔄 EN PROGRESO
 
 ---
 
-## 🎉 RESUMEN
+## 🎉 FASE 0 COMPLETADA (100%)
 
 - 419 console.log migrados → 0 restantes ✅
 - Logger estructurado aplicado en todos los scripts críticos ✅
 - Scripts de datos y mantenimiento con cierres y validaciones trazables ✅
 - 15/15 pruebas unitarias y de integración pasando ✅
 
-El sistema quedó listo para iniciar la siguiente fase sin deuda técnica pendiente en logging.
+---
+
+## 🚀 FASE 1 EN PROGRESO (40%)
+
+### ✅ COMPLETADO (31 Oct 2025)
+
+**Modelo `Proyecto.js` Unificado:**
+- ✅ Agregados campos: `cronograma`, `fabricacion`, `instalacion`, `pagos`, `notas`
+- ✅ Implementados métodos inteligentes:
+  - `generarEtiquetasProduccion()` - Etiquetas con QR para empaques
+  - `calcularTiempoInstalacion()` - Algoritmo inteligente de tiempos
+  - `generarRecomendacionesInstalacion()` - Sugerencias personalizadas
+  - `optimizarRutaDiaria()` - Optimización de rutas con Nearest Neighbor
+- ✅ Archivo actualizado: `server/models/Proyecto.js` (502 → 1,241 líneas)
+
+**Documentación:**
+- ✅ `docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md`
+- ✅ `docschecklists/IMPLEMENTACION_COMPLETADA.md`
+- ✅ `docschecklists/FASE_1_UNIFICACION_MODELOS.md`
+- ✅ `docschecklists/ANALISIS_FABRICACION_ACTUAL.md`
+
+### ⏳ PENDIENTE (Próxima Sesión)
+
+**Día 1: Crear Endpoints**
+- [ ] `POST /api/proyectos/:id/etiquetas-produccion`
+- [ ] `POST /api/proyectos/:id/calcular-tiempo-instalacion`
+- [ ] `GET /api/proyectos/ruta-diaria/:fecha`
+
+**Día 2: Actualizar Services**
+- [ ] Actualizar `FabricacionService` para usar `Proyecto.fabricacion`
+- [ ] Actualizar `instalacionesInteligentesService` para usar `Proyecto.instalacion`
+
+**Día 3: Migración de Datos**
+- [ ] Crear script `migrarProyectoPedidoAProyecto.js`
+- [ ] Ejecutar migración en entorno de prueba
+- [ ] Validar integridad de datos
+
+**Día 4: Deprecación**
+- [ ] Renombrar `Fabricacion.js` → `Fabricacion.legacy.js`
+- [ ] Renombrar `ProyectoPedido.js` → `ProyectoPedido.legacy.js`
+- [ ] Actualizar rutas para usar `Proyecto`
+
+**Día 5: Validación Final**
+- [ ] Verificar KPIs comerciales intactos
+- [ ] Pruebas de integración
+- [ ] Documentación actualizada
 
 ---
 
 ## 🔍 VERIFICACIONES RÁPIDAS
 
 ```bash
+# Fase 0
 rg "console\.log" server              # Debe regresar sin resultados
 npm test -- --runInBand                # 15/15 pruebas pasando
-```
 
-Si se agregan nuevos scripts, repetir estas verificaciones antes de concluir el trabajo.
+# Fase 1
+node -e "const P = require('./server/models/Proyecto'); console.log(typeof P.schema.methods.generarEtiquetasProduccion)"  # function
+```
 
 ---
 
