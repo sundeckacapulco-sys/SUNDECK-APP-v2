@@ -7,28 +7,46 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const Proyecto = require('../models/Proyecto');
+const logger = require('../config/logger');
 
 async function limpiarPreciosProyecto(proyectoId) {
   try {
     // Conectar a MongoDB
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm');
-    console.log('✅ Conectado a MongoDB');
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm';
+    await mongoose.connect(mongoUri);
+    logger.info('Conexión a MongoDB establecida para limpieza de precios', {
+      script: 'limpiarPreciosProyecto',
+      proyectoId,
+      mongoUri: process.env.MONGODB_URI ? 'env:MONGODB_URI' : mongoUri
+    });
 
     if (!proyectoId) {
-      console.error('❌ Debes proporcionar el ID del proyecto');
-      console.log('Uso: node server/scripts/limpiarPreciosProyecto.js <ID_PROYECTO>');
+      logger.error('ID del proyecto no proporcionado', {
+        script: 'limpiarPreciosProyecto'
+      });
+      logger.info('Uso correcto del script', {
+        script: 'limpiarPreciosProyecto',
+        comando: 'node server/scripts/limpiarPreciosProyecto.js <ID_PROYECTO>'
+      });
       process.exit(1);
     }
 
     const proyecto = await Proyecto.findById(proyectoId);
 
     if (!proyecto) {
-      console.error('❌ Proyecto no encontrado');
+      logger.error('Proyecto no encontrado para limpieza de precios', {
+        script: 'limpiarPreciosProyecto',
+        proyectoId
+      });
       process.exit(1);
     }
 
-    console.log(`📋 Proyecto encontrado: ${proyecto.cliente?.nombre || 'Sin nombre'}`);
-    console.log(`   Total actual: $${proyecto.total}`);
+    logger.info('Proyecto encontrado para limpieza de precios', {
+      script: 'limpiarPreciosProyecto',
+      proyectoId,
+      cliente: proyecto.cliente?.nombre || 'Sin nombre',
+      totalActual: proyecto.total
+    });
 
     // Limpiar totales a nivel raíz
     proyecto.cotizacionActual = null;
@@ -84,15 +102,26 @@ async function limpiarPreciosProyecto(proyectoId) {
 
     await proyecto.save();
 
-    console.log('\n✅ Proyecto limpiado exitosamente');
-    console.log(`   Nuevo total: $${proyecto.total}`);
-    console.log(`   Levantamiento limpiado: ${proyecto.levantamiento?.partidas?.length || 0} partidas`);
+    logger.info('Proyecto limpiado exitosamente', {
+      script: 'limpiarPreciosProyecto',
+      proyectoId,
+      nuevoTotal: proyecto.total,
+      partidasLimpias: proyecto.levantamiento?.partidas?.length || 0
+    });
 
   } catch (error) {
-    console.error('❌ Error:', error);
+    logger.error('Error limpiando precios de proyecto', {
+      script: 'limpiarPreciosProyecto',
+      proyectoId,
+      error: error.message,
+      stack: error.stack
+    });
   } finally {
     await mongoose.connection.close();
-    console.log('🔌 Conexión cerrada');
+    logger.info('Conexión a MongoDB cerrada tras limpieza de precios', {
+      script: 'limpiarPreciosProyecto',
+      proyectoId
+    });
     process.exit(0);
   }
 }

@@ -1,5 +1,6 @@
 // Variable para carga lazy de ExcelJS
 let ExcelJSLib;
+const logger = require('../config/logger');
 
 class ExcelService {
   constructor() {
@@ -457,7 +458,15 @@ class ExcelService {
       return buffer;
 
     } catch (error) {
-      console.error('Error generando Excel:', error);
+      logger.error('Error generando Excel de levantamiento', {
+        servicio: 'excelService',
+        accion: 'generarLevantamientoExcel',
+        prospectoId: prospecto?._id?.toString(),
+        piezas: piezas?.length,
+        tipoVisita,
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error('Error generando archivo Excel');
     }
   }
@@ -547,7 +556,14 @@ class ExcelService {
       return buffer;
 
     } catch (error) {
-      console.error('Error generando Excel de cotización:', error);
+      logger.error('Error generando Excel de cotización', {
+        servicio: 'excelService',
+        accion: 'generarCotizacionExcel',
+        cotizacionId: cotizacion?._id?.toString(),
+        productos: cotizacion?.productos?.length,
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error('Error generando Excel de cotización: ' + error.message);
     }
   }
@@ -558,7 +574,11 @@ class ExcelService {
       const { getProyectoDataForExcel } = require('../utils/exportNormalizer');
       const datos = await getProyectoDataForExcel(proyectoId);
 
-      console.log('📊 Generando Excel para proyecto:', proyectoId);
+      logger.info('Generando Excel unificado de proyecto', {
+        servicio: 'excelService',
+        accion: 'generarExcelProyecto',
+        proyectoId: proyectoId?.toString()
+      });
 
       const ExcelJS = await this.initExcelJS();
       this.workbook = new ExcelJS.Workbook();
@@ -578,16 +598,24 @@ class ExcelService {
       // Generar buffer del archivo
       const buffer = await this.workbook.xlsx.writeBuffer();
       
-      console.log('✅ Excel de proyecto generado exitosamente', {
-        proyectoId,
+      logger.info('Excel de proyecto generado exitosamente', {
+        servicio: 'excelService',
+        accion: 'generarExcelProyecto',
+        proyectoId: proyectoId?.toString(),
         size: buffer.length,
         hojas: this.workbook.worksheets.length
       });
-      
+
       return buffer;
 
     } catch (error) {
-      console.error('Error generando Excel de proyecto:', error);
+      logger.error('Error generando Excel unificado de proyecto', {
+        servicio: 'excelService',
+        accion: 'generarExcelProyecto',
+        proyectoId: proyectoId?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error('No se pudo generar el Excel del proyecto');
     }
   }

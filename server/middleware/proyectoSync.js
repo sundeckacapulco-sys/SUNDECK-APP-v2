@@ -1,5 +1,6 @@
 const Proyecto = require('../models/Proyecto');
 const sincronizacionService = require('../services/sincronizacionService');
+const logger = require('../config/logger');
 
 /**
  * Middleware para sincronización automática Prospecto → Proyecto
@@ -12,7 +13,12 @@ class ProyectoSyncMiddleware {
    */
   static async sincronizarProspecto(prospecto, operacion = 'create') {
     try {
-      console.log(`🔄 Sincronizando prospecto ${prospecto._id} → Proyecto (${operacion})`);
+      logger.info('Sincronizando prospecto con proyecto', {
+        middleware: 'proyectoSync',
+        accion: 'sincronizarProspecto',
+        prospectoId: prospecto?._id?.toString(),
+        operacion
+      });
 
       // Buscar si ya existe un proyecto para este prospecto
       let proyecto = await Proyecto.findOne({ prospecto_original: prospecto._id });
@@ -28,7 +34,14 @@ class ProyectoSyncMiddleware {
       return proyecto;
 
     } catch (error) {
-      console.error('❌ Error en sincronización Prospecto → Proyecto:', error);
+      logger.error('Error en sincronización Prospecto → Proyecto', {
+        middleware: 'proyectoSync',
+        accion: 'sincronizarProspecto',
+        prospectoId: prospecto?._id?.toString(),
+        operacion,
+        error: error.message,
+        stack: error.stack
+      });
       // No lanzar error para no interrumpir el flujo principal
       return null;
     }
@@ -39,7 +52,11 @@ class ProyectoSyncMiddleware {
    */
   static async crearProyectoDesdeProspecto(prospecto) {
     try {
-      console.log(`📋 Creando nuevo proyecto desde prospecto ${prospecto._id}`);
+      logger.info('Creando proyecto desde prospecto', {
+        middleware: 'proyectoSync',
+        accion: 'crearProyectoDesdeProspecto',
+        prospectoId: prospecto?._id?.toString()
+      });
 
       // Determinar tipo de fuente
       const tipo_fuente = this.determinarTipoFuente(prospecto);
@@ -73,12 +90,23 @@ class ProyectoSyncMiddleware {
       });
 
       await nuevoProyecto.save();
-      console.log(`✅ Proyecto ${nuevoProyecto._id} creado exitosamente`);
+      logger.info('Proyecto creado exitosamente desde prospecto', {
+        middleware: 'proyectoSync',
+        accion: 'crearProyectoDesdeProspecto',
+        prospectoId: prospecto?._id?.toString(),
+        proyectoId: nuevoProyecto?._id?.toString()
+      });
 
       return nuevoProyecto;
 
     } catch (error) {
-      console.error('❌ Error creando proyecto desde prospecto:', error);
+      logger.error('Error creando proyecto desde prospecto', {
+        middleware: 'proyectoSync',
+        accion: 'crearProyectoDesdeProspecto',
+        prospectoId: prospecto?._id?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -88,7 +116,12 @@ class ProyectoSyncMiddleware {
    */
   static async actualizarProyectoDesdeProspecto(proyecto, prospecto) {
     try {
-      console.log(`🔄 Actualizando proyecto ${proyecto._id} desde prospecto ${prospecto._id}`);
+      logger.info('Actualizando proyecto desde prospecto', {
+        middleware: 'proyectoSync',
+        accion: 'actualizarProyectoDesdeProspecto',
+        prospectoId: prospecto?._id?.toString(),
+        proyectoId: proyecto?._id?.toString()
+      });
 
       // Actualizar campos básicos
       proyecto.cliente.nombre = prospecto.nombre;
@@ -104,12 +137,24 @@ class ProyectoSyncMiddleware {
       proyecto.fecha_actualizacion = new Date();
 
       await proyecto.save();
-      console.log(`✅ Proyecto ${proyecto._id} actualizado exitosamente`);
+      logger.info('Proyecto actualizado exitosamente desde prospecto', {
+        middleware: 'proyectoSync',
+        accion: 'actualizarProyectoDesdeProspecto',
+        prospectoId: prospecto?._id?.toString(),
+        proyectoId: proyecto?._id?.toString()
+      });
 
       return proyecto;
 
     } catch (error) {
-      console.error('❌ Error actualizando proyecto:', error);
+      logger.error('Error actualizando proyecto desde prospecto', {
+        middleware: 'proyectoSync',
+        accion: 'actualizarProyectoDesdeProspecto',
+        prospectoId: prospecto?._id?.toString(),
+        proyectoId: proyecto?._id?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -221,10 +266,23 @@ class ProyectoSyncMiddleware {
         fecha_actualizacion: new Date()
       });
 
-      console.log(`✅ Sincronizadas ${medidasUnificadas.length} medidas al proyecto ${proyectoId}`);
+      logger.info('Medidas sincronizadas al proyecto', {
+        middleware: 'proyectoSync',
+        accion: 'sincronizarMedidasDesdeEtapas',
+        proyectoId: proyectoId?.toString(),
+        prospectoId: prospectoId?.toString(),
+        medidasSincronizadas: medidasUnificadas.length
+      });
 
     } catch (error) {
-      console.error('❌ Error sincronizando medidas:', error);
+      logger.error('Error sincronizando medidas desde etapas', {
+        middleware: 'proyectoSync',
+        accion: 'sincronizarMedidasDesdeEtapas',
+        proyectoId: proyectoId?.toString(),
+        prospectoId: prospectoId?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 
@@ -240,7 +298,16 @@ class ProyectoSyncMiddleware {
         usuarioId
       );
     } catch (error) {
-      console.error('❌ Error ejecutando triggers:', error);
+      logger.error('Error ejecutando triggers de sincronización', {
+        middleware: 'proyectoSync',
+        accion: 'ejecutarTriggers',
+        proyectoId: proyecto?._id?.toString(),
+        estadoAnterior,
+        nuevoEstado,
+        usuarioId: usuarioId?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 

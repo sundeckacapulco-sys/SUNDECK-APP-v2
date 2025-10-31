@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { auth } = require('../middleware/auth');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
@@ -55,8 +56,10 @@ router.post('/upload', auth, upload.single('foto'), async (req, res) => {
     const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
     const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
 
-    // Log para debugging
-    console.log('Archivo subido:', {
+    logger.info('Archivo subido correctamente', {
+      ruta: 'storageRoutes',
+      accion: 'subirArchivo',
+      usuarioId: req.usuario?._id || null,
       originalName: req.file.originalname,
       filename: req.file.filename,
       size: req.file.size,
@@ -72,10 +75,16 @@ router.post('/upload', auth, upload.single('foto'), async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error subiendo archivo:', error);
-    res.status(500).json({ 
+    logger.error('Error subiendo archivo al almacenamiento local', {
+      ruta: 'storageRoutes',
+      accion: 'subirArchivo',
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor',
-      error: error.message 
+      error: error.message
     });
   }
 });

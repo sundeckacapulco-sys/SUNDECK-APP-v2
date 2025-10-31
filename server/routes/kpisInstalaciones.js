@@ -1,13 +1,20 @@
 const express = require('express');
 const KPIsInstalacionesService = require('../services/kpisInstalacionesService');
 const { auth, verificarPermiso } = require('../middleware/auth');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
 // Obtener dashboard completo de KPIs de instalaciones
 router.get('/dashboard', async (req, res) => {
   try {
-    console.log('📊 Solicitando dashboard de KPIs de instalaciones...');
+    logger.info('Solicitando dashboard de KPIs de instalaciones', {
+      ruta: 'kpisInstalaciones',
+      endpoint: '/dashboard',
+      usuarioId: req.usuario?._id?.toString(),
+      fechaInicio: fecha_inicio,
+      fechaFin: fecha_fin
+    });
     
     const { fecha_inicio, fecha_fin } = req.query;
     
@@ -24,11 +31,25 @@ router.get('/dashboard', async (req, res) => {
 
     const dashboard = await KPIsInstalacionesService.obtenerDashboardInstalaciones(fechaInicio, fechaFin);
     
-    console.log('✅ Dashboard de instalaciones generado exitosamente');
+    logger.info('Dashboard de instalaciones generado', {
+      ruta: 'kpisInstalaciones',
+      endpoint: '/dashboard',
+      usuarioId: req.usuario?._id?.toString(),
+      fechaInicio: fecha_inicio,
+      fechaFin: fecha_fin
+    });
     res.json(dashboard);
     
   } catch (error) {
-    console.error('❌ Error obteniendo dashboard de instalaciones:', error);
+    logger.error('Error obteniendo dashboard de instalaciones', {
+      ruta: 'kpisInstalaciones',
+      endpoint: '/dashboard',
+      usuarioId: req.usuario?._id?.toString(),
+      fechaInicio: fecha_inicio,
+      fechaFin: fecha_fin,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ 
       message: 'Error interno del servidor',
       error: error.message 
@@ -55,7 +76,15 @@ router.get('/metricas-tiempo', async (req, res) => {
     res.json(metricas);
     
   } catch (error) {
-    console.error('❌ Error obteniendo métricas de tiempo:', error);
+    logger.error('Error obteniendo métricas de tiempo de instalaciones', {
+      ruta: 'kpisInstalaciones',
+      endpoint: '/metricas-tiempo',
+      usuarioId: req.usuario?._id?.toString(),
+      fechaInicio: fecha_inicio,
+      fechaFin: fecha_fin,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ 
       message: 'Error interno del servidor',
       error: error.message 
@@ -82,7 +111,15 @@ router.get('/metricas-calidad', async (req, res) => {
     res.json(metricas);
     
   } catch (error) {
-    console.error('❌ Error obteniendo métricas de calidad:', error);
+    logger.error('Error obteniendo métricas de calidad de instalaciones', {
+      ruta: 'kpisInstalaciones',
+      endpoint: '/metricas-calidad',
+      usuarioId: req.usuario?._id?.toString(),
+      fechaInicio: fecha_inicio,
+      fechaFin: fecha_fin,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ 
       message: 'Error interno del servidor',
       error: error.message 
@@ -109,7 +146,15 @@ router.get('/metricas-productividad', async (req, res) => {
     res.json(metricas);
     
   } catch (error) {
-    console.error('❌ Error obteniendo métricas de productividad:', error);
+    logger.error('Error obteniendo métricas de productividad de instalaciones', {
+      ruta: 'kpisInstalaciones',
+      endpoint: '/metricas-productividad',
+      usuarioId: req.usuario?._id?.toString(),
+      fechaInicio: fecha_inicio,
+      fechaFin: fecha_fin,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ 
       message: 'Error interno del servidor',
       error: error.message 
@@ -136,7 +181,15 @@ router.get('/metricas-cuadrillas', async (req, res) => {
     res.json(metricas);
     
   } catch (error) {
-    console.error('❌ Error obteniendo métricas de cuadrillas:', error);
+    logger.error('Error obteniendo métricas por cuadrilla', {
+      ruta: 'kpisInstalaciones',
+      endpoint: '/metricas-cuadrillas',
+      usuarioId: req.usuario?._id?.toString(),
+      fechaInicio: fecha_inicio,
+      fechaFin: fecha_fin,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ 
       message: 'Error interno del servidor',
       error: error.message 
@@ -151,7 +204,13 @@ router.get('/alertas', async (req, res) => {
     res.json(alertas);
     
   } catch (error) {
-    console.error('❌ Error obteniendo alertas:', error);
+    logger.error('Error obteniendo alertas operativas de instalaciones', {
+      ruta: 'kpisInstalaciones',
+      endpoint: '/alertas',
+      usuarioId: req.usuario?._id?.toString(),
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ 
       message: 'Error interno del servidor',
       error: error.message 

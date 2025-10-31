@@ -7,19 +7,27 @@ const Usuario = require('../models/Usuario');
 const Producto = require('../models/Producto');
 const Prospecto = require('../models/Prospecto');
 const Plantilla = require('../models/Plantilla');
+const logger = require('../config/logger');
 
 const seedData = async () => {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm');
-    console.log('✅ Conectado a MongoDB');
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm';
+    await mongoose.connect(mongoUri);
+    logger.info('Conexión a MongoDB establecida para seed inicial', {
+      script: 'seedData',
+      mongoUri: process.env.MONGODB_URI ? 'env:MONGODB_URI' : mongoUri
+    });
 
     // Clear existing data
     await Usuario.deleteMany({});
     await Producto.deleteMany({});
     await Prospecto.deleteMany({});
     await Plantilla.deleteMany({});
-    console.log('🗑️ Datos anteriores eliminados');
+    logger.info('Colecciones de datos iniciales limpiadas', {
+      script: 'seedData',
+      colecciones: ['Usuario', 'Producto', 'Prospecto', 'Plantilla']
+    });
 
     // Create admin user
     const adminUser = new Usuario({
@@ -107,7 +115,10 @@ const seedData = async () => {
     });
     await vendedor2.save();
 
-    console.log('👥 Usuarios creados');
+    logger.info('Usuarios de ejemplo generados', {
+      script: 'seedData',
+      usuariosCreados: [adminUser.email, vendedor1.email, vendedor2.email]
+    });
 
     // Create sample products
     const productos = [
@@ -249,7 +260,11 @@ const seedData = async () => {
     ];
 
     await Producto.insertMany(productos);
-    console.log('🏗️ Productos creados');
+    logger.info('Productos de ejemplo creados', {
+      script: 'seedData',
+      productosCreados: productos.map((producto) => producto.codigo),
+      totalProductos: productos.length
+    });
 
     // Create sample prospects
     const prospectos = [
@@ -385,7 +400,10 @@ const seedData = async () => {
     ];
 
     await Prospecto.insertMany(prospectos);
-    console.log('👥 Prospectos de ejemplo creados');
+    logger.info('Prospectos de ejemplo creados', {
+      script: 'seedData',
+      prospectosCreados: prospectos.length
+    });
 
     // Create sample WhatsApp templates
     const plantillas = [
@@ -449,17 +467,27 @@ const seedData = async () => {
     ];
 
     await Plantilla.insertMany(plantillas);
-    console.log('📝 Plantillas de WhatsApp creadas');
+    logger.info('Plantillas iniciales de WhatsApp creadas', {
+      script: 'seedData',
+      plantillasCreadas: plantillas.length
+    });
 
-    console.log('\n🎉 Datos de ejemplo creados exitosamente!');
-    console.log('\n📋 Credenciales de acceso:');
-    console.log('Email: admin@sundeck.com');
-    console.log('Password: password');
-    console.log('\n🔗 Accede al sistema en: http://localhost:3000');
+    logger.info('Datos de ejemplo generados exitosamente', {
+      script: 'seedData',
+      credencialesAdmin: {
+        email: 'admin@sundeck.com',
+        password: 'password'
+      },
+      urlAcceso: 'http://localhost:3000'
+    });
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error creando datos de ejemplo:', error);
+    logger.error('Error creando datos de ejemplo', {
+      script: 'seedData',
+      error: error.message,
+      stack: error.stack
+    });
     process.exit(1);
   }
 };

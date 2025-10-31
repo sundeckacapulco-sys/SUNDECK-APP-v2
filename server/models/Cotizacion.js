@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
+const logger = require('../config/logger');
 
 const cotizacionSchema = new mongoose.Schema({
   prospecto: {
@@ -151,7 +152,11 @@ const cotizacionSchema = new mongoose.Schema({
 cotizacionSchema.pre('save', async function(next) {
   if (this.isNew && !this.numero) {
     try {
-      console.log('🔢 Generando número de cotización...');
+      logger.info('Generando número consecutivo para cotización', {
+        modelo: 'Cotizacion',
+        hook: 'preSaveNumero',
+        cotizacionId: this._id?.toString()
+      });
       const year = new Date().getFullYear();
       
       // Intentar contar por createdAt, si falla usar método alternativo
@@ -163,23 +168,58 @@ cotizacionSchema.pre('save', async function(next) {
             $lt: new Date(year + 1, 0, 1)
           }
         });
-        console.log('📊 Cotizaciones encontradas por createdAt:', count);
+        logger.info('Conteo de cotizaciones por createdAt obtenido', {
+          modelo: 'Cotizacion',
+          hook: 'preSaveNumero',
+          cotizacionId: this._id?.toString(),
+          year,
+          cantidad: count
+        });
       } catch (countError) {
-        console.warn('⚠️ Error contando por createdAt, usando método alternativo:', countError.message);
+        logger.warn('No fue posible contar cotizaciones por createdAt, usando método alternativo', {
+          modelo: 'Cotizacion',
+          hook: 'preSaveNumero',
+          cotizacionId: this._id?.toString(),
+          year,
+          error: countError.message,
+          stack: countError.stack
+        });
         // Método alternativo: contar todas y usar timestamp
         const totalCount = await this.constructor.countDocuments({});
         count = totalCount;
-        console.log('📊 Total cotizaciones (método alternativo):', count);
+        logger.info('Conteo total de cotizaciones usando método alternativo', {
+          modelo: 'Cotizacion',
+          hook: 'preSaveNumero',
+          cotizacionId: this._id?.toString(),
+          year,
+          cantidad: count
+        });
       }
-      
+
       this.numero = `COT-${year}-${String(count + 1).padStart(4, '0')}`;
-      console.log('✅ Número generado:', this.numero);
+      logger.info('Número de cotización generado', {
+        modelo: 'Cotizacion',
+        hook: 'preSaveNumero',
+        cotizacionId: this._id?.toString(),
+        numero: this.numero
+      });
     } catch (error) {
-      console.error('❌ Error generando número de cotización en pre-save:', error);
+      logger.error('Error generando número de cotización en pre-save', {
+        modelo: 'Cotizacion',
+        hook: 'preSaveNumero',
+        cotizacionId: this._id?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       // Respaldo con timestamp para garantizar unicidad
       const timestamp = Date.now().toString().slice(-6);
       this.numero = `COT-${new Date().getFullYear()}-${timestamp}`;
-      console.log('🔄 Número de respaldo generado:', this.numero);
+      logger.info('Número de respaldo de cotización generado', {
+        modelo: 'Cotizacion',
+        hook: 'preSaveNumero',
+        cotizacionId: this._id?.toString(),
+        numero: this.numero
+      });
     }
   }
   next();

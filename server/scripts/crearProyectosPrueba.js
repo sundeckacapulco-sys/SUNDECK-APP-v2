@@ -2,12 +2,17 @@ const mongoose = require('mongoose');
 const ProyectoPedido = require('../models/ProyectoPedido');
 const Prospecto = require('../models/Prospecto');
 const Cotizacion = require('../models/Cotizacion');
+const logger = require('../config/logger');
 
 async function crearProyectosPrueba() {
   try {
     // Conectar a MongoDB
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm');
-    console.log('✅ Conectado a MongoDB');
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm';
+    await mongoose.connect(mongoUri);
+    logger.info('Conexión a MongoDB establecida para crear proyectos de prueba', {
+      script: 'crearProyectosPrueba',
+      mongoUri: process.env.MONGODB_URI ? 'env:MONGODB_URI' : mongoUri
+    });
 
     // Crear prospecto de prueba
     const prospecto = new Prospecto({
@@ -22,7 +27,11 @@ async function crearProyectosPrueba() {
       estado: 'activo'
     });
     await prospecto.save();
-    console.log('✅ Prospecto creado');
+    logger.info('Prospecto de prueba creado', {
+      script: 'crearProyectosPrueba',
+      prospectoId: prospecto._id.toString(),
+      nombre: prospecto.nombre
+    });
 
     // Crear cotización de prueba
     const cotizacion = new Cotizacion({
@@ -41,7 +50,12 @@ async function crearProyectosPrueba() {
       estado: 'aprobada'
     });
     await cotizacion.save();
-    console.log('✅ Cotización creada');
+    logger.info('Cotización de prueba creada', {
+      script: 'crearProyectosPrueba',
+      cotizacionId: cotizacion._id.toString(),
+      numero: cotizacion.numero,
+      prospectoId: prospecto._id.toString()
+    });
 
     // Crear proyecto de prueba
     const proyectoData = {
@@ -192,20 +206,35 @@ async function crearProyectosPrueba() {
     for (const proyectoData of proyectos) {
       const proyecto = new ProyectoPedido(proyectoData);
       await proyecto.save();
-      console.log(`✅ Proyecto ${proyecto.numero} creado - Estado: ${proyecto.estado}`);
+      logger.info('Proyecto de prueba creado', {
+        script: 'crearProyectosPrueba',
+        proyectoId: proyecto._id.toString(),
+        numero: proyecto.numero,
+        estado: proyecto.estado,
+        productos: proyecto.productos?.length || 0
+      });
     }
 
-    console.log('\n🎉 ¡3 proyectos de prueba creados exitosamente!');
-    console.log('📊 Estados:');
-    console.log('   - 1 en fabricación (en_proceso)');
-    console.log('   - 1 confirmado (listo para fabricar)');
-    console.log('   - 1 fabricado (terminado)');
-    console.log('\n✅ Ahora deberías ver datos en el dashboard!');
+    logger.info('Proyectos de prueba creados exitosamente', {
+      script: 'crearProyectosPrueba',
+      totalProyectos: proyectos.length,
+      resumenEstados: proyectos.map((proyecto) => ({
+        numero: proyecto.numero,
+        estado: proyecto.estado
+      }))
+    });
 
   } catch (error) {
-    console.error('❌ Error:', error);
+    logger.error('Error creando proyectos de prueba', {
+      script: 'crearProyectosPrueba',
+      error: error.message,
+      stack: error.stack
+    });
   } finally {
     await mongoose.disconnect();
+    logger.info('Conexión a MongoDB cerrada tras crear proyectos de prueba', {
+      script: 'crearProyectosPrueba'
+    });
   }
 }
 

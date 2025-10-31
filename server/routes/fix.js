@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const fixCotizaciones = require('../scripts/fixCotizaciones');
+const logger = require('../config/logger');
 
 // Endpoint temporal para corregir cotizaciones
 router.post('/cotizaciones', async (req, res) => {
   try {
-    console.log('🔧 Iniciando corrección de cotizaciones desde API...');
+    logger.info('Corrección de cotizaciones iniciada vía API', {
+      ruta: 'routes/fix',
+      accion: 'corregirCotizaciones',
+      usuarioId: req.usuario?._id
+    });
     
     await fixCotizaciones();
     
@@ -15,7 +20,12 @@ router.post('/cotizaciones', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Error corrigiendo cotizaciones:', error);
+    logger.error('Error corrigiendo cotizaciones desde API', {
+      ruta: 'routes/fix',
+      accion: 'corregirCotizaciones',
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Error corrigiendo cotizaciones: ' + error.message

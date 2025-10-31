@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
+const logger = require('../config/logger');
 
 const proyectoSchema = new mongoose.Schema({
   // Información del cliente
@@ -424,9 +425,24 @@ proyectoSchema.pre('save', async function(next) {
       
       // Formato: 2025-SAHID-CAMPOS-001
       this.numero = `${year}-${nombreCorto}-${String(secuencial).padStart(3, '0')}`;
-      console.log('✅ Número de proyecto generado:', this.numero);
+      logger.info('Número de proyecto generado automáticamente', {
+        modelo: 'Proyecto',
+        metodo: 'preSaveGenerateNumber',
+        proyectoId: this._id,
+        numeroGenerado: this.numero,
+        cliente: this.cliente?.nombre,
+        year,
+        secuencial
+      });
     } catch (error) {
-      console.error('Error generando número de proyecto:', error);
+      logger.error('Error generando número de proyecto automático', {
+        modelo: 'Proyecto',
+        metodo: 'preSaveGenerateNumber',
+        proyectoId: this._id,
+        cliente: this.cliente?.nombre,
+        error: error.message,
+        stack: error.stack
+      });
       // Si falla, usar timestamp como fallback
       this.numero = `PROY-${Date.now()}`;
     }
