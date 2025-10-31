@@ -1,9 +1,26 @@
 const mongoose = require('mongoose');
 const PlantillaWhatsApp = require('../models/PlantillaWhatsApp');
 require('dotenv').config();
+const logger = require('../config/logger');
 
 // Conectar a MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm');
+const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm';
+mongoose
+  .connect(mongoUri)
+  .then(() => {
+    logger.info('Conexión a MongoDB establecida para crear plantillas iniciales', {
+      script: 'plantillasIniciales',
+      mongoUri: process.env.MONGODB_URI ? 'env:MONGODB_URI' : mongoUri
+    });
+  })
+  .catch((error) => {
+    logger.error('Error conectando a MongoDB para plantillas iniciales', {
+      script: 'plantillasIniciales',
+      error: error.message,
+      stack: error.stack
+    });
+    process.exit(1);
+  });
 
 const plantillasIniciales = [
   // 🔹 PRIMER CONTACTO DESPUÉS DE COTIZACIÓN
@@ -543,7 +560,10 @@ Sundeck Acapulco`,
 
 async function crearPlantillasIniciales() {
   try {
-    console.log('🚀 Iniciando creación de plantillas iniciales...');
+    logger.info('Iniciando creación de plantillas iniciales', {
+      script: 'plantillasIniciales',
+      totalPlantillas: plantillasIniciales.length
+    });
     
     // Limpiar plantillas existentes (opcional)
     // await PlantillaWhatsApp.deleteMany({});
@@ -564,19 +584,35 @@ async function crearPlantillasIniciales() {
         });
         
         await plantilla.save();
-        console.log(`✅ Creada: ${plantilla.nombre}`);
+        logger.info('Plantilla inicial creada', {
+          script: 'plantillasIniciales',
+          nombre: plantilla.nombre,
+          categoria: plantilla.categoria
+        });
       } else {
-        console.log(`⚠️  Ya existe: ${plantillaData.nombre}`);
+        logger.warn('Plantilla inicial ya existía', {
+          script: 'plantillasIniciales',
+          nombre: plantillaData.nombre
+        });
       }
     }
-    
-    console.log('🎉 ¡Plantillas iniciales creadas exitosamente!');
-    console.log(`📊 Total de plantillas: ${plantillasIniciales.length}`);
-    
+
+    logger.info('Plantillas iniciales procesadas exitosamente', {
+      script: 'plantillasIniciales',
+      totalProcesadas: plantillasIniciales.length
+    });
+
   } catch (error) {
-    console.error('❌ Error creando plantillas:', error);
+    logger.error('Error creando plantillas iniciales', {
+      script: 'plantillasIniciales',
+      error: error.message,
+      stack: error.stack
+    });
   } finally {
-    mongoose.connection.close();
+    await mongoose.connection.close();
+    logger.info('Conexión a MongoDB cerrada tras crear plantillas iniciales', {
+      script: 'plantillasIniciales'
+    });
   }
 }
 
