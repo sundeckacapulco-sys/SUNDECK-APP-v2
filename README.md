@@ -8,12 +8,15 @@
 ## 🎯 ESTADO ACTUAL
 
 **Sprints completados:**
-- ⚠️ Sprint 1: Logger Estructurado (73% - Logger funcional, 43.2% migrado)
+- ⚠️ Sprint 1: Logger Estructurado (74% - Logger funcional, 44.6% migrado)
 - ✅ Sprint 2: Métricas Baseline (75% - Backend completo)
 
-**Fase 0: Baseline y Observabilidad - 73%** ⬆️ +2%
-- ⚠️ Logging estructurado (73% - 179/419 console.log migrados, 42.7%)
-  - ✅ pdfService.js completado (28/28 → 0) 🎉
+**Fase 0: Baseline y Observabilidad - 74%** ⬆️ +3%
+- ⚠️ Logging estructurado (74% - 187/419 console.log migrados, 44.6%)
+  - ✅ Archivos críticos: 100% migrados 🎉
+  - ✅ pdfService.js (28 → 0)
+  - ✅ cotizacionController.js (5 → 0)
+  - ✅ exportacionController.js (3 → 0)
 - ✅ Carpeta /logs/ (100%)
 - ✅ KPIs baseline (75% - Backend completo)
 - ⚠️ Dashboard métricas (0% - Opcional)
@@ -26,12 +29,14 @@
 
 **Progreso reciente:**
 - ✅ pdfService.js: 28 console.log → logger estructurado
+- ✅ cotizacionController.js: 5 console.log → logger estructurado
+- ✅ exportacionController.js: 3 console.log → logger estructurado
 - ✅ Helper getDocumentId implementado
 - ✅ Eventos completos (Start/Success/Error)
 
 **Próxima tarea:**
-- 📋 Completar 240 console.log restantes (57.3%)
-- 🎯 Siguiente: cotizacionController.js (5 console.log)
+- 📋 Completar 232 console.log restantes (55.4%)
+- 🎯 Siguiente: plantillasWhatsApp.js (13 console.log)
 - 👉 Ver [`CONTINUAR_AQUI.md`](CONTINUAR_AQUI.md) para instrucciones
 
 **Documentación:**
