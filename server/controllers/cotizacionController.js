@@ -2,11 +2,25 @@ const Cotizacion = require('../models/Cotizacion');
 const Prospecto = require('../models/Prospecto');
 const CotizacionMappingService = require('../services/cotizacionMappingService');
 const ValidacionTecnicaService = require('../services/validacionTecnicaService');
+const logger = require('../config/logger');
 
 exports.crearCotizacion = async (req, res) => {
   try {
-    console.log('Backend: Recibiendo solicitud para crear cotización...');
-    console.log('Backend: req.body recibido:', JSON.stringify(req.body, null, 2));
+    logger.info('Recibiendo solicitud para crear cotización', {
+      controlador: 'CotizacionController',
+      accion: 'crearCotizacion',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null
+    });
+    logger.info('Payload recibido para crear cotización', {
+      controlador: 'CotizacionController',
+      accion: 'crearCotizacion',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      body: req.body
+    });
 
     const {
       prospecto: prospectoId,
@@ -29,25 +43,56 @@ exports.crearCotizacion = async (req, res) => {
     } = req.body;
 
     if (!prospectoId) {
-      console.error('Error: prospectoId no proporcionado.');
+      logger.warn('Solicitud sin prospectoId', {
+        controlador: 'CotizacionController',
+        accion: 'crearCotizacion',
+        metodo: req.method,
+        endpoint: req.originalUrl,
+        usuarioId: req.usuario?._id || null
+      });
       return res.status(400).json({ message: 'Debes proporcionar el prospecto asociado a la cotización.' });
     }
     if (!Array.isArray(productos) || productos.length === 0) {
-      console.error('Error: No se proporcionaron productos o el formato es incorrecto.');
+      logger.warn('Solicitud sin productos válidos', {
+        controlador: 'CotizacionController',
+        accion: 'crearCotizacion',
+        metodo: req.method,
+        endpoint: req.originalUrl,
+        usuarioId: req.usuario?._id || null
+      });
       return res.status(400).json({ message: 'Debes proporcionar al menos un producto para la cotización.' });
     }
 
     // 🔒 VALIDACIÓN TÉCNICA: Verificar si se puede crear cotización
     const validacionTecnica = ValidacionTecnicaService.validarAvanceEtapa(productos, 'cotizacion');
     if (!validacionTecnica.puedeAvanzar) {
-      console.warn('⚠️ Cotización con información técnica incompleta:', validacionTecnica.mensajeCandado);
-      // Permitir crear cotización pero con advertencia
-      console.log('📝 Creando cotización con advertencias técnicas...');
+      logger.warn('Cotización con información técnica incompleta', {
+        controlador: 'CotizacionController',
+        accion: 'crearCotizacion',
+        metodo: req.method,
+        endpoint: req.originalUrl,
+        usuarioId: req.usuario?._id || null,
+        mensaje: validacionTecnica.mensajeCandado
+      });
+      logger.info('Creando cotización con advertencias técnicas', {
+        controlador: 'CotizacionController',
+        accion: 'crearCotizacion',
+        metodo: req.method,
+        endpoint: req.originalUrl,
+        usuarioId: req.usuario?._id || null
+      });
     }
 
     const prospecto = await Prospecto.findById(prospectoId);
     if (!prospecto) {
-      console.error(`Error: Prospecto con ID ${prospectoId} no encontrado.`);
+      logger.warn('Prospecto no encontrado para crear cotización', {
+        controlador: 'CotizacionController',
+        accion: 'crearCotizacion',
+        metodo: req.method,
+        endpoint: req.originalUrl,
+        usuarioId: req.usuario?._id || null,
+        prospectoId
+      });
       return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
 
@@ -115,12 +160,27 @@ exports.crearCotizacion = async (req, res) => {
     });
 
     const cotizacionGuardada = await nuevaCotizacion.save();
-    console.log('Backend: Cotización guardada exitosamente:', cotizacionGuardada._id);
+    logger.info('Cotización guardada exitosamente', {
+      controlador: 'CotizacionController',
+      accion: 'crearCotizacion',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      cotizacionId: cotizacionGuardada._id,
+      prospectoId: prospecto._id
+    });
 
     prospecto.etapa = 'cotizacion';
     prospecto.fechaUltimoContacto = new Date();
     await prospecto.save();
-    console.log(`Backend: Prospecto ${prospectoId} actualizado a etapa 'cotizacion'.`);
+    logger.info('Prospecto actualizado a etapa cotizacion', {
+      controlador: 'CotizacionController',
+      accion: 'crearCotizacion',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      prospectoId
+    });
 
     res.status(201).json({
       message: 'Cotización creada exitosamente',
@@ -129,10 +189,25 @@ exports.crearCotizacion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Backend: Error creando cotización:', error);
+    logger.error('Error creando cotización', {
+      controlador: 'CotizacionController',
+      accion: 'crearCotizacion',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
 
     if (error.name === 'ValidationError') {
-      console.error('Backend: Errores de validación detallados:', error.errors);
+      logger.warn('Errores de validación al crear cotización', {
+        controlador: 'CotizacionController',
+        accion: 'crearCotizacion',
+        metodo: req.method,
+        endpoint: req.originalUrl,
+        usuarioId: req.usuario?._id || null,
+        errores: error.errors
+      });
       return res.status(400).json({
         message: 'Datos inválidos para crear la cotización',
         errors: extraerErroresValidacion(error)
@@ -157,7 +232,12 @@ async function generarNumeroCotizacion() {
     });
     return `COT-${year}-${String(count + 1).padStart(4, '0')}`;
   } catch (error) {
-    console.error('Error generando número de cotización:', error);
+    logger.error('Error generando número de cotización', {
+      controlador: 'CotizacionController',
+      accion: 'generarNumeroCotizacion',
+      error: error.message,
+      stack: error.stack
+    });
     return `COT-${new Date().getFullYear()}-${Date.now()}`;
   }
 }
