@@ -8,15 +8,17 @@
 ## 🎯 ESTADO ACTUAL
 
 **Sprints completados:**
-- ⚠️ Sprint 1: Logger Estructurado (77% - Logger funcional, 54.2% migrado)
+- ⚠️ Sprint 1: Logger Estructurado (82% - Logger funcional, 62.8% migrado)
 - ✅ Sprint 2: Métricas Baseline (75% - Backend completo)
 
-**Fase 0: Baseline y Observabilidad - 77%** ⬆️ +6%
-- ⚠️ Logging estructurado (77% - 227/419 console.log migrados, 54.2%)
+**Fase 0: Baseline y Observabilidad - 82%** ⬆️ +11%
+- ⚠️ Logging estructurado (82% - 263/419 console.log migrados, 62.8%)
   - ✅ **Archivos de producción: 100% migrados** 🎉
   - ✅ Archivos críticos: pdfService, controladores (36)
   - ✅ Rutas operativas: 6 archivos (40)
-  - ⏳ Scripts de utilidad: 192 pendientes (no críticos)
+  - ✅ Middleware y modelos: 2 archivos (11)
+  - ✅ Services críticos: 6 archivos (25)
+  - ⏳ Scripts de utilidad: 156 pendientes (37.2%)
 - ✅ Carpeta /logs/ (100%)
 - ✅ KPIs baseline (75% - Backend completo)
 - ⚠️ Dashboard métricas (0% - Opcional)
@@ -29,16 +31,17 @@
 - Listo para producción ✅
 
 **Progreso reciente:**
-- ✅ 6 rutas operativas migradas (40 console.log)
-- ✅ plantillasWhatsApp, backup, instalaciones, prospectos, pedidos, storage
-- ✅ Modelo Metric mejorado para tests (in-memory)
-- ✅ Contexto rico en todos los logs
-- ✅ Eventos completos (Start/Success/Error)
+- ✅ Parte 1 completada: 10 archivos (36 console.log)
+- ✅ Middleware: proyectoSync, transicionesEstado
+- ✅ Modelos: Cotizacion, Proyecto
+- ✅ Services: fabricacion, notificaciones, PDF, Excel
+- ✅ Routes: dashboardPedidos, kpisInstalaciones
+- ✅ Contexto rico y eventos completos
 
 **Próxima tarea:**
-- 📋 Scripts de utilidad (192 console.log) - Opcional
-- 🎯 Archivos de producción: 100% ✅
-- 👉 Ver [`CONTINUAR_AQUI.md`](CONTINUAR_AQUI.md) para detalles
+- 📋 Parte 2: 10 archivos, 85 console.log (scripts grandes)
+- 🎯 Meta: 348/419 (83.1%)
+- 👉 Ver [`AGENTS.md`](AGENTS.md) para instrucciones
 
 **Documentación:**
 - 📚 [`docschecklists/auditorias/AUDITORIA_SPRINT_02.md`](docschecklists/auditorias/AUDITORIA_SPRINT_02.md) - Auditoría Sprint 2
