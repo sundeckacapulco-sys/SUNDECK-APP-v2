@@ -2,6 +2,7 @@ const express = require('express');
 const PlantillaWhatsApp = require('../models/PlantillaWhatsApp');
 const WhatsAppTracking = require('../models/WhatsAppTracking');
 const { auth, verificarPermiso } = require('../middleware/auth');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
@@ -30,7 +31,14 @@ router.get('/', auth, async (req, res) => {
       total
     });
   } catch (error) {
-    console.error('Error obteniendo plantillas:', error);
+    logger.error('Error obteniendo plantillas de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'listarPlantillas',
+      query: req.query,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -50,7 +58,15 @@ router.get('/categoria/:categoria', auth, async (req, res) => {
 
     res.json(plantillas);
   } catch (error) {
-    console.error('Error obteniendo plantillas por categoría:', error);
+    logger.error('Error obteniendo plantillas por categoría', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'listarPlantillasPorCategoria',
+      categoria: req.params.categoria,
+      query: req.query,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -68,15 +84,31 @@ router.post('/', auth, verificarPermiso('plantillas', 'crear'), async (req, res)
     
     await nuevaPlantilla.populate('creada_por', 'nombre apellido');
 
+    logger.info('Plantilla de WhatsApp creada exitosamente', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'crearPlantilla',
+      plantillaId: nuevaPlantilla._id,
+      usuarioId: req.usuario?._id || null,
+      categoria: nuevaPlantilla.categoria,
+      estilo: nuevaPlantilla.estilo
+    });
+
     res.status(201).json({
       message: 'Plantilla creada exitosamente',
       plantilla: nuevaPlantilla
     });
   } catch (error) {
-    console.error('Error creando plantilla:', error);
+    logger.error('Error creando plantilla de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'crearPlantilla',
+      usuarioId: req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
     if (error.name === 'ValidationError') {
-      return res.status(400).json({ 
-        message: 'Datos inválidos', 
+      return res.status(400).json({
+        message: 'Datos inválidos',
         errors: Object.values(error.errors).map(e => e.message)
       });
     }
@@ -87,7 +119,11 @@ router.post('/', auth, verificarPermiso('plantillas', 'crear'), async (req, res)
 // Obtener mejores plantillas - FUNCIONAL CON DATOS REALES
 router.get('/mejores', auth, verificarPermiso('plantillas', 'leer'), async (req, res) => {
   try {
-    console.log('=== OBTENIENDO MEJORES PLANTILLAS ===');
+    logger.info('Consultando mejores plantillas de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'obtenerMejoresPlantillas',
+      usuarioId: req.usuario?._id || null
+    });
 
     // Intentar obtener plantillas reales de la base de datos
     const plantillas = await PlantillaWhatsApp.find({ activa: true })
@@ -96,7 +132,12 @@ router.get('/mejores', auth, verificarPermiso('plantillas', 'leer'), async (req,
       .lean()
       .catch(() => []);
 
-    console.log('Plantillas encontradas en BD:', plantillas.length);
+    logger.info('Plantillas encontradas en base de datos', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'obtenerMejoresPlantillas',
+      usuarioId: req.usuario?._id || null,
+      totalPlantillas: plantillas.length
+    });
 
     // Si hay plantillas reales, procesarlas
     if (plantillas.length > 0) {
@@ -123,12 +164,21 @@ router.get('/mejores', auth, verificarPermiso('plantillas', 'leer'), async (req,
         };
       });
 
-      console.log('Enviando plantillas reales:', plantillasConMetricas.length);
+      logger.info('Enviando plantillas reales con métricas', {
+        ruta: 'plantillasWhatsAppRoutes',
+        accion: 'obtenerMejoresPlantillas',
+        usuarioId: req.usuario?._id || null,
+        totalPlantillas: plantillasConMetricas.length
+      });
       return res.json({ plantillas: plantillasConMetricas });
     }
 
     // Si no hay plantillas reales, enviar datos demo
-    console.log('No hay plantillas reales, enviando datos demo');
+    logger.warn('No se encontraron plantillas reales, devolviendo datos demo', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'obtenerMejoresPlantillas',
+      usuarioId: req.usuario?._id || null
+    });
     res.json({
       plantillas: [
         {
@@ -157,7 +207,13 @@ router.get('/mejores', auth, verificarPermiso('plantillas', 'leer'), async (req,
     });
 
   } catch (error) {
-    console.error('Error en endpoint /mejores:', error);
+    logger.error('Error obteniendo mejores plantillas de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'obtenerMejoresPlantillas',
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
 
     // Fallback con datos demo
     res.json({
@@ -187,7 +243,14 @@ router.get('/:id', auth, async (req, res) => {
 
     res.json(plantilla);
   } catch (error) {
-    console.error('Error obteniendo plantilla:', error);
+    logger.error('Error obteniendo plantilla de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'obtenerPlantilla',
+      plantillaId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -205,12 +268,27 @@ router.put('/:id', auth, verificarPermiso('plantillas', 'editar'), async (req, r
       return res.status(404).json({ message: 'Plantilla no encontrada' });
     }
 
+    logger.info('Plantilla de WhatsApp actualizada', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'actualizarPlantilla',
+      plantillaId: plantilla._id,
+      usuarioId: req.usuario?._id || null
+    });
+
     res.json({
       message: 'Plantilla actualizada exitosamente',
       plantilla
     });
   } catch (error) {
-    console.error('Error actualizando plantilla:', error);
+    logger.error('Error actualizando plantilla de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'actualizarPlantilla',
+      plantillaId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         message: 'Datos inválidos',
@@ -233,9 +311,23 @@ router.delete('/:id', auth, verificarPermiso('plantillas', 'eliminar'), async (r
     // También eliminar el tracking relacionado
     await WhatsAppTracking.deleteMany({ plantilla: req.params.id });
 
+    logger.info('Plantilla de WhatsApp eliminada', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'eliminarPlantilla',
+      plantillaId: req.params.id,
+      usuarioId: req.usuario?._id || null
+    });
+
     res.json({ message: 'Plantilla eliminada exitosamente' });
   } catch (error) {
-    console.error('Error eliminando plantilla:', error);
+    logger.error('Error eliminando plantilla de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'eliminarPlantilla',
+      plantillaId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -274,6 +366,15 @@ router.post('/:id/generar', auth, async (req, res) => {
     // Incrementar contador de uso
     await plantilla.incrementarUso();
 
+    logger.info('Mensaje de WhatsApp generado a partir de plantilla', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'generarMensaje',
+      plantillaId: plantilla._id,
+      trackingId: tracking._id,
+      usuarioId: req.usuario?._id || null,
+      prospectoId: datos?.prospecto_id || null
+    });
+
     res.json({
       mensaje: mensajeGenerado,
       plantilla: {
@@ -285,7 +386,15 @@ router.post('/:id/generar', auth, async (req, res) => {
       tracking_id: tracking._id
     });
   } catch (error) {
-    console.error('Error generando mensaje:', error);
+    logger.error('Error generando mensaje personalizado de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'generarMensaje',
+      plantillaId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -295,8 +404,21 @@ router.post('/tracking', auth, async (req, res) => {
   try {
     const { plantilla_id, prospecto_id, evento, rating, notas, mensaje_generado } = req.body;
     
-    console.log('=== TRACKING ENDPOINT ===');
-    console.log('Body recibido:', req.body);
+    logger.info('Registrando evento de tracking de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'registrarTracking',
+      usuarioId: req.usuario?._id || null,
+      plantillaId: plantilla_id,
+      prospectoId: prospecto_id,
+      evento
+    });
+
+    logger.debug('Payload recibido para tracking de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'registrarTracking',
+      body: req.body,
+      usuarioId: req.usuario?._id || null
+    });
     
     const trackingData = {
       plantilla: plantilla_id,
@@ -334,21 +456,40 @@ router.post('/tracking', auth, async (req, res) => {
       }
     }
 
-    console.log('Datos de tracking a guardar:', trackingData);
+    logger.debug('Datos de tracking de WhatsApp listos para guardar', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'registrarTracking',
+      trackingData,
+      usuarioId: req.usuario?._id || null
+    });
 
     const tracking = new WhatsAppTracking(trackingData);
     await tracking.save();
 
-    console.log('Tracking guardado exitosamente:', tracking._id);
+    logger.info('Tracking de WhatsApp guardado exitosamente', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'registrarTracking',
+      trackingId: tracking._id,
+      plantillaId: plantilla_id,
+      prospectoId: prospecto_id,
+      usuarioId: req.usuario?._id || null,
+      evento
+    });
 
     res.json({
       message: 'Evento registrado exitosamente',
       tracking_id: tracking._id
     });
   } catch (error) {
-    console.error('Error registrando tracking:', error);
-    console.error('Stack trace:', error.stack);
-    res.status(500).json({ 
+    logger.error('Error registrando tracking de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'registrarTracking',
+      usuarioId: req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor',
       error: error.message,
       details: error.stack
@@ -359,7 +500,11 @@ router.post('/tracking', auth, async (req, res) => {
 // Obtener estadísticas generales - FUNCIONAL CON DATOS REALES
 router.get('/estadisticas/resumen', auth, verificarPermiso('plantillas', 'leer'), async (req, res) => {
   try {
-    console.log('=== OBTENIENDO ESTADÍSTICAS RESUMEN ===');
+    logger.info('Obteniendo estadísticas de plantillas de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'obtenerEstadisticasResumen',
+      usuarioId: req.usuario?._id || null
+    });
     
     // Intentar obtener estadísticas reales
     const totalPlantillas = await PlantillaWhatsApp.countDocuments({ activa: true }).catch(() => 0);
@@ -368,8 +513,13 @@ router.get('/estadisticas/resumen', auth, verificarPermiso('plantillas', 'leer')
       'metricas.veces_usada': { $gt: 0 } 
     }).catch(() => 0);
     
-    console.log('Total plantillas reales:', totalPlantillas);
-    console.log('Plantillas usadas reales:', plantillasUsadas);
+    logger.debug('Resumen de conteo de plantillas activas', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'obtenerEstadisticasResumen',
+      usuarioId: req.usuario?._id || null,
+      totalPlantillas,
+      plantillasUsadas
+    });
     
     // Si hay datos reales, calcular estadísticas
     if (totalPlantillas > 0) {
@@ -413,7 +563,13 @@ router.get('/estadisticas/resumen', auth, verificarPermiso('plantillas', 'leer')
         { $sort: { total_usos: -1 } }
       ]).catch(() => []);
 
-      console.log('Enviando estadísticas reales');
+      logger.info('Enviando estadísticas reales de plantillas', {
+        ruta: 'plantillasWhatsAppRoutes',
+        accion: 'obtenerEstadisticasResumen',
+        usuarioId: req.usuario?._id || null,
+        totalPlantillas,
+        plantillasUsadas
+      });
       return res.json({
         total_plantillas: totalPlantillas,
         plantillas_activas: plantillasUsadas,
@@ -433,7 +589,11 @@ router.get('/estadisticas/resumen', auth, verificarPermiso('plantillas', 'leer')
     }
     
     // Si no hay datos reales, enviar estadísticas vacías
-    console.log('No hay datos reales, enviando estadísticas vacías');
+    logger.warn('No hay datos reales de plantillas, enviando estadísticas vacías', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'obtenerEstadisticasResumen',
+      usuarioId: req.usuario?._id || null
+    });
     res.json({
       total_plantillas: 0,
       plantillas_activas: 0,
@@ -447,8 +607,14 @@ router.get('/estadisticas/resumen', auth, verificarPermiso('plantillas', 'leer')
     });
     
   } catch (error) {
-    console.error('Error obteniendo estadísticas:', error);
-    
+    logger.error('Error obteniendo estadísticas de plantillas de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'obtenerEstadisticasResumen',
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
+
     // Fallback absoluto
     res.json({
       total_plantillas: 0,
@@ -486,12 +652,27 @@ router.post('/:id/duplicar', auth, verificarPermiso('plantillas', 'crear'), asyn
     await plantillaDuplicada.save();
     await plantillaDuplicada.populate('creada_por', 'nombre apellido');
 
+    logger.info('Plantilla de WhatsApp duplicada', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'duplicarPlantilla',
+      plantillaOriginalId: plantillaOriginal._id,
+      plantillaDuplicadaId: plantillaDuplicada._id,
+      usuarioId: req.usuario?._id || null
+    });
+
     res.status(201).json({
       message: 'Plantilla duplicada exitosamente',
       plantilla: plantillaDuplicada
     });
   } catch (error) {
-    console.error('Error duplicando plantilla:', error);
+    logger.error('Error duplicando plantilla de WhatsApp', {
+      ruta: 'plantillasWhatsAppRoutes',
+      accion: 'duplicarPlantilla',
+      plantillaId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });

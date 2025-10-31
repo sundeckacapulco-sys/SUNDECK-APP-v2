@@ -7,6 +7,7 @@ const Usuario = require('../models/Usuario');
 const { auth, verificarPermiso } = require('../middleware/auth');
 // const cloudinary = require('../config/cloudinary'); // Comentado temporalmente
 const ProyectoSyncMiddleware = require('../middleware/proyectoSync');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
@@ -23,7 +24,14 @@ router.get('/:id/evidencias', auth, async (req, res) => {
       comentariosConArchivos: prospecto.notas.filter(nota => nota.archivos && nota.archivos.length > 0)
     });
   } catch (error) {
-    console.error('Error obteniendo evidencias:', error);
+    logger.error('Error obteniendo evidencias de prospecto', {
+      ruta: 'prospectosRoutes',
+      accion: 'obtenerEvidencias',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -137,7 +145,14 @@ router.get('/', auth, verificarPermiso('prospectos', 'leer'), async (req, res) =
 
     res.json(prospectos);
   } catch (error) {
-    console.error('Error obteniendo prospectos:', error);
+    logger.error('Error obteniendo prospectos', {
+      ruta: 'prospectosRoutes',
+      accion: 'listarProspectos',
+      filtros: req.query,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -162,7 +177,14 @@ router.get('/:id', auth, verificarPermiso('prospectos', 'leer'), async (req, res
 
     res.json(prospecto);
   } catch (error) {
-    console.error('Error obteniendo prospecto:', error);
+    logger.error('Error obteniendo prospecto por ID', {
+      ruta: 'prospectosRoutes',
+      accion: 'obtenerProspecto',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -179,7 +201,14 @@ router.get('/:id/comentarios', auth, verificarPermiso('prospectos', 'leer'), asy
     const comentarios = (prospecto.notas || []).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
     res.json(comentarios);
   } catch (error) {
-    console.error('Error listando comentarios:', error);
+    logger.error('Error listando comentarios de prospecto', {
+      ruta: 'prospectosRoutes',
+      accion: 'listarComentarios',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -206,7 +235,13 @@ router.post('/:id/comentarios', auth, verificarPermiso('prospectos', 'actualizar
             archivosNota = parsed;
           }
         } catch (parseError) {
-          console.warn('No se pudieron parsear los archivos del comentario:', parseError);
+          logger.warn('No se pudieron parsear los archivos del comentario', {
+            ruta: 'prospectosRoutes',
+            accion: 'agregarComentario',
+            prospectoId: req.params.id,
+            usuarioId: req.usuario?._id || null,
+            error: parseError.message
+          });
         }
       }
     }
@@ -228,7 +263,14 @@ router.post('/:id/comentarios', auth, verificarPermiso('prospectos', 'actualizar
       comentario: prospecto.notas[prospecto.notas.length - 1]
     });
   } catch (error) {
-    console.error('Error agregando comentario:', error);
+    logger.error('Error agregando comentario a prospecto', {
+      ruta: 'prospectosRoutes',
+      accion: 'agregarComentario',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -244,7 +286,14 @@ router.get('/:id/etapas', auth, verificarPermiso('prospectos', 'leer'), async (r
     const etapas = (prospecto.etapas || []).sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
     res.json(etapas);
   } catch (error) {
-    console.error('Error listando etapas:', error);
+    logger.error('Error listando etapas del prospecto', {
+      ruta: 'prospectosRoutes',
+      accion: 'listarEtapas',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -276,7 +325,14 @@ router.post('/:id/etapas', auth, verificarPermiso('prospectos', 'actualizar'), a
       etapa: prospecto.etapas[prospecto.etapas.length - 1]
     });
   } catch (error) {
-    console.error('Error agregando etapa:', error);
+    logger.error('Error agregando etapa al prospecto', {
+      ruta: 'prospectosRoutes',
+      accion: 'agregarEtapa',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -328,9 +384,21 @@ router.post('/', auth, verificarPermiso('prospectos', 'crear'), async (req, res)
     // SINCRONIZACIÓN AUTOMÁTICA: Crear Proyecto desde Prospecto
     try {
       await ProyectoSyncMiddleware.sincronizarProspecto(nuevoProspecto, 'create');
-      console.log(`✅ Proyecto creado automáticamente para prospecto ${nuevoProspecto._id}`);
+      logger.info('Proyecto sincronizado automáticamente tras crear prospecto', {
+        ruta: 'prospectosRoutes',
+        accion: 'crearProspecto',
+        prospectoId: nuevoProspecto._id,
+        usuarioId: req.usuario?._id || null
+      });
     } catch (syncError) {
-      console.error('⚠️ Error en sincronización automática:', syncError);
+      logger.warn('Error sincronizando proyecto tras crear prospecto', {
+        ruta: 'prospectosRoutes',
+        accion: 'crearProspecto',
+        prospectoId: nuevoProspecto._id,
+        usuarioId: req.usuario?._id || null,
+        error: syncError.message,
+        stack: syncError.stack
+      });
       // No interrumpir el flujo principal
     }
 
@@ -339,7 +407,14 @@ router.post('/', auth, verificarPermiso('prospectos', 'crear'), async (req, res)
       prospecto: nuevoProspecto
     });
   } catch (error) {
-    console.error('Error creando prospecto:', error);
+    logger.error('Error creando prospecto', {
+      ruta: 'prospectosRoutes',
+      accion: 'crearProspecto',
+      usuarioId: req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -411,9 +486,21 @@ router.put('/:id', auth, verificarPermiso('prospectos', 'actualizar'), upload.ar
     // 🔄 SINCRONIZACIÓN AUTOMÁTICA: Actualizar Proyecto desde Prospecto
     try {
       await ProyectoSyncMiddleware.sincronizarProspecto(prospecto, 'update');
-      console.log(`✅ Proyecto actualizado automáticamente para prospecto ${prospecto._id}`);
+      logger.info('Proyecto sincronizado automáticamente tras actualizar prospecto', {
+        ruta: 'prospectosRoutes',
+        accion: 'actualizarProspecto',
+        prospectoId: prospecto._id,
+        usuarioId: req.usuario?._id || null
+      });
     } catch (syncError) {
-      console.error('⚠️ Error en sincronización automática:', syncError);
+      logger.warn('Error sincronizando proyecto tras actualizar prospecto', {
+        ruta: 'prospectosRoutes',
+        accion: 'actualizarProspecto',
+        prospectoId: prospecto._id,
+        usuarioId: req.usuario?._id || null,
+        error: syncError.message,
+        stack: syncError.stack
+      });
       // No interrumpir el flujo principal
     }
 
@@ -422,7 +509,15 @@ router.put('/:id', auth, verificarPermiso('prospectos', 'actualizar'), upload.ar
       prospecto
     });
   } catch (error) {
-    console.error('Error actualizando prospecto:', error);
+    logger.error('Error actualizando prospecto', {
+      ruta: 'prospectosRoutes',
+      accion: 'actualizarProspecto',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -452,7 +547,14 @@ router.post('/:id/notas', auth, verificarPermiso('prospectos', 'actualizar'), as
       nota: prospecto.notas[prospecto.notas.length - 1]
     });
   } catch (error) {
-    console.error('Error agregando nota:', error);
+    logger.error('Error agregando nota al prospecto', {
+      ruta: 'prospectosRoutes',
+      accion: 'agregarNota',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -485,7 +587,15 @@ router.put('/:id/etapa', auth, verificarPermiso('prospectos', 'actualizar'), asy
       prospecto
     });
   } catch (error) {
-    console.error('Error cambiando etapa:', error);
+    logger.error('Error cambiando etapa del prospecto', {
+      ruta: 'prospectosRoutes',
+      accion: 'cambiarEtapa',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -520,7 +630,15 @@ router.put('/:id/asignar', auth, verificarPermiso('prospectos', 'actualizar'), a
       prospecto
     });
   } catch (error) {
-    console.error('Error asignando prospecto:', error);
+    logger.error('Error asignando prospecto a vendedor', {
+      ruta: 'prospectosRoutes',
+      accion: 'asignarProspecto',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -546,7 +664,14 @@ router.get('/seguimiento/pendientes', auth, async (req, res) => {
 
     res.json(prospectos);
   } catch (error) {
-    console.error('Error obteniendo seguimientos:', error);
+    logger.error('Error obteniendo prospectos pendientes de seguimiento', {
+      ruta: 'prospectosRoutes',
+      accion: 'listarSeguimientosPendientes',
+      filtros: filtros,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -554,26 +679,55 @@ router.get('/seguimiento/pendientes', auth, async (req, res) => {
 // Mover a papelera
 router.put('/:id/papelera', auth, verificarPermiso('prospectos', 'actualizar'), async (req, res) => {
   try {
-    console.log('Intentando mover a papelera:', req.params.id); // Debug
-    console.log('Usuario:', req.usuario.nombre, req.usuario.rol); // Debug
-    
+    logger.info('Solicitud para mover prospecto a papelera', {
+      ruta: 'prospectosRoutes',
+      accion: 'moverAPapelera',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      usuarioNombre: req.usuario?.nombre,
+      usuarioRol: req.usuario?.rol
+    });
+
     const prospecto = await Prospecto.findById(req.params.id);
     if (!prospecto) {
-      console.log('Prospecto no encontrado'); // Debug
+      logger.warn('Prospecto no encontrado al intentar mover a papelera', {
+        ruta: 'prospectosRoutes',
+        accion: 'moverAPapelera',
+        prospectoId: req.params.id,
+        usuarioId: req.usuario?._id || null
+      });
       return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
 
-    console.log('Prospecto encontrado:', prospecto.nombre); // Debug
-    
+    logger.debug('Prospecto localizado para mover a papelera', {
+      ruta: 'prospectosRoutes',
+      accion: 'moverAPapelera',
+      prospectoId: prospecto._id,
+      nombreProspecto: prospecto.nombre,
+      usuarioId: req.usuario?._id || null
+    });
+
     prospecto.enPapelera = true;
     prospecto.fechaEliminacion = new Date();
     prospecto.eliminadoPor = req.usuario._id;
     await prospecto.save();
 
-    console.log('Prospecto movido a papelera exitosamente'); // Debug
+    logger.info('Prospecto movido a papelera exitosamente', {
+      ruta: 'prospectosRoutes',
+      accion: 'moverAPapelera',
+      prospectoId: prospecto._id,
+      usuarioId: req.usuario?._id || null
+    });
     res.json({ message: 'Prospecto movido a papelera exitosamente' });
   } catch (error) {
-    console.error('Error moviendo a papelera:', error);
+    logger.error('Error moviendo prospecto a papelera', {
+      ruta: 'prospectosRoutes',
+      accion: 'moverAPapelera',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor', error: error.message });
   }
 });
@@ -593,7 +747,14 @@ router.put('/:id/restaurar', auth, verificarPermiso('prospectos', 'actualizar'),
 
     res.json({ message: 'Prospecto restaurado exitosamente' });
   } catch (error) {
-    console.error('Error restaurando prospecto:', error);
+    logger.error('Error restaurando prospecto desde papelera', {
+      ruta: 'prospectosRoutes',
+      accion: 'restaurarProspecto',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -626,7 +787,14 @@ router.get('/papelera/listar', auth, verificarPermiso('prospectos', 'leer'), asy
     const result = await Prospecto.paginate(filtros, options);
     res.json(result);
   } catch (error) {
-    console.error('Error obteniendo papelera:', error);
+    logger.error('Error obteniendo prospectos en papelera', {
+      ruta: 'prospectosRoutes',
+      accion: 'listarPapelera',
+      usuarioId: req.usuario?._id || null,
+      query: req.query,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -654,7 +822,14 @@ router.delete('/:id/permanente', auth, verificarPermiso('prospectos', 'actualiza
 
     res.json({ message: 'Prospecto eliminado permanentemente' });
   } catch (error) {
-    console.error('Error eliminando permanentemente:', error);
+    logger.error('Error eliminando prospecto permanentemente', {
+      ruta: 'prospectosRoutes',
+      accion: 'eliminarPermanentemente',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -676,7 +851,14 @@ router.delete('/:id/forzar', auth, verificarPermiso('prospectos', 'actualizar'),
 
     res.json({ message: 'Prospecto eliminado permanentemente (forzado)' });
   } catch (error) {
-    console.error('Error eliminando forzadamente:', error);
+    logger.error('Error eliminando prospecto de forma forzada', {
+      ruta: 'prospectosRoutes',
+      accion: 'eliminarForzado',
+      prospectoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -701,7 +883,14 @@ router.delete('/papelera/vaciar', auth, verificarPermiso('prospectos', 'actualiz
       eliminados: result.deletedCount
     });
   } catch (error) {
-    console.error('Error vaciando papelera:', error);
+    logger.error('Error vaciando la papelera de prospectos', {
+      ruta: 'prospectosRoutes',
+      accion: 'vaciarPapelera',
+      usuarioId: req.usuario?._id || null,
+      filtros: filtros,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });

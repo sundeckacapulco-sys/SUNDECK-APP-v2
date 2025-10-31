@@ -4,6 +4,7 @@ const Fabricacion = require('../models/Fabricacion');
 const Pedido = require('../models/Pedido');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const ValidacionTecnicaService = require('../services/validacionTecnicaService');
+const logger = require('../config/logger');
 
 // Función para generar número de instalación
 async function generarNumeroInstalacion() {
@@ -49,6 +50,14 @@ router.get('/', auth, verificarPermiso('instalaciones', 'leer'), async (req, res
 
     res.json(instalaciones);
   } catch (error) {
+    logger.error('Error obteniendo instalaciones', {
+      ruta: 'instalacionesRoutes',
+      accion: 'listarInstalaciones',
+      filtros: req.query,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -56,8 +65,18 @@ router.get('/', auth, verificarPermiso('instalaciones', 'leer'), async (req, res
 // Programar nueva instalación directamente
 router.post('/', auth, verificarPermiso('instalaciones', 'crear'), async (req, res) => {
   try {
-    console.log('📅 Programando nueva instalación...');
-    console.log('📦 Payload recibido:', JSON.stringify(req.body, null, 2));
+    logger.info('Programando nueva instalación manualmente', {
+      ruta: 'instalacionesRoutes',
+      accion: 'programarInstalacion',
+      usuarioId: req.user?.id || req.usuario?._id || null
+    });
+
+    logger.debug('Payload recibido para programación de instalación', {
+      ruta: 'instalacionesRoutes',
+      accion: 'programarInstalacion',
+      body: req.body,
+      usuarioId: req.user?.id || req.usuario?._id || null
+    });
 
     if (!req.user) {
       return res.status(401).json({
@@ -131,7 +150,13 @@ router.post('/', auth, verificarPermiso('instalaciones', 'crear'), async (req, r
       .populate('instaladores.usuario', 'nombre apellido')
       .populate('creadoPor', 'nombre apellido');
 
-    console.log('✅ Instalación programada exitosamente:', instalacionCompleta.numero);
+    logger.info('Instalación programada exitosamente', {
+      ruta: 'instalacionesRoutes',
+      accion: 'programarInstalacion',
+      instalacionId: instalacionCompleta._id,
+      numeroInstalacion: instalacionCompleta.numero,
+      usuarioId: req.user?.id || req.usuario?._id || null
+    });
 
     res.status(201).json({
       message: 'Instalación programada exitosamente',
@@ -139,10 +164,17 @@ router.post('/', auth, verificarPermiso('instalaciones', 'crear'), async (req, r
     });
 
   } catch (error) {
-    console.error('❌ Error programando instalación:', error);
-    res.status(500).json({ 
+    logger.error('Error programando instalación manual', {
+      ruta: 'instalacionesRoutes',
+      accion: 'programarInstalacion',
+      usuarioId: req.user?.id || req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor al programar instalación',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -150,7 +182,12 @@ router.post('/', auth, verificarPermiso('instalaciones', 'crear'), async (req, r
 // Crear instalación desde fabricación completada
 router.post('/desde-fabricacion/:fabricacionId', auth, verificarPermiso('instalaciones', 'crear'), async (req, res) => {
   try {
-    console.log('🏗️ Creando instalación desde fabricación...');
+    logger.info('Creando instalación desde fabricación', {
+      ruta: 'instalacionesRoutes',
+      accion: 'crearDesdeFabricacion',
+      usuarioId: req.usuario?._id || null,
+      fabricacionId: req.params.fabricacionId
+    });
     const { fabricacionId } = req.params;
     const {
       fechaProgramada,
@@ -182,11 +219,22 @@ router.post('/desde-fabricacion/:fabricacionId', auth, verificarPermiso('instala
     }
 
     // 🔒 VALIDACIÓN TÉCNICA CRÍTICA: Verificar información completa para instalación
-    console.log('🔒 Validando información técnica para instalación...');
+    logger.info('Validando información técnica antes de programar instalación', {
+      ruta: 'instalacionesRoutes',
+      accion: 'crearDesdeFabricacion',
+      usuarioId: req.usuario?._id || null,
+      fabricacionId
+    });
     const validacionTecnica = ValidacionTecnicaService.validarAvanceEtapa(fabricacion.productos, 'instalacion');
     
     if (!validacionTecnica.puedeAvanzar) {
-      console.error('❌ Instalación bloqueada por información técnica incompleta');
+      logger.warn('Instalación bloqueada por información técnica incompleta', {
+        ruta: 'instalacionesRoutes',
+        accion: 'crearDesdeFabricacion',
+        usuarioId: req.usuario?._id || null,
+        fabricacionId,
+        requisitosFaltantes: validacionTecnica.detalleProductos.filter(p => !p.valido)
+      });
       return res.status(400).json({
         message: '🔒 CANDADO ACTIVADO: No se puede programar la instalación',
         error: validacionTecnica.mensajeCandado,
@@ -195,8 +243,13 @@ router.post('/desde-fabricacion/:fabricacionId', auth, verificarPermiso('instala
         solucion: 'Complete la información técnica faltante en el levantamiento original'
       });
     }
-    
-    console.log('✅ Validación técnica aprobada para instalación');
+
+    logger.info('Validación técnica aprobada para instalación', {
+      ruta: 'instalacionesRoutes',
+      accion: 'crearDesdeFabricacion',
+      usuarioId: req.usuario?._id || null,
+      fabricacionId
+    });
 
     // Generar orden de instalación completa
     const ordenInstalacion = ValidacionTecnicaService.generarOrdenInstalacion(fabricacion.productos, {
@@ -304,7 +357,14 @@ router.post('/desde-fabricacion/:fabricacionId', auth, verificarPermiso('instala
       .populate('fabricacion', 'numero')
       .populate('instaladores.usuario', 'nombre apellido');
 
-    console.log('✅ Instalación programada exitosamente:', instalacionCompleta.numero);
+    logger.info('Instalación programada exitosamente desde fabricación', {
+      ruta: 'instalacionesRoutes',
+      accion: 'crearDesdeFabricacion',
+      usuarioId: req.usuario?._id || null,
+      instalacionId: instalacionCompleta._id,
+      numeroInstalacion: instalacionCompleta.numero,
+      fabricacionId
+    });
 
     res.status(201).json({
       message: 'Instalación programada exitosamente con información técnica completa',
@@ -314,10 +374,18 @@ router.post('/desde-fabricacion/:fabricacionId', auth, verificarPermiso('instala
     });
 
   } catch (error) {
-    console.error('❌ Error programando instalación:', error);
-    res.status(500).json({ 
+    logger.error('Error programando instalación desde fabricación', {
+      ruta: 'instalacionesRoutes',
+      accion: 'crearDesdeFabricacion',
+      usuarioId: req.usuario?._id || null,
+      fabricacionId: req.params.fabricacionId,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor al programar instalación',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -348,9 +416,16 @@ router.get('/:id/orden-tecnica', auth, verificarPermiso('instalaciones', 'leer')
     });
 
   } catch (error) {
-    console.error('Error generando orden técnica:', error);
+    logger.error('Error generando orden técnica de instalación', {
+      ruta: 'instalacionesRoutes',
+      accion: 'generarOrdenTecnica',
+      usuarioId: req.usuario?._id || null,
+      instalacionId: req.params.id,
+      error: error.message,
+      stack: error.stack
+    });
     if (error.message.includes('No se puede generar')) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: error.message,
         solucion: 'Verifique que la información técnica esté completa en el levantamiento original'
       });
@@ -422,7 +497,12 @@ async function generarNumeroInstalacion() {
     });
     return `INS-${year}-${String(count + 1).padStart(4, '0')}`;
   } catch (error) {
-    console.error('Error generando número de instalación:', error);
+    logger.error('Error generando número de instalación', {
+      ruta: 'instalacionesRoutes',
+      accion: 'generarNumeroInstalacion',
+      error: error.message,
+      stack: error.stack
+    });
     return `INS-${new Date().getFullYear()}-${Date.now()}`;
   }
 }

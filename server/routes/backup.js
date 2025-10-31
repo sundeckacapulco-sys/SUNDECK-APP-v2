@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
 const { auth, verificarPermiso } = require('../middleware/auth');
+const logger = require('../config/logger');
 
 // Importar todos los modelos
 const Prospecto = require('../models/Prospecto');
@@ -14,7 +15,11 @@ const router = express.Router();
 // Exportar todos los datos del sistema
 router.get('/export/complete', auth, verificarPermiso('admin', 'leer'), async (req, res) => {
   try {
-    console.log('Iniciando exportación completa de datos...');
+    logger.info('Iniciando exportación completa de datos', {
+      ruta: 'backupRoutes',
+      accion: 'exportacionCompleta',
+      usuarioId: req.usuario?._id || null
+    });
     
     // Obtener todos los datos de cada colección
     const [
@@ -50,7 +55,12 @@ router.get('/export/complete', auth, verificarPermiso('admin', 'leer'), async (r
       }
     };
 
-    console.log('Exportación completada:', backupData.metadata.totalRecords);
+    logger.info('Exportación completa finalizada', {
+      ruta: 'backupRoutes',
+      accion: 'exportacionCompleta',
+      usuarioId: req.usuario?._id || null,
+      totales: backupData.metadata.totalRecords
+    });
 
     // Configurar headers para descarga
     const fileName = `sundeck_backup_${new Date().toISOString().split('T')[0]}_${Date.now()}.json`;
@@ -61,10 +71,16 @@ router.get('/export/complete', auth, verificarPermiso('admin', 'leer'), async (r
     res.json(backupData);
 
   } catch (error) {
-    console.error('Error en exportación completa:', error);
-    res.status(500).json({ 
+    logger.error('Error en exportación completa', {
+      ruta: 'backupRoutes',
+      accion: 'exportacionCompleta',
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -72,7 +88,12 @@ router.get('/export/complete', auth, verificarPermiso('admin', 'leer'), async (r
 // Exportar solo prospectos (más específico)
 router.get('/export/prospectos', auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
   try {
-    console.log('Iniciando exportación de prospectos...');
+    logger.info('Iniciando exportación de prospectos', {
+      ruta: 'backupRoutes',
+      accion: 'exportacionProspectos',
+      usuarioId: req.usuario?._id || null,
+      filtros: req.query
+    });
     
     const { incluirArchivados = 'false', incluirPapelera = 'false' } = req.query;
     
@@ -113,7 +134,12 @@ router.get('/export/prospectos', auth, verificarPermiso('prospectos', 'leer'), a
       }
     };
 
-    console.log(`Exportados ${prospectos.length} prospectos`);
+    logger.info('Exportación de prospectos completada', {
+      ruta: 'backupRoutes',
+      accion: 'exportacionProspectos',
+      usuarioId: req.usuario?._id || null,
+      totalProspectos: prospectos.length
+    });
 
     const fileName = `prospectos_backup_${new Date().toISOString().split('T')[0]}_${Date.now()}.json`;
     
@@ -123,10 +149,17 @@ router.get('/export/prospectos', auth, verificarPermiso('prospectos', 'leer'), a
     res.json(backupData);
 
   } catch (error) {
-    console.error('Error en exportación de prospectos:', error);
-    res.status(500).json({ 
+    logger.error('Error en exportación de prospectos', {
+      ruta: 'backupRoutes',
+      accion: 'exportacionProspectos',
+      usuarioId: req.usuario?._id || null,
+      filtros: req.query,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -136,7 +169,12 @@ router.get('/export/excel', auth, verificarPermiso('prospectos', 'leer'), async 
   try {
     const ExcelJS = require('exceljs');
     
-    console.log('Iniciando exportación Excel...');
+    logger.info('Iniciando exportación de prospectos a Excel', {
+      ruta: 'backupRoutes',
+      accion: 'exportacionExcel',
+      usuarioId: req.usuario?._id || null,
+      filtros: req.query
+    });
     
     // Obtener prospectos
     let filtros = { activo: true, enPapelera: { $ne: true } };
@@ -242,10 +280,17 @@ router.get('/export/excel', auth, verificarPermiso('prospectos', 'leer'), async 
     res.end();
 
   } catch (error) {
-    console.error('Error en exportación Excel:', error);
-    res.status(500).json({ 
+    logger.error('Error en exportación Excel de prospectos', {
+      ruta: 'backupRoutes',
+      accion: 'exportacionExcel',
+      usuarioId: req.usuario?._id || null,
+      filtros: req.query,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -259,7 +304,12 @@ router.post('/import', auth, verificarPermiso('admin', 'crear'), async (req, res
       return res.status(400).json({ message: 'Datos de backup inválidos' });
     }
 
-    console.log('Iniciando importación de datos...');
+    logger.info('Iniciando importación de datos desde backup', {
+      ruta: 'backupRoutes',
+      accion: 'importacionDatos',
+      usuarioId: req.usuario?._id || null,
+      opciones: options
+    });
     
     const results = {
       imported: {},
@@ -327,7 +377,12 @@ router.post('/import', auth, verificarPermiso('admin', 'crear'), async (req, res
       }
     }
 
-    console.log('Importación completada:', results);
+    logger.info('Importación de backup completada', {
+      ruta: 'backupRoutes',
+      accion: 'importacionDatos',
+      usuarioId: req.usuario?._id || null,
+      resumen: results
+    });
 
     res.json({
       message: 'Importación completada',
@@ -337,10 +392,17 @@ router.post('/import', auth, verificarPermiso('admin', 'crear'), async (req, res
     });
 
   } catch (error) {
-    console.error('Error en importación:', error);
-    res.status(500).json({ 
+    logger.error('Error durante importación de backup', {
+      ruta: 'backupRoutes',
+      accion: 'importacionDatos',
+      usuarioId: req.usuario?._id || null,
+      opciones: req.body?.options,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -386,10 +448,16 @@ router.get('/system-info', auth, verificarPermiso('admin', 'leer'), async (req, 
     res.json(systemInfo);
 
   } catch (error) {
-    console.error('Error obteniendo información del sistema:', error);
-    res.status(500).json({ 
+    logger.error('Error obteniendo información del sistema para backup', {
+      ruta: 'backupRoutes',
+      accion: 'obtenerSystemInfo',
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor',
-      error: error.message 
+      error: error.message
     });
   }
 });
