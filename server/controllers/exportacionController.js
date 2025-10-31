@@ -2,6 +2,7 @@ const { getProyectoExportData } = require('../utils/exportNormalizer');
 const pdfService = require('../services/pdfService');
 const excelService = require('../services/excelService');
 const mongoose = require('mongoose');
+const logger = require('../config/logger');
 
 /**
  * Controlador unificado para exportación de proyectos
@@ -21,7 +22,15 @@ const generarPDFUnificado = async (req, res) => {
       });
     }
 
-    console.log(`📄 Generando PDF unificado para proyecto ${id}, tipo: ${tipo}`);
+    logger.info('Generando PDF unificado para proyecto', {
+      controlador: 'ExportacionController',
+      accion: 'generarPDFUnificado',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      proyectoId: id,
+      tipo
+    });
 
     const pdf = await pdfService.generarPDFProyecto(id);
     
@@ -30,7 +39,17 @@ const generarPDFUnificado = async (req, res) => {
     res.send(pdf);
 
   } catch (error) {
-    console.error('Error generando PDF unificado:', error);
+    logger.error('Error generando PDF unificado', {
+      controlador: 'ExportacionController',
+      accion: 'generarPDFUnificado',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      proyectoId: req.params?.id,
+      tipo: req.query?.tipo,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Error al generar PDF del proyecto',
@@ -52,7 +71,15 @@ const generarExcelUnificado = async (req, res) => {
       });
     }
 
-    console.log(`📊 Generando Excel unificado para proyecto ${id}, tipo: ${tipo}`);
+    logger.info('Generando Excel unificado para proyecto', {
+      controlador: 'ExportacionController',
+      accion: 'generarExcelUnificado',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      proyectoId: id,
+      tipo
+    });
 
     const excel = await excelService.generarExcelProyecto(id);
     
@@ -61,7 +88,17 @@ const generarExcelUnificado = async (req, res) => {
     res.send(excel);
 
   } catch (error) {
-    console.error('Error generando Excel unificado:', error);
+    logger.error('Error generando Excel unificado', {
+      controlador: 'ExportacionController',
+      accion: 'generarExcelUnificado',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      proyectoId: req.params?.id,
+      tipo: req.query?.tipo,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Error al generar Excel del proyecto',
@@ -82,7 +119,14 @@ const generarPaqueteCompleto = async (req, res) => {
       });
     }
 
-    console.log(`📦 Generando paquete completo para proyecto ${id}`);
+    logger.info('Generando paquete completo de exportación para proyecto', {
+      controlador: 'ExportacionController',
+      accion: 'generarPaqueteCompleto',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      proyectoId: id
+    });
 
     // Generar ambos archivos en paralelo
     const [pdf, excel] = await Promise.all([
@@ -105,7 +149,16 @@ const generarPaqueteCompleto = async (req, res) => {
     res.send(zipBuffer);
 
   } catch (error) {
-    console.error('Error generando paquete completo:', error);
+    logger.error('Error generando paquete completo', {
+      controlador: 'ExportacionController',
+      accion: 'generarPaqueteCompleto',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      proyectoId: req.params?.id,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Error al generar paquete completo del proyecto',
@@ -163,7 +216,16 @@ const vistaPrevia = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error obteniendo vista previa:', error);
+    logger.error('Error obteniendo vista previa de exportación', {
+      controlador: 'ExportacionController',
+      accion: 'vistaPrevia',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      proyectoId: req.params?.id,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Error al obtener vista previa',
@@ -236,7 +298,16 @@ const validarExportacion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error validando exportación:', error);
+    logger.error('Error validando exportación de proyecto', {
+      controlador: 'ExportacionController',
+      accion: 'validarExportacion',
+      metodo: req.method,
+      endpoint: req.originalUrl,
+      usuarioId: req.usuario?._id || null,
+      proyectoId: req.params?.id,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Error al validar datos para exportación',
