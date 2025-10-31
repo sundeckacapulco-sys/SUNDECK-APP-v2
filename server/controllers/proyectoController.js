@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const pdfService = require('../services/pdfService');
 const excelService = require('../services/excelService');
 const logger = require('../config/logger');
+const qrCodeGenerator = require('../utils/qrcodeGenerator');
 
 const toNumber = (value, defaultValue = 0) => {
   if (value === null || value === undefined || value === '') {
@@ -946,6 +947,141 @@ const obtenerDatosExportacion = async (req, res) => {
   }
 };
 
+const generarEtiquetasProduccion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de proyecto inválido'
+      });
+    }
+
+    logger.info('Generando etiquetas de producción', {
+      proyectoId: id,
+      userId: req.usuario?.id
+    });
+
+    const proyecto = await Proyecto.findById(id);
+
+    if (!proyecto) {
+      return res.status(404).json({
+        success: false,
+        message: 'Proyecto no encontrado'
+      });
+    }
+
+    const etiquetas = proyecto.generarEtiquetasProduccion();
+    const etiquetasConQr = await Promise.all(
+      etiquetas.map(async etiqueta => ({
+        ...etiqueta,
+        codigoQR: await qrCodeGenerator.toDataURL(etiqueta.codigoQR)
+      }))
+    );
+
+    res.json({
+      success: true,
+      data: etiquetasConQr
+    });
+  } catch (error) {
+    logger.logError(error, {
+      context: 'generarEtiquetasProduccion',
+      proyectoId: req.params.id,
+      userId: req.usuario?.id
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error generando etiquetas de producción',
+      error: error.message
+    });
+  }
+};
+
+const calcularTiempoInstalacion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de proyecto inválido'
+      });
+    }
+
+    logger.info('Calculando tiempo estimado de instalación', {
+      proyectoId: id,
+      userId: req.usuario?.id
+    });
+
+    const proyecto = await Proyecto.findById(id);
+
+    if (!proyecto) {
+      return res.status(404).json({
+        success: false,
+        message: 'Proyecto no encontrado'
+      });
+    }
+
+    const calculo = proyecto.calcularTiempoInstalacion();
+
+    res.json({
+      success: true,
+      data: calculo
+    });
+  } catch (error) {
+    logger.logError(error, {
+      context: 'calcularTiempoInstalacion',
+      proyectoId: req.params.id,
+      userId: req.usuario?.id
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error calculando tiempo de instalación',
+      error: error.message
+    });
+  }
+};
+
+const optimizarRutaDiaria = async (req, res) => {
+  try {
+    const { fecha } = req.params;
+    const fechaParam = new Date(fecha);
+
+    if (Number.isNaN(fechaParam.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Fecha inválida'
+      });
+    }
+
+    logger.info('Optimizando ruta diaria de instalación', {
+      fecha,
+      userId: req.usuario?.id
+    });
+
+    const resultado = await Proyecto.optimizarRutaDiaria(
+      new Date(fechaParam.getTime())
+    );
+
+    res.json({
+      success: true,
+      data: resultado
+    });
+  } catch (error) {
+    logger.logError(error, {
+      context: 'optimizarRutaDiaria',
+      fecha: req.params.fecha,
+      userId: req.usuario?.id
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error optimizando ruta diaria',
+      error: error.message
+    });
+  }
+};
+
 // Funciones auxiliares
 
 function calcularSubtotal(proyecto) {
@@ -1407,6 +1543,9 @@ module.exports = {
   eliminarProyecto,
   crearDesdeProspecto,
   obtenerDatosExportacion,
+  generarEtiquetasProduccion,
+  calcularTiempoInstalacion,
+  optimizarRutaDiaria,
   sincronizarProyecto,
   obtenerEstadisticasProyecto,
   guardarLevantamiento,

@@ -882,7 +882,6 @@ proyectoSchema.methods.toExportData = function() {
 
 // Generar etiquetas de producción para empaques
 proyectoSchema.methods.generarEtiquetasProduccion = function() {
-  const QRCode = require('qrcode');
   const etiquetas = [];
   
   // Generar etiqueta por cada producto
