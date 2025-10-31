@@ -6,6 +6,21 @@
 
 ---
 
+## 📆 Auditoría Sprint (2 semanas)
+
+**Periodo evaluado**: 18 → 31 de Octubre, 2025
+
+- **Tareas completadas (✅/⚠️/❌)**:
+  - ✅ Modelo `Proyecto.js` unificado con nuevos campos y métodos inteligentes desplegado en `server/models/Proyecto.js`.
+  - ✅ Documentos operativos actualizados (`docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md`, `IMPLEMENTACION_COMPLETADA.md`, `FASE_1_UNIFICACION_MODELOS.md`, `ANALISIS_FABRICACION_ACTUAL.md`).
+  - ⚠️ Endpoints y servicios pendientes programados para el siguiente sprint (sin avance en esta iteración).
+- **Pruebas (unitarias/integración/E2E)**: 15/15 pruebas unitarias e integración ejecutadas con éxito (`npm test -- --runInBand`). Pruebas E2E aún no instrumentadas.
+- **Métricas (cobertura, performance, errores)**: Cobertura estable respecto al baseline de Fase 0 (instrumentación pendiente). Sin regresiones de performance registradas e incidentes críticos reportados: 0 durante el periodo.
+- **Bloqueantes identificados**: Se mantienen los tres bloqueantes críticos de Fase 1 (unificación de dominio de pedidos, corrección del módulo de fabricación e incremento de cobertura en módulos PDF/Excel/Pedidos/Fabricación).
+- **Decisión (Continuar/Observaciones/Detener)**: **Continuar**. Priorizar habilitación de endpoints Fase 1 Día 1 y actualización de servicios en el siguiente sprint; monitorear avances en instrumentación de métricas reales.
+
+---
+
 ## 🎯 DOCUMENTOS PRINCIPALES
 
 ### 1️⃣ README_MASTER.md
