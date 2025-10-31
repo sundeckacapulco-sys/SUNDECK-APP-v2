@@ -16,12 +16,27 @@
 
 ---
 
-## 🎯 TAREA ACTUAL: PARTE 2 de 3
+## 🔴 PARTE 2 INCOMPLETA - CORRECCIÓN CRÍTICA
+
+### Problema Detectado
+Tu último trabajo agregó logger PERO **NO eliminó los console.log existentes**.
+
+**Los 10 archivos de Parte 2 AÚN tienen 85 console.log sin migrar.**
+
+**Verificación:**
+```bash
+grep "console.log" server/scripts/migrarDatos.js
+# Resultado: 45 matches ❌ (debería ser 0)
+```
+
+---
+
+## 🎯 TAREA: COMPLETAR PARTE 2 CORRECTAMENTE
 
 ### Objetivo
-**REEMPLAZAR** 85 console.log en 10 archivos (scripts grandes + routes/services restantes).
+**ELIMINAR** todos los console.log y **REEMPLAZARLOS** con logger.
 
-**Progreso actual:** 263/419 (62.8%) → Meta después de Parte 2: 348/419 (83.1%)
+**Progreso actual:** 263/419 (62.8%) → Meta: 348/419 (83.1%)
 
 ---
 
