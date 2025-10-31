@@ -14,6 +14,9 @@ const {
   eliminarProyecto,
   crearDesdeProspecto,
   obtenerDatosExportacion,
+  generarEtiquetasProduccion,
+  calcularTiempoInstalacion,
+  optimizarRutaDiaria,
   sincronizarProyecto,
   obtenerEstadisticasProyecto,
   guardarLevantamiento,
@@ -27,24 +30,42 @@ const router = express.Router();
 // Rutas públicas (requieren autenticación básica)
 
 // GET /api/proyectos - Obtener todos los proyectos con filtros y paginación
-router.get('/', 
-  auth, 
-  verificarPermiso('proyectos', 'leer'), 
+router.get('/',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
   obtenerProyectos
 );
 
+router.get('/ruta-diaria/:fecha',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
+  optimizarRutaDiaria
+);
+
 // GET /api/proyectos/:id - Obtener proyecto específico por ID
-router.get('/:id', 
-  auth, 
-  verificarPermiso('proyectos', 'leer'), 
+router.get('/:id',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
   obtenerProyectoPorId
 );
 
 // POST /api/proyectos - Crear nuevo proyecto
-router.post('/', 
-  auth, 
-  verificarPermiso('proyectos', 'crear'), 
+router.post('/',
+  auth,
+  verificarPermiso('proyectos', 'crear'),
   crearProyecto
+);
+
+router.post('/:id/etiquetas-produccion',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
+  generarEtiquetasProduccion
+);
+
+router.post('/:id/calcular-tiempo-instalacion',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
+  calcularTiempoInstalacion
 );
 
 // PUT /api/proyectos/:id - Actualizar proyecto existente
