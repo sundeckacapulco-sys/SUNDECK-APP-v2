@@ -116,9 +116,6 @@ app.use('/api', metricsMiddleware);
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/proyectos', metricsMiddleware);
-app.use('/api/cotizaciones', metricsMiddleware);
-app.use('/api/instalaciones', metricsMiddleware);
 app.use('/api/metrics', require('./routes/metrics'));
 app.use('/api/prospectos', require('./routes/prospectos'));
 app.use('/api/cotizaciones', require('./routes/cotizaciones'));

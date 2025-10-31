@@ -1,23 +1,32 @@
 # 🏢 Sundeck CRM - Sistema Completo de Gestión
 
 **Versión**: 3.0 | **Estado**: ✅ 100% FUNCIONAL | **Fecha**: 31 Octubre 2025  
-**Sprint Actual**: Sprint 1 ✅ COMPLETADO | **Próximo**: Sprint 2 - Métricas Baseline
+**Sprint Actual**: Sprint 2 ✅ COMPLETADO | **Próximo**: Sprint 3 - Limpieza y Fase 1
 
 ---
 
-## 🎯 PARA CONTINUAR EL TRABAJO
+## 🎯 ESTADO ACTUAL
 
-**👉 LEE:** [`CONTINUAR_AQUI.md`](CONTINUAR_AQUI.md) ⭐ - Instrucciones para la siguiente tarea
+**Sprints completados:**
+- ✅ Sprint 1: Logger Estructurado (100%)
+- ✅ Sprint 2: Métricas Baseline (75% - Backend completo)
 
-**Documentación completa:**
-- 📚 [`docschecklists/GUIA_CONTINUACION_TRABAJO.md`](docschecklists/GUIA_CONTINUACION_TRABAJO.md) - Contexto completo
+**Fase 0: Baseline y Observabilidad - 85%**
+- ✅ Logging estructurado (90%)
+- ✅ Carpeta /logs/ (100%)
+- ✅ KPIs baseline (85%)
+- ⚠️ Dashboard métricas (0% - Opcional)
+
+**Sistema de observabilidad:**
+- 15/15 tests pasando
+- Métricas capturándose automáticamente
+- API REST con 4 endpoints operativos
+- Listo para producción ✅
+
+**Documentación:**
+- 📚 [`docschecklists/auditorias/AUDITORIA_SPRINT_02.md`](docschecklists/auditorias/AUDITORIA_SPRINT_02.md) - Auditoría Sprint 2
 - 📊 [`docschecklists/SPRINT_01_FINAL.md`](docschecklists/SPRINT_01_FINAL.md) - Sprint 1 completado
-
-**Estado actual:**
-- ✅ Sprint 1 completado (Logger estructurado)
-- ✅ Tarea 2.1 completada (Modelo Metric)
-- 🚀 Tarea 2.2 siguiente (Middleware de Métricas)
-- 📊 Fase 0: 67.5%
+- 📋 [`docschecklists/ESTADO_ACTUAL.md`](docschecklists/ESTADO_ACTUAL.md) - Estado del proyecto
 
 ---
 

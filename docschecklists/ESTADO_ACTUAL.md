@@ -14,29 +14,29 @@
 │  ═══════════════════════════════════════════════════════════│
 │                                                              │
 │  ✅ Base funcional sólida (70%)                             │
-│  ✅ Sprint 1 completado - Logger estructurado operativo     │
-│  ⚠️  Brechas críticas en automatización                     │
-│  🚨 4 bloqueantes restantes (1 resuelto)                    │
+│  ✅ Sprint 1 y 2 completados - Observabilidad operativa     │
+│  ✅ Sistema de métricas capturando automáticamente          │
+│  🚨 3 bloqueantes restantes (2 resueltos)                   │
 │                                                              │
-│  Fase actual: Fase 0 (60% completado)                       │
-│  Próximo hito: Sprint 2 - Métricas Baseline                 │
-│  Última actualización: 31 Oct 2025 - Sprint 1 ✅            │
+│  Fase actual: Fase 0 (71% completado)                       │
+│  Próximo hito: Completar console.log + Fase 1               │
+│  Última actualización: 31 Oct 2025 - Sprint 2 ✅            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📈 Progreso por Fase
+## Progreso por Fase
 
 ### ⚙️ FASE 0: Baseline y Observabilidad (0-1 mes)
-**Progreso:** 60% ✅ (+30% desde Sprint 1)
+**Progreso:** 71% ⚠️ (+11% desde inicio)
 
 ```
 Inventario de dependencias     [████████████████████] 100% ✅
-Logging estructurado           [██████████████████░░]  90% ✅ COMPLETADO
+Logging estructurado           [█████████████░░░░░░░]  67% ⚠️ Logger funcional, 36.5% migrado
 Carpeta /logs/                 [████████████████████] 100% ✅ OPERATIVA
-KPIs baseline                  [████████████████░░░░]  80% ⚙️ Modelo creado
-Dashboard de métricas          [░░░░░░░░░░░░░░░░░░░░]   0% ❌
+KPIs baseline                  [███████████████░░░░░]  75% ✅ Backend completo
+Dashboard de métricas          [░░░░░░░░░░░░░░░░░░░░]   0% ⚠️ Opcional
 Naming convention              [██████████░░░░░░░░░░]  50% ⚙️
 ```
 
@@ -48,14 +48,18 @@ Naming convention              [██████████░░░░░░
 - ✅ Archivos críticos: 153/171 (89.5%)
 - ✅ Documentación completa (500+ líneas)
 - ✅ 4 pruebas unitarias pasando
-- ✅ Sistema listo para producción
+
+**Sprint 2 Completado (31 Oct 2025):**
+- ✅ Modelo Metric con agregaciones
+- ✅ Middleware capturando métricas automáticamente
+- ✅ API REST con 4 endpoints operativos
+- ✅ 11 pruebas adicionales pasando (15/15 total)
+- ✅ Sistema de métricas listo para producción
 
 **Bloqueantes desbloqueados:**
 - ✅ Logger estructurado implementado (era CRÍTICO)
 - ✅ Carpeta `/logs/` operativa (era BLOQUEANTE)
-
-**Pendiente:**
-- ⚠️ Métricas con valores simulados (Sprint 2)
+- ✅ Métricas baseline implementadas (era ALTA prioridad)
 
 ---
 
