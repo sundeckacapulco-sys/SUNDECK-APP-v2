@@ -1,212 +1,378 @@
-# 🚀 CONTINUAR AQUÍ - Próxima Sesión
+# 🚀 CONTINUAR AQUÍ - Día 2
 
-**Última actualización:** 31 Octubre 2025  
-**Estado:** Fase 0 ✅ COMPLETADA | Fase 1 🔄 EN PROGRESO (40%)
-
----
-
-## ✅ FASE 0 COMPLETADA (100%)
-
-- ✅ 419/419 console.log migrados
-- ✅ 15/15 pruebas pasando
-- ✅ Logger Winston operativo
-- ✅ Sistema de métricas capturando automáticamente
+**Última actualización:** 31 Octubre 2025 - 15:52  
+**Estado:** Fase 1 EN PROGRESO (60%)  
+**Próxima tarea:** Actualizar Services
 
 ---
 
-## 🚀 FASE 1: ESTADO ACTUAL (40%)
+## ✅ LO QUE SE COMPLETÓ HOY (31 Oct 2025)
 
-### ✅ COMPLETADO HOY (31 Oct 2025)
+### Día 0: Modelo Unificado ✅
+- ✅ `Proyecto.js` actualizado (502 → 1,241 líneas)
+- ✅ 5 secciones agregadas: cronograma, fabricación, instalación, pagos, notas
+- ✅ 4 métodos inteligentes implementados
 
-**1. Modelo `Proyecto.js` Unificado** ⭐
-- ✅ Agregados 5 secciones principales:
-  - `cronograma` - Fechas unificadas del ciclo de vida
-  - `fabricacion` - Con etiquetas de producción y QR
-  - `instalacion` - Con rutas optimizadas
-  - `pagos` - Estructurados con comprobantes
-  - `notas` - Historial completo
-- ✅ Archivo: `server/models/Proyecto.js` (502 → 1,241 líneas)
+### Día 1: Endpoints Implementados ✅ ⭐
+- ✅ Dependencia `qrcode@1.5.3` instalada
+- ✅ `server/utils/qrcodeGenerator.js` creado (resiliente con fallback)
+- ✅ 3 endpoints funcionales:
+  - `POST /api/proyectos/:id/etiquetas-produccion`
+  - `POST /api/proyectos/:id/calcular-tiempo-instalacion`
+  - `GET /api/proyectos/ruta-diaria/:fecha`
+- ✅ Validaciones completas
+- ✅ Logging estructurado
+- ✅ Manejo de errores robusto
 
-**2. Métodos Inteligentes Implementados** ⭐
-- ✅ `generarEtiquetasProduccion()` - Etiquetas para empaques con QR
-- ✅ `calcularTiempoInstalacion()` - Algoritmo inteligente de tiempos
-- ✅ `generarRecomendacionesInstalacion()` - Sugerencias personalizadas
-- ✅ `optimizarRutaDiaria()` - Optimización de rutas (Nearest Neighbor)
-
-**3. Documentación Completa** ⭐
-- ✅ `docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md`
-- ✅ `docschecklists/IMPLEMENTACION_COMPLETADA.md`
-- ✅ `docschecklists/FASE_1_UNIFICACION_MODELOS.md`
-- ✅ `docschecklists/ANALISIS_FABRICACION_ACTUAL.md`
+**Progreso:** 60% de Fase 1 completado
 
 ---
 
-## 📋 PRÓXIMA SESIÓN: Día 1 - Crear Endpoints
+## 📋 PRÓXIMA SESIÓN: Día 2 - Actualizar Services
 
-### Tareas Pendientes
+### Objetivo
+Actualizar los services existentes para usar el modelo `Proyecto.js` unificado en lugar de `ProyectoPedido.js`
 
-#### 1. Instalar Dependencia
+### Archivos a Modificar
+
+#### 1. `server/services/fabricacionService.js`
+
+**Cambios necesarios:**
+
+```javascript
+// ANTES (línea 1):
+const ProyectoPedido = require('../models/ProyectoPedido');
+
+// DESPUÉS:
+const Proyecto = require('../models/Proyecto');
+```
+
+**Métodos a actualizar:**
+
+##### `iniciarFabricacion(proyectoId)`
+```javascript
+// ANTES:
+const proyecto = await ProyectoPedido.findById(proyectoId);
+proyecto.fabricacion.estado = 'en_proceso';
+proyecto.cronograma.fechaInicioFabricacion = new Date();
+
+// DESPUÉS:
+const proyecto = await Proyecto.findById(proyectoId);
+proyecto.fabricacion.estado = 'en_proceso';
+proyecto.cronograma.fechaInicioFabricacion = new Date();
+// (mismo código, solo cambiar el modelo)
+```
+
+##### `actualizarProgreso(proyectoId, progreso)`
+```javascript
+// ANTES:
+const proyecto = await ProyectoPedido.findById(proyectoId);
+proyecto.fabricacion.progreso = progreso;
+
+// DESPUÉS:
+const proyecto = await Proyecto.findById(proyectoId);
+proyecto.fabricacion.progreso = progreso;
+```
+
+##### `realizarControlCalidad(proyectoId, datos)`
+```javascript
+// ANTES:
+const proyecto = await ProyectoPedido.findById(proyectoId);
+proyecto.fabricacion.controlCalidad = { ...datos };
+
+// DESPUÉS:
+const proyecto = await Proyecto.findById(proyectoId);
+proyecto.fabricacion.controlCalidad = { ...datos };
+```
+
+##### `completarEmpaque(proyectoId, datos)`
+```javascript
+// ANTES:
+const proyecto = await ProyectoPedido.findById(proyectoId);
+proyecto.fabricacion.empaque = { ...datos };
+
+// DESPUÉS:
+const proyecto = await Proyecto.findById(proyectoId);
+proyecto.fabricacion.empaque = { ...datos };
+```
+
+##### `obtenerColaFabricacion()`
+```javascript
+// ANTES:
+const proyectos = await ProyectoPedido.find({
+  'fabricacion.estado': { $in: ['pendiente', 'en_proceso'] }
+});
+
+// DESPUÉS:
+const proyectos = await Proyecto.find({
+  'fabricacion.estado': { $in: ['pendiente', 'en_proceso'] }
+});
+```
+
+**Estimado:** 30-45 minutos
+
+---
+
+#### 2. `server/services/instalacionesInteligentesService.js`
+
+**Verificar si existe:**
 ```bash
-npm install qrcode
+ls server/services/instalacionesInteligentesService.js
 ```
 
-#### 2. Crear Endpoint: Etiquetas de Producción
+Si NO existe, crear nuevo service:
+
 ```javascript
-// POST /api/proyectos/:id/etiquetas-produccion
-// Archivo: server/controllers/proyectoController.js
+// server/services/instalacionesInteligentesService.js
+const Proyecto = require('../models/Proyecto');
+const logger = require('../config/logger');
 
-exports.generarEtiquetasProduccion = async (req, res) => {
+/**
+ * Programar instalación para un proyecto
+ */
+async function programarInstalacion(proyectoId, datos) {
   try {
-    const proyecto = await Proyecto.findById(req.params.id);
+    const proyecto = await Proyecto.findById(proyectoId);
+    
     if (!proyecto) {
-      return res.status(404).json({ message: 'Proyecto no encontrado' });
+      throw new Error('Proyecto no encontrado');
     }
     
-    const etiquetas = proyecto.generarEtiquetasProduccion();
-    
-    // Generar QR codes
-    const QRCode = require('qrcode');
-    for (let etiqueta of etiquetas) {
-      etiqueta.codigoQR = await QRCode.toDataURL(etiqueta.codigoQR);
-    }
-    
-    res.json(etiquetas);
-  } catch (error) {
-    logger.error('Error generando etiquetas', { error: error.message });
-    res.status(500).json({ message: 'Error generando etiquetas' });
-  }
-};
-```
-
-#### 3. Crear Endpoint: Calcular Tiempo de Instalación
-```javascript
-// POST /api/proyectos/:id/calcular-tiempo-instalacion
-// Archivo: server/controllers/proyectoController.js
-
-exports.calcularTiempoInstalacion = async (req, res) => {
-  try {
-    const proyecto = await Proyecto.findById(req.params.id);
-    if (!proyecto) {
-      return res.status(404).json({ message: 'Proyecto no encontrado' });
-    }
-    
+    // Calcular tiempo estimado automáticamente
     const calculo = proyecto.calcularTiempoInstalacion();
-    res.json(calculo);
+    
+    // Actualizar instalación
+    proyecto.instalacion = {
+      numeroOrden: `INST-${proyecto.numero}`,
+      estado: 'programada',
+      programacion: {
+        fechaProgramada: datos.fecha,
+        horaInicio: datos.horaInicio,
+        horaFinEstimada: calcularHoraFin(datos.horaInicio, calculo.tiempoEstimadoMinutos),
+        tiempoEstimado: calculo.tiempoEstimadoMinutos,
+        cuadrilla: datos.cuadrilla || []
+      },
+      productosInstalar: proyecto.productos.map(p => ({
+        productoId: p._id,
+        ubicacion: p.ubicacion || p.nombre,
+        especificaciones: {
+          producto: p.nombre,
+          medidas: p.medidas || {},
+          // ... más campos
+        },
+        instalado: false
+      })),
+      checklist: generarChecklistDefault(),
+      garantia: {
+        vigente: true,
+        fechaInicio: datos.fecha,
+        fechaFin: new Date(new Date(datos.fecha).setFullYear(new Date(datos.fecha).getFullYear() + 1)),
+        terminos: 'Garantía de 1 año en instalación y funcionamiento'
+      }
+    };
+    
+    await proyecto.save();
+    
+    logger.info('Instalación programada', {
+      proyectoId,
+      fecha: datos.fecha,
+      tiempoEstimado: calculo.tiempoEstimadoMinutos
+    });
+    
+    return proyecto;
   } catch (error) {
-    logger.error('Error calculando tiempo', { error: error.message });
-    res.status(500).json({ message: 'Error calculando tiempo' });
+    logger.error('Error programando instalación', {
+      proyectoId,
+      error: error.message
+    });
+    throw error;
   }
+}
+
+/**
+ * Iniciar instalación (cambiar estado a "en_ruta")
+ */
+async function iniciarInstalacion(proyectoId) {
+  const proyecto = await Proyecto.findById(proyectoId);
+  
+  if (!proyecto) {
+    throw new Error('Proyecto no encontrado');
+  }
+  
+  proyecto.instalacion.estado = 'en_ruta';
+  proyecto.instalacion.ejecucion = {
+    fechaInicioReal: new Date()
+  };
+  
+  await proyecto.save();
+  
+  logger.info('Instalación iniciada', { proyectoId });
+  
+  return proyecto;
+}
+
+/**
+ * Completar instalación
+ */
+async function completarInstalacion(proyectoId, evidencias) {
+  const proyecto = await Proyecto.findById(proyectoId);
+  
+  if (!proyecto) {
+    throw new Error('Proyecto no encontrado');
+  }
+  
+  proyecto.instalacion.estado = 'completada';
+  proyecto.instalacion.ejecucion.fechaFinReal = new Date();
+  proyecto.instalacion.evidencias = evidencias;
+  proyecto.cronograma.fechaInstalacionReal = new Date();
+  
+  await proyecto.save();
+  
+  logger.info('Instalación completada', { proyectoId });
+  
+  return proyecto;
+}
+
+// Helpers
+function calcularHoraFin(horaInicio, minutos) {
+  const [horas, mins] = horaInicio.split(':').map(Number);
+  const fecha = new Date();
+  fecha.setHours(horas, mins + minutos);
+  return `${fecha.getHours().toString().padStart(2, '0')}:${fecha.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function generarChecklistDefault() {
+  return [
+    { item: 'Verificar medidas en sitio', completado: false },
+    { item: 'Verificar nivel de instalación', completado: false },
+    { item: 'Perforar y colocar taquetes', completado: false },
+    { item: 'Instalar soportes', completado: false },
+    { item: 'Montar persiana', completado: false },
+    { item: 'Verificar funcionamiento', completado: false },
+    { item: 'Limpiar área de trabajo', completado: false },
+    { item: 'Obtener firma del cliente', completado: false }
+  ];
+}
+
+module.exports = {
+  programarInstalacion,
+  iniciarInstalacion,
+  completarInstalacion
 };
 ```
 
-#### 4. Crear Endpoint: Optimizar Ruta Diaria
-```javascript
-// GET /api/proyectos/ruta-diaria/:fecha
-// Archivo: server/controllers/proyectoController.js
-
-exports.optimizarRutaDiaria = async (req, res) => {
-  try {
-    const fecha = new Date(req.params.fecha);
-    const rutaOptimizada = await Proyecto.optimizarRutaDiaria(fecha);
-    res.json(rutaOptimizada);
-  } catch (error) {
-    logger.error('Error optimizando ruta', { error: error.message });
-    res.status(500).json({ message: 'Error optimizando ruta' });
-  }
-};
-```
-
-#### 5. Agregar Rutas
-```javascript
-// Archivo: server/routes/proyectos.js
-// Agregar estas líneas
-
-router.post('/:id/etiquetas-produccion', auth, proyectoController.generarEtiquetasProduccion);
-router.post('/:id/calcular-tiempo-instalacion', auth, proyectoController.calcularTiempoInstalacion);
-router.get('/ruta-diaria/:fecha', auth, proyectoController.optimizarRutaDiaria);
-```
+**Estimado:** 45-60 minutos
 
 ---
 
-## 📅 PLAN DE 5 DÍAS
+#### 3. Actualizar Rutas
 
-### ✅ Día 0 (HOY - COMPLETADO)
-- ✅ Actualizar modelo `Proyecto.js`
-- ✅ Implementar métodos inteligentes
-- ✅ Documentar requisitos y cambios
+##### `server/routes/fabricacion.js`
 
-### ⏳ Día 1 (PRÓXIMA SESIÓN)
-- [ ] Instalar `qrcode` package
-- [ ] Crear 3 endpoints en `proyectoController.js`
-- [ ] Agregar rutas en `routes/proyectos.js`
-- [ ] Probar endpoints con Postman/Thunder Client
+```javascript
+// ANTES (línea ~2):
+const ProyectoPedido = require('../models/ProyectoPedido');
 
-### ⏳ Día 2
-- [ ] Actualizar `FabricacionService` para usar `Proyecto.fabricacion`
-- [ ] Actualizar `instalacionesInteligentesService` para usar `Proyecto.instalacion`
-- [ ] Actualizar rutas de fabricación e instalación
+// DESPUÉS:
+const Proyecto = require('../models/Proyecto');
 
-### ⏳ Día 3
-- [ ] Crear script `migrarProyectoPedidoAProyecto.js`
-- [ ] Ejecutar migración en entorno de prueba
-- [ ] Validar integridad de datos
+// Actualizar todas las referencias en el archivo
+```
 
-### ⏳ Día 4
-- [ ] Renombrar `Fabricacion.js` → `Fabricacion.legacy.js`
-- [ ] Renombrar `ProyectoPedido.js` → `ProyectoPedido.legacy.js`
-- [ ] Actualizar imports en archivos afectados
+##### `server/routes/instalaciones.js` (si existe)
 
-### ⏳ Día 5
-- [ ] Verificar KPIs comerciales intactos
-- [ ] Pruebas de integración completas
-- [ ] Actualizar documentación final
+Mismo cambio: `ProyectoPedido` → `Proyecto`
+
+**Estimado:** 15-20 minutos
+
+---
+
+### Checklist de Tareas
+
+- [ ] **Tarea 1:** Actualizar `fabricacionService.js`
+  - [ ] Cambiar import de `ProyectoPedido` a `Proyecto`
+  - [ ] Verificar que todos los métodos funcionen
+  - [ ] Probar con un proyecto de prueba
+
+- [ ] **Tarea 2:** Crear/Actualizar `instalacionesInteligentesService.js`
+  - [ ] Crear service si no existe
+  - [ ] Implementar métodos: programar, iniciar, completar
+  - [ ] Agregar logging estructurado
+
+- [ ] **Tarea 3:** Actualizar rutas
+  - [ ] `routes/fabricacion.js` → usar `Proyecto`
+  - [ ] `routes/instalaciones.js` → usar `Proyecto` (si existe)
+
+- [ ] **Tarea 4:** Probar cambios
+  - [ ] Crear proyecto de prueba
+  - [ ] Iniciar fabricación
+  - [ ] Programar instalación
+  - [ ] Verificar que todo funcione
 
 ---
 
 ## 🔍 VERIFICACIÓN RÁPIDA
 
 ```bash
-# Verificar que el modelo se cargó correctamente
-node -e "const P = require('./server/models/Proyecto'); console.log('Métodos:', Object.keys(P.schema.methods))"
+# Verificar que los endpoints funcionan
+curl -X POST http://localhost:5000/api/proyectos/[ID]/etiquetas-produccion \
+  -H "Authorization: Bearer [TOKEN]"
 
-# Debe mostrar:
-# generarEtiquetasProduccion
-# calcularTiempoInstalacion
-# generarRecomendacionesInstalacion
-# (y otros métodos existentes)
+# Verificar imports
+rg "ProyectoPedido" server/services/
+rg "ProyectoPedido" server/routes/
+
+# Después de los cambios, NO debe haber resultados en services
 ```
 
 ---
 
 ## 📚 DOCUMENTOS DE REFERENCIA
 
-### Para Implementar Endpoints
-- `docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md` - Especificaciones completas
-- `docschecklists/IMPLEMENTACION_COMPLETADA.md` - Métodos implementados
-- `server/models/Proyecto.js` (líneas 884-1235) - Código de los métodos
+### Para Actualizar Services
+- `server/services/fabricacionService.js` (líneas 1-461) - Service actual
+- `server/models/Proyecto.js` (líneas 334-476) - Sección fabricación
+- `server/models/Proyecto.js` (líneas 478-646) - Sección instalación
 
-### Para Migración
-- `docschecklists/FASE_1_UNIFICACION_MODELOS.md` - Plan de unificación
-- `server/scripts/migrarAProyectos.js` - Script de referencia
+### Para Crear Instalaciones Service
+- `docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md` - Especificaciones
+- `server/models/Proyecto.js` (líneas 1065-1235) - Método `optimizarRutaDiaria`
 
-### Para Validación
-- `AGENTS.md` - Estándares y verificaciones
-- `docschecklists/ROADMAP_TASKS.md` - Roadmap completo
+### Auditorías Completadas
+- `docschecklists/auditorias/AUDITORIA_FASE_1_DIA_0.md`
+- `docschecklists/auditorias/AUDITORIA_ENDPOINTS_FASE_1.md`
 
 ---
 
-## ⚠️ IMPORTANTE: KPIs Comerciales
+## ⚠️ IMPORTANTE: NO ALTERAR
 
-**NO ALTERAR estos campos:**
+**KPIs Comerciales:**
 - `total`, `anticipo`, `saldo_pendiente`
 - `monto_estimado`, `subtotal`, `iva`
 - `cliente.*`, `estado`, `fecha_*`
 
-Estos campos son la base de los reportes comerciales y deben mantenerse intactos.
+Estos campos son críticos para reportes comerciales.
 
 ---
 
-**Responsable:** Equipo Desarrollo CRM Sundeck  
-**Próxima acción:** Crear 3 endpoints para etiquetas, tiempos y rutas  
+## 📊 PROGRESO FASE 1
+
+```
+Día 0: Modelo Unificado        ████████████████████ 100% ✅
+Día 1: Endpoints               ████████████████████ 100% ✅
+Día 2: Actualizar Services     ░░░░░░░░░░░░░░░░░░░░   0% ⬅️ AQUÍ
+Día 3: Migración de Datos      ░░░░░░░░░░░░░░░░░░░░   0%
+Día 4: Deprecación             ░░░░░░░░░░░░░░░░░░░░   0%
+Día 5: Validación Final        ░░░░░░░░░░░░░░░░░░░░   0%
+
+Total: ████████████░░░░░░░░ 60%
+```
+
+---
+
+**Responsable:** Próximo Agente  
 **Duración estimada:** 2-3 horas  
-**Progreso Fase 1:** 40% completado
+**Archivos a modificar:** 3-4 archivos  
+**Complejidad:** Media
+
+**¡Listo para continuar mañana!** 🚀

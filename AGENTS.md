@@ -14,11 +14,11 @@
 
 ---
 
-## 🚀 FASE 1 EN PROGRESO (40%)
+## 🚀 FASE 1 EN PROGRESO (60%)
 
 ### ✅ COMPLETADO (31 Oct 2025)
 
-**Modelo `Proyecto.js` Unificado:**
+**Día 0: Modelo Unificado** ✅
 - ✅ Agregados campos: `cronograma`, `fabricacion`, `instalacion`, `pagos`, `notas`
 - ✅ Implementados métodos inteligentes:
   - `generarEtiquetasProduccion()` - Etiquetas con QR para empaques
@@ -27,22 +27,30 @@
   - `optimizarRutaDiaria()` - Optimización de rutas con Nearest Neighbor
 - ✅ Archivo actualizado: `server/models/Proyecto.js` (502 → 1,241 líneas)
 
+**Día 1: Endpoints Implementados** ✅ ⭐
+- ✅ Instalada dependencia: `qrcode@1.5.3`
+- ✅ Creado `server/utils/qrcodeGenerator.js` (resiliente con fallback)
+- ✅ Endpoint: `POST /api/proyectos/:id/etiquetas-produccion`
+- ✅ Endpoint: `POST /api/proyectos/:id/calcular-tiempo-instalacion`
+- ✅ Endpoint: `GET /api/proyectos/ruta-diaria/:fecha`
+- ✅ Validaciones completas (ID, fecha, existencia)
+- ✅ Logging estructurado en todos los endpoints
+- ✅ Manejo de errores robusto
+
 **Documentación:**
 - ✅ `docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md`
 - ✅ `docschecklists/IMPLEMENTACION_COMPLETADA.md`
 - ✅ `docschecklists/FASE_1_UNIFICACION_MODELOS.md`
 - ✅ `docschecklists/ANALISIS_FABRICACION_ACTUAL.md`
+- ✅ `docschecklists/auditorias/AUDITORIA_FASE_1_DIA_0.md`
+- ✅ `docschecklists/auditorias/AUDITORIA_ENDPOINTS_FASE_1.md`
 
-### ⏳ PENDIENTE (Próxima Sesión)
+### ⏳ PENDIENTE (Próxima Sesión - Día 2)
 
-**Día 1: Crear Endpoints**
-- [ ] `POST /api/proyectos/:id/etiquetas-produccion`
-- [ ] `POST /api/proyectos/:id/calcular-tiempo-instalacion`
-- [ ] `GET /api/proyectos/ruta-diaria/:fecha`
-
-**Día 2: Actualizar Services**
+**Día 2: Actualizar Services** ⬅️ EMPEZAR AQUÍ
 - [ ] Actualizar `FabricacionService` para usar `Proyecto.fabricacion`
 - [ ] Actualizar `instalacionesInteligentesService` para usar `Proyecto.instalacion`
+- [ ] Actualizar rutas de fabricación e instalación
 
 **Día 3: Migración de Datos**
 - [ ] Crear script `migrarProyectoPedidoAProyecto.js`
@@ -52,11 +60,11 @@
 **Día 4: Deprecación**
 - [ ] Renombrar `Fabricacion.js` → `Fabricacion.legacy.js`
 - [ ] Renombrar `ProyectoPedido.js` → `ProyectoPedido.legacy.js`
-- [ ] Actualizar rutas para usar `Proyecto`
+- [ ] Actualizar imports en archivos afectados
 
 **Día 5: Validación Final**
 - [ ] Verificar KPIs comerciales intactos
-- [ ] Pruebas de integración
+- [ ] Pruebas de integración completas
 - [ ] Documentación actualizada
 
 ---
