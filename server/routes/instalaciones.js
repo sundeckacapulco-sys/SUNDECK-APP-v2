@@ -4,6 +4,7 @@ const Fabricacion = require('../models/Fabricacion');
 const Pedido = require('../models/Pedido');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const ValidacionTecnicaService = require('../services/validacionTecnicaService');
+const InstalacionesInteligentesService = require('../services/instalacionesInteligentesService');
 const logger = require('../config/logger');
 
 // Función para generar número de instalación
@@ -29,10 +30,40 @@ const router = express.Router();
 
 // Endpoint de prueba (temporal)
 router.get('/test', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Endpoint de instalaciones funcionando correctamente',
     timestamp: new Date().toISOString()
   });
+});
+
+// POST /api/instalaciones/sugerencias - Obtener sugerencias inteligentes para un proyecto
+router.post('/sugerencias', auth, verificarPermiso('instalaciones', 'leer'), async (req, res) => {
+  const { proyectoId } = req.body;
+
+  if (!proyectoId) {
+    return res.status(400).json({ message: 'El proyectoId es requerido para generar sugerencias' });
+  }
+
+  try {
+    logger.info('Generando sugerencias inteligentes de instalación', {
+      ruta: 'instalacionesRoutes',
+      accion: 'generarSugerenciasInstalacion',
+      proyectoId,
+      usuarioId: req.usuario?._id || null
+    });
+
+    const sugerencias = await InstalacionesInteligentesService.generarSugerenciasInstalacion(proyectoId);
+    res.json(sugerencias);
+  } catch (error) {
+    logger.error('Error generando sugerencias inteligentes de instalación', {
+      ruta: 'instalacionesRoutes',
+      accion: 'generarSugerenciasInstalacion',
+      proyectoId,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ message: 'Error generando sugerencias de instalación', error: error.message });
+  }
 });
 
 // Obtener instalaciones

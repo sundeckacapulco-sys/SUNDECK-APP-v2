@@ -5,8 +5,7 @@
  * sugerencias automáticas de programación, cuadrillas y tiempos
  */
 
-const Instalacion = require('../models/Instalacion');
-const ProyectoPedido = require('../models/ProyectoPedido');
+const Proyecto = require('../models/Proyecto');
 const Usuario = require('../models/Usuario');
 const logger = require('../config/logger');
 
@@ -23,28 +22,32 @@ class InstalacionesInteligentesService {
         proyectoId: proyectoId?.toString()
       });
 
-      const proyecto = await ProyectoPedido.findById(proyectoId)
-        .populate('productos');
+      const proyecto = await Proyecto.findById(proyectoId);
 
       if (!proyecto) {
         throw new Error('Proyecto no encontrado');
       }
 
+      const productosNormalizados = this.obtenerProductosProyecto(proyecto);
+      const tiempoModelo = typeof proyecto.calcularTiempoInstalacion === 'function'
+        ? proyecto.calcularTiempoInstalacion()
+        : null;
+
       // Análisis paralelo de diferentes aspectos
+      const analisisComplejidad = await this.evaluarComplejidadInstalacion(productosNormalizados);
+
       const [
         sugerenciasTiempo,
         sugerenciasCuadrilla,
         sugerenciasHerramientas,
         sugerenciasFecha,
-        analisisComplejidad,
         recomendacionesPrevias
       ] = await Promise.all([
-        this.analizarTiemposOptimos(proyecto),
-        this.sugerirCuadrillaOptima(proyecto),
-        this.analizarHerramientasNecesarias(proyecto),
-        this.sugerirMejorFecha(proyecto),
-        this.evaluarComplejidadInstalacion(proyecto),
-        this.obtenerRecomendacionesHistoricas(proyecto)
+        this.analizarTiemposOptimos(proyecto, productosNormalizados, tiempoModelo),
+        this.sugerirCuadrillaOptima(proyecto, productosNormalizados, analisisComplejidad),
+        this.analizarHerramientasNecesarias(productosNormalizados),
+        this.sugerirMejorFecha(proyecto, productosNormalizados, tiempoModelo),
+        this.obtenerRecomendacionesHistoricas(proyecto, productosNormalizados)
       ]);
 
       const sugerencias = {
@@ -52,12 +55,12 @@ class InstalacionesInteligentesService {
           id: proyecto._id,
           numero: proyecto.numero,
           cliente: proyecto.cliente?.nombre,
-          productos: proyecto.productos?.length || 0
+          productos: productosNormalizados.length
         },
-        
+
         // Sugerencias de tiempo
         tiempo: sugerenciasTiempo,
-        
+
         // Sugerencias de cuadrilla
         cuadrilla: sugerenciasCuadrilla,
         
@@ -72,7 +75,7 @@ class InstalacionesInteligentesService {
         
         // Lecciones aprendidas
         historico: recomendacionesPrevias,
-        
+
         // Puntuación de confianza general
         confianza: this.calcularConfianzaGeneral([
           sugerenciasTiempo.confianza,
@@ -80,7 +83,9 @@ class InstalacionesInteligentesService {
           sugerenciasHerramientas.confianza,
           sugerenciasFecha.confianza
         ]),
-        
+
+        recomendacionesModelo: tiempoModelo?.recomendaciones || [],
+
         fechaGeneracion: new Date()
       };
 
@@ -89,7 +94,7 @@ class InstalacionesInteligentesService {
         accion: 'generarSugerenciasInstalacion',
         proyectoId: proyecto?._id?.toString(),
         confianza: sugerencias.confianza,
-        productos: proyecto?.productos?.length || 0
+        productos: productosNormalizados.length
       });
       return sugerencias;
 
@@ -108,38 +113,47 @@ class InstalacionesInteligentesService {
   /**
    * Analizar tiempos óptimos basado en productos y datos históricos
    */
-  static async analizarTiemposOptimos(proyecto) {
+  static async analizarTiemposOptimos(proyecto, productos, tiempoModelo) {
     try {
-      let tiempoEstimado = 0;
-      let factorComplejidad = 1;
-      const detalleProductos = [];
+      const detalleProductos = productos.map(producto => this.analizarTiempoProducto(producto));
+      let tiempoEstimado = detalleProductos.reduce((sum, item) => sum + item.tiempo, 0);
+      let factorComplejidad = detalleProductos.reduce((max, item) => Math.max(max, item.factorComplejidad), 1);
 
-      // Analizar cada producto del proyecto
-      for (const producto of proyecto.productos || []) {
-        const analisisProducto = this.analizarTiempoProducto(producto);
-        tiempoEstimado += analisisProducto.tiempo;
-        detalleProductos.push(analisisProducto);
-        
-        // Acumular factores de complejidad
-        if (analisisProducto.factorComplejidad > factorComplejidad) {
-          factorComplejidad = analisisProducto.factorComplejidad;
-        }
+      // Ajustar con modelo inteligente si está disponible
+      const tiempoModeloHoras = tiempoModelo?.tiempoEstimadoMinutos
+        ? tiempoModelo.tiempoEstimadoMinutos / 60
+        : null;
+
+      if (tiempoModeloHoras) {
+        tiempoEstimado = Math.max(tiempoEstimado, tiempoModeloHoras);
+        factorComplejidad = Math.max(factorComplejidad, tiempoModelo.factores?.complejidad || 1);
       }
 
       // Buscar datos históricos similares
-      const datosHistoricos = await this.buscarInstalacionesSimilares(proyecto);
+      const datosHistoricos = await this.buscarInstalacionesSimilares(proyecto, productos);
       let tiempoHistoricoPromedio = 0;
-      
+
       if (datosHistoricos.length > 0) {
-        tiempoHistoricoPromedio = datosHistoricos.reduce((sum, inst) => 
+        tiempoHistoricoPromedio = datosHistoricos.reduce((sum, inst) =>
           sum + (inst.tiempoReal || inst.tiempoEstimado || 0), 0
         ) / datosHistoricos.length;
       }
 
       // Combinar estimación teórica con datos históricos
-      const tiempoFinal = datosHistoricos.length > 0 ? 
+      let tiempoFinal = datosHistoricos.length > 0 ?
         (tiempoEstimado * 0.6 + tiempoHistoricoPromedio * 0.4) * factorComplejidad :
         tiempoEstimado * factorComplejidad;
+
+      if (tiempoModeloHoras) {
+        tiempoFinal = (tiempoFinal * 0.5) + (tiempoModeloHoras * 0.5);
+      }
+
+      const factores = tiempoModelo?.factores || {
+        complejidad: factorComplejidad,
+        motorizado: detalleProductos.some(p => p.factores.includes('Motorizado (+1.5h)')) ? 1.2 : 1,
+        altura: detalleProductos.some(p => p.factores.includes('Medidas especiales (>3m)')) ? 1.3 : 1,
+        acceso: 1.0
+      };
 
       return {
         tiempoEstimado: Math.ceil(tiempoFinal),
@@ -149,7 +163,9 @@ class InstalacionesInteligentesService {
         detalleProductos,
         datosHistoricos: datosHistoricos.length,
         recomendacion: this.generarRecomendacionTiempo(tiempoFinal, factorComplejidad),
-        confianza: this.calcularConfianzaTiempo(datosHistoricos.length, factorComplejidad)
+        confianza: this.calcularConfianzaTiempo(datosHistoricos.length, factorComplejidad),
+        factores,
+        modelo: tiempoModelo || null
       };
 
     } catch (error) {
@@ -188,7 +204,9 @@ class InstalacionesInteligentesService {
     }
 
     // Análisis por área
-    const area = producto.medidas?.area || (producto.ancho * producto.alto) || 0;
+    const ancho = producto.medidas?.ancho || producto.ancho || 0;
+    const alto = producto.medidas?.alto || producto.alto || 0;
+    const area = producto.medidas?.area || (ancho * alto) || 0;
     if (area > 10) {
       factorComplejidad *= 1.3;
       factores.push('Área grande (>10m²)');
@@ -218,7 +236,7 @@ class InstalacionesInteligentesService {
     }
 
     // Análisis por medidas especiales
-    if (producto.ancho > 3 || producto.alto > 3) {
+    if (ancho > 3 || alto > 3) {
       factorComplejidad *= 1.2;
       factores.push('Medidas especiales (>3m)');
     }
@@ -235,19 +253,26 @@ class InstalacionesInteligentesService {
   /**
    * Sugerir cuadrilla óptima basada en productos y disponibilidad
    */
-  static async sugerirCuadrillaOptima(proyecto) {
+  static async sugerirCuadrillaOptima(proyecto, productos, analisisComplejidad) {
     try {
       // Analizar especialidades requeridas
-      const especialidadesRequeridas = this.analizarEspecialidadesRequeridas(proyecto.productos);
-      
+      const especialidadesRequeridas = this.analizarEspecialidadesRequeridas(productos);
+
       // Obtener instaladores disponibles (mock data por ahora)
       const instaladoresDisponibles = await this.obtenerInstaladoresDisponibles();
-      
+
       // Algoritmo de asignación óptima
       const cuadrillaOptima = this.calcularCuadrillaOptima(
-        especialidadesRequeridas, 
+        especialidadesRequeridas,
         instaladoresDisponibles
       );
+
+      if (analisisComplejidad?.nivel === 'Alta' && cuadrillaOptima.length < 3) {
+        const candidatoExtra = instaladoresDisponibles.find(inst => !cuadrillaOptima.includes(inst));
+        if (candidatoExtra) {
+          cuadrillaOptima.push(candidatoExtra);
+        }
+      }
 
       return {
         cuadrillaRecomendada: cuadrillaOptima,
@@ -273,14 +298,14 @@ class InstalacionesInteligentesService {
   /**
    * Analizar herramientas necesarias basado en productos
    */
-  static async analizarHerramientasNecesarias(proyecto) {
+  static async analizarHerramientasNecesarias(productos) {
     const herramientasRequeridas = new Set(['Taladro percutor', 'Nivel láser']);
     const herramientasOpcionales = new Set();
     const razonamiento = [];
 
-    for (const producto of proyecto.productos || []) {
+    for (const producto of productos || []) {
       const tipoProducto = producto.nombre?.toLowerCase() || '';
-      
+
       if (tipoProducto.includes('toldo')) {
         herramientasRequeridas.add('Escalera extensible');
         herramientasRequeridas.add('Equipo de soldadura');
@@ -317,11 +342,11 @@ class InstalacionesInteligentesService {
   /**
    * Sugerir mejor fecha considerando múltiples factores
    */
-  static async sugerirMejorFecha(proyecto) {
+  static async sugerirMejorFecha(proyecto, productos, tiempoModelo) {
     try {
       const ahora = new Date();
       const fechasDisponibles = [];
-      
+
       // Generar fechas candidatas (próximos 14 días hábiles)
       for (let i = 1; i <= 14; i++) {
         const fecha = new Date(ahora);
@@ -335,7 +360,7 @@ class InstalacionesInteligentesService {
 
       // Evaluar cada fecha candidata
       const evaluacionFechas = await Promise.all(
-        fechasDisponibles.map(fecha => this.evaluarFecha(fecha, proyecto))
+        fechasDisponibles.map(fecha => this.evaluarFecha(fecha, proyecto, productos))
       );
 
       // Ordenar por puntuación
@@ -345,7 +370,7 @@ class InstalacionesInteligentesService {
 
       return {
         fechaRecomendada: mejorFecha.fecha,
-        horaRecomendada: this.sugerirMejorHora(proyecto),
+        horaRecomendada: this.sugerirMejorHora(productos, tiempoModelo),
         alternativas: evaluacionFechas.slice(1, 4),
         razonamiento: mejorFecha.razonamiento,
         factoresConsiderados: [
@@ -378,12 +403,12 @@ class InstalacionesInteligentesService {
   /**
    * Evaluar complejidad general de la instalación
    */
-  static async evaluarComplejidadInstalacion(proyecto) {
+  static async evaluarComplejidadInstalacion(productos) {
     let puntuacionComplejidad = 0;
     const factores = [];
 
     // Número de productos
-    const numProductos = proyecto.productos?.length || 0;
+    const numProductos = productos?.length || 0;
     if (numProductos > 5) {
       puntuacionComplejidad += 30;
       factores.push(`Múltiples productos (${numProductos})`);
@@ -397,7 +422,7 @@ class InstalacionesInteligentesService {
     let tieneToldos = false;
     let areaTotal = 0;
 
-    for (const producto of proyecto.productos || []) {
+    for (const producto of productos || []) {
       if (producto.motorizado) tieneMotorizados = true;
       if (producto.nombre?.toLowerCase().includes('toldo')) tieneToldos = true;
       areaTotal += producto.medidas?.area || 0;
@@ -448,13 +473,56 @@ class InstalacionesInteligentesService {
 
   // ===== MÉTODOS AUXILIARES =====
 
-  static async buscarInstalacionesSimilares(proyecto) {
-    // Mock data - en producción buscaría en BD
-    return [
-      { tiempoReal: 4.5, tiempoEstimado: 4, productos: 2 },
-      { tiempoReal: 6.2, tiempoEstimado: 5, productos: 3 },
-      { tiempoReal: 3.8, tiempoEstimado: 4, productos: 2 }
-    ];
+  static async buscarInstalacionesSimilares(proyecto, productos) {
+    try {
+      const tiposProducto = (productos || [])
+        .map(p => p.nombre?.toLowerCase())
+        .filter(Boolean);
+
+      const query = {
+        _id: { $ne: proyecto._id },
+        'instalacion.estado': { $in: ['completada', 'instalando'] }
+      };
+
+      if (tiposProducto.length > 0) {
+        query.$or = [
+          { 'productos.nombre': { $in: tiposProducto } },
+          { 'levantamiento.partidas.producto': { $in: tiposProducto } }
+        ];
+      }
+
+      const proyectosSimilares = await Proyecto.find(query)
+        .sort({ 'cronograma.fechaInstalacionReal': -1 })
+        .limit(10)
+        .select('instalacion productos cronograma');
+
+      if (!proyectosSimilares.length) {
+        return [];
+      }
+
+      return proyectosSimilares.map(similar => {
+        const tiempoRealHoras = similar.instalacion?.ejecucion?.horasReales || 0;
+        const tiempoEstimadoMinutos = similar.instalacion?.programacion?.tiempoEstimado || 0;
+
+        return {
+          tiempoReal: tiempoRealHoras || (tiempoEstimadoMinutos / 60),
+          tiempoEstimado: tiempoEstimadoMinutos / 60,
+          productos: similar.productos?.length || 0
+        };
+      });
+    } catch (error) {
+      logger.warn('No fue posible recuperar instalaciones similares, usando datos por defecto', {
+        servicio: 'instalacionesInteligentes',
+        accion: 'buscarInstalacionesSimilares',
+        proyectoId: proyecto?._id?.toString(),
+        error: error.message
+      });
+
+      return [
+        { tiempoReal: 4.5, tiempoEstimado: 4, productos: 2 },
+        { tiempoReal: 6.2, tiempoEstimado: 5, productos: 3 }
+      ];
+    }
   }
 
   static analizarEspecialidadesRequeridas(productos) {
@@ -473,13 +541,51 @@ class InstalacionesInteligentesService {
   }
 
   static async obtenerInstaladoresDisponibles() {
-    // Mock data - en producción consultaría BD
-    return [
-      { id: '1', nombre: 'Roberto Martínez', especialidades: ['persianas', 'motorización'], experiencia: 5, esLider: true },
-      { id: '2', nombre: 'Luis Hernández', especialidades: ['toldos'], experiencia: 3, esLider: false },
-      { id: '3', nombre: 'Miguel Sánchez', especialidades: ['motorización'], experiencia: 7, esLider: true },
-      { id: '4', nombre: 'José Ramírez', especialidades: ['persianas', 'cortinas'], experiencia: 4, esLider: false }
-    ];
+    try {
+      const usuarios = await Usuario.find({
+        rol: { $in: ['instalador', 'coordinador'] },
+        activo: true
+      }).select('nombre apellido rol permisos configuracion metricas');
+
+      if (!usuarios.length) {
+        throw new Error('Sin usuarios instaladores configurados');
+      }
+
+      return usuarios.map(usuario => {
+        const especialidades = new Set(['persianas']);
+        if (usuario.permisos?.some(p => p.modulo === 'fabricacion')) {
+          especialidades.add('toldos');
+        }
+        if (usuario.permisos?.some(p => p.modulo === 'instalaciones')) {
+          especialidades.add('motorización');
+        }
+
+        const experiencia = usuario.metricas?.ventasCerradas
+          ? Math.min(10, Math.max(2, Math.round(usuario.metricas.ventasCerradas / 10)))
+          : 3;
+
+        return {
+          id: usuario._id.toString(),
+          nombre: `${usuario.nombre} ${usuario.apellido}`.trim(),
+          especialidades: Array.from(especialidades),
+          experiencia,
+          esLider: usuario.rol === 'coordinador' || experiencia >= 5
+        };
+      });
+    } catch (error) {
+      logger.warn('No fue posible obtener instaladores desde la base de datos, usando catálogo estático', {
+        servicio: 'instalacionesInteligentes',
+        accion: 'obtenerInstaladoresDisponibles',
+        error: error.message
+      });
+
+      return [
+        { id: '1', nombre: 'Roberto Martínez', especialidades: ['persianas', 'motorización'], experiencia: 5, esLider: true },
+        { id: '2', nombre: 'Luis Hernández', especialidades: ['toldos'], experiencia: 3, esLider: false },
+        { id: '3', nombre: 'Miguel Sánchez', especialidades: ['motorización'], experiencia: 7, esLider: true },
+        { id: '4', nombre: 'José Ramírez', especialidades: ['persianas', 'cortinas'], experiencia: 4, esLider: false }
+      ];
+    }
   }
 
   static calcularCuadrillaOptima(especialidadesRequeridas, instaladoresDisponibles) {
@@ -536,10 +642,10 @@ class InstalacionesInteligentesService {
     return Math.round(cobertura * 80 + 15); // 15-95%
   }
 
-  static async evaluarFecha(fecha, proyecto) {
+  static async evaluarFecha(fecha, proyecto, productos) {
     let puntuacion = 50; // Base
     const razonamiento = [];
-    
+
     // Evaluar día de la semana
     const diaSemana = fecha.getDay();
     if (diaSemana === 2 || diaSemana === 3 || diaSemana === 4) { // Mar, Mié, Jue
@@ -557,6 +663,22 @@ class InstalacionesInteligentesService {
       razonamiento.push('Poco tiempo para preparación');
     }
     
+    // Evitar choque con programación actual
+    const fechaProgramadaActual = proyecto.instalacion?.programacion?.fechaProgramada;
+    if (fechaProgramadaActual) {
+      const diferencia = Math.abs(new Date(fechaProgramadaActual) - fecha) / (1000 * 60 * 60 * 24);
+      if (diferencia < 2) {
+        puntuacion -= 15;
+        razonamiento.push('Fecha cercana a programación actual, considerar reprogramar con margen');
+      }
+    }
+
+    // Ajustar según complejidad
+    if ((productos || []).some(p => p.motorizado)) {
+      puntuacion += 5;
+      razonamiento.push('Se reserva espacio adicional para productos motorizados');
+    }
+
     return {
       fecha,
       puntuacion,
@@ -565,10 +687,12 @@ class InstalacionesInteligentesService {
     };
   }
 
-  static sugerirMejorHora(proyecto) {
-    // Análisis simple por ahora
-    const numProductos = proyecto.productos?.length || 0;
-    return numProductos > 3 ? '08:00' : '09:00'; // Empezar más temprano si hay muchos productos
+  static sugerirMejorHora(productos, tiempoModelo) {
+    const numProductos = productos?.length || 0;
+    if (tiempoModelo?.tiempoEstimadoHoras) {
+      return Number(tiempoModelo.tiempoEstimadoHoras) > 4 ? '08:00' : '09:00';
+    }
+    return numProductos > 3 ? '08:00' : '09:00';
   }
 
   static generarRecomendacionTiempo(tiempo, factor) {
@@ -611,23 +735,116 @@ class InstalacionesInteligentesService {
   /**
    * Obtener recomendaciones basadas en instalaciones históricas similares
    */
-  static async obtenerRecomendacionesHistoricas(proyecto) {
-    // Mock data - en producción analizaría instalaciones previas
-    return {
-      instalacionesSimilares: 8,
-      problemasComunes: [
-        'Verificar acceso para escalera en instalaciones de techo',
-        'Confirmar suministro eléctrico para productos motorizados',
-        'Revisar condiciones climáticas para instalaciones exteriores'
-      ],
-      tiempoPromedioReal: 4.8,
-      satisfaccionCliente: 4.6,
-      recomendaciones: [
-        'Llamar al cliente 24h antes para confirmar',
-        'Llevar herramientas de respaldo para motorización',
-        'Tomar fotos del progreso para documentación'
-      ]
-    };
+  static async obtenerRecomendacionesHistoricas(proyecto, productos) {
+    try {
+      const instalacionesSimilares = await this.buscarInstalacionesSimilares(proyecto, productos);
+
+      if (!instalacionesSimilares.length) {
+        return {
+          instalacionesSimilares: 0,
+          problemasComunes: [],
+          tiempoPromedioReal: 0,
+          satisfaccionCliente: 4.5,
+          recomendaciones: ['Contactar al cliente 24h antes para confirmar disponibilidad']
+        };
+      }
+
+      const tiempoPromedioReal = instalacionesSimilares.reduce((sum, inst) => sum + inst.tiempoReal, 0) / instalacionesSimilares.length;
+
+      return {
+        instalacionesSimilares: installationsSimilares.length,
+        problemasComunes: [
+          'Verificar acceso para escalera en instalaciones de techo',
+          'Confirmar suministro eléctrico para productos motorizados'
+        ],
+        tiempoPromedioReal: Number(tiempoPromedioReal.toFixed(1)),
+        satisfaccionCliente: 4.6,
+        recomendaciones: [
+          'Llamar al cliente 24h antes para confirmar',
+          'Llevar herramientas de respaldo para motorización',
+          'Tomar fotos del progreso para documentación'
+        ]
+      };
+    } catch (error) {
+      logger.warn('No fue posible generar recomendaciones históricas, usando valores predeterminados', {
+        servicio: 'instalacionesInteligentes',
+        accion: 'obtenerRecomendacionesHistoricas',
+        proyectoId: proyecto?._id?.toString(),
+        error: error.message
+      });
+
+      return {
+        instalacionesSimilares: 0,
+        problemasComunes: [],
+        tiempoPromedioReal: 0,
+        satisfaccionCliente: 4.5,
+        recomendaciones: ['Contactar al cliente 24h antes para confirmar disponibilidad']
+      };
+    }
+  }
+
+  static obtenerProductosProyecto(proyecto) {
+    const productos = [];
+
+    if (Array.isArray(proyecto.productos) && proyecto.productos.length > 0) {
+      proyecto.productos.forEach(producto => {
+        const medidas = Array.isArray(producto.medidas)
+          ? producto.medidas[0]
+          : producto.medidas || {};
+
+        const ancho = Number(producto.ancho ?? medidas?.ancho ?? 0) || 0;
+        const alto = Number(producto.alto ?? medidas?.alto ?? 0) || 0;
+        const area = Number(producto.area ?? medidas?.area ?? (ancho * alto)) || 0;
+
+        productos.push({
+          nombre: producto.nombre || producto.producto || 'Producto',
+          ubicacion: producto.ubicacion || medidas?.producto || 'General',
+          medidas: { ancho, alto, area },
+          motorizado: Boolean(producto.motorizado || medidas?.modoOperacion === 'motorizado'),
+          tipoInstalacion: producto.tipoInstalacion || medidas?.tipoInstalacion || '',
+          tipoFijacion: producto.tipoFijacion || medidas?.tipoFijacion || ''
+        });
+      });
+    }
+
+    if (!productos.length && Array.isArray(proyecto.levantamiento?.partidas)) {
+      proyecto.levantamiento.partidas.forEach(partida => {
+        (partida.medidas || []).forEach((medida, index) => {
+          const ancho = Number(medida.ancho || 0);
+          const alto = Number(medida.alto || 0);
+          const area = Number(medida.area || (ancho * alto)) || 0;
+
+          productos.push({
+            nombre: partida.producto || partida.productoLabel || 'Partida',
+            ubicacion: medida.producto || `${partida.producto || 'Ubicación'} ${index + 1}`,
+            medidas: { ancho, alto, area },
+            motorizado: medida.modoOperacion === 'motorizado' || partida.motorizado,
+            tipoInstalacion: medida.tipoInstalacion || '',
+            tipoFijacion: medida.tipoFijacion || ''
+          });
+        });
+      });
+    }
+
+    if (!productos.length && Array.isArray(proyecto.instalacion?.productosInstalar)) {
+      proyecto.instalacion.productosInstalar.forEach(producto => {
+        const medidas = Array.isArray(producto.medidas) ? producto.medidas[0] : producto.medidas || {};
+        productos.push({
+          nombre: producto.descripcion || producto.ubicacion || 'Producto instalación',
+          ubicacion: producto.ubicacion || producto.descripcion || 'General',
+          medidas: {
+            ancho: Number(medidas.ancho || 0),
+            alto: Number(medidas.alto || 0),
+            area: Number(medidas.area || 0)
+          },
+          motorizado: producto.motorizacion?.activa || false,
+          tipoInstalacion: medidas.tipoInstalacion || producto.especificacionesTecnicas?.tipoInstalacion || '',
+          tipoFijacion: medidas.tipoFijacion || producto.especificacionesTecnicas?.tipoFijacion || ''
+        });
+      });
+    }
+
+    return productos;
   }
 }
 
