@@ -113,6 +113,20 @@ async function getCompiledTemplate(templateName) {
 // Variable para carga lazy de puppeteer
 let puppeteerLib;
 
+function getDocumentId(document) {
+  if (!document) {
+    return null;
+  }
+
+  const docId = document._id || document.id;
+
+  if (docId && typeof docId.toString === 'function') {
+    return docId.toString();
+  }
+
+  return docId || null;
+}
+
 class PDFService {
   constructor() {
     this.browser = null;
@@ -218,7 +232,16 @@ class PDFService {
 
   // Calcular tiempo de instalación inteligente COMPLEJO
   calcularTiempoInstalacionInteligente(cotizacion) {
-    console.log('🤖 Iniciando cálculo COMPLEJO de tiempo de instalación...');
+    const cotizacionId = getDocumentId(cotizacion);
+    const productosCount = Array.isArray(cotizacion?.productos)
+      ? cotizacion.productos.length
+      : 0;
+
+    logger.info('Iniciando cálculo complejo de tiempo de instalación', {
+      cotizacionId,
+      productos: productosCount,
+      origen: cotizacion?.origen || 'desconocido'
+    });
     
     let tiempoBaseDias = 0;
     let factoresComplejidad = {
@@ -367,18 +390,19 @@ class PDFService {
     // Mínimo 1 día, máximo 10 días para proyectos residenciales
     tiempoFinal = Math.max(1, Math.min(10, tiempoFinal));
     
-    // === LOG DETALLADO ===
-    console.log('📊 ANÁLISIS COMPLEJO DE INSTALACIÓN:');
-    console.log(`- Área total: ${areaTotal.toFixed(1)}m²`);
-    console.log(`- Tipos de productos: ${numTiposProductos} (${Array.from(tiposProductos).join(', ')})`);
-    console.log(`- Productos motorizados: ${productosMotorizados}`);
-    console.log(`- Productos exterior: ${productosExterior}`);
-    console.log(`- Requiere andamios: ${requiereAndamios}`);
-    console.log(`- Requiere obra eléctrica: ${requiereObraElectrica}`);
-    console.log(`- Tiempo base: ${tiempoBaseDias.toFixed(1)} días`);
-    console.log('- Factores complejidad:', factoresComplejidad);
-    console.log(`- Complejidad total: +${complejidadTotal.toFixed(1)} días`);
-    console.log(`🎯 TIEMPO FINAL: ${tiempoFinal} días`);
+    logger.info('Análisis complejo de instalación completado', {
+      cotizacionId,
+      areaTotalM2: Number(areaTotal.toFixed(2)),
+      tiposProductos: Array.from(tiposProductos),
+      productosMotorizados,
+      productosExterior,
+      requiereAndamios,
+      requiereObraElectrica,
+      tiempoBaseDias: Number(tiempoBaseDias.toFixed(2)),
+      factoresComplejidad,
+      complejidadAdicionalDias: Number(complejidadTotal.toFixed(2)),
+      tiempoFinalDias: tiempoFinal
+    });
     
     return tiempoFinal;
   }
@@ -394,7 +418,10 @@ class PDFService {
       const logoBuffer = await fs.readFile(logoPath);
       this.logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
     } catch (error) {
-      console.warn('⚠️ No se pudo cargar el logo de Sundeck:', error.message);
+      logger.warn('No se pudo cargar el logo de Sundeck', {
+        logoPath,
+        error: error.message
+      });
       this.logoBase64 = null;
     }
 
@@ -439,7 +466,9 @@ class PDFService {
       try {
         await page.evaluateHandle('document.fonts && document.fonts.ready');
       } catch (error) {
-        console.warn('⚠️ No se pudo esperar la carga de fuentes:', error.message);
+        logger.warn('No se pudo esperar la carga de fuentes para PDF', {
+          error: error.message
+        });
       }
 
       return await page.pdf({
@@ -607,7 +636,12 @@ class PDFService {
         margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
       });
     } catch (error) {
-      console.error('❌ Error generando PDF de cotización:', error);
+      logger.error('Error generando PDF de cotización', {
+        cotizacionId,
+        numero: cotizacion?.numero,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -721,7 +755,11 @@ class PDFService {
         margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
       });
     } catch (error) {
-      console.error('❌ Error generando PDF de levantamiento:', error);
+      logger.error('Error generando PDF de levantamiento', {
+        proyectoId,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -733,14 +771,14 @@ class PDFService {
         : cotizacion?._id || cotizacion?.id;
 
     try {
-      console.log('🧾 [PDF] Iniciando generación de cotización', {
+      logger.info('Iniciando generación de PDF de cotización', {
         cotizacionId,
         numero: cotizacion?.numero,
         productos: cotizacion?.productos?.length || 0,
         incluirIVA: cotizacion?.incluirIVA,
         total: cotizacion?.total,
         prospecto: {
-          id: cotizacion?.prospecto?._id || cotizacion?.prospecto?.id,
+          id: getDocumentId(cotizacion?.prospecto),
           nombre: cotizacion?.prospecto?.nombre
         }
       });
@@ -749,14 +787,14 @@ class PDFService {
       const isAlternative = Boolean(browserInitResult?.isAlternative);
       const browser = browserInitResult?.browser || browserInitResult;
 
-      console.log('🧾 [PDF] Motor de render inicializado', {
+      logger.info('Motor de render para PDF inicializado', {
         cotizacionId,
         isAlternative,
         hasNewPageMethod: typeof browser?.newPage === 'function'
       });
 
       if (!browser || typeof browser.newPage !== 'function') {
-        console.error('❌ [PDF] Motor de render inválido para generar cotización', {
+        logger.error('Motor de render inválido para generar cotización', {
           cotizacionId,
           isAlternative,
           availableKeys: browser ? Object.keys(browser) : null
@@ -1857,9 +1895,16 @@ class PDFService {
         const logoPath = path.join(__dirname, '../public/images/logo-sundeck.png');
         const logoBuffer = await fs.readFile(logoPath);
         logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-        console.log('✅ Logo SUNDECK cargado correctamente');
+        logger.info('Logo SUNDECK cargado correctamente', {
+          cotizacionId,
+          logoPath,
+          sizeKb: Math.round(logoBuffer.length / 1024)
+        });
       } catch (logoError) {
-        console.log('⚠️ No se pudo cargar el logo SUNDECK:', logoError.message);
+        logger.warn('No se pudo cargar el logo SUNDECK', {
+          cotizacionId,
+          error: logoError.message
+        });
       }
 
       const templateData = {
@@ -1959,7 +2004,7 @@ class PDFService {
         tiempoInstalacion: this.calcularTiempoInstalacionInteligente(cotizacion)
       };
 
-      console.log('🧾 [PDF] Datos preparados para renderizar cotización', {
+      logger.info('Datos preparados para renderizar cotización', {
         cotizacionId,
         productos: templateData.productos?.length || 0,
         incluyeIVA: templateData.incluirIVA,
@@ -1995,7 +2040,7 @@ class PDFService {
 
       await page.close();
 
-      console.log('✅ [PDF] Cotización generada correctamente', {
+      logger.info('Cotización generada correctamente', {
         cotizacionId,
         numero: cotizacion?.numero,
         pdfSize: pdf?.length
@@ -2004,10 +2049,10 @@ class PDFService {
       return pdf;
 
     } catch (error) {
-      console.error('❌ [PDF] Error generando PDF de cotización', {
+      logger.error('Error generando PDF de cotización', {
         cotizacionId,
         numero: cotizacion?.numero,
-        message: error?.message,
+        error: error?.message,
         stack: error?.stack
       });
       throw new Error('No se pudo generar el PDF de la cotización');
@@ -2016,8 +2061,9 @@ class PDFService {
 
   async generarLevantamientoPDF(etapa, piezas, totalM2, precioGeneral, datosAdicionales = {}) {
     try {
-      console.log('🎨 Iniciando generación de PDF en pdfService...', {
-        piezasCount: piezas?.length || 0,
+      logger.info('Iniciando generación de PDF de levantamiento', {
+        etapaId: getDocumentId(etapa),
+        piezas: piezas?.length || 0,
         totalM2,
         precioGeneral,
         prospectoNombre: etapa?.prospecto?.nombre
@@ -2031,14 +2077,25 @@ class PDFService {
         
         // Verificar que el archivo no sea demasiado grande (máximo 2MB)
         if (logoStats.size > 2 * 1024 * 1024) {
-          console.log('⚠️ Logo muy grande (>2MB), usando fallback');
+          logger.warn('Logo demasiado grande para PDF de levantamiento, usando fallback', {
+            etapaId: getDocumentId(etapa),
+            logoPath,
+            sizeKb: Math.round(logoStats.size / 1024)
+          });
         } else {
           const logoBuffer = await fs.readFile(logoPath);
           logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-          console.log(`✅ Logo cargado correctamente (${Math.round(logoStats.size / 1024)} KB)`);
+          logger.info('Logo cargado correctamente para PDF de levantamiento', {
+            etapaId: getDocumentId(etapa),
+            logoPath,
+            sizeKb: Math.round(logoStats.size / 1024)
+          });
         }
       } catch (logoError) {
-        console.log('⚠️ No se pudo cargar el logo, usando fallback:', logoError.message);
+        logger.warn('No se pudo cargar el logo para PDF de levantamiento, usando fallback', {
+          etapaId: getDocumentId(etapa),
+          error: logoError.message
+        });
       }
 
       const browserResult = await this.initBrowser();
@@ -2652,17 +2709,18 @@ class PDFService {
       let totalGeneralReal = 0;
       const piezasExpandidas = [];
 
-      // Debug de datos recibidos
-      console.log('🔍 DEBUG PDF - Datos de piezas recibidos:');
-      piezas.forEach((pieza, index) => {
-        console.log(`Pieza ${index + 1}:`, {
-          ubicacion: pieza.ubicacion,
-          motorizado: pieza.motorizado,
-          motorModelo: pieza.motorModelo,
-          motorModeloManual: pieza.motorModeloManual,
-          sistema: pieza.sistema,
-          sistemaEspecial: pieza.sistemaEspecial
-        });
+      const piezasResumen = piezas.map((pieza, index) => ({
+        index: index + 1,
+        ubicacion: pieza.ubicacion,
+        motorizado: pieza.motorizado,
+        motorModelo: pieza.motorModelo || pieza.motorModeloManual || null,
+        sistema: pieza.sistema,
+        sistemaEspecial: pieza.sistemaEspecial
+      }));
+
+      logger.info('Datos de piezas recibidos para PDF de levantamiento', {
+        etapaId: getDocumentId(etapa),
+        piezas: piezasResumen
       });
 
       piezas.forEach((pieza) => {
@@ -2960,16 +3018,21 @@ class PDFService {
 
       await page.close();
       await browser.close();
-      
-      console.log('✅ PDF generado exitosamente en pdfService', {
+
+      logger.info('PDF de levantamiento generado correctamente', {
+        etapaId: getDocumentId(etapa),
         size: pdf.length,
-        type: 'puppeteer'
+        engine: 'puppeteer'
       });
-      
+
       return pdf;
 
     } catch (error) {
-      console.error('Error generando PDF de levantamiento:', error);
+      logger.error('Error generando PDF de levantamiento', {
+        etapaId: getDocumentId(etapa),
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error('No se pudo generar el PDF del levantamiento');
     }
   }
@@ -3193,16 +3256,21 @@ class PDFService {
 
       const file = { content: html };
       const pdf = await htmlPdf.generatePdf(file, options);
-      
-      console.log('✅ PDF generado exitosamente en pdfService', {
+
+      logger.info('PDF de levantamiento generado correctamente', {
+        etapaId: getDocumentId(etapa),
         size: pdf.length,
-        type: 'html-pdf-node'
+        engine: 'html-pdf-node'
       });
-      
+
       return pdf;
 
     } catch (error) {
-      console.error('Error generando PDF con html-pdf-node:', error);
+      logger.error('Error generando PDF con html-pdf-node', {
+        etapaId: getDocumentId(etapa),
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error('No se pudo generar el PDF del levantamiento');
     }
   }
@@ -3213,7 +3281,7 @@ class PDFService {
       const { getProyectoDataForPDF } = require('../utils/exportNormalizer');
       const datos = await getProyectoDataForPDF(proyectoId);
 
-      console.log('📄 Generando PDF para proyecto:', proyectoId);
+      logger.info('Generando PDF para proyecto', { proyectoId });
 
       // Registrar helpers de Handlebars
       handlebars.registerHelper('gte', function(a, b) {
@@ -3282,16 +3350,20 @@ class PDFService {
       const file = { content: html };
       const pdf = await htmlPdf.generatePdf(file, options);
       
-      console.log('✅ PDF de proyecto generado exitosamente', {
+      logger.info('PDF de proyecto generado exitosamente', {
         proyectoId,
         size: pdf.length,
-        type: 'proyecto-unificado'
+        engine: 'proyecto-unificado'
       });
-      
+
       return pdf;
 
     } catch (error) {
-      console.error('Error generando PDF de proyecto:', error);
+      logger.error('Error generando PDF de proyecto', {
+        proyectoId,
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error('No se pudo generar el PDF del proyecto');
     }
   }
