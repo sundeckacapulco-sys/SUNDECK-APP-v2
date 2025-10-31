@@ -32,10 +32,12 @@
 
 ---
 
-## 🎯 TAREA ACTUAL: Completar console.log Restantes
+## 🎯 TAREA ACTUAL: Completar Fase 0 al 100%
 
 ### Objetivo
-Reemplazar los 192 console.log restantes (solo scripts de utilidad) para completar la migración al logger estructurado.
+Reemplazar los 192 console.log restantes para completar la Fase 0 al 100%.
+
+**Estrategia:** Dividir en 3 partes manejables (34 archivos total)
 
 ### Archivos Completados ✅
 
@@ -54,12 +56,54 @@ Reemplazar los 192 console.log restantes (solo scripts de utilidad) para complet
 
 **Total completado:** 76 console.log (36 + 40)
 
-### Archivos Pendientes
+### 📦 PARTE 1: Middleware, Modelos y Services Críticos (34 console.log)
 
-**Prioridad Baja (192 console.log):**
-- Scripts de migración (45+19+14+11+10+10+8+7+7+6+5+4+3 = 149)
-- Otros scripts de utilidad (43)
-- Tests (opcional)
+**Archivos (10):**
+1. `server/middleware/proyectoSync.js` - 6
+2. `server/models/Cotizacion.js` - 5
+3. `server/services/fabricacionService.js` - 6
+4. `server/services/notificacionesService.js` - 4
+5. `server/services/notificacionesComerciales.js` - 3
+6. `server/services/pdfFabricacionService.js` - 3
+7. `server/routes/dashboardPedidos.js` - 3
+8. `server/services/excelService.js` - 2
+9. `server/services/instalacionesInteligentesService.js` - 2
+10. `server/routes/kpisInstalaciones.js` - 2
+
+**Patrón simplificado para scripts:**
+```javascript
+const logger = require('../config/logger');
+
+// Antes: console.log('Mensaje');
+// Después: logger.info('Mensaje', { script: 'nombreScript' });
+```
+
+### 📦 PARTE 2: Routes y Services Restantes + Scripts Grandes (79 console.log)
+
+**Archivos (7):**
+1. `server/scripts/migrarDatos.js` - 45
+2. `server/scripts/migrarAProyectos.js` - 19
+3. `server/scripts/fixCotizaciones.js` - 14
+4. `server/models/Proyecto.js` - 1
+5. `server/routes/fabricacion.js` - 1
+6. `server/routes/fix.js` - 1
+7. `server/routes/produccion.js` - 1
+8. `server/services/kpisInstalacionesService.js` - 1
+9. `server/services/metricasComerciales.js` - 1
+
+### 📦 PARTE 3: Scripts Restantes (79 console.log)
+
+**Archivos (10):**
+1. `server/scripts/seedData.js` - 11
+2. `server/scripts/crearProyectosPrueba.js` - 10
+3. `server/scripts/limpiarTotalesProyecto.js` - 10
+4. `server/scripts/limpiarPreciosProyecto.js` - 8
+5. `server/scripts/actualizarNumerosProyectos.js` - 7
+6. `server/scripts/verificarProyecto.js` - 7
+7. `server/scripts/insertarDatos.js` - 6
+8. `server/scripts/plantillasIniciales.js` - 5
+9. `server/scripts/limpiarMedidasProyecto.js` - 4
+10. `server/scripts/crearDatosSimple.js` - 3
 
 ---
 
