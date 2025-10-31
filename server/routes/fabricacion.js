@@ -1,5 +1,4 @@
 const express = require('express');
-const ProyectoPedido = require('../models/ProyectoPedido');
 const FabricacionService = require('../services/fabricacionService');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const logger = require('../config/logger');
@@ -26,10 +25,13 @@ router.get('/cola', auth, verificarPermiso('fabricacion', 'leer'), async (req, r
 
 // GET /api/fabricacion/metricas - Obtener métricas de fabricación
 router.get('/metricas', auth, verificarPermiso('fabricacion', 'leer'), async (req, res) => {
+  let fechaInicio;
+  let fechaFin;
+
   try {
-    const fechaInicio = new Date();
+    fechaInicio = new Date();
     fechaInicio.setMonth(fechaInicio.getMonth() - 1);
-    const fechaFin = new Date();
+    fechaFin = new Date();
 
     const metricas = await FabricacionService.obtenerMetricas(fechaInicio, fechaFin);
     res.json(metricas);

@@ -6,6 +6,30 @@
 
 ---
 
+## 📆 Auditoría Sprint (2 semanas)
+
+**Periodo evaluado**: 18 → 31 de Octubre, 2025
+
+- **Tareas completadas (✅/⚠️/❌)**:
+  - ✅ Modelo `Proyecto.js` unificado con nuevos campos y métodos inteligentes desplegado en `server/models/Proyecto.js`.
+  - ✅ Documentos operativos actualizados (`docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md`, `IMPLEMENTACION_COMPLETADA.md`, `FASE_1_UNIFICACION_MODELOS.md`, `ANALISIS_FABRICACION_ACTUAL.md`).
+  - ⚠️ Endpoints y servicios pendientes programados para el siguiente sprint (sin avance en esta iteración).
+- **Pruebas (unitarias/integración/E2E)**: 15/15 pruebas unitarias e integración ejecutadas con éxito (`npm test -- --runInBand`). Pruebas E2E aún no instrumentadas.
+- **Métricas (cobertura, performance, errores)**: Cobertura estable respecto al baseline de Fase 0 (instrumentación pendiente). Sin regresiones de performance registradas e incidentes críticos reportados: 0 durante el periodo.
+- **Bloqueantes identificados**: Se mantienen los tres bloqueantes críticos de Fase 1 (unificación de dominio de pedidos, corrección del módulo de fabricación e incremento de cobertura en módulos PDF/Excel/Pedidos/Fabricación).
+- **Decisión (Continuar/Observaciones/Detener)**: **Continuar**. Priorizar habilitación de endpoints Fase 1 Día 1 y actualización de servicios en el siguiente sprint; monitorear avances en instrumentación de métricas reales.
+
+### 📌 Siguiente Sprint (1 → 14 de Noviembre, 2025)
+
+- **Enfoque operativo**: Completar endpoints planificados en Fase 1 Día 1 (`POST /api/proyectos/:id/etiquetas-produccion`, `POST /api/proyectos/:id/calcular-tiempo-instalacion`, `GET /api/proyectos/ruta-diaria/:fecha`).
+- **Servicios a actualizar**: Ajustar `FabricacionService` e `instalacionesInteligentesService` para consumir los nuevos campos del modelo `Proyecto` y preparar los cambios de los días 2 y 3.
+- **Migraciones y limpieza**: Definir la estrategia del script `migrarProyectoPedidoAProyecto.js` y validar datos en entorno de prueba antes de la deprecación de modelos legacy.
+- **Pruebas planificadas**: Mantener la suite `npm test -- --runInBand` como mínimo y diseñar smoke tests de integración para los nuevos endpoints.
+- **Instrumentación de métricas**: Priorizar la captura real de cobertura y performance sobre los módulos de PDF, Excel, Pedidos y Fabricación para reducir la brecha frente al baseline simulado.
+- **Riesgos a monitorear**: Seguimiento de los bloqueantes críticos (unificación de dominio de pedidos, módulo de fabricación, cobertura de módulos utilitarios) y validación temprana con el equipo de operaciones.
+
+---
+
 ## 🎯 DOCUMENTOS PRINCIPALES
 
 ### 1️⃣ README_MASTER.md
