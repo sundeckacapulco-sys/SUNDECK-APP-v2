@@ -111,11 +111,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-c
 .then(() => logger.info('Conectado a MongoDB exitosamente'))
 .catch(err => logger.error('Error conectando a MongoDB', { error: err.message, stack: err.stack }));
 
+// Middleware de métricas (aplicado globalmente a todas las rutas /api/*)
+app.use('/api', metricsMiddleware);
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/proyectos', metricsMiddleware);
-app.use('/api/cotizaciones', metricsMiddleware);
-app.use('/api/instalaciones', metricsMiddleware);
 app.use('/api/prospectos', require('./routes/prospectos'));
 app.use('/api/cotizaciones', require('./routes/cotizaciones'));
 app.use('/api/pedidos', require('./routes/pedidos'));

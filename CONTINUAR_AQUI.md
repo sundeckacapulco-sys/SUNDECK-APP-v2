@@ -1,110 +1,217 @@
 # 🚀 CONTINUAR AQUÍ - Sprint 2
 
 **Fecha:** 31 Oct 2025  
-**Estado:** Tarea 2.1 ✅ COMPLETADA → Tarea 2.2 🚀 INICIAR
+**Estado:** Tarea 2.2 ✅ COMPLETADA → Tarea 2.3 🚀 INICIAR
 
 ---
 
-## ✅ COMPLETADO (Tarea 2.1)
+## ✅ COMPLETADO
 
-- Modelo Metric creado
-- 3 pruebas pasando
-- 7/7 tests totales (logger + metric)
-- Fase 0: 67.5%
+### Tarea 2.1: Modelo Metric ✅
+- Modelo Metric creado con agregaciones
+- 3 pruebas unitarias pasando
+
+### Tarea 2.2: Middleware de Métricas ✅
+- Middleware capturando métricas automáticamente
+- Aplicado globalmente a todas las rutas /api/*
+- 3 pruebas de integración pasando
+- **10/10 tests totales** ✅
+- Fase 0: 70%
 
 ---
 
-## 🎯 SIGUIENTE TAREA: 2.2 Middleware de Métricas
+## 🎯 SIGUIENTE TAREA: 2.3 API de Métricas
 
-### Crear archivo: `server/middleware/metricsMiddleware.js`
+### Crear archivo: `server/routes/metrics.js`
 
 ```javascript
+const express = require('express');
+const router = express.Router();
 const Metric = require('../models/Metric');
 const logger = require('../config/logger');
 
-const metricsMiddleware = (req, res, next) => {
-  const startTime = Date.now();
-  
-  // Capturar respuesta
-  res.on('finish', async () => {
-    const duration = Date.now() - startTime;
-    
-    try {
-      // Registrar métrica de performance
-      await Metric.registrar('performance', duration, {
-        endpoint: req.originalUrl,
-        metodo: req.method,
-        statusCode: res.statusCode,
-        duracion: duration
-      });
-      
-      // Log si es lento (>1000ms)
-      if (duration > 1000) {
-        logger.warn('Request lento detectado', {
-          endpoint: req.originalUrl,
-          metodo: req.method,
-          duracion: `${duration}ms`
-        });
-      }
-      
-      // Registrar error si statusCode >= 400
-      if (res.statusCode >= 400) {
-        await Metric.registrar('error', 1, {
-          endpoint: req.originalUrl,
-          metodo: req.method,
-          statusCode: res.statusCode
-        });
-      }
-    } catch (error) {
-      logger.error('Error registrando métrica', { error: error.message });
-    }
-  });
-  
-  next();
-};
+// GET /api/metrics - Listar métricas con filtros
+router.get('/', async (req, res) => {
+  try {
+    const {
+      tipo,
+      endpoint,
+      fechaInicio,
+      fechaFin,
+      limit = 100,
+      skip = 0
+    } = req.query;
 
-module.exports = metricsMiddleware;
+    const query = {};
+    
+    if (tipo) query.tipo = tipo;
+    if (endpoint) query.endpoint = new RegExp(endpoint, 'i');
+    if (fechaInicio || fechaFin) {
+      query.timestamp = {};
+      if (fechaInicio) query.timestamp.$gte = new Date(fechaInicio);
+      if (fechaFin) query.timestamp.$lte = new Date(fechaFin);
+    }
+
+    const metricas = await Metric.find(query)
+      .sort({ timestamp: -1 })
+      .limit(parseInt(limit))
+      .skip(parseInt(skip));
+
+    const total = await Metric.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: metricas,
+      pagination: {
+        total,
+        limit: parseInt(limit),
+        skip: parseInt(skip),
+        hasMore: total > (parseInt(skip) + parseInt(limit))
+      }
+    });
+  } catch (error) {
+    logger.error('Error obteniendo métricas', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo métricas'
+    });
+  }
+});
+
+// GET /api/metrics/stats - Estadísticas agregadas
+router.get('/stats', async (req, res) => {
+  try {
+    const { tipo, periodo = 'dia' } = req.query;
+
+    let stats;
+    if (tipo) {
+      stats = await Metric.agregarPorTipo(tipo, periodo);
+    } else {
+      stats = await Metric.obtenerEstadisticas();
+    }
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    logger.error('Error obteniendo estadísticas', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo estadísticas'
+    });
+  }
+});
+
+// GET /api/metrics/performance - Métricas de rendimiento
+router.get('/performance', async (req, res) => {
+  try {
+    const { endpoint, limit = 50 } = req.query;
+
+    const query = { tipo: 'performance' };
+    if (endpoint) query.endpoint = new RegExp(endpoint, 'i');
+
+    const metricas = await Metric.find(query)
+      .sort({ timestamp: -1 })
+      .limit(parseInt(limit));
+
+    // Calcular promedios
+    const promedios = await Metric.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: '$endpoint',
+          promedioMs: { $avg: '$duracion' },
+          minimoMs: { $min: '$duracion' },
+          maximoMs: { $max: '$duracion' },
+          total: { $sum: 1 }
+        }
+      },
+      { $sort: { promedioMs: -1 } },
+      { $limit: 20 }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        recientes: metricas,
+        promedios
+      }
+    });
+  } catch (error) {
+    logger.error('Error obteniendo métricas de performance', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo métricas de performance'
+    });
+  }
+});
+
+// GET /api/metrics/errors - Métricas de errores
+router.get('/errors', async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+
+    const errores = await Metric.find({ tipo: 'error' })
+      .sort({ timestamp: -1 })
+      .limit(parseInt(limit));
+
+    // Agrupar por endpoint
+    const porEndpoint = await Metric.aggregate([
+      { $match: { tipo: 'error' } },
+      {
+        $group: {
+          _id: '$endpoint',
+          total: { $sum: 1 },
+          ultimoError: { $max: '$timestamp' }
+        }
+      },
+      { $sort: { total: -1 } },
+      { $limit: 10 }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        recientes: errores,
+        porEndpoint
+      }
+    });
+  } catch (error) {
+    logger.error('Error obteniendo métricas de errores', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo métricas de errores'
+    });
+  }
+});
+
+module.exports = router;
 ```
 
 ### Integrar en `server/index.js`
 
-Agregar después del requestLogger:
+Agregar después de las otras rutas:
 
 ```javascript
-const metricsMiddleware = require('./middleware/metricsMiddleware');
-
-// Después de:
-app.use(requestLogger);
-
-// Agregar:
-app.use(metricsMiddleware);
+// Después de las rutas existentes
+app.use('/api/metrics', require('./routes/metrics'));
 ```
 
-### Crear pruebas: `server/tests/metricsMiddleware.test.js`
+### Crear pruebas: `server/tests/metrics.routes.test.js`
 
 ```javascript
 const request = require('supertest');
 const express = require('express');
 const mongoose = require('mongoose');
 const Metric = require('../models/Metric');
-const metricsMiddleware = require('../middleware/metricsMiddleware');
+const metricsRouter = require('../routes/metrics');
 
 const app = express();
-app.use(metricsMiddleware);
+app.use(express.json());
+app.use('/api/metrics', metricsRouter);
 
-app.get('/test-success', (req, res) => {
-  res.status(200).json({ ok: true });
-});
-
-app.get('/test-slow', (req, res) => {
-  setTimeout(() => res.status(200).json({ ok: true }), 1100);
-});
-
-app.get('/test-error', (req, res) => {
-  res.status(500).json({ error: true });
-});
-
-describe('Middleware de Métricas', () => {
+describe('API de Métricas', () => {
   beforeAll(async () => {
     await mongoose.connect(process.env.MONGODB_URI_TEST || 'mongodb://127.0.0.1:27017/sundeck-test');
   });
@@ -114,51 +221,91 @@ describe('Middleware de Métricas', () => {
     await mongoose.connection.close();
   });
 
-  afterEach(async () => {
+  beforeEach(async () => {
     await Metric.deleteMany({});
+    
+    // Crear datos de prueba
+    await Metric.create([
+      {
+        tipo: 'performance',
+        valor: 150,
+        endpoint: '/api/prospectos',
+        metodo: 'GET',
+        statusCode: 200,
+        duracion: 150,
+        timestamp: new Date('2025-10-31T10:00:00Z')
+      },
+      {
+        tipo: 'performance',
+        valor: 250,
+        endpoint: '/api/cotizaciones',
+        metodo: 'POST',
+        statusCode: 201,
+        duracion: 250,
+        timestamp: new Date('2025-10-31T11:00:00Z')
+      },
+      {
+        tipo: 'error',
+        valor: 1,
+        endpoint: '/api/proyectos',
+        metodo: 'GET',
+        statusCode: 500,
+        timestamp: new Date('2025-10-31T12:00:00Z')
+      }
+    ]);
   });
 
-  test('Debe capturar métrica de performance', async () => {
-    await request(app).get('/test-success');
-    
-    // Esperar a que se registre
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const metricas = await Metric.find({ tipo: 'performance' });
-    expect(metricas.length).toBe(1);
-    expect(metricas[0].endpoint).toBe('/test-success');
-    expect(metricas[0].metodo).toBe('GET');
-    expect(metricas[0].statusCode).toBe(200);
-  });
+  test('GET /api/metrics debe listar métricas', async () => {
+    const response = await request(app).get('/api/metrics');
 
-  test('Debe detectar requests lentos', async () => {
-    await request(app).get('/test-slow');
-    
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const metricas = await Metric.find({ tipo: 'performance' });
-    expect(metricas[0].duracion).toBeGreaterThan(1000);
-  });
-
-  test('Debe registrar errores', async () => {
-    await request(app).get('/test-error');
-    
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const errores = await Metric.find({ tipo: 'error' });
-    expect(errores.length).toBe(1);
-    expect(errores[0].statusCode).toBe(500);
-  });
-
-  test('Debe continuar el flujo normal', async () => {
-    const response = await request(app).get('/test-success');
     expect(response.status).toBe(200);
-    expect(response.body.ok).toBe(true);
+    expect(response.body.success).toBe(true);
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.data.length).toBe(3);
+    expect(response.body.pagination).toBeDefined();
+    expect(response.body.pagination.total).toBe(3);
+  });
+
+  test('GET /api/metrics debe filtrar por tipo', async () => {
+    const response = await request(app).get('/api/metrics?tipo=performance');
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.length).toBe(2);
+    expect(response.body.data.every(m => m.tipo === 'performance')).toBe(true);
+  });
+
+  test('GET /api/metrics/stats debe retornar estadísticas', async () => {
+    const response = await request(app).get('/api/metrics/stats');
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.data.length).toBeGreaterThan(0);
+  });
+
+  test('GET /api/metrics/performance debe retornar métricas de rendimiento', async () => {
+    const response = await request(app).get('/api/metrics/performance');
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toHaveProperty('recientes');
+    expect(response.body.data).toHaveProperty('promedios');
+    expect(Array.isArray(response.body.data.recientes)).toBe(true);
+  });
+
+  test('GET /api/metrics/errors debe retornar métricas de errores', async () => {
+    const response = await request(app).get('/api/metrics/errors');
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toHaveProperty('recientes');
+    expect(response.body.data).toHaveProperty('porEndpoint');
+    expect(response.body.data.recientes.length).toBe(1);
   });
 });
 ```
 
-### Instalar dependencia
+### Instalar dependencia (si no está)
 
 ```bash
 npm install --save-dev supertest
@@ -168,7 +315,7 @@ npm install --save-dev supertest
 
 ```bash
 npm test
-# Debe mostrar: 11/11 tests pasando (7 anteriores + 4 nuevos)
+# Debe mostrar: 15/15 tests pasando (10 anteriores + 5 nuevos)
 ```
 
 ---
@@ -176,20 +323,20 @@ npm test
 ## 📚 Documentos de Referencia
 
 - `docschecklists/GUIA_CONTINUACION_TRABAJO.md` - Contexto completo
-- `docschecklists/SPRINT_01_FINAL.md` - Sprint 1 completado
+- `server/models/Metric.js` - Modelo con métodos de agregación
 - `docs/logger_usage.md` - Cómo usar el logger
 
 ---
 
 ## ✅ Checklist
 
-- [ ] Crear `server/middleware/metricsMiddleware.js`
+- [ ] Crear `server/routes/metrics.js`
 - [ ] Integrar en `server/index.js`
-- [ ] Crear `server/tests/metricsMiddleware.test.js`
-- [ ] Instalar `supertest`
-- [ ] Ejecutar `npm test` (11/11 pasando)
-- [ ] Actualizar `ESTADO_ACTUAL.md`
+- [ ] Crear `server/tests/metrics.routes.test.js`
+- [ ] Instalar `supertest` (si no está)
+- [ ] Ejecutar `npm test` (15/15 pasando)
+- [ ] Actualizar `ESTADO_ACTUAL.md` (Fase 0: 85%)
 
 ---
 
-**¡Adelante con la Tarea 2.2!** 🚀
+**¡Adelante con la Tarea 2.3!** 🚀
