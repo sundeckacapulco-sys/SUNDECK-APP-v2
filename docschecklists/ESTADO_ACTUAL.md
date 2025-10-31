@@ -35,7 +35,7 @@
 Inventario de dependencias     [████████████████████] 100% ✅
 Logging estructurado           [██████████████████░░]  90% ✅ COMPLETADO
 Carpeta /logs/                 [████████████████████] 100% ✅ OPERATIVA
-KPIs baseline                  [██████████░░░░░░░░░░]  50% ⚙️ Simulados
+KPIs baseline                  [████████████████░░░░]  80% ⚙️ Modelo creado
 Dashboard de métricas          [░░░░░░░░░░░░░░░░░░░░]   0% ❌
 Naming convention              [██████████░░░░░░░░░░]  50% ⚙️
 ```
