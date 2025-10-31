@@ -4,6 +4,7 @@ const fs = require('fs').promises;
 const Proyecto = require('../models/Proyecto');
 const Cotizacion = require('../models/Cotizacion');
 const companyConfig = require('../config/company');
+const logger = require('../config/logger');
 
 const templatesDir = path.join(__dirname, 'pdfTemplates');
 const partialsDir = path.join(templatesDir, 'partials');

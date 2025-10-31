@@ -1,6 +1,8 @@
 # 🏢 Sundeck CRM - Sistema Completo
 
-**Versión**: 3.0 | **Fecha**: 30 Oct 2025 | **Estado**: ✅ 100% FUNCIONAL
+**Versión**: 3.1 | **Fecha**: 31 Oct 2025 | **Estado**: ⚙️ 70% FUNCIONAL (Base sólida con brechas críticas)
+
+**Alineado con**: `ROADMAP_MASTER.md` v1.1 | **Auditoría**: `docs/auditoria_tecnica.md`
 
 ---
 
@@ -16,19 +18,23 @@ npm run dev
 
 ---
 
-## ✅ MÓDULOS IMPLEMENTADOS (100%)
+## 📊 ESTADO DE MÓDULOS (Auditoría Oct 2025)
 
-| Módulo | Estado | Descripción |
-|--------|--------|-------------|
-| **Prospectos** | ✅ | Gestión de clientes potenciales |
-| **Proyectos** | ✅ | Núcleo unificado del sistema |
-| **Levantamientos** | ✅ | 13 campos técnicos por pieza |
-| **Cotizaciones** | ✅ | En vivo + Directas |
-| **Fabricación** | ✅ | Órdenes automáticas |
-| **Instalaciones** | ✅ | Con IA y sugerencias |
-| **KPIs** | ✅ | 7 tipos de métricas |
-| **PDF/Excel** | ✅ | Exportación unificada |
-| **WhatsApp** | ✅ | Plantillas personalizables |
+| Módulo | Estado | Cobertura | Observaciones |
+|--------|--------|-----------|---------------|
+| **Prospectos** | ✅ | 95% | API completa, hooks documentados |
+| **Proyectos** | ✅ | 90% | CRUD completo, sincronización operativa |
+| **Levantamientos** | ✅ | 85% | 13 campos técnicos por pieza |
+| **Cotizaciones** | ✅ | 90% | En vivo + Directas + PDF/Excel |
+| **Instalaciones** | ✅ | 85% | API completa, módulo UI independiente |
+| **KPIs** | ✅ | 80% | Dashboard, conversión, pérdidas |
+| **PDF/Excel** | ✅ | 90% | Exportación unificada |
+| **Pedidos** | ⚠️ | 50% | **CRÍTICO**: Duplicidad `Pedido` vs `ProyectoPedido` |
+| **Fabricación** | ⚠️ | 30% | **BLOQUEANTE**: Sin imports, no funcional |
+| **IA/Automatización** | ⚠️ | 10% | **CRÍTICO**: Endpoints simulados, sin modelos reales |
+| **Observabilidad** | ❌ | 0% | **CRÍTICO**: Sin logger estructurado ni métricas reales |
+
+**Resumen**: 7 módulos funcionales ✅ | 3 módulos parciales ⚠️ | 1 elemento crítico pendiente ❌
 
 ---
 
@@ -148,29 +154,66 @@ SUNDECK-APP-v2/
 
 ---
 
-## 🎯 FASES IMPLEMENTADAS
+## 🎯 ROADMAP DE 12 MESES (Alineado con ROADMAP_MASTER.md)
 
-### ✅ FASE 1-3: Estructura y UI (100%)
-- Modales con jerarquía de 3 niveles
-- Acordeones funcionales
-- Diseño compacto optimizado
-- 13 campos técnicos por pieza
+### ⚙️ FASE 0: Baseline y Observabilidad (0-1 mes) - 30%
+**Objetivo**: Inventariar dependencias, definir métricas base y habilitar trazabilidad mínima.
 
-### ✅ FASE 4: Funciones de Guardado (100%)
-- `handleGuardarMedidasTecnicas` (sin precios)
-- `handleGuardarCotizacionEnVivo` (con precios)
-- Validaciones completas
-- Manejo de errores
+**Estado actual**:
+- ✅ Inventario completo de dependencias documentado
+- ❌ **CRÍTICO**: Logger estructurado pendiente (solo `console.log`)
+- ❌ **BLOQUEANTE**: Carpeta `/logs/` no existe
+- ⚙️ KPIs baseline con valores simulados (sin instrumentación real)
 
-### ✅ FASE 5: Generación de PDF (100%)
-- `handleVerPDF` implementado
-- Descarga automática
-- Formato profesional
+**Próximos pasos**: Ver `docschecklists/PLAN_ACCION_INMEDIATO.md`
 
-### ✅ FASE 6: Integración (100%)
-- Modal selector en `LevantamientoTab.jsx`
-- Prop `conPrecios` funcionando
-- Flujo completo operativo
+---
+
+### 🧱 FASE 1: Desacoplo y Confiabilidad (1-4 meses) - 25%
+**Objetivo**: Reducir complejidad del modelo `Proyecto` y unificar validaciones front/back.
+
+**Estado actual**:
+- ⚙️ Subdocumentos parcialmente extraídos (levantamientos, cotizaciones)
+- ✅ Hooks unificados (`usePiezasManager`)
+- ❌ **CRÍTICO**: Duplicidad `Pedido` vs `ProyectoPedido` sin resolver
+- ❌ **BLOQUEANTE**: Módulo Fabricación sin imports
+- ❌ 0% cobertura de pruebas unitarias
+
+**Bloqueantes**: Unificar dominio de pedidos, corregir fabricación
+
+---
+
+### 🤖 FASE 2: Orquestación y Automatización (4-8 meses) - 5%
+**Objetivo**: Automatizar flujo "Aprobado → Pedido → Fabricación" mediante reglas declarativas.
+
+**Estado actual**:
+- ❌ EventBus local no implementado
+- ❌ Motor de reglas pendiente
+- ❌ **CRÍTICO**: IA simulada (endpoints con textos estáticos)
+- ❌ Panel operativo no iniciado
+
+**Dependencias**: Requiere completar Fase 0 (logger) y Fase 1 (unificar pedidos)
+
+---
+
+### 🚀 FASE 3: Escalamiento y API-Ready (8-12 meses) - 0%
+**Objetivo**: Arquitectura modular y multicanal sin costos de infraestructura externa.
+
+**Estado actual**:
+- ❌ Servicios no separados
+- ❌ Contratos OpenAPI/GraphQL no documentados
+- ❌ Gateway local no configurado
+- ❌ App móvil no iniciada
+
+**Dependencias**: Requiere completar Fases 0, 1 y 2
+
+---
+
+### 💼 EXTENSIÓN SaaS PATH
+**Nivel 1 - Personal**: ✅ CRM interno funcional (versión actual)  
+**Nivel 2 - Multiusuario**: ⚙️ Separación por `tenantId` en proceso  
+**Nivel 3 - Membresías**: ❌ Gestión manual de accesos pendiente  
+**Nivel 4 - SaaS completo**: ❌ Multi-tenant + Billing futuro
 
 ---
 
@@ -242,14 +285,53 @@ GET    /api/kpis/instalaciones              # KPIs
 
 ---
 
+## 🚨 BLOQUEANTES CRÍTICOS IDENTIFICADOS
+
+**Ver plan de acción completo en**: `docschecklists/PLAN_ACCION_INMEDIATO.md`
+
+1. **Logger Estructurado** (Fase 0) - Sin trazabilidad ni métricas reales
+2. **Unificar Dominio Pedidos** (Fase 1) - Duplicidad `Pedido` vs `ProyectoPedido`
+3. **Corregir Fabricación** (Fase 1) - Módulo sin imports, no funcional
+4. **Métricas Baseline Reales** (Fase 0) - Solo valores simulados
+5. **IA Funcional** (Fase 2) - Endpoints simulados sin modelos reales
+
+**Tiempo estimado de resolución**: 2-3 semanas
+
+---
+
 ## 📝 DOCUMENTOS RELACIONADOS
 
+### Roadmap y Planificación
+- `docschecklists/ROADMAPMASTER.md` - Roadmap maestro de 12 meses
+- `docschecklists/ROADMAP_TASKS.md` - Checklist operativo con estados
+- `docschecklists/PLAN_ACCION_INMEDIATO.md` - Plan para resolver bloqueantes
+
+### Auditoría y Arquitectura
+- `docs/auditoria_tecnica.md` - Auditoría completa Oct 2025
+- `docs/architecture_map.md` - Mapa de arquitectura del sistema
+- `docs/metrics_baseline.md` - Métricas baseline (valores simulados)
+
+### Funcionalidades Específicas
 - `PRUEBAS_EJECUTAR_AHORA.md` - Plan de pruebas detallado
 - `PENDIENTES_COTIZACION_EN_VIVO.md` - Funcionalidades pendientes
 - `RESUMEN_SESION_FASE_4_Y_5.md` - Resumen de implementación
 
 ---
 
+## 📊 KPIs GLOBALES (Metas vs Actual)
+
+| Categoría | Meta | Actual | Gap |
+|-----------|------|--------|-----|
+| **Estabilidad** | ≥99% | ~95% | -4% |
+| **Rendimiento** | <1.5s | ? | Sin métricas |
+| **Calidad (Tests)** | ≥80% | 0% | -80% 🔴 |
+| **Automatización** | ≥90% | ~20% | -70% 🔴 |
+| **Observabilidad** | ≥85% | 0% | -85% 🔴 |
+| **IA Precisión** | ≥80% | 0% | -80% 🔴 |
+
+---
+
 **Desarrollado por**: Equipo Sundeck + Cascade AI  
-**Contacto**: David Rojas - Dirección General Sundeck  
-**Última actualización**: 30 de Octubre, 2025
+**Responsable funcional**: David Rojas - Dirección General Sundeck  
+**Responsable técnico**: Equipo Desarrollo CRM Sundeck  
+**Última actualización**: 31 de Octubre, 2025

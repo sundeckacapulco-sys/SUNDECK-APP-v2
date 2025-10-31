@@ -6,6 +6,7 @@ const Prospecto = require('../models/Prospecto');
 const ProyectoSyncMiddleware = require('../middleware/proyectoSync');
 const pdfService = require('../services/pdfService');
 const excelService = require('../services/excelService');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
@@ -36,7 +37,11 @@ router.get('/', auth, verificarPermiso('prospectos', 'leer'), async (req, res) =
     });
 
   } catch (error) {
-    console.error('Error obteniendo etapas:', error);
+    logger.logError(error, {
+      context: 'obtenerEtapas',
+      prospectoId: req.query.prospectoId,
+      userId: req.usuario?.id
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -148,10 +153,18 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
       
       if (proyecto) {
         await ProyectoSyncMiddleware.sincronizarMedidasDesdeEtapas(proyecto._id, prospectoId);
-        console.log(`✅ Medidas sincronizadas al proyecto ${proyecto._id} desde etapa`);
+        logger.info('Medidas sincronizadas al proyecto desde etapa', {
+          proyectoId: proyecto._id,
+          prospectoId,
+          etapaId: nuevaEtapa._id
+        });
       }
     } catch (syncError) {
-      console.error('⚠️ Error sincronizando medidas:', syncError);
+      logger.warn('Error sincronizando medidas', {
+        error: syncError.message,
+        prospectoId,
+        proyectoId: proyecto?._id
+      });
       // No interrumpir el flujo principal
     }
 
@@ -160,7 +173,12 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
       etapa
     });
   } catch (error) {
-    console.error('Error creando etapa:', error);
+    logger.logError(error, {
+      context: 'crearEtapa',
+      prospectoId: req.body.prospectoId,
+      nombreEtapa: req.body.nombreEtapa,
+      userId: req.usuario?.id
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -190,7 +208,10 @@ const authSimple = (req, res, next) => {
 
 // Generar PDF de levantamiento de medidas (GET y POST)
 router.get('/levantamiento-pdf', authSimple, async (req, res) => {
-  console.log('🎯 Iniciando generación de PDF de levantamiento (GET)...');
+  logger.info('Iniciando generación de PDF de levantamiento', {
+    method: 'GET',
+    prospectoId: req.query.prospectoId
+  });
   
   try {
     const {
@@ -202,18 +223,28 @@ router.get('/levantamiento-pdf', authSimple, async (req, res) => {
     } = req.query;
     
     const piezas = JSON.parse(piezasString);
-    console.log('📋 Datos recibidos:', { prospectoId, piezasCount: piezas?.length || 0 });
+    logger.debug('Datos recibidos para PDF', {
+      prospectoId,
+      piezasCount: piezas?.length || 0,
+      precioGeneral,
+      totalM2
+    });
     
     await generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGeneral: Number(precioGeneral), totalM2: Number(totalM2), unidadMedida });
   } catch (error) {
-    console.error('Error en GET PDF:', error);
+    logger.logError(error, {
+      context: 'generarPDFLevantamientoGET',
+      prospectoId: req.query.prospectoId
+    });
     res.status(500).json({ message: 'Error generando PDF', error: error.message });
   }
 });
 
 // Endpoint GET alternativo para evitar interceptación de IDM
 router.get('/pdf-viewer/:prospectoId', authSimple, async (req, res) => {
-  console.log('🎯 PDF Viewer - Evitando interceptación IDM...');
+  logger.info('PDF Viewer - Evitando interceptación IDM', {
+    prospectoId: req.params.prospectoId
+  });
   
   try {
     const { prospectoId } = req.params;
@@ -225,7 +256,10 @@ router.get('/pdf-viewer/:prospectoId', authSimple, async (req, res) => {
     } = req.query;
     
     const piezas = JSON.parse(piezasString);
-    console.log('📋 PDF Viewer - Datos recibidos:', { prospectoId, piezasCount: piezas?.length || 0 });
+    logger.debug('PDF Viewer - Datos recibidos', {
+      prospectoId,
+      piezasCount: piezas?.length || 0
+    });
     
     // Agregar headers específicos para evitar interceptación
     res.setHeader('Content-Type', 'application/pdf');
@@ -237,18 +271,21 @@ router.get('/pdf-viewer/:prospectoId', authSimple, async (req, res) => {
     
     await generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGeneral: Number(precioGeneral), totalM2: Number(totalM2), unidadMedida });
   } catch (error) {
-    console.error('Error en PDF Viewer:', error);
+    logger.logError(error, {
+      context: 'pdfViewer',
+      prospectoId: req.params.prospectoId
+    });
     res.status(500).json({ message: 'Error generando PDF', error: error.message });
   }
 });
 
 // Endpoint de prueba para PDF (sin permisos para debugging)
 router.post('/levantamiento-pdf-test', auth, async (req, res) => {
-  console.log('🧪 TEST: Iniciando generación de PDF de levantamiento...');
-  console.log('📋 TEST: Datos recibidos:', { 
-    prospectoId: req.body.prospectoId, 
+  logger.info('TEST: Iniciando generación de PDF de levantamiento', {
+    prospectoId: req.body.prospectoId,
     piezasCount: req.body.piezas?.length || 0,
-    usuario: req.usuario?.nombre || 'Usuario desconocido'
+    userId: req.usuario?.id,
+    userName: req.usuario?.nombre
   });
   
   try {
@@ -260,11 +297,18 @@ router.post('/levantamiento-pdf-test', auth, async (req, res) => {
       unidadMedida = 'm'
     } = req.body;
     
-    console.log('🔍 TEST: Procesando datos...', { prospectoId, piezasCount: piezas.length });
+    logger.debug('TEST: Procesando datos', {
+      prospectoId,
+      piezasCount: piezas.length
+    });
     
     await generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGeneral, totalM2, unidadMedida });
   } catch (error) {
-    console.error('❌ TEST: Error en PDF:', error);
+    logger.logError(error, {
+      context: 'generarPDFLevantamientoTEST',
+      prospectoId: req.body.prospectoId,
+      userId: req.usuario?.id
+    });
     res.status(500).json({ message: 'Error generando PDF (TEST)', error: error.message });
   }
 });
@@ -278,13 +322,12 @@ router.post('/levantamiento-pdf', (req, res, next) => {
   }
   next();
 }, auth, verificarPermiso('prospectos', 'leer'), async (req, res) => {
-  console.log('🎯 Iniciando generación de PDF de levantamiento (POST)...');
-  console.log('📋 Datos recibidos:', { 
-    prospectoId: req.body.prospectoId, 
+  logger.info('Iniciando generación de PDF de levantamiento', {
+    method: 'POST',
+    prospectoId: req.body.prospectoId,
     piezasCount: req.body.piezas?.length || 0,
     soloGenerarPDF: req.body.soloGenerarPDF,
-    guardarPDF: req.body.guardarPDF,
-    url: req.originalUrl
+    userId: req.usuario?.id
   });
   
   try {
@@ -309,70 +352,11 @@ router.post('/levantamiento-pdf', (req, res, next) => {
     const facturacion = typeof facturacionRaw === 'string' ? JSON.parse(facturacionRaw) : facturacionRaw;
     const metodoPago = typeof metodoPagoRaw === 'string' ? JSON.parse(metodoPagoRaw) : metodoPagoRaw;
     
-    await generarPDFLevantamiento(req, res, { 
-      prospectoId, 
-      piezas, 
-      precioGeneral, 
-      totalM2, 
-      subtotalProductos,
-      unidadMedida,
-      instalacion,
-      descuento,
-      facturacion,
-      metodoPago,
-      totalFinal
-    });
-  } catch (error) {
-    console.error('Error en POST PDF:', error);
-    res.status(500).json({ message: 'Error generando PDF', error: error.message });
-  }
-});
-
-// Función común para generar PDF
-async function generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGeneral, totalM2, subtotalProductos, unidadMedida, instalacion, descuento, facturacion, metodoPago, totalFinal }) {
-  try {
-    // Headers para evitar interceptación de IDM
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    
-    console.log('🔍 Validando prospectoId...', { prospectoId, isValid: mongoose.Types.ObjectId.isValid(prospectoId) });
-
-    if (!prospectoId || !mongoose.Types.ObjectId.isValid(prospectoId)) {
-      console.error('❌ ProspectoId inválido:', prospectoId);
-      return res.status(400).json({ message: 'prospectoId inválido' });
-    }
-
-    console.log('🔍 Buscando prospecto en base de datos...');
-    const prospecto = await Prospecto.findById(prospectoId);
-    if (!prospecto) {
-      console.error('❌ Prospecto no encontrado:', prospectoId);
-      return res.status(404).json({ message: 'Prospecto no encontrado' });
-    }
-
-    console.log('✅ Prospecto encontrado:', { nombre: prospecto.nombre, telefono: prospecto.telefono });
-
-    // Crear objeto etapa temporal para el PDF
-    const etapaTemp = {
-      prospecto: {
-        nombre: prospecto.nombre,
-        telefono: prospecto.telefono,
-        email: prospecto.email,
-        direccion: prospecto.direccion
-      },
-      unidadMedida,
-      piezas
-    };
-
-    console.log('🔍 Generando PDF con pdfService...', { 
-      piezasCount: piezas.length, 
-      totalM2, 
-      precioGeneral: precioGeneral,
-      precioGeneralType: typeof precioGeneral,
-      precioGeneralNumber: Number(precioGeneral),
-      unidadMedida 
+    logger.debug('Generando PDF con pdfService', {
+      piezasCount: piezas.length,
+      totalM2,
+      precioGeneral,
+      unidadMedida
     });
 
     const pdf = await pdfService.generarLevantamientoPDF(etapaTemp, piezas, totalM2, Number(precioGeneral) || 750, {
@@ -383,7 +367,10 @@ async function generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGe
       metodoPago,
       totalFinal
     });
-    console.log('✅ PDF generado exitosamente, tamaño:', pdf.length, 'bytes');
+    logger.info('PDF generado exitosamente', {
+      prospectoId,
+      pdfSize: pdf.length
+    });
 
     // Crear nombre de archivo único pero más corto
     const nombreCliente = (prospecto.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
@@ -396,22 +383,24 @@ async function generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGe
     
     const nombreArchivo = `Levantamiento-${nombreCliente}-${fechaFormateada}-${horaCorta}-${idCorto}.pdf`;
 
-    console.log('📄 PDF generado exitosamente');
-    console.log('📁 Nombre de archivo:', nombreArchivo);
-    console.log('📊 Tamaño del PDF:', pdf.length, 'bytes');
+    logger.info('PDF generado y enviado', {
+      prospectoId,
+      nombreArchivo,
+      pdfSize: pdf.length
+    });
 
     // Headers para descarga (CORS ya maneja Access-Control-Allow-Origin)
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
     res.send(pdf);
     
-    console.log('✅ PDF enviado al cliente');
+    // PDF enviado exitosamente
   } catch (error) {
-    console.error('❌ Error en generarPDFLevantamiento:', {
-      message: error.message,
-      stack: error.stack,
-      prospectoId,
-      piezasCount: piezas?.length || 0
+    logger.logError(error, {
+      context: 'generarPDFLevantamientoPOST',
+      prospectoId: req.body.prospectoId,
+      piezasCount: req.body.piezas?.length || 0,
+      userId: req.usuario?.id
     });
     
     if (!res.headersSent) {
@@ -422,7 +411,7 @@ async function generarPDFLevantamiento(req, res, { prospectoId, piezas, precioGe
       });
     }
   }
-}
+});
 
 // Manejar preflight para Excel (CORS ya maneja esto globalmente)
 router.options('/levantamiento-excel', (req, res) => {
@@ -484,7 +473,11 @@ router.post('/levantamiento-excel', auth, verificarPermiso('prospectos', 'leer')
     res.send(excelBuffer);
 
   } catch (error) {
-    console.error('Error generando Excel de levantamiento:', error);
+    logger.logError(error, {
+      context: 'generarExcelLevantamiento',
+      prospectoId: req.body.prospectoId,
+      userId: req.usuario?.id
+    });
     
     // Verificar si es un error de dependencia faltante
     if (error.message.includes('ExcelJS no está disponible')) {

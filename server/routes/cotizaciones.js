@@ -5,6 +5,7 @@ const { auth, verificarPermiso } = require('../middleware/auth');
 const pdfService = require('../services/pdfService');
 const excelService = require('../services/excelService');
 const cotizacionController = require('../controllers/cotizacionController');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
@@ -73,7 +74,7 @@ router.get('/', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res)
     const cotizaciones = await Cotizacion.paginate(filtros, opciones);
     res.json(cotizaciones);
   } catch (error) {
-    console.error('Error obteniendo cotizaciones:', error);
+    logger.logError(error, { context: 'obtenerCotizaciones', query: req.query, userId: req.usuario?.id });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -81,8 +82,7 @@ router.get('/', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res)
 // Generar cotización desde visita inicial
 router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), async (req, res) => {
   try {
-    console.log('🔍 === ENDPOINT DESDE-VISITA ===');
-    console.log('Body recibido:', JSON.stringify(req.body, null, 2));
+    logger.info('Endpoint desde-visita iniciado', { bodyKeys: Object.keys(req.body), userId: req.usuario?.id });
     
     const {
       prospectoId,
@@ -96,24 +96,15 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       tipoVisitaInicial
     } = req.body;
 
-    console.log('📋 Datos extraídos:');
-    console.log('- ProspectoId:', prospectoId);
-    console.log('- Piezas count:', Array.isArray(piezas) ? piezas.length : 'No es array');
-    console.log('- Precio general:', precioGeneral);
-    console.log('- Total M2:', totalM2);
-    console.log('- Unidad medida:', unidadMedida);
-    console.log('- Comentarios length:', comentarios?.length || 0);
-    console.log('- Instalación especial:', instalacionEspecial);
-    console.log('- Origen:', origen);
-    console.log('- Tipo visita inicial:', tipoVisitaInicial);
+    logger.debug('Datos extraídos desde-visita', { prospectoId, piezasCount: Array.isArray(piezas) ? piezas.length : 0, precioGeneral, totalM2, unidadMedida, origen });
 
     // Verificar que el prospecto existe
     const prospecto = await Prospecto.findById(prospectoId);
     if (!prospecto) {
-      console.error('❌ Prospecto no encontrado:', prospectoId);
+      logger.warn('Prospecto no encontrado', { prospectoId });
       return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
-    console.log('✅ Prospecto encontrado:', prospecto.nombre);
+    logger.debug('Prospecto encontrado', { prospectoId, nombre: prospecto.nombre });
 
     if (!Array.isArray(piezas) || piezas.length === 0) {
       return res.status(400).json({ message: 'Debes proporcionar al menos una partida para generar la cotización.' });
@@ -123,7 +114,7 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
     const piezasNormalizadas = piezas
       .map((pieza, index) => {
         if (!pieza) {
-          console.warn(`⚠️ Pieza inválida en índice ${index}, se omitirá en la cotización.`);
+          logger.warn('Pieza inválida omitida', { index });
           return null;
         }
 
@@ -141,7 +132,7 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
         const medidasNormalizadas = medidasOrigen
           .map((medida, medidaIndex) => {
             if (!medida) {
-              console.warn(`⚠️ Medida inválida en pieza ${index}, posición ${medidaIndex}.`);
+              logger.warn('Medida inválida omitida', { piezaIndex: index, medidaIndex });
               return null;
             }
 
@@ -169,7 +160,7 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
           .filter(Boolean);
 
         if (medidasNormalizadas.length === 0) {
-          console.warn(`⚠️ Pieza ${index} no tiene medidas válidas y será omitida.`);
+          logger.warn('Pieza sin medidas válidas omitida', { index });
           return null;
         }
 
@@ -319,7 +310,7 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
     }, 10);
 
     // === CÁLCULO COMPLEJO DE TIEMPO DE INSTALACIÓN ===
-    console.log('🤖 Iniciando cálculo COMPLEJO de tiempo de instalación en backend...');
+    logger.debug('Iniciando cálculo de tiempo de instalación');
     
     let tiempoBaseDias = 0;
     let factoresComplejidad = {
@@ -461,35 +452,17 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
     let tiempoInstalacionEstimado = Math.ceil(tiempoBaseDias + complejidadTotal);
     tiempoInstalacionEstimado = Math.max(1, Math.min(10, tiempoInstalacionEstimado));
 
-    console.log('📊 ANÁLISIS COMPLEJO DE INSTALACIÓN COMPLETADO:');
-    console.log(`- Área total: ${totalArea.toFixed(1)}m²`);
-    console.log(`- Tipos de productos: ${numTiposProductos} (${Array.from(tiposProductos).join(', ')})`);
-    console.log(`- Productos motorizados: ${productosMotorizados}`);
-    console.log(`- Productos exterior: ${productosExterior}`);
-    console.log(`- Requiere andamios: ${requiereAndamios}`);
-    console.log(`- Requiere obra eléctrica: ${requiereObraElectrica}`);
-    console.log(`- Tiempo base: ${tiempoBaseDias.toFixed(1)} días`);
-    console.log('- Factores complejidad:', factoresComplejidad);
-    console.log(`- Complejidad total: +${complejidadTotal.toFixed(1)} días`);
-    console.log(`🎯 TIEMPO INSTALACIÓN FINAL: ${tiempoInstalacionEstimado} días`);
-    console.log('- Tiempo fabricación:', tiempoFabricacionEstimado);
-    console.log('- Requiere instalación:', requiereInstalacion);
-    console.log('- Costo instalación:', costoInstalacion);
+    logger.debug('Análisis de instalación completado', { areaTotal: totalArea.toFixed(1), numTiposProductos, productosMotorizados, tiempoInstalacionEstimado, tiempoFabricacionEstimado, costoInstalacion });
     const subtotalProductos = productos.reduce((sum, prod) => sum + (prod.subtotal || 0), 0);
     const totalFinal = subtotalProductos + costoInstalacion;
     
-    console.log('- Subtotal productos:', subtotalProductos);
-    console.log('- Costo instalación:', costoInstalacion);
-    console.log('- TOTAL FINAL:', totalFinal);
+    logger.debug('Totales calculados', { subtotalProductos, costoInstalacion, totalFinal });
     
     // Debug: Mostrar productos individuales
-    console.log('📦 Productos creados:');
-    productos.forEach((prod, index) => {
-      console.log(`  ${index + 1}. ${prod.nombre}: ${prod.cantidad} × $${prod.precioUnitario} = $${prod.subtotal}`);
-    });
+    logger.debug('Productos creados', { productosCount: productos.length, totalProductos: subtotalProductos });
 
     // Generar número de cotización manualmente como respaldo
-    console.log('🔢 Generando número de cotización manualmente...');
+    logger.debug('Generando número de cotización');
     let numeroCotizacion;
     try {
       const year = new Date().getFullYear();
@@ -500,16 +473,16 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
         }
       });
       numeroCotizacion = `COT-${year}-${String(count + 1).padStart(4, '0')}`;
-      console.log('✅ Número generado manualmente:', numeroCotizacion);
+      logger.debug('Número de cotización generado', { numeroCotizacion });
     } catch (error) {
-      console.warn('⚠️ Error generando número, usando timestamp:', error.message);
+      logger.warn('Error generando número, usando timestamp', { error: error.message });
       const timestamp = Date.now().toString().slice(-6);
       numeroCotizacion = `COT-${new Date().getFullYear()}-${timestamp}`;
-      console.log('🔄 Número con timestamp:', numeroCotizacion);
+      logger.debug('Número con timestamp', { numeroCotizacion });
     }
 
     // Convertir piezas a productos de cotización
-    console.log('🔨 Creando nueva cotización...');
+    logger.debug('Creando nueva cotización', { numeroCotizacion, prospectoId });
     const nuevaCotizacion = new Cotizacion({
       prospecto: prospectoId,
       numero: numeroCotizacion, // Asignar número manualmente
@@ -536,9 +509,9 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       elaboradaPor: req.usuario._id
     });
 
-    console.log('✅ Cotización creada en memoria, guardando...');
+    logger.debug('Guardando cotización');
     await nuevaCotizacion.save();
-    console.log('✅ Cotización guardada exitosamente');
+    logger.info('Cotización creada exitosamente', { cotizacionId: nuevaCotizacion._id, numeroCotizacion, total: nuevaCotizacion.total });
     await nuevaCotizacion.populate([
       { path: 'prospecto', select: 'nombre telefono email' },
       { path: 'elaboradaPor', select: 'nombre apellido' }
@@ -559,10 +532,7 @@ router.post('/desde-visita', auth, verificarPermiso('cotizaciones', 'crear'), as
       cotizacion: nuevaCotizacion
     });
   } catch (error) {
-    console.error('❌ Error generando cotización desde visita:', error);
-    console.error('Stack trace:', error.stack);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
+    logger.logError(error, { context: 'generarCotizacionDesdeVisita', prospectoId: req.body.prospectoId, userId: req.usuario?.id });
     
     // Enviar información detallada del error para debugging
     res.status(500).json({ 
@@ -579,8 +549,7 @@ router.post('/', auth, verificarPermiso('cotizaciones', 'crear'), cotizacionCont
 // Obtener cotización por ID
 router.get('/:id', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res) => {
   try {
-    console.log('=== OBTENER COTIZACIÓN ===');
-    console.log('ID solicitado:', req.params.id);
+    logger.debug('Obteniendo cotización por ID', { cotizacionId: req.params.id, userId: req.usuario?.id });
     
     const cotizacion = await Cotizacion.findById(req.params.id)
       .populate('prospecto')
@@ -588,15 +557,11 @@ router.get('/:id', auth, verificarPermiso('cotizaciones', 'leer'), async (req, r
       .populate('notas.usuario', 'nombre apellido');
 
     if (!cotizacion) {
-      console.log('Cotización no encontrada con ID:', req.params.id);
+      logger.warn('Cotización no encontrada', { cotizacionId: req.params.id });
       return res.status(404).json({ message: 'Cotización no encontrada' });
     }
 
-    console.log('Cotización encontrada:');
-    console.log('- Número:', cotizacion.numero);
-    console.log('- Prospecto:', cotizacion.prospecto?.nombre);
-    console.log('- Productos:', cotizacion.productos?.length || 0);
-    console.log('- Total:', cotizacion.total);
+    logger.debug('Cotización encontrada', { numero: cotizacion.numero, prospecto: cotizacion.prospecto?.nombre, productosCount: cotizacion.productos?.length || 0, total: cotizacion.total });
 
     const cotizacionNormalizada = cotizacion.toObject({ virtuals: true });
 
@@ -633,7 +598,7 @@ router.get('/:id', auth, verificarPermiso('cotizaciones', 'leer'), async (req, r
 
     res.json(cotizacionNormalizada);
   } catch (error) {
-    console.error('Error obteniendo cotización:', error);
+    logger.logError(error, { context: 'obtenerCotizacionPorId', cotizacionId: req.params.id, userId: req.usuario?.id });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -641,9 +606,7 @@ router.get('/:id', auth, verificarPermiso('cotizaciones', 'leer'), async (req, r
 // Actualizar cotización
 router.put('/:id', auth, verificarPermiso('cotizaciones', 'actualizar'), async (req, res) => {
   try {
-    console.log('=== ACTUALIZAR COTIZACIÓN ===');
-    console.log('ID:', req.params.id);
-    console.log('Body completo:', JSON.stringify(req.body, null, 2));
+    logger.info('Actualizando cotización', { cotizacionId: req.params.id, campos: Object.keys(req.body), userId: req.usuario?.id });
     
     const cotizacion = await Cotizacion.findById(req.params.id);
     
@@ -651,10 +614,7 @@ router.put('/:id', auth, verificarPermiso('cotizaciones', 'actualizar'), async (
       return res.status(404).json({ message: 'Cotización no encontrada' });
     }
     
-    console.log('Cotización antes de actualizar:');
-    console.log('- Total actual:', cotizacion.total);
-    console.log('- IVA actual:', cotizacion.iva);
-    console.log('- IncluirIVA actual:', cotizacion.incluirIVA);
+    logger.debug('Cotización antes de actualizar', { total: cotizacion.total, iva: cotizacion.iva, incluirIVA: cotizacion.incluirIVA });
 
     // Solo el creador o admin/gerente pueden modificar
     const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
@@ -674,29 +634,23 @@ router.put('/:id', auth, verificarPermiso('cotizaciones', 'actualizar'), async (
 
     camposPermitidos.forEach(campo => {
       if (req.body[campo] !== undefined) {
-        console.log(`Actualizando ${campo}:`, req.body[campo]);
+        logger.debug('Actualizando campo', { campo, valor: req.body[campo] });
         cotizacion[campo] = req.body[campo];
       }
     });
 
-    console.log('Cotización después de actualizar campos:');
-    console.log('- Total nuevo:', cotizacion.total);
-    console.log('- IVA nuevo:', cotizacion.iva);
-    console.log('- IncluirIVA nuevo:', cotizacion.incluirIVA);
+    logger.debug('Cotización después de actualizar', { total: cotizacion.total, iva: cotizacion.iva, incluirIVA: cotizacion.incluirIVA });
 
     await cotizacion.save();
     
-    console.log('Cotización guardada exitosamente');
-    console.log('- Total final:', cotizacion.total);
-    console.log('- IVA final:', cotizacion.iva);
-    console.log('- IncluirIVA final:', cotizacion.incluirIVA);
+    logger.info('Cotización actualizada exitosamente', { cotizacionId: req.params.id, total: cotizacion.total, iva: cotizacion.iva });
 
     res.json({
       message: 'Cotización actualizada exitosamente',
       cotizacion
     });
   } catch (error) {
-    console.error('Error actualizando cotización:', error);
+    logger.logError(error, { context: 'actualizarCotizacion', cotizacionId: req.params.id, userId: req.usuario?.id });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -704,46 +658,41 @@ router.put('/:id', auth, verificarPermiso('cotizaciones', 'actualizar'), async (
 // Archivar cotización
 router.put('/:id/archivar', auth, verificarPermiso('cotizaciones', 'actualizar'), async (req, res) => {
   try {
-    console.log('=== INICIANDO ARCHIVADO DE COTIZACIÓN ===');
     const { id } = req.params;
-    console.log('ID de cotización a archivar:', id);
+    logger.info('Archivando cotización', { cotizacionId: id, userId: req.usuario?.id });
 
     const cotizacion = await Cotizacion.findById(id);
 
     if (!cotizacion) {
-      console.log('Cotización no encontrada con ID:', id);
+      logger.warn('Cotización no encontrada para archivar', { cotizacionId: id });
       return res.status(404).json({ message: 'Cotización no encontrada' });
     }
-    console.log('Cotización encontrada:', cotizacion._id);
+    logger.debug('Cotización encontrada para archivar', { cotizacionId: cotizacion._id });
 
     // Modificación: Asegurar que cotizacion.elaboradaPor existe antes de llamar a toString()
     const isOwner = cotizacion.elaboradaPor && cotizacion.elaboradaPor.toString() === req.usuario._id.toString();
-    console.log('Usuario es admin/gerente:', req.usuario.rol === 'admin' || req.usuario.rol === 'gerente');
-    console.log('Usuario es el propietario:', isOwner);
+    logger.debug('Verificando permisos de archivado', { isAdmin: req.usuario.rol === 'admin' || req.usuario.rol === 'gerente', isOwner });
 
     if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' && !isOwner) {
-      console.warn('Acceso denegado para archivar cotización a usuario:', req.usuario._id);
+      logger.warn('Acceso denegado para archivar', { cotizacionId: id, userId: req.usuario._id });
       return res.status(403).json({ message: 'No tienes acceso para archivar esta cotización' });
     }
-    console.log('Permiso para archivar concedido.');
+    logger.debug('Permiso de archivado concedido');
 
     cotizacion.archivada = true;
     cotizacion.fechaArchivado = new Date();
     cotizacion.archivadaPor = req.usuario._id;
-    console.log('Campos de archivado establecidos.');
+    logger.debug('Campos de archivado establecidos');
 
     await cotizacion.save();
-    console.log('Cotización guardada exitosamente después de archivar.');
+    logger.info('Cotización archivada exitosamente', { cotizacionId: id });
 
     res.json({
       message: 'Cotización archivada exitosamente',
       cotizacion
     });
   } catch (error) {
-    console.error('❌ Error archivando cotización:', error);
-    console.error('Stack trace:', error.stack);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
+    logger.logError(error, { context: 'archivarCotizacion', cotizacionId: req.params.id, userId: req.usuario?.id });
     res.status(500).json({ 
       message: 'Error interno del servidor al archivar cotización',
       error: error.message,
@@ -777,7 +726,7 @@ router.put('/:id/desarchivar', auth, verificarPermiso('cotizaciones', 'actualiza
       cotizacion
     });
   } catch (error) {
-    console.error('Error desarchivando cotización:', error);
+    logger.logError(error, { context: 'desarchivarCotizacion', cotizacionId: req.params.id, userId: req.usuario?.id });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -807,7 +756,7 @@ router.put('/:id/enviar', auth, verificarPermiso('cotizaciones', 'actualizar'), 
       cotizacion
     });
   } catch (error) {
-    console.error('Error enviando cotización:', error);
+    logger.logError(error, { context: 'enviarCotizacion', cotizacionId: req.params.id, userId: req.usuario?.id });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -832,13 +781,7 @@ router.delete('/:id', auth, verificarPermiso('cotizaciones', 'eliminar'), async 
       const proyecto = await Proyecto.findById(cotizacion.proyecto);
       
       if (proyecto) {
-        console.log('📊 Proyecto antes de limpiar:', {
-          id: proyecto._id,
-          subtotal: proyecto.subtotal,
-          iva: proyecto.iva,
-          total: proyecto.total,
-          cotizaciones: proyecto.cotizaciones.length
-        });
+        logger.debug('Proyecto antes de limpiar', { proyectoId: proyecto._id, subtotal: proyecto.subtotal, total: proyecto.total, cotizaciones: proyecto.cotizaciones.length });
         
         // Remover la cotización del array de cotizaciones
         proyecto.cotizaciones = proyecto.cotizaciones.filter(
@@ -929,14 +872,7 @@ router.delete('/:id', auth, verificarPermiso('cotizaciones', 'eliminar'), async 
         
         await proyecto.save();
         
-        console.log('✅ Proyecto limpiado después de eliminar cotización:', {
-          id: proyecto._id,
-          subtotal: proyecto.subtotal,
-          iva: proyecto.iva,
-          total: proyecto.total,
-          cotizaciones: proyecto.cotizaciones.length,
-          estado: proyecto.estado
-        });
+        logger.info('Proyecto limpiado después de eliminar cotización', { proyectoId: proyecto._id, subtotal: proyecto.subtotal, total: proyecto.total, cotizaciones: proyecto.cotizaciones.length, estado: proyecto.estado });
       }
     }
 
@@ -944,7 +880,7 @@ router.delete('/:id', auth, verificarPermiso('cotizaciones', 'eliminar'), async 
 
     res.json({ message: 'Cotización eliminada exitosamente' });
   } catch (error) {
-    console.error('Error eliminando cotización:', error);
+    logger.logError(error, { context: 'eliminarCotizacion', cotizacionId: req.params.id, userId: req.usuario?.id });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -973,7 +909,7 @@ router.put('/:id/aprobar', auth, verificarPermiso('cotizaciones', 'actualizar'),
       cotizacion
     });
   } catch (error) {
-    console.error('Error aprobando cotización:', error);
+    logger.logError(error, { context: 'aprobarCotizacion', cotizacionId: req.params.id, userId: req.usuario?.id });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -1014,8 +950,7 @@ router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (re
     res.send(pdf);
 
   } catch (error) {
-    console.error('Error generando PDF:', error);
-    console.error('Stack trace:', error.stack);
+    logger.logError(error, { context: 'generarPDFCotizacion', cotizacionId: req.params.id });
     
     // Verificar si es un error de dependencia faltante
     if (error.message.includes('Puppeteer no está disponible')) {
@@ -1069,7 +1004,7 @@ router.get('/:id/excel', auth, verificarPermiso('cotizaciones', 'leer'), async (
     res.send(excel);
 
   } catch (error) {
-    console.error('Error generando Excel:', error);
+    logger.logError(error, { context: 'generarExcelCotizacion', cotizacionId: req.params.id });
     res.status(500).json({ 
       message: 'Error generando Excel de cotización',
       error: error.message
@@ -1087,11 +1022,7 @@ router.put('/:id/recalcular', auth, verificarPermiso('cotizaciones', 'actualizar
       return res.status(404).json({ message: 'Cotización no encontrada' });
     }
     
-    console.log('Cotización antes del recálculo:');
-    console.log('- Total actual:', cotizacion.total);
-    console.log('- Subtotal actual:', cotizacion.subtotal);
-    console.log('- IVA actual:', cotizacion.iva);
-    console.log('- Productos:', cotizacion.productos?.length || 0);
+    logger.debug('Cotización antes del recálculo', { total: cotizacion.total, subtotal: cotizacion.subtotal, iva: cotizacion.iva, productosCount: cotizacion.productos?.length || 0 });
 
     // Verificar permisos
     const acceso = verificarAccesoCotizacion(cotizacion, req.usuario);
@@ -1124,12 +1055,7 @@ router.put('/:id/recalcular', auth, verificarPermiso('cotizaciones', 'actualizar
       producto.subtotal = Number(subtotalProducto.toFixed(2));
       subtotalProductos += producto.subtotal;
       
-      console.log(`Producto ${index + 1}: ${producto.nombre}`);
-      console.log(`  - Categoría: ${producto.categoria}`);
-      console.log(`  - Área: ${area}m²`);
-      console.log(`  - Precio: $${precioUnitario}`);
-      console.log(`  - Cantidad: ${cantidad}`);
-      console.log(`  - Subtotal: $${producto.subtotal}`);
+      logger.debug('Producto recalculado', { index: index + 1, nombre: producto.nombre, area, precioUnitario, cantidad, subtotal: producto.subtotal });
     });
 
     // Calcular instalación
@@ -1165,16 +1091,11 @@ router.put('/:id/recalcular', auth, verificarPermiso('cotizaciones', 'actualizar
     cotizacion.iva = ivaCalculado;
     cotizacion.total = totalFinal;
     
-    console.log('Cotización después del recálculo:');
-    console.log('- Subtotal productos:', cotizacion.subtotal);
-    console.log('- Instalación:', costoInstalacion);
-    console.log('- Descuento:', montoDescuento);
-    console.log('- IVA:', cotizacion.iva);
-    console.log('- Total final:', cotizacion.total);
+    logger.debug('Cotización después del recálculo', { subtotal: cotizacion.subtotal, instalacion: costoInstalacion, descuento: montoDescuento, iva: cotizacion.iva, total: cotizacion.total });
 
     await cotizacion.save();
     
-    console.log('✅ Totales recalculados y guardados exitosamente');
+    logger.info('Totales recalculados exitosamente', { cotizacionId: req.params.id, total: cotizacion.total });
 
     res.json({
       message: 'Totales recalculados exitosamente',
@@ -1191,7 +1112,7 @@ router.put('/:id/recalcular', auth, verificarPermiso('cotizaciones', 'actualizar
       }
     });
   } catch (error) {
-    console.error('Error recalculando totales:', error);
+    logger.logError(error, { context: 'recalcularTotales', cotizacionId: req.params.id, userId: req.usuario?.id });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });

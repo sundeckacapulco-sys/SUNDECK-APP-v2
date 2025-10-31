@@ -4,6 +4,7 @@ const Pedido = require('../models/Pedido');
 const OrdenFabricacion = require('../models/OrdenFabricacion');
 const Instalacion = require('../models/Instalacion');
 const mongoose = require('mongoose');
+const logger = require('../config/logger');
 
 class SincronizacionService {
   
@@ -12,7 +13,12 @@ class SincronizacionService {
    */
   async ejecutarTriggersEstado(proyecto, estadoAnterior, nuevoEstado, usuarioId) {
     try {
-      console.log(`🔄 Ejecutando triggers: ${estadoAnterior} → ${nuevoEstado} para proyecto ${proyecto._id}`);
+      logger.info('Ejecutando triggers de estado', {
+        proyectoId: proyecto._id,
+        estadoAnterior,
+        nuevoEstado,
+        usuarioId
+      });
 
       // Trigger: levantamiento → cotizacion
       if (estadoAnterior === 'levantamiento' && nuevoEstado === 'cotizacion') {
@@ -43,10 +49,20 @@ class SincronizacionService {
       const notificacionesService = require('./notificacionesService');
       await notificacionesService.crearNotificacionesEstado(proyecto, estadoAnterior, nuevoEstado, usuarioId);
 
-      console.log(`✅ Triggers ejecutados exitosamente para proyecto ${proyecto._id}`);
+      logger.info('Triggers ejecutados exitosamente', {
+        proyectoId: proyecto._id,
+        estadoAnterior,
+        nuevoEstado
+      });
 
     } catch (error) {
-      console.error('❌ Error ejecutando triggers:', error);
+      logger.logError(error, {
+        context: 'ejecutarTriggersEstado',
+        proyectoId: proyecto._id,
+        estadoAnterior,
+        nuevoEstado,
+        usuarioId
+      });
       throw error;
     }
   }
@@ -56,7 +72,10 @@ class SincronizacionService {
    */
   async triggerCrearCotizacion(proyecto, usuarioId) {
     try {
-      console.log(`📋 Creando cotización automática para proyecto ${proyecto._id}`);
+      logger.info('Creando cotización automática', {
+        proyectoId: proyecto._id,
+        usuarioId
+      });
 
       // Verificar si ya existe una cotización para este proyecto
       const cotizacionExistente = await Cotizacion.findOne({ 
@@ -64,7 +83,10 @@ class SincronizacionService {
       });
 
       if (cotizacionExistente) {
-        console.log(`⚠️ Ya existe cotización ${cotizacionExistente.numero} para proyecto ${proyecto._id}`);
+        logger.warn('Cotización ya existe', {
+          proyectoId: proyecto._id,
+          numeroCotizacion: cotizacionExistente.numero
+        });
         return cotizacionExistente;
       }
 
@@ -108,11 +130,19 @@ class SincronizacionService {
         $push: { cotizaciones: nuevaCotizacion._id }
       });
 
-      console.log(`✅ Cotización ${numero} creada automáticamente`);
+      logger.info('Cotización creada automáticamente', {
+        proyectoId: proyecto._id,
+        numeroCotizacion: numero,
+        total: nuevaCotizacion.total
+      });
       return nuevaCotizacion;
 
     } catch (error) {
-      console.error('❌ Error creando cotización automática:', error);
+      logger.logError(error, {
+        context: 'triggerCrearCotizacion',
+        proyectoId: proyecto._id,
+        usuarioId
+      });
       throw error;
     }
   }
@@ -122,7 +152,10 @@ class SincronizacionService {
    */
   async triggerAprobarCotizacion(proyecto, usuarioId) {
     try {
-      console.log(`✅ Aprobando cotización para proyecto ${proyecto._id}`);
+      logger.info('Aprobando cotización', {
+        proyectoId: proyecto._id,
+        usuarioId
+      });
 
       // Buscar la cotización del proyecto
       const cotizacion = await Cotizacion.findOne({ 
@@ -140,7 +173,11 @@ class SincronizacionService {
       }
 
     } catch (error) {
-      console.error('❌ Error aprobando cotización:', error);
+      logger.logError(error, {
+        context: 'triggerAprobarCotizacion',
+        proyectoId: proyecto._id,
+        usuarioId
+      });
       throw error;
     }
   }
@@ -150,7 +187,10 @@ class SincronizacionService {
    */
   async triggerCrearOrdenFabricacion(proyecto, usuarioId) {
     try {
-      console.log(`🏭 Creando orden de fabricación para proyecto ${proyecto._id}`);
+      logger.info('Creando orden de fabricación', {
+        proyectoId: proyecto._id,
+        usuarioId
+      });
 
       // Verificar si ya existe una orden
       const ordenExistente = await OrdenFabricacion.findOne({ 
@@ -158,7 +198,10 @@ class SincronizacionService {
       });
 
       if (ordenExistente) {
-        console.log(`⚠️ Ya existe orden ${ordenExistente.numero} para proyecto ${proyecto._id}`);
+        logger.warn('Orden de fabricación ya existe', {
+          proyectoId: proyecto._id,
+          numeroOrden: ordenExistente.numero
+        });
         return ordenExistente;
       }
 
@@ -192,11 +235,18 @@ class SincronizacionService {
         $push: { ordenes_fabricacion: nuevaOrden._id }
       });
 
-      console.log(`✅ Orden de fabricación ${numero} creada automáticamente`);
+      logger.info('Orden de fabricación creada automáticamente', {
+        proyectoId: proyecto._id,
+        numeroOrden: numero
+      });
       return nuevaOrden;
 
     } catch (error) {
-      console.error('❌ Error creando orden de fabricación:', error);
+      logger.logError(error, {
+        context: 'triggerCrearOrdenFabricacion',
+        proyectoId: proyecto._id,
+        usuarioId
+      });
       throw error;
     }
   }
@@ -206,7 +256,10 @@ class SincronizacionService {
    */
   async triggerProgramarInstalacion(proyecto, usuarioId) {
     try {
-      console.log(`🔧 Programando instalación para proyecto ${proyecto._id}`);
+      logger.info('Programando instalación', {
+        proyectoId: proyecto._id,
+        usuarioId
+      });
 
       // Verificar si ya existe una instalación
       const instalacionExistente = await Instalacion.findOne({ 
@@ -214,7 +267,9 @@ class SincronizacionService {
       });
 
       if (instalacionExistente) {
-        console.log(`⚠️ Ya existe instalación para proyecto ${proyecto._id}`);
+        logger.warn('Instalación ya existe', {
+          proyectoId: proyecto._id
+        });
         return instalacionExistente;
       }
 
@@ -254,11 +309,18 @@ class SincronizacionService {
         $push: { instalaciones: nuevaInstalacion._id }
       });
 
-      console.log(`✅ Instalación ${numero} programada automáticamente`);
+      logger.info('Instalación programada automáticamente', {
+        proyectoId: proyecto._id,
+        numeroInstalacion: numero
+      });
       return nuevaInstalacion;
 
     } catch (error) {
-      console.error('❌ Error programando instalación:', error);
+      logger.logError(error, {
+        context: 'triggerProgramarInstalacion',
+        proyectoId: proyecto._id,
+        usuarioId
+      });
       throw error;
     }
   }
@@ -268,7 +330,10 @@ class SincronizacionService {
    */
   async triggerCompletarProyecto(proyecto, usuarioId) {
     try {
-      console.log(`🎉 Completando proyecto ${proyecto._id}`);
+      logger.info('Completando proyecto', {
+        proyectoId: proyecto._id,
+        usuarioId
+      });
 
       // Actualizar fechas de finalización
       await Proyecto.findByIdAndUpdate(proyecto._id, {
@@ -282,10 +347,16 @@ class SincronizacionService {
       // - Generar reporte de proyecto completado
       // - Notificar al equipo comercial
 
-      console.log(`✅ Proyecto ${proyecto._id} completado exitosamente`);
+      logger.info('Proyecto completado exitosamente', {
+        proyectoId: proyecto._id
+      });
 
     } catch (error) {
-      console.error('❌ Error completando proyecto:', error);
+      logger.logError(error, {
+        context: 'triggerCompletarProyecto',
+        proyectoId: proyecto._id,
+        usuarioId
+      });
       throw error;
     }
   }
@@ -301,7 +372,9 @@ class SincronizacionService {
       });
 
       if (pedidoExistente) {
-        console.log(`⚠️ Ya existe pedido para proyecto ${proyecto._id}`);
+        logger.warn('Pedido ya existe', {
+          proyectoId: proyecto._id
+        });
         return pedidoExistente;
       }
 
@@ -340,11 +413,19 @@ class SincronizacionService {
         $push: { pedidos: nuevoPedido._id }
       });
 
-      console.log(`✅ Pedido ${numero} creado automáticamente`);
+      logger.info('Pedido creado automáticamente', {
+        proyectoId: proyecto._id,
+        numeroPedido: numero,
+        total: nuevoPedido.total
+      });
       return nuevoPedido;
 
     } catch (error) {
-      console.error('❌ Error creando pedido automático:', error);
+      logger.logError(error, {
+        context: 'crearPedidoAutomatico',
+        proyectoId: proyecto._id,
+        usuarioId
+      });
       throw error;
     }
   }
@@ -434,13 +515,20 @@ class SincronizacionService {
 
       if (nuevoEstado !== proyecto.estado) {
         await Proyecto.findByIdAndUpdate(proyectoId, { estado: nuevoEstado });
-        console.log(`🔄 Proyecto ${proyectoId} sincronizado: ${proyecto.estado} → ${nuevoEstado}`);
+        logger.info('Proyecto sincronizado', {
+          proyectoId,
+          estadoAnterior: proyecto.estado,
+          nuevoEstado
+        });
       }
 
       return nuevoEstado;
 
     } catch (error) {
-      console.error('❌ Error sincronizando proyecto:', error);
+      logger.logError(error, {
+        context: 'sincronizarProyecto',
+        proyectoId
+      });
       throw error;
     }
   }

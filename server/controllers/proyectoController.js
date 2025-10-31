@@ -4,6 +4,7 @@ const Cotizacion = require('../models/Cotizacion');
 const mongoose = require('mongoose');
 const pdfService = require('../services/pdfService');
 const excelService = require('../services/excelService');
+const logger = require('../config/logger');
 
 const toNumber = (value, defaultValue = 0) => {
   if (value === null || value === undefined || value === '') {
@@ -32,7 +33,7 @@ const generarPDFProyecto = async (req, res) => {
       });
     }
 
-    console.log(`📄 Generando PDF de ${tipo} para proyecto ${id}`);
+    logger.info('Generando PDF de proyecto', { proyectoId: id, tipo });
 
     let pdfBuffer;
 
@@ -53,12 +54,11 @@ const generarPDFProyecto = async (req, res) => {
       });
     }
 
-    console.log('📊 AUDIT: PDF_GENERADO', {
+    logger.info('PDF generado exitosamente', {
       proyectoId: id,
       tipo,
       documentoId: documentoId || null,
-      usuario: req.usuario?.id,
-      fecha: new Date()
+      userId: req.usuario?.id
     });
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -68,7 +68,12 @@ const generarPDFProyecto = async (req, res) => {
     );
     res.send(pdfBuffer);
   } catch (error) {
-    console.error('❌ Error generando PDF:', error);
+    logger.logError(error, {
+      context: 'generarPDFProyecto',
+      proyectoId: req.params.id,
+      tipo: req.query.tipo,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error al generar el PDF',
@@ -82,7 +87,7 @@ const generarExcelLevantamiento = async (req, res) => {
   try {
     const { id } = req.params;
 
-    console.log(`📊 Generando Excel de levantamiento para proyecto ${id}`);
+    logger.info('Generando Excel de levantamiento', { proyectoId: id });
 
     // Obtener el proyecto con sus datos
     const proyecto = await Proyecto.findById(id).populate('prospecto_original');
@@ -111,11 +116,10 @@ const generarExcelLevantamiento = async (req, res) => {
       'levantamiento' // tipo de visita
     );
 
-    console.log('📊 AUDIT: EXCEL_GENERADO', {
+    logger.info('Excel generado exitosamente', {
       proyectoId: id,
       tipo: 'levantamiento',
-      usuario: req.usuario?.id,
-      fecha: new Date()
+      userId: req.usuario?.id
     });
 
     const clienteNombre = prospecto?.nombre || proyecto.cliente?.nombre || id;
@@ -126,7 +130,11 @@ const generarExcelLevantamiento = async (req, res) => {
     );
     res.send(excelBuffer);
   } catch (error) {
-    console.error('❌ Error generando Excel:', error);
+    logger.logError(error, {
+      context: 'generarExcelLevantamiento',
+      proyectoId: req.params.id,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error al generar el Excel',
@@ -455,7 +463,11 @@ const crearProyecto = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al crear proyecto:', error);
+    logger.logError(error, {
+      context: 'crearProyecto',
+      body: req.body,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',
@@ -557,7 +569,11 @@ const obtenerProyectos = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener proyectos:', error);
+    logger.logError(error, {
+      context: 'obtenerProyectos',
+      query: req.query,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',
@@ -604,7 +620,11 @@ const obtenerProyectoPorId = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener proyecto:', error);
+    logger.logError(error, {
+      context: 'obtenerProyectoPorId',
+      proyectoId: req.params.id,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',
@@ -619,14 +639,19 @@ const actualizarProyecto = async (req, res) => {
     const { id } = req.params;
     const actualizaciones = req.body;
 
-    console.log('🔍 [BACKEND] Actualizando proyecto:', id);
-    console.log('📦 [BACKEND] Actualizaciones recibidas:', JSON.stringify(actualizaciones, null, 2));
+    logger.info('Actualizando proyecto', {
+      proyectoId: id,
+      hasActualizaciones: Object.keys(actualizaciones).length,
+      hasMedidas: !!actualizaciones.medidas,
+      medidasCount: actualizaciones.medidas?.length || 0
+    });
     
-    if (actualizaciones.medidas) {
-      console.log('📏 [BACKEND] Medidas recibidas:', actualizaciones.medidas.length);
-      if (actualizaciones.medidas.length > 0) {
-        console.log('📊 [BACKEND] Primera medida:', JSON.stringify(actualizaciones.medidas[0], null, 2));
-      }
+    if (actualizaciones.medidas && actualizaciones.medidas.length > 0) {
+      logger.debug('Medidas recibidas', {
+        proyectoId: id,
+        count: actualizaciones.medidas.length,
+        primeraMedida: actualizaciones.medidas[0]
+      });
     }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -666,11 +691,11 @@ const actualizarProyecto = async (req, res) => {
       await proyecto.save();
     }
 
-    console.log('✅ [BACKEND] Proyecto guardado exitosamente');
-    console.log('📏 [BACKEND] Medidas guardadas:', proyecto.medidas?.length || 0);
-    if (proyecto.medidas && proyecto.medidas.length > 0) {
-      console.log('📊 [BACKEND] Primera medida guardada:', JSON.stringify(proyecto.medidas[0], null, 2));
-    }
+    logger.info('Proyecto actualizado exitosamente', {
+      proyectoId: id,
+      medidasGuardadas: proyecto.medidas?.length || 0,
+      estado: proyecto.estado
+    });
 
     res.json({
       success: true,
@@ -679,7 +704,11 @@ const actualizarProyecto = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al actualizar proyecto:', error);
+    logger.logError(error, {
+      context: 'actualizarProyecto',
+      proyectoId: req.params.id,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',
@@ -746,7 +775,12 @@ const cambiarEstado = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al cambiar estado:', error);
+    logger.logError(error, {
+      context: 'cambiarEstado',
+      proyectoId: req.params.id,
+      nuevoEstado: req.body.estado,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',
@@ -790,7 +824,11 @@ const eliminarProyecto = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al eliminar proyecto:', error);
+    logger.logError(error, {
+      context: 'eliminarProyecto',
+      proyectoId: req.params.id,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',
@@ -847,7 +885,11 @@ const crearDesdeProspecto = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al crear proyecto desde prospecto:', error);
+    logger.logError(error, {
+      context: 'crearDesdeProspecto',
+      prospectoId: req.params.prospectoId,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',
@@ -891,7 +933,11 @@ const obtenerDatosExportacion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener datos de exportación:', error);
+    logger.logError(error, {
+      context: 'obtenerDatosExportacion',
+      proyectoId: req.params.id,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',
@@ -938,9 +984,13 @@ async function ejecutarTriggersEstado(proyecto, estadoAnterior, nuevoEstado, usu
     const sincronizacionService = require('../services/sincronizacionService');
     await sincronizacionService.ejecutarTriggersEstado(proyecto, estadoAnterior, nuevoEstado, usuarioId);
   } catch (error) {
-    console.error('Error en triggers de estado:', error);
+    logger.warn('Error en triggers de estado', {
+      error: error.message,
+      proyectoId: proyecto._id,
+      estadoAnterior,
+      nuevoEstado
+    });
     // No lanzar el error para no interrumpir el cambio de estado
-    // Solo registrar el error para debugging
   }
 }
 
@@ -970,7 +1020,11 @@ const sincronizarProyecto = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error sincronizando proyecto:', error);
+    logger.logError(error, {
+      context: 'sincronizarProyecto',
+      proyectoId: req.params.id,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',
@@ -1087,7 +1141,11 @@ const obtenerEstadisticasProyecto = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error obteniendo estadísticas:', error);
+    logger.logError(error, {
+      context: 'obtenerEstadisticasProyecto',
+      proyectoId: req.params.id,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',
@@ -1102,7 +1160,11 @@ const guardarLevantamiento = async (req, res) => {
     const { id } = req.params;
     const { partidas = [], totales = {}, observaciones = '', personaVisita = '' } = req.body;
 
-    console.log('🔧 Guardando levantamiento para proyecto:', id);
+    logger.info('Guardando levantamiento', {
+      proyectoId: id,
+      partidasCount: partidas.length,
+      userId: req.usuario?.id
+    });
 
     if (!Array.isArray(partidas) || partidas.length === 0) {
       return res.status(400).json({
@@ -1149,12 +1211,10 @@ const guardarLevantamiento = async (req, res) => {
 
     await proyecto.save();
 
-    console.log('📊 AUDIT: LEVANTAMIENTO_GUARDADO', {
+    logger.info('Levantamiento guardado exitosamente', {
       proyectoId: id,
-      usuario: req.usuario.id,
-      partidas: partidasNormalizadas.length,
-      m2Total: totalesProyecto.m2,
-      fecha: new Date()
+      userId: req.usuario.id,
+      partidasCount: partidasNormalizadas.length
     });
 
     res.json({
@@ -1163,7 +1223,12 @@ const guardarLevantamiento = async (req, res) => {
       data: proyecto
     });
   } catch (error) {
-    console.error('❌ Error al guardar levantamiento:', error);
+    logger.logError(error, {
+      context: 'guardarLevantamiento',
+      proyectoId: req.params.id,
+      partidasCount: req.body.partidas?.length,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error al guardar el levantamiento',
@@ -1185,7 +1250,11 @@ const crearCotizacionDesdeProyecto = async (req, res) => {
       personaVisita = ''
     } = req.body;
 
-    console.log('💰 Creando cotización para proyecto:', id);
+    logger.info('Creando cotización desde proyecto', {
+      proyectoId: id,
+      partidasCount: partidas.length,
+      userId: req.usuario?.id
+    });
 
     if (!Array.isArray(partidas) || partidas.length === 0) {
       return res.status(400).json({
@@ -1298,14 +1367,12 @@ const crearCotizacionDesdeProyecto = async (req, res) => {
 
     await proyecto.save();
 
-    console.log('📊 AUDIT: COTIZACION_CREADA', {
+    logger.info('Cotización creada exitosamente', {
       proyectoId: id,
       cotizacionId: nuevaCotizacion._id,
       numero: numeroCotizacion,
-      usuario: req.usuario.id,
-      total: totalesProyecto.total,
-      m2Total: totalesProyecto.m2,
-      fecha: new Date()
+      userId: req.usuario.id,
+      total: nuevaCotizacion.total
     });
 
     res.json({
@@ -1317,7 +1384,12 @@ const crearCotizacionDesdeProyecto = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Error al crear cotización:', error);
+    logger.logError(error, {
+      context: 'crearCotizacionDesdeProyecto',
+      proyectoId: req.params.id,
+      partidasCount: req.body.partidas?.length,
+      userId: req.usuario?.id
+    });
     res.status(500).json({
       success: false,
       message: 'Error al crear la cotización',

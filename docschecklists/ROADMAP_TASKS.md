@@ -19,15 +19,44 @@ A brief description of what this project does and who it's for
 
 ---
 
+## 🔍 Resumen Ejecutivo de Auditoría (Oct 2025)
+
+**Estado General:** Base funcional sólida con brechas críticas en automatización y observabilidad.
+
+**✅ Módulos Funcionales (7/10):**
+- Prospectos, Proyectos, Levantamientos, Cotizaciones, Instalaciones, KPIs, Exportaciones PDF/Excel
+
+**⚠️ Bloqueantes Críticos Identificados:**
+1. **Duplicidad de dominio**: `Pedido` vs `ProyectoPedido` (riesgo de divergencia de datos)
+2. **Fabricación sin imports**: Módulo no funcional por dependencias faltantes
+3. **IA simulada**: Endpoints devuelven textos estáticos, sin modelos reales
+4. **Observabilidad 0%**: Sin logger estructurado, solo `console.log`
+5. **Métricas simuladas**: Valores placeholder sin instrumentación real
+
+**🎯 Prioridades Inmediatas (Fase 0-1):**
+1. Implementar logger estructurado (`server/logger.js`)
+2. Unificar dominio de pedidos (seleccionar modelo único)
+3. Corregir módulo Fabricación (agregar imports)
+4. Activar métricas baseline reales
+5. Crear pruebas unitarias básicas
+
+**📊 Cobertura Actual vs Meta:**
+- Tests: 0% / 80% ❌
+- Observabilidad: 0% / 85% ❌
+- Automatización: 20% / 90% ❌
+- Módulos funcionales: 70% / 100% ⚙️
+
+---
+
 ## ⚙️ FASE 0 — Baseline y Observabilidad *(0–1 mes)*
 
 | Tarea | Módulo | Estado | Notas |
 |-------|---------|--------|-------|
-| Inventario de dependencias (`Proyecto.js`, controladores, hooks) | Core | ⚙️ | Documentar en `/docs/architecture_map.md` |
-| Implementar logging estructurado (Winston / Pino) | Server | ❌ | JSON + timestamps |
-| Crear carpeta `/logs/` con rotación semanal | Server | ❌ | No requiere cloud |
-| Definir KPIs baseline (latencia, errores, tamaño docs) | KPIs | ❌ | Manual o script Python |
-| Dashboard de métricas local (console / Datadog Lite) | Core | ❌ | Versión ligera local |
+| Inventario de dependencias (`Proyecto.js`, controladores, hooks) | Core | ✅ | Documentado en `/docs/architecture_map.md` |
+| Implementar logging estructurado (Winston / Pino) | Server | ❌ | **CRÍTICO**: Persisten `console.log`, crear `server/logger.js` |
+| Crear carpeta `/logs/` con rotación semanal | Server | ❌ | **BLOQUEANTE**: No existe carpeta `/logs/` |
+| Definir KPIs baseline (latencia, errores, tamaño docs) | KPIs | ⚙️ | Documento creado (`metrics_baseline.md`) pero valores simulados |
+| Dashboard de métricas local (console / Datadog Lite) | Core | ❌ | No hay colección ni pipeline que consuma métricas |
 | Establecer naming convention y ownership | Global | ⚙️ | Definir responsables |
 
 ---
@@ -36,13 +65,15 @@ A brief description of what this project does and who it's for
 
 | Tarea | Módulo | Estado | Notas |
 |-------|---------|--------|-------|
-| Extraer subdocumentos (levantamientos, cotizaciones, pedidos) | DB / Server | ❌ | Crear colecciones independientes |
-| Implementar referencias entre colecciones | DB | ❌ | `proyectoId` ↔ `pedidoId` |
-| Consolidar motor de validaciones (shared validators) | Client / Server | ⚙️ | Evitar duplicación entre modales |
-| Unificar hooks (`usePiezasManager`, `useMedidas`) | Client | ⚙️ | Revisión completa UI |
+| **PRIORIDAD 1**: Unificar dominio de pedidos (`Pedido` vs `ProyectoPedido`) | DB / Server | ❌ | **CRÍTICO**: Duplicidad detectada, seleccionar modelo único |
+| Extraer subdocumentos (levantamientos, cotizaciones, pedidos) | DB / Server | ⚙️ | Levantamientos y cotizaciones ya separados |
+| Implementar referencias entre colecciones | DB | ⚙️ | Parcialmente implementado, falta validación |
+| Consolidar motor de validaciones (shared validators) | Client / Server | ⚙️ | Hooks documentados, falta unificación completa |
+| Unificar hooks (`usePiezasManager`, `useMedidas`) | Client | ✅ | Hooks reutilizables documentados en `architecture_map.md` |
 | Configurar CI/CD con GitHub Actions | DevOps | ⚙️ | Lint + tests unitarios |
-| Crear pruebas unitarias básicas (Jest / Mocha) | Server | ❌ | PDF, Excel, Pedidos |
+| Crear pruebas unitarias básicas (Jest / Mocha) | Server | ❌ | PDF, Excel, Pedidos, Fabricación |
 | Actualizar dependencias críticas | Global | ❌ | Probar en rama `dev` primero |
+| **NUEVO**: Corregir módulo Fabricación (imports faltantes) | Server | ❌ | **BLOQUEANTE**: Falta importar `Pedido`, `Fabricacion`, `CotizacionMappingService` |
 
 ---
 
@@ -50,12 +81,13 @@ A brief description of what this project does and who it's for
 
 | Tarea | Módulo | Estado | Notas |
 |-------|---------|--------|-------|
+| **PRIORIDAD**: Rediseñar módulo IA (actualmente simulado) | IA | ❌ | **CRÍTICO**: Endpoints devuelven textos estáticos, no modelos reales |
 | Crear `eventBusService.js` local | Server | ❌ | Sustituye Redis/Kafka |
-| Implementar motor de reglas | Server | ❌ | Registrar transiciones de estado |
+| Implementar motor de reglas | Server | ❌ | Registrar transiciones de estado, depende de Fase 1 |
 | Diseñar panel operativo en React | Client | ❌ | WebSocket o polling |
-| Integrar IA interna (validación de partidas) | IA | ❌ | Reutilizar modelos existentes |
+| Integrar IA interna funcional (validación de partidas) | IA | ❌ | Requiere métricas de precisión ≥80% |
 | Crear módulo de recordatorios proactivos | IA / Client | ❌ | Basado en fechas |
-| Integrar APM ligero y tracing básico | DevOps | ❌ | Pino + consola |
+| Integrar APM ligero y tracing básico | DevOps | ❌ | Depende de logger estructurado (Fase 0) |
 | Consolidar notificaciones internas | Client / Server | ❌ | WhatsApp opcional simulado |
 
 ---
@@ -86,16 +118,16 @@ A brief description of what this project does and who it's for
 
 ## 📊 SEGUIMIENTO GLOBAL
 
-| Categoría | Indicador | Meta | Estado |
-|------------|------------|------|--------|
-| **Estabilidad** | Uptime servicios críticos | ≥ 99 % | ⚙️ |
-| **Rendimiento** | Latencia promedio API | < 1.5 s | ⚙️ |
-| **Calidad** | Cobertura de tests | ≥ 80 % | ❌ |
-| **Automatización** | Flujo A→P→F automatizado | ≥ 90 % | ❌ |
-| **Observabilidad** | Logs + Métricas + Traces | ≥ 85 % | ⚙️ |
-| **IA** | Precisión de modelos | ≥ 80 % | ⚙️ |
-| **Escalabilidad** | Módulos desacoplados | ≥ 3 | ❌ |
-| **Usuarios móviles** | Adopción app | ≥ 60 % | ❌ |
+| Categoría | Indicador | Meta | Estado Actual | Observaciones de Auditoría |
+|------------|------------|------|--------|---------------------------|
+| **Estabilidad** | Uptime servicios críticos | ≥ 99 % | ⚙️ | Módulos core funcionales (Prospectos, Proyectos, Cotizaciones, Instalaciones) |
+| **Rendimiento** | Latencia promedio API | < 1.5 s | ⚙️ | Sin métricas reales, solo valores simulados |
+| **Calidad** | Cobertura de tests | ≥ 80 % | ❌ | 0% - No existen pruebas unitarias |
+| **Automatización** | Flujo A→P→F automatizado | ≥ 90 % | ❌ | Bloqueado por duplicidad Pedido/ProyectoPedido y fabricación sin imports |
+| **Observabilidad** | Logs + Métricas + Traces | ≥ 85 % | ❌ | 0% - Solo `console.log`, sin logger estructurado ni colección de métricas |
+| **IA** | Precisión de modelos | ≥ 80 % | ❌ | 0% - Endpoints simulados, sin modelos reales ni métricas |
+| **Escalabilidad** | Módulos desacoplados | ≥ 3 | ⚙️ | Prospectos, Proyectos, Instalaciones funcionales pero con dependencias cruzadas |
+| **Usuarios móviles** | Adopción app | ≥ 60 % | ❌ | App móvil no iniciada |
 
 ---
 

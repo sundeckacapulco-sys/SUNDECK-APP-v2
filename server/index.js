@@ -7,6 +7,10 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
+// Logger estructurado
+const logger = require('./config/logger');
+const requestLogger = require('./middleware/requestLogger');
+
 const app = express();
 
 // Trust proxy configuration (for development and production)
@@ -39,7 +43,7 @@ if (process.env.NODE_ENV === 'development') {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length']
   }));
-  console.log('🔓 CORS: Modo desarrollo - todos los orígenes permitidos');
+  logger.info('CORS configurado en modo desarrollo', { allowAll: true });
 } else {
   // En producción, usar configuración estricta
   const corsOptions = {
@@ -49,10 +53,10 @@ if (process.env.NODE_ENV === 'development') {
       const allowedOrigins = getAllowedOrigins();
       
       if (allowedOrigins.indexOf(origin) !== -1) {
-        console.log(`✅ CORS: Origen permitido: ${origin}`);
+        logger.info('CORS: Origen permitido', { origin });
         callback(null, true);
       } else {
-        console.warn(`🚫 CORS: Origen no permitido: ${origin}`);
+        logger.warn('CORS: Origen no permitido', { origin });
         callback(new Error('No permitido por CORS'));
       }
     },
@@ -82,11 +86,18 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Request logging middleware
+app.use(requestLogger);
+
 // Middleware simplificado para descargas
 app.use((req, res, next) => {
-  // Log para debugging en desarrollo
-  if (process.env.NODE_ENV === 'development' && (req.path.includes('/pdf') || req.path.includes('/excel'))) {
-    console.log(`📥 Petición de descarga: ${req.method} ${req.path} desde ${req.headers.origin}`);
+  // Log para debugging de descargas
+  if (req.path.includes('/pdf') || req.path.includes('/excel')) {
+    logger.debug('Petición de descarga', { 
+      method: req.method, 
+      path: req.path, 
+      origin: req.headers.origin 
+    });
   }
   next();
 });
@@ -96,8 +107,8 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-c
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('✅ Conectado a MongoDB'))
-.catch(err => console.error('❌ Error conectando a MongoDB:', err));
+.then(() => logger.info('Conectado a MongoDB exitosamente'))
+.catch(err => logger.error('Error conectando a MongoDB', { error: err.message, stack: err.stack }));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -128,7 +139,7 @@ app.use('/api/fix', require('./routes/fix')); // Ruta temporal para correcciones
 
 // Servir archivos estáticos desde uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-console.log('📁 Sirviendo archivos estáticos desde:', path.join(__dirname, 'uploads'));
+logger.info('Archivos estáticos configurados', { directory: path.join(__dirname, 'uploads') });
 
 // Servir archivos estáticos públicos (imágenes, logos, etc.)
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
@@ -162,7 +173,14 @@ app.get('/api/debug/evidencias', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  logger.error('Error no manejado', {
+    error: err.message,
+    stack: err.stack,
+    method: req.method,
+    url: req.originalUrl,
+    userId: req.user?.id
+  });
+  
   res.status(500).json({ 
     message: 'Error interno del servidor',
     error: process.env.NODE_ENV === 'development' ? err.message : {}
@@ -176,7 +194,14 @@ app.use('*', (req, res) => {
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
-  console.log(`🌐 Ambiente: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Orígenes CORS permitidos: ${getAllowedOrigins().join(', ')}`);
+  logger.info('Servidor iniciado exitosamente', {
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development',
+    corsOrigins: getAllowedOrigins().length,
+    timestamp: new Date().toISOString()
+  });
+  
+  logger.info('Configuración CORS', { 
+    allowedOrigins: getAllowedOrigins() 
+  });
 });
