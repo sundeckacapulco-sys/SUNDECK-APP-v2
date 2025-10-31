@@ -1,5 +1,6 @@
 const Recordatorio = require('../models/Recordatorio');
 const Usuario = require('../models/Usuario');
+const logger = require('../config/logger');
 
 class NotificacionesService {
 
@@ -8,7 +9,14 @@ class NotificacionesService {
    */
   async crearNotificacionesEstado(proyecto, estadoAnterior, nuevoEstado, usuarioId) {
     try {
-      console.log(`📢 Creando notificaciones para cambio: ${estadoAnterior} → ${nuevoEstado}`);
+      logger.info('Creando notificaciones automáticas por cambio de estado', {
+        servicio: 'notificacionesService',
+        accion: 'crearNotificacionesEstado',
+        proyectoId: proyecto?._id?.toString(),
+        estadoAnterior,
+        nuevoEstado,
+        usuarioId: usuarioId?.toString()
+      });
 
       const notificaciones = [];
 
@@ -88,11 +96,26 @@ class NotificacionesService {
       // Notificaciones especiales basadas en tiempo
       await this.crearNotificacionesTiempo(proyecto, nuevoEstado);
 
-      console.log(`✅ ${notificaciones.length} notificaciones creadas para proyecto ${proyecto._id}`);
+      logger.info('Notificaciones por cambio de estado generadas', {
+        servicio: 'notificacionesService',
+        accion: 'crearNotificacionesEstado',
+        proyectoId: proyecto?._id?.toString(),
+        totalNotificaciones: notificaciones.length,
+        nuevoEstado
+      });
       return notificaciones;
 
     } catch (error) {
-      console.error('❌ Error creando notificaciones:', error);
+      logger.error('Error creando notificaciones automáticas', {
+        servicio: 'notificacionesService',
+        accion: 'crearNotificacionesEstado',
+        proyectoId: proyecto?._id?.toString(),
+        estadoAnterior,
+        nuevoEstado,
+        usuarioId: usuarioId?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -131,7 +154,14 @@ class NotificacionesService {
       }
 
     } catch (error) {
-      console.error('❌ Error creando notificaciones de tiempo:', error);
+      logger.error('Error creando notificaciones basadas en tiempo', {
+        servicio: 'notificacionesService',
+        accion: 'crearNotificacionesTiempo',
+        proyectoId: proyecto?._id?.toString(),
+        estado,
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 
@@ -158,12 +188,27 @@ class NotificacionesService {
       });
 
       await nuevoRecordatorio.save();
-      console.log(`📝 Notificación creada: ${datos.titulo}`);
-      
+      logger.info('Notificación individual creada', {
+        servicio: 'notificacionesService',
+        accion: 'crearNotificacion',
+        recordatorioId: nuevoRecordatorio?._id?.toString(),
+        proyectoId: datos.proyectoId?.toString?.() || datos.proyectoId,
+        tipo: datos.tipo,
+        titulo: datos.titulo
+      });
+
       return nuevoRecordatorio;
 
     } catch (error) {
-      console.error('❌ Error creando notificación individual:', error);
+      logger.error('Error creando notificación individual', {
+        servicio: 'notificacionesService',
+        accion: 'crearNotificacion',
+        proyectoId: datos.proyectoId?.toString?.() || datos.proyectoId,
+        tipo: datos.tipo,
+        titulo: datos.titulo,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -174,7 +219,13 @@ class NotificacionesService {
   async enviarNotificacionEmail(notificacion) {
     try {
       // Aquí se integraría con el servicio de email existente
-      console.log(`📧 Email enviado para notificación: ${notificacion.titulo}`);
+      logger.info('Notificación por email enviada', {
+        servicio: 'notificacionesService',
+        accion: 'enviarNotificacionEmail',
+        recordatorioId: notificacion?._id?.toString(),
+        titulo: notificacion?.titulo,
+        destinatario: notificacion?.usuarioAsignado?.toString?.()
+      });
       
       // Ejemplo de integración:
       // const emailService = require('./emailService');
@@ -185,7 +236,14 @@ class NotificacionesService {
       // });
 
     } catch (error) {
-      console.error('❌ Error enviando email:', error);
+      logger.error('Error enviando notificación por email', {
+        servicio: 'notificacionesService',
+        accion: 'enviarNotificacionEmail',
+        recordatorioId: notificacion?._id?.toString(),
+        titulo: notificacion?.titulo,
+        error: error.message,
+        stack: error.stack
+      });
     }
   }
 
@@ -223,7 +281,14 @@ class NotificacionesService {
       return seguimientos;
 
     } catch (error) {
-      console.error('❌ Error creando seguimiento automático:', error);
+      logger.error('Error creando seguimiento automático', {
+        servicio: 'notificacionesService',
+        accion: 'crearSeguimientoAutomatico',
+        proyectoId: proyecto?._id?.toString(),
+        estadoProyecto: proyecto?.estado,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -263,7 +328,13 @@ class NotificacionesService {
       return notificaciones;
 
     } catch (error) {
-      console.error('❌ Error obteniendo notificaciones pendientes:', error);
+      logger.error('Error obteniendo notificaciones pendientes', {
+        servicio: 'notificacionesService',
+        accion: 'obtenerNotificacionesPendientes',
+        usuarioId: usuarioId?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }

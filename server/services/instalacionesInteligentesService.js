@@ -8,6 +8,7 @@
 const Instalacion = require('../models/Instalacion');
 const ProyectoPedido = require('../models/ProyectoPedido');
 const Usuario = require('../models/Usuario');
+const logger = require('../config/logger');
 
 class InstalacionesInteligentesService {
 
@@ -16,7 +17,11 @@ class InstalacionesInteligentesService {
    */
   static async generarSugerenciasInstalacion(proyectoId) {
     try {
-      console.log(`🧠 Generando sugerencias inteligentes para proyecto ${proyectoId}`);
+      logger.info('Generando sugerencias inteligentes para instalación', {
+        servicio: 'instalacionesInteligentes',
+        accion: 'generarSugerenciasInstalacion',
+        proyectoId: proyectoId?.toString()
+      });
 
       const proyecto = await ProyectoPedido.findById(proyectoId)
         .populate('productos');
@@ -79,11 +84,23 @@ class InstalacionesInteligentesService {
         fechaGeneracion: new Date()
       };
 
-      console.log(`✅ Sugerencias generadas con ${sugerencias.confianza}% de confianza`);
+      logger.info('Sugerencias inteligentes generadas', {
+        servicio: 'instalacionesInteligentes',
+        accion: 'generarSugerenciasInstalacion',
+        proyectoId: proyecto?._id?.toString(),
+        confianza: sugerencias.confianza,
+        productos: proyecto?.productos?.length || 0
+      });
       return sugerencias;
 
     } catch (error) {
-      console.error('❌ Error generando sugerencias:', error);
+      logger.error('Error generando sugerencias inteligentes de instalación', {
+        servicio: 'instalacionesInteligentes',
+        accion: 'generarSugerenciasInstalacion',
+        proyectoId: proyectoId?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -136,7 +153,13 @@ class InstalacionesInteligentesService {
       };
 
     } catch (error) {
-      console.error('Error analizando tiempos:', error);
+      logger.error('Error analizando tiempos de instalación', {
+        servicio: 'instalacionesInteligentes',
+        accion: 'analizarTiemposOptimos',
+        proyectoId: proyecto?._id?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       return { tiempoEstimado: 4, confianza: 30 };
     }
   }
@@ -236,7 +259,13 @@ class InstalacionesInteligentesService {
       };
 
     } catch (error) {
-      console.error('Error sugiriendo cuadrilla:', error);
+      logger.error('Error sugiriendo cuadrilla:', {
+        servicio: 'instalacionesInteligentes',
+        accion: 'sugerirCuadrillaOptima',
+        proyectoId: proyecto?._id?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       return { cuadrillaRecomendada: [], confianza: 20 };
     }
   }
@@ -329,10 +358,16 @@ class InstalacionesInteligentesService {
       };
 
     } catch (error) {
-      console.error('Error sugiriendo fecha:', error);
+      logger.error('Error sugiriendo fecha:', {
+        servicio: 'instalacionesInteligentes',
+        accion: 'sugerirMejorFecha',
+        proyectoId: proyecto?._id?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       const fechaDefault = new Date();
       fechaDefault.setDate(fechaDefault.getDate() + 3);
-      return { 
+      return {
         fechaRecomendada: fechaDefault, 
         horaRecomendada: '09:00',
         confianza: 40 

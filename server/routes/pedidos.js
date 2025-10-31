@@ -5,6 +5,7 @@ const Prospecto = require('../models/Prospecto');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const CotizacionMappingService = require('../services/cotizacionMappingService');
 const ValidacionTecnicaService = require('../services/validacionTecnicaService');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
@@ -29,6 +30,14 @@ router.get('/', auth, verificarPermiso('pedidos', 'leer'), async (req, res) => {
 
     res.json(pedidos);
   } catch (error) {
+    logger.error('Error obteniendo pedidos', {
+      ruta: 'pedidosRoutes',
+      accion: 'listarPedidos',
+      filtros: req.query,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -194,7 +203,14 @@ router.post('/desde-cotizacion/:cotizacionId', auth, verificarPermiso('pedidos',
       pedido: nuevoPedido
     });
   } catch (error) {
-    console.error('Error convirtiendo cotización en pedido:', error);
+    logger.error('Error convirtiendo cotización en pedido', {
+      ruta: 'pedidosRoutes',
+      accion: 'crearPedidoDesdeCotizacion',
+      cotizacionId: req.params.cotizacionId,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -389,7 +405,14 @@ router.post('/aplicar-anticipo/:cotizacionId', auth, verificarPermiso('pedidos',
       }
     });
   } catch (error) {
-    console.error('Error aplicando anticipo:', error);
+    logger.error('Error aplicando anticipo y creando pedido', {
+      ruta: 'pedidosRoutes',
+      accion: 'aplicarAnticipo',
+      cotizacionId: req.params.cotizacionId,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -489,7 +512,15 @@ router.put('/:id/fabricacion', auth, verificarPermiso('pedidos', 'editar'), asyn
       ])
     });
   } catch (error) {
-    console.error('Error actualizando fabricación:', error);
+    logger.error('Error actualizando estado de fabricación del pedido', {
+      ruta: 'pedidosRoutes',
+      accion: 'actualizarFabricacion',
+      pedidoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -553,7 +584,15 @@ router.put('/:id/pagar-saldo', auth, verificarPermiso('pedidos', 'editar'), asyn
       ])
     });
   } catch (error) {
-    console.error('Error registrando pago de saldo:', error);
+    logger.error('Error registrando pago de saldo de pedido', {
+      ruta: 'pedidosRoutes',
+      accion: 'registrarPagoSaldo',
+      pedidoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -573,7 +612,14 @@ router.get('/:id', auth, verificarPermiso('pedidos', 'leer'), async (req, res) =
 
     res.json(pedido);
   } catch (error) {
-    console.error('Error obteniendo pedido:', error);
+    logger.error('Error obteniendo pedido por ID', {
+      ruta: 'pedidosRoutes',
+      accion: 'obtenerPedido',
+      pedidoId: req.params.id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -581,8 +627,18 @@ router.get('/:id', auth, verificarPermiso('pedidos', 'leer'), async (req, res) =
 // Crear pedido directamente desde etapa/levantamiento
 router.post('/desde-etapa', auth, verificarPermiso('pedidos', 'crear'), async (req, res) => {
   try {
-    console.log('📦 Creando pedido desde etapa...');
-    console.log('Payload recibido:', JSON.stringify(req.body, null, 2));
+    logger.info('Creando pedido directamente desde etapa', {
+      ruta: 'pedidosRoutes',
+      accion: 'crearPedidoDesdeEtapa',
+      usuarioId: req.usuario?._id || null
+    });
+
+    logger.debug('Payload recibido para crear pedido desde etapa', {
+      ruta: 'pedidosRoutes',
+      accion: 'crearPedidoDesdeEtapa',
+      body: req.body,
+      usuarioId: req.usuario?._id || null
+    });
 
     const {
       prospectoId,
@@ -606,11 +662,23 @@ router.post('/desde-etapa', auth, verificarPermiso('pedidos', 'crear'), async (r
     }
 
     // 🔒 VALIDACIÓN TÉCNICA OBLIGATORIA: Verificar si se puede crear pedido
-    console.log('🔒 Validando información técnica para pedido...');
+    logger.info('Validando información técnica para crear pedido desde etapa', {
+      ruta: 'pedidosRoutes',
+      accion: 'crearPedidoDesdeEtapa',
+      usuarioId: req.usuario?._id || null,
+      prospectoId,
+      piezasCount: piezas.length
+    });
     const validacionTecnica = ValidacionTecnicaService.validarAvanceEtapa(piezas, 'pedido');
-    
+
     if (!validacionTecnica.puedeAvanzar) {
-      console.error('❌ Pedido bloqueado por información técnica incompleta');
+      logger.warn('Pedido bloqueado por información técnica incompleta', {
+        ruta: 'pedidosRoutes',
+        accion: 'crearPedidoDesdeEtapa',
+        usuarioId: req.usuario?._id || null,
+        prospectoId,
+        requisitosFaltantes: validacionTecnica.detalleProductos.filter(p => !p.valido)
+      });
       return res.status(400).json({
         message: 'No se puede crear el pedido',
         error: validacionTecnica.mensajeCandado,
@@ -618,8 +686,13 @@ router.post('/desde-etapa', auth, verificarPermiso('pedidos', 'crear'), async (r
         requisitosFaltantes: validacionTecnica.detalleProductos.filter(p => !p.valido)
       });
     }
-    
-    console.log('✅ Validación técnica aprobada para pedido');
+
+    logger.info('Validación técnica aprobada para crear pedido', {
+      ruta: 'pedidosRoutes',
+      accion: 'crearPedidoDesdeEtapa',
+      usuarioId: req.usuario?._id || null,
+      prospectoId
+    });
 
     // Verificar que el prospecto existe
     const prospecto = await Prospecto.findById(prospectoId);
@@ -751,7 +824,14 @@ router.post('/desde-etapa', auth, verificarPermiso('pedidos', 'crear'), async (r
       .populate('prospecto', 'nombre telefono email')
       .populate('vendedor', 'nombre apellido');
 
-    console.log('✅ Pedido creado exitosamente:', pedidoCompleto.numero);
+    logger.info('Pedido creado exitosamente desde etapa', {
+      ruta: 'pedidosRoutes',
+      accion: 'crearPedidoDesdeEtapa',
+      usuarioId: req.usuario?._id || null,
+      pedidoId: pedidoCompleto._id,
+      numeroPedido: pedidoCompleto.numero,
+      prospectoId: prospecto._id
+    });
 
     res.status(201).json({
       message: 'Pedido creado exitosamente desde etapa',
@@ -768,10 +848,17 @@ router.post('/desde-etapa', auth, verificarPermiso('pedidos', 'crear'), async (r
     });
 
   } catch (error) {
-    console.error('❌ Error creando pedido desde etapa:', error);
-    res.status(500).json({ 
+    logger.error('Error creando pedido directamente desde etapa', {
+      ruta: 'pedidosRoutes',
+      accion: 'crearPedidoDesdeEtapa',
+      usuarioId: req.usuario?._id || null,
+      bodyKeys: Object.keys(req.body || {}),
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor al crear pedido',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -788,7 +875,12 @@ async function generarNumeroPedido() {
     });
     return `PED-${year}-${String(count + 1).padStart(4, '0')}`;
   } catch (error) {
-    console.error('Error generando número de pedido:', error);
+    logger.error('Error generando número de pedido', {
+      ruta: 'pedidosRoutes',
+      accion: 'generarNumeroPedido',
+      error: error.message,
+      stack: error.stack
+    });
     return `PED-${new Date().getFullYear()}-${Date.now()}`;
   }
 }

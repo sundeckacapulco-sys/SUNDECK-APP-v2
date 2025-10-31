@@ -59,6 +59,9 @@
     ],
     "testMatch": [
       "**/tests/**/*.test.js"
-    ]
+    ],
+    "moduleNameMapper": {
+      "^supertest$": "<rootDir>/server/tests/helpers/supertestStub.js"
+    }
   }
 }
