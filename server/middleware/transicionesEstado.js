@@ -3,6 +3,8 @@
  * Asegura que los cambios de estado sigan el flujo correcto
  */
 
+const logger = require('../config/logger');
+
 // Definir el flujo de estados válidos
 const FLUJO_ESTADOS = {
   'levantamiento': ['cotizacion', 'cancelado'],
@@ -100,7 +102,14 @@ const validarTransicionEstado = async (req, res, next) => {
     next();
 
   } catch (error) {
-    console.error('Error validando transición de estado:', error);
+    logger.error('Error validando transición de estado', {
+      middleware: 'transicionesEstado',
+      accion: 'validarTransicion',
+      proyectoId: req.params?.id,
+      nuevoEstado: req.body?.nuevo_estado,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno validando transición',
@@ -161,7 +170,12 @@ async function validarRequisitosEspeciales(proyecto, requisitos) {
         break;
 
       default:
-        console.warn(`Requisito desconocido: ${requisito}`);
+        logger.warn('Requisito desconocido al validar transición de estado', {
+          middleware: 'transicionesEstado',
+          accion: 'validarRequisitoEspecial',
+          requisito,
+          proyectoId: proyecto._id
+        });
         return false;
     }
   }
@@ -184,9 +198,11 @@ const registrarCambioEstado = async (req, res, next) => {
     }
 
     // Registrar el cambio en logs (se puede expandir para guardar en BD)
-    console.log(`📝 Cambio de estado registrado:`, {
+    logger.info('Cambio de estado registrado', {
+      middleware: 'transicionesEstado',
+      accion: 'registrarCambioEstado',
       proyectoId: id,
-      usuario: usuario.nombre || usuario.email,
+      usuario: usuario?.nombre || usuario?.email,
       estadoAnterior: transicion.estadoAnterior,
       nuevoEstado: transicion.nuevoEstado,
       observaciones: observaciones || 'Sin observaciones',
@@ -199,7 +215,13 @@ const registrarCambioEstado = async (req, res, next) => {
     next();
 
   } catch (error) {
-    console.error('Error registrando cambio de estado:', error);
+    logger.error('Error registrando cambio de estado en auditoría', {
+      middleware: 'transicionesEstado',
+      accion: 'registrarCambioEstado',
+      proyectoId: req.params?.id,
+      error: error.message,
+      stack: error.stack
+    });
     // No interrumpir el flujo por errores de auditoría
     next();
   }
@@ -241,7 +263,13 @@ const obtenerTransicionesValidas = (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error obteniendo transiciones válidas:', error);
+    logger.error('Error obteniendo transiciones válidas', {
+      middleware: 'transicionesEstado',
+      accion: 'obtenerTransicionesValidas',
+      estadoSolicitado: req.params?.estado,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',

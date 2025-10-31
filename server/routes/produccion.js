@@ -3,6 +3,7 @@ const Fabricacion = require('../models/Fabricacion');
 const Pedido = require('../models/Pedido');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const CotizacionMappingService = require('../services/cotizacionMappingService');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
@@ -30,7 +31,13 @@ router.get('/', auth, verificarPermiso('fabricacion', 'leer'), async (req, res) 
 
     res.json(ordenes);
   } catch (error) {
-    console.error('Error obteniendo órdenes de producción:', error);
+    logger.error('Error obteniendo órdenes de producción', {
+      ruta: 'routes/produccion',
+      accion: 'listarOrdenes',
+      filtros: req.query,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -147,7 +154,15 @@ router.post('/desde-pedido/:pedidoId', auth, verificarPermiso('fabricacion', 'cr
       .populate('prospecto', 'nombre telefono')
       .populate('asignadoA', 'nombre apellido');
 
-    console.log('✅ Orden de producción creada:', ordenCompleta.numero);
+    logger.info('Orden de producción creada desde pedido', {
+      ruta: 'routes/produccion',
+      accion: 'crearDesdePedido',
+      ordenId: ordenCompleta._id,
+      numeroOrden: ordenCompleta.numero,
+      pedidoId: pedido._id,
+      usuarioId: req.usuario._id,
+      tiemposFabricacion
+    });
 
     res.status(201).json({
       message: 'Orden de producción creada exitosamente',
@@ -156,10 +171,17 @@ router.post('/desde-pedido/:pedidoId', auth, verificarPermiso('fabricacion', 'cr
     });
 
   } catch (error) {
-    console.error('❌ Error creando orden de producción:', error);
-    res.status(500).json({ 
+    logger.error('Error creando orden de producción', {
+      ruta: 'routes/produccion',
+      accion: 'crearDesdePedido',
+      pedidoId: req.params.pedidoId,
+      body: req.body,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor al crear orden de producción',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -222,7 +244,15 @@ router.patch('/:id/estado', auth, verificarPermiso('fabricacion', 'actualizar'),
     });
 
   } catch (error) {
-    console.error('Error actualizando estado de producción:', error);
+    logger.error('Error actualizando estado de producción', {
+      ruta: 'routes/produccion',
+      accion: 'actualizarEstado',
+      ordenId: req.params.id,
+      nuevoEstado: req.body.estado,
+      usuarioId: req.usuario._id,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -316,7 +346,12 @@ async function generarNumeroProduccion() {
     });
     return `PROD-${year}-${String(count + 1).padStart(4, '0')}`;
   } catch (error) {
-    console.error('Error generando número de producción:', error);
+    logger.error('Error generando número de producción', {
+      ruta: 'routes/produccion',
+      accion: 'generarNumeroProduccion',
+      error: error.message,
+      stack: error.stack
+    });
     return `PROD-${new Date().getFullYear()}-${Date.now()}`;
   }
 }

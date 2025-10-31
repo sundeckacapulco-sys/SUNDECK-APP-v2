@@ -6,6 +6,7 @@
 
 const Instalacion = require('../models/Instalacion');
 const mongoose = require('mongoose');
+const logger = require('../config/logger');
 
 class KPIsInstalacionesService {
 
@@ -18,7 +19,9 @@ class KPIsInstalacionesService {
       const inicioMes = fechaInicio || new Date(hoy.getFullYear(), hoy.getMonth(), 1);
       const finMes = fechaFin || new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
 
-      console.log('📊 Calculando KPIs de instalaciones', {
+      logger.info('Calculando KPIs de instalaciones', {
+        servicio: 'kpisInstalaciones',
+        metodo: 'obtenerDashboardInstalaciones',
         periodo: `${inicioMes.toISOString().split('T')[0]} - ${finMes.toISOString().split('T')[0]}`
       });
 
@@ -53,7 +56,12 @@ class KPIsInstalacionesService {
       };
 
     } catch (error) {
-      console.error('❌ Error calculando KPIs de instalaciones:', error);
+      logger.error('Error calculando KPIs de instalaciones', {
+        servicio: 'kpisInstalaciones',
+        metodo: 'obtenerDashboardInstalaciones',
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error('Error al obtener KPIs de instalaciones');
     }
   }

@@ -1,9 +1,12 @@
 const mongoose = require('mongoose');
 const Cotizacion = require('../models/Cotizacion');
+const logger = require('../config/logger');
 
 async function fixCotizaciones() {
   try {
-    console.log('🔧 Iniciando corrección de cotizaciones...');
+    logger.info('Iniciando corrección de cotizaciones', {
+      script: 'fixCotizaciones'
+    });
     
     // Obtener todas las cotizaciones, usando .lean() para mayor rendimiento en lecturas masivas
     const cotizaciones = await Cotizacion.find({}, {
@@ -19,12 +22,20 @@ async function fixCotizaciones() {
       total: 1     // Mantener para loguear el valor anterior
     }).lean(); 
 
-    console.log(`📋 Encontradas ${cotizaciones.length} cotizaciones`);
-    
-    for (const rawCotizacion of cotizaciones) { 
+    logger.info('Cotizaciones obtenidas para corrección', {
+      script: 'fixCotizaciones',
+      totalCotizaciones: cotizaciones.length
+    });
+
+    for (const rawCotizacion of cotizaciones) {
       const cotizacion = { ...rawCotizacion }; // Crear una copia mutable ya que .lean() devuelve objetos JS planos
 
-      console.log(`\n🔍 Procesando cotización ${cotizacion.numero || cotizacion._id}...`); 
+      logger.info('Procesando cotización para recalcular totales', {
+        script: 'fixCotizaciones',
+        cotizacionId: cotizacion._id,
+        numeroCotizacion: cotizacion.numero,
+        productosRegistrados: cotizacion.productos?.length || 0
+      });
       
       let subtotalCorregido = 0;
       
@@ -45,9 +56,19 @@ async function fixCotizaciones() {
             subtotalProducto = area * precio * cantidad;
           }
           
-          console.log(`  📦 Producto ${index + 1}: ${producto.nombreProducto || producto.nombre || 'Sin nombre'}`); 
-          console.log(`     Antes: $${producto.subtotal?.toFixed(2) || '0.00'}`);
-          console.log(`     Ahora: $${subtotalProducto.toFixed(2)} (área: ${area.toFixed(2)}m², precio: $${precio.toFixed(2)}, cantidad: ${cantidad})`);
+          logger.info('Producto recalculado en cotización', {
+            script: 'fixCotizaciones',
+            cotizacionId: cotizacion._id,
+            numeroCotizacion: cotizacion.numero,
+            indiceProducto: index + 1,
+            nombreProducto: producto.nombreProducto || producto.nombre || 'Sin nombre',
+            subtotalAnterior: producto.subtotal || 0,
+            subtotalNuevo: subtotalProducto,
+            area,
+            precioUnitario: precio,
+            cantidad,
+            unidadMedida
+          });
           
           subtotalCorregido += subtotalProducto;
           return { ...producto, subtotal: subtotalProducto }; 
@@ -69,12 +90,19 @@ async function fixCotizaciones() {
       const iva = incluirIVA ? subtotalConInstalacion * 0.16 : 0;
       const totalCorregido = subtotalConInstalacion + iva;
       
-      console.log(`  💰 Totales:`);
-      console.log(`     Subtotal anterior: $${rawCotizacion.subtotal?.toFixed(2) || '0.00'}`); 
-      console.log(`     Subtotal corregido: $${subtotalCorregido.toFixed(2)}`);
-      console.log(`     IVA: $${iva.toFixed(2)} (incluir: ${incluirIVA})`);
-      console.log(`     Total anterior: $${rawCotizacion.total?.toFixed(2) || '0.00'}`); 
-      console.log(`     Total corregido: $${totalCorregido.toFixed(2)}`);
+      logger.info('Totales recalculados para cotización', {
+        script: 'fixCotizaciones',
+        cotizacionId: cotizacion._id,
+        numeroCotizacion: cotizacion.numero,
+        subtotalAnterior: rawCotizacion.subtotal || 0,
+        subtotalCorregido,
+        ivaCalculado: iva,
+        ivaIncluido: incluirIVA,
+        totalAnterior: rawCotizacion.total || 0,
+        totalCorregido,
+        descuentoAplicado: descuentoMontoTotal,
+        costoInstalacion: cotizacion.costoInstalacion || 0
+      });
       
       // Recalcular anticipo y saldo
       let formaPagoUpdate = {};
@@ -100,14 +128,27 @@ async function fixCotizaciones() {
         }
       );
       
-      console.log(`  ✅ Cotización ${cotizacion.numero || cotizacion._id} actualizada`);
+      logger.info('Cotización actualizada tras correcciones', {
+        script: 'fixCotizaciones',
+        cotizacionId: cotizacion._id,
+        numeroCotizacion: cotizacion.numero,
+        subtotalCorregido,
+        totalCorregido
+      });
     }
-    
-    console.log('\n🎉 ¡Todas las cotizaciones han sido corregidas!');
-    
+
+    logger.info('Corrección de cotizaciones finalizada', {
+      script: 'fixCotizaciones',
+      cotizacionesProcesadas: cotizaciones.length
+    });
+
   } catch (error) {
-    console.error('❌ Error corrigiendo cotizaciones:', error);
-    throw error; 
+    logger.error('Error corrigiendo cotizaciones', {
+      script: 'fixCotizaciones',
+      error: error.message,
+      stack: error.stack
+    });
+    throw error;
   }
 }
 

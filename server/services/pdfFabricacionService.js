@@ -1,6 +1,7 @@
 const handlebars = require('handlebars');
 const path = require('path');
 const fs = require('fs').promises;
+const logger = require('../config/logger');
 
 // Variable para carga lazy de puppeteer
 let puppeteerLib;
@@ -25,7 +26,12 @@ class PDFFabricacionService {
       
       return this.browser;
     } catch (error) {
-      console.error('Error inicializando browser para fabricación:', error);
+      logger.error('Error inicializando browser para PDF de fabricación', {
+        servicio: 'pdfFabricacionService',
+        accion: 'initBrowser',
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -42,7 +48,9 @@ class PDFFabricacionService {
   // Generar PDF de orden de fabricación (SIN PRECIOS)
   async generarOrdenFabricacionPDF(ordenFabricacion) {
     try {
-      console.log('🏭 [PDF-FAB] Iniciando generación de orden de fabricación', {
+      logger.info('Iniciando generación de PDF de orden de fabricación', {
+        servicio: 'pdfFabricacionService',
+        accion: 'generarOrdenFabricacionPDF',
         numero: ordenFabricacion?.numero,
         productos: ordenFabricacion?.productos?.length || 0
       });
@@ -63,7 +71,13 @@ class PDFFabricacionService {
         const logoBuffer = await fs.readFile(logoPath);
         logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
       } catch (logoError) {
-        console.log('⚠️ No se pudo cargar el logo SUNDECK:', logoError.message);
+        logger.warn('No se pudo cargar el logo SUNDECK para el PDF de fabricación', {
+          servicio: 'pdfFabricacionService',
+          accion: 'generarOrdenFabricacionPDF',
+          numero: ordenFabricacion?.numero,
+          error: logoError.message,
+          stack: logoError.stack
+        });
       }
 
       // Template HTML para orden de fabricación
@@ -687,7 +701,9 @@ class PDFFabricacionService {
 
       await page.close();
 
-      console.log('✅ [PDF-FAB] Orden de fabricación generada exitosamente', {
+      logger.info('Orden de fabricación generada exitosamente', {
+        servicio: 'pdfFabricacionService',
+        accion: 'generarOrdenFabricacionPDF',
         numero: ordenFabricacion?.numero,
         size: pdf.length
       });
@@ -695,7 +711,13 @@ class PDFFabricacionService {
       return pdf;
 
     } catch (error) {
-      console.error('❌ [PDF-FAB] Error generando orden de fabricación:', error);
+      logger.error('Error generando orden de fabricación en PDF', {
+        servicio: 'pdfFabricacionService',
+        accion: 'generarOrdenFabricacionPDF',
+        numero: ordenFabricacion?.numero,
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error('No se pudo generar el PDF de fabricación');
     }
   }

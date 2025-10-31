@@ -2,6 +2,7 @@ const express = require('express');
 const ProyectoPedido = require('../models/ProyectoPedido');
 const FabricacionService = require('../services/fabricacionService');
 const { auth, verificarPermiso } = require('../middleware/auth');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
@@ -12,7 +13,13 @@ router.get('/cola', auth, verificarPermiso('fabricacion', 'leer'), async (req, r
     const proyectos = await FabricacionService.obtenerColaFabricacion(filtros);
     res.json(proyectos);
   } catch (error) {
-    console.error('Error obteniendo cola de fabricación:', error);
+    logger.error('Error obteniendo cola de fabricación', {
+      ruta: 'routes/fabricacion',
+      accion: 'obtenerCola',
+      filtros: req.query,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error obteniendo cola de fabricación', error: error.message });
   }
 });
@@ -23,11 +30,17 @@ router.get('/metricas', auth, verificarPermiso('fabricacion', 'leer'), async (re
     const fechaInicio = new Date();
     fechaInicio.setMonth(fechaInicio.getMonth() - 1);
     const fechaFin = new Date();
-    
+
     const metricas = await FabricacionService.obtenerMetricas(fechaInicio, fechaFin);
     res.json(metricas);
   } catch (error) {
-    console.error('Error obteniendo métricas de fabricación:', error);
+    logger.error('Error obteniendo métricas de fabricación', {
+      ruta: 'routes/fabricacion',
+      accion: 'obtenerMetricas',
+      rangoFechas: { fechaInicio, fechaFin },
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error obteniendo métricas', error: error.message });
   }
 });
@@ -144,7 +157,15 @@ router.post('/desde-pedido/:pedidoId', auth, verificarPermiso('fabricacion', 'cr
       .populate('prospecto', 'nombre telefono')
       .populate('asignadoA', 'nombre apellido');
 
-    console.log('✅ Orden de fabricación creada:', ordenCompleta.numero);
+    logger.info('Orden de fabricación creada desde pedido', {
+      ruta: 'routes/fabricacion',
+      accion: 'crearDesdePedido',
+      ordenId: ordenCompleta._id,
+      numeroOrden: ordenCompleta.numero,
+      pedidoId: pedido._id,
+      usuarioId: req.usuario._id,
+      tiemposFabricacion
+    });
 
     res.status(201).json({
       message: 'Orden de fabricación creada exitosamente',
@@ -153,10 +174,17 @@ router.post('/desde-pedido/:pedidoId', auth, verificarPermiso('fabricacion', 'cr
     });
 
   } catch (error) {
-    console.error('❌ Error creando orden de fabricación:', error);
-    res.status(500).json({ 
+    logger.error('Error creando orden de fabricación', {
+      ruta: 'routes/fabricacion',
+      accion: 'crearDesdePedido',
+      pedidoId: req.params.pedidoId,
+      body: req.body,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({
       message: 'Error interno del servidor al crear orden de fabricación',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -219,7 +247,15 @@ router.patch('/:id/estado', auth, verificarPermiso('fabricacion', 'actualizar'),
     });
 
   } catch (error) {
-    console.error('Error actualizando estado de fabricación:', error);
+    logger.error('Error actualizando estado de fabricación', {
+      ruta: 'routes/fabricacion',
+      accion: 'actualizarEstado',
+      ordenId: req.params.id,
+      nuevoEstado: req.body.estado,
+      usuarioId: req.usuario._id,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ message: 'Error interno del servidor' });
   }
 });
@@ -313,7 +349,12 @@ async function generarNumeroFabricacion() {
     });
     return `FAB-${year}-${String(count + 1).padStart(4, '0')}`;
   } catch (error) {
-    console.error('Error generando número de fabricación:', error);
+    logger.error('Error generando número de fabricación', {
+      ruta: 'routes/fabricacion',
+      accion: 'generarNumeroFabricacion',
+      error: error.message,
+      stack: error.stack
+    });
     return `FAB-${new Date().getFullYear()}-${Date.now()}`;
   }
 }

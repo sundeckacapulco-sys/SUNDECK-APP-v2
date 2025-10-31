@@ -4,6 +4,7 @@ const Etapa = require('../models/Etapa');
 const Cotizacion = require('../models/Cotizacion');
 const Pedido = require('../models/Pedido');
 const ProyectoPedido = require('../models/ProyectoPedido');
+const logger = require('../config/logger');
 require('dotenv').config();
 
 /**
@@ -32,30 +33,50 @@ class MigradorProyectos {
 
   async conectarDB() {
     try {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm');
-      console.log('✅ Conectado a MongoDB');
+      const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm';
+      await mongoose.connect(mongoUri);
+      logger.info('Conexión a MongoDB establecida para migración completa', {
+        script: 'migrarAProyectos',
+        mongoUri: process.env.MONGODB_URI ? 'env:MONGODB_URI' : mongoUri
+      });
     } catch (error) {
-      console.error('❌ Error conectando a MongoDB:', error);
+      logger.error('Error conectando a MongoDB en migración completa', {
+        script: 'migrarAProyectos',
+        error: error.message,
+        stack: error.stack
+      });
       process.exit(1);
     }
   }
 
   async migrarTodo() {
-    console.log('🚀 INICIANDO MIGRACIÓN COMPLETA AL SISTEMA UNIFICADO');
-    console.log('=' .repeat(60));
+    logger.info('Iniciando migración completa al sistema unificado', {
+      script: 'migrarAProyectos',
+      etapa: 'inicio'
+    });
 
     await this.conectarDB();
 
     // Obtener todos los prospectos con sus relaciones
     const prospectos = await Prospecto.find({}).lean();
-    console.log(`📋 Encontrados ${prospectos.length} prospectos`);
+    logger.info('Prospectos recuperados para migración completa', {
+      script: 'migrarAProyectos',
+      etapa: 'inicio',
+      totalProspectos: prospectos.length
+    });
 
     for (const prospecto of prospectos) {
       try {
         await this.migrarProspecto(prospecto);
         this.estadisticas.prospectos++;
       } catch (error) {
-        console.error(`❌ Error migrando prospecto ${prospecto._id}:`, error.message);
+        logger.error('Error migrando prospecto en proceso masivo', {
+          script: 'migrarAProyectos',
+          etapa: 'migrarTodo',
+          prospectoId: prospecto._id,
+          error: error.message,
+          stack: error.stack
+        });
         this.estadisticas.errores.push({
           tipo: 'prospecto',
           id: prospecto._id,
@@ -66,22 +87,46 @@ class MigradorProyectos {
 
     await this.mostrarEstadisticas();
     await mongoose.disconnect();
+    logger.info('Conexión a MongoDB cerrada tras migración completa', {
+      script: 'migrarAProyectos',
+      etapa: 'finalizacion'
+    });
   }
 
   async migrarProspecto(prospecto) {
-    console.log(`\n🔄 Migrando prospecto: ${prospecto.nombre}`);
+    logger.info('Migrando prospecto a proyecto unificado', {
+      script: 'migrarAProyectos',
+      etapa: 'migrarProspecto',
+      prospectoId: prospecto._id,
+      prospectoNombre: prospecto.nombre
+    });
 
     // 1. Buscar etapas relacionadas
     const etapas = await Etapa.find({ prospectoId: prospecto._id }).lean();
-    console.log(`  📝 Encontradas ${etapas.length} etapas`);
+    logger.info('Etapas asociadas recuperadas', {
+      script: 'migrarAProyectos',
+      etapa: 'migrarProspecto',
+      prospectoId: prospecto._id,
+      totalEtapas: etapas.length
+    });
 
     // 2. Buscar cotizaciones relacionadas
     const cotizaciones = await Cotizacion.find({ prospecto: prospecto._id }).lean();
-    console.log(`  💰 Encontradas ${cotizaciones.length} cotizaciones`);
+    logger.info('Cotizaciones asociadas recuperadas', {
+      script: 'migrarAProyectos',
+      etapa: 'migrarProspecto',
+      prospectoId: prospecto._id,
+      totalCotizaciones: cotizaciones.length
+    });
 
     // 3. Buscar pedidos relacionados
     const pedidos = await Pedido.find({ prospecto: prospecto._id }).lean();
-    console.log(`  📦 Encontrados ${pedidos.length} pedidos`);
+    logger.info('Pedidos asociados recuperados', {
+      script: 'migrarAProyectos',
+      etapa: 'migrarProspecto',
+      prospectoId: prospecto._id,
+      totalPedidos: pedidos.length
+    });
 
     // 4. Determinar el estado del proyecto
     const estado = this.determinarEstado(etapas, cotizaciones, pedidos);
@@ -142,7 +187,21 @@ class MigradorProyectos {
     const proyecto = new ProyectoPedido(proyectoData);
     await proyecto.save();
 
-    console.log(`  ✅ Proyecto creado: ${proyecto.numero}`);
+    logger.info('Proyecto unificado creado para prospecto', {
+      script: 'migrarAProyectos',
+      etapa: 'migrarProspecto',
+      prospectoId: prospecto._id,
+      proyectoId: proyecto._id,
+      numeroProyecto: proyecto.numero,
+      resumenProductos: {
+        total: proyecto.productos.length,
+        origenes: {
+          pedidos: pedidos.length,
+          cotizaciones: cotizaciones.length,
+          etapas: etapas.length
+        }
+      }
+    });
     this.estadisticas.proyectosCreados++;
 
     return proyecto;
@@ -335,29 +394,44 @@ class MigradorProyectos {
   }
 
   async mostrarEstadisticas() {
-    console.log('\n' + '='.repeat(60));
-    console.log('📊 ESTADÍSTICAS DE MIGRACIÓN');
-    console.log('='.repeat(60));
-    console.log(`✅ Prospectos migrados: ${this.estadisticas.prospectos}`);
-    console.log(`🎯 Proyectos creados: ${this.estadisticas.proyectosCreados}`);
-    console.log(`❌ Errores: ${this.estadisticas.errores.length}`);
+    const resumenErrores = this.estadisticas.errores.map((error, index) => ({
+      consecutivo: index + 1,
+      tipo: error.tipo,
+      id: error.id,
+      mensaje: error.error
+    }));
+
+    logger.info('Estadísticas finales de migración completa', {
+      script: 'migrarAProyectos',
+      etapa: 'finalizacion',
+      prospectosMigrados: this.estadisticas.prospectos,
+      proyectosCreados: this.estadisticas.proyectosCreados,
+      erroresDetectados: this.estadisticas.errores.length,
+      detalleErrores: resumenErrores
+    });
 
     if (this.estadisticas.errores.length > 0) {
-      console.log('\n🚨 ERRORES ENCONTRADOS:');
-      this.estadisticas.errores.forEach((error, index) => {
-        console.log(`${index + 1}. [${error.tipo}] ${error.id}: ${error.error}`);
+      logger.warn('Errores encontrados durante migración completa', {
+        script: 'migrarAProyectos',
+        etapa: 'finalizacion',
+        errores: resumenErrores
       });
     }
-
-    console.log('\n✅ MIGRACIÓN COMPLETADA');
-    console.log('🎉 El sistema unificado está listo para usar');
   }
 }
 
 // Ejecutar migración si se llama directamente
 if (require.main === module) {
   const migrador = new MigradorProyectos();
-  migrador.migrarTodo().catch(console.error);
+  migrador.migrarTodo().catch(error => {
+    logger.error('Error no controlado ejecutando migración completa', {
+      script: 'migrarAProyectos',
+      etapa: 'ejecucion',
+      error: error.message,
+      stack: error.stack
+    });
+    process.exit(1);
+  });
 }
 
 module.exports = MigradorProyectos;

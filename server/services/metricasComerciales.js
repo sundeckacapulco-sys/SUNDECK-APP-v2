@@ -1,6 +1,7 @@
 const Pedido = require('../models/Pedido');
 const Cotizacion = require('../models/Cotizacion');
 const mongoose = require('mongoose');
+const logger = require('../config/logger');
 
 class MetricasComercialesService {
   
@@ -15,7 +16,9 @@ class MetricasComercialesService {
       const inicioMesAnterior = new Date(inicioMes.getFullYear(), inicioMes.getMonth() - 1, 1);
       const finMesAnterior = new Date(inicioMes.getFullYear(), inicioMes.getMonth(), 0);
 
-      console.log('📊 Calculando métricas comerciales', {
+      logger.info('Calculando métricas comerciales para dashboard', {
+        servicio: 'metricasComerciales',
+        metodo: 'obtenerMetricasDashboard',
         periodo: `${inicioMes.toISOString().split('T')[0]} - ${finMes.toISOString().split('T')[0]}`
       });
 
@@ -63,7 +66,12 @@ class MetricasComercialesService {
       };
 
     } catch (error) {
-      console.error('❌ Error calculando métricas comerciales:', error);
+      logger.error('Error calculando métricas comerciales', {
+        servicio: 'metricasComerciales',
+        metodo: 'obtenerMetricasDashboard',
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error('Error al obtener métricas del dashboard');
     }
   }
