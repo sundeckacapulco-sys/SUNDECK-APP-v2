@@ -8,15 +8,15 @@
 ## 🎯 ESTADO ACTUAL
 
 **Sprints completados:**
-- ⚠️ Sprint 1: Logger Estructurado (74% - Logger funcional, 44.6% migrado)
+- ⚠️ Sprint 1: Logger Estructurado (77% - Logger funcional, 54.2% migrado)
 - ✅ Sprint 2: Métricas Baseline (75% - Backend completo)
 
-**Fase 0: Baseline y Observabilidad - 74%** ⬆️ +3%
-- ⚠️ Logging estructurado (74% - 187/419 console.log migrados, 44.6%)
-  - ✅ Archivos críticos: 100% migrados 🎉
-  - ✅ pdfService.js (28 → 0)
-  - ✅ cotizacionController.js (5 → 0)
-  - ✅ exportacionController.js (3 → 0)
+**Fase 0: Baseline y Observabilidad - 77%** ⬆️ +6%
+- ⚠️ Logging estructurado (77% - 227/419 console.log migrados, 54.2%)
+  - ✅ **Archivos de producción: 100% migrados** 🎉
+  - ✅ Archivos críticos: pdfService, controladores (36)
+  - ✅ Rutas operativas: 6 archivos (40)
+  - ⏳ Scripts de utilidad: 192 pendientes (no críticos)
 - ✅ Carpeta /logs/ (100%)
 - ✅ KPIs baseline (75% - Backend completo)
 - ⚠️ Dashboard métricas (0% - Opcional)
@@ -25,19 +25,20 @@
 - 15/15 tests pasando ✅
 - Métricas capturándose automáticamente ✅
 - API REST con 4 endpoints operativos ✅
+- Logging estructurado en producción ✅
 - Listo para producción ✅
 
 **Progreso reciente:**
-- ✅ pdfService.js: 28 console.log → logger estructurado
-- ✅ cotizacionController.js: 5 console.log → logger estructurado
-- ✅ exportacionController.js: 3 console.log → logger estructurado
-- ✅ Helper getDocumentId implementado
+- ✅ 6 rutas operativas migradas (40 console.log)
+- ✅ plantillasWhatsApp, backup, instalaciones, prospectos, pedidos, storage
+- ✅ Modelo Metric mejorado para tests (in-memory)
+- ✅ Contexto rico en todos los logs
 - ✅ Eventos completos (Start/Success/Error)
 
 **Próxima tarea:**
-- 📋 Completar 232 console.log restantes (55.4%)
-- 🎯 Siguiente: plantillasWhatsApp.js (13 console.log)
-- 👉 Ver [`CONTINUAR_AQUI.md`](CONTINUAR_AQUI.md) para instrucciones
+- 📋 Scripts de utilidad (192 console.log) - Opcional
+- 🎯 Archivos de producción: 100% ✅
+- 👉 Ver [`CONTINUAR_AQUI.md`](CONTINUAR_AQUI.md) para detalles
 
 **Documentación:**
 - 📚 [`docschecklists/auditorias/AUDITORIA_SPRINT_02.md`](docschecklists/auditorias/AUDITORIA_SPRINT_02.md) - Auditoría Sprint 2
