@@ -344,12 +344,12 @@ const AgregarMedidasProyectoModal = ({
       if (!medida.galeria) {
         errores.push(`Pieza ${index + 1}: Galería es obligatoria`);
       }
-      if (!medida.modoOperacion) {
+      if (!medida.tipoOperacion) {
         errores.push(`Pieza ${index + 1}: Modo de operación es obligatorio`);
       }
       
       // Si es motorizado, validar motorización
-      if (medida.modoOperacion === 'motorizado' && pieza.motorizado) {
+      if (medida.tipoOperacion === 'motorizado' && pieza.motorizado) {
         if (!pieza.motorModelo) {
           errores.push(`Partida ${pieza.ubicacion}: Modelo de motor es obligatorio`);
         }
@@ -472,7 +472,7 @@ const AgregarMedidasProyectoModal = ({
             galeria: medida.galeria,
             telaMarca: medida.telaMarca,
             baseTabla: medida.baseTabla,
-            operacion: medida.modoOperacion,
+            operacion: medida.tipoOperacion,
             detalle: medida.detalleTecnico === 'otro' ? medida.detalleTecnicoManual : medida.detalleTecnico,
             traslape: medida.traslape === 'otro' ? medida.traslapeManual : medida.traslape,
             modeloCodigo: medida.modeloCodigo,
@@ -588,7 +588,7 @@ const AgregarMedidasProyectoModal = ({
             galeria: medida.galeria,
             telaMarca: medida.telaMarca,
             baseTabla: medida.baseTabla,
-            operacion: medida.modoOperacion,
+            operacion: medida.tipoOperacion,
             detalle: medida.detalleTecnico === 'otro' ? medida.detalleTecnicoManual : medida.detalleTecnico,
             traslape: medida.traslape === 'otro' ? medida.traslapeManual : medida.traslape,
             modeloCodigo: medida.modeloCodigo,
@@ -2336,10 +2336,10 @@ const AgregarMedidasProyectoModal = ({
                                                               </Typography>
                                                             </Grid>
                                                           )}
-                                                          {medida.modoOperacion && (
+                                                          {medida.tipoOperacion && (
                                                             <Grid item xs={6} sm={4}>
                                                               <Typography variant="caption" display="block" color="text.secondary">
-                                                                <strong>Operación:</strong> {medida.modoOperacion}
+                                                                <strong>Operación:</strong> {medida.tipoOperacion}
                                                               </Typography>
                                                             </Grid>
                                                           )}

@@ -260,10 +260,10 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
           </Grid>
           <Grid item xs={6} md={3}>
             <KpiCard
-              icon="DollarSign"
-              label="Total Estimado"
-              value={`$${totales.totalEstimado?.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}`}
-              tooltip="Costo estimado total del proyecto"
+              icon="Package"
+              label="Total de Piezas"
+              value={totales.totalPiezas || 0}
+              tooltip="Cantidad total de piezas en el levantamiento"
               color="#ff9800"
               animate={false}
             />

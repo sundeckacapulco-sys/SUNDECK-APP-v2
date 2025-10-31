@@ -40,7 +40,6 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Sync as SyncIcon,
-  PictureAsPdf as PdfIcon,
   TableChart as ExcelIcon,
   Timeline as TimelineIcon
 } from '@mui/icons-material';
@@ -217,16 +216,6 @@ const ProyectosList = () => {
       console.error('Error eliminando proyecto:', error);
       setError('Error eliminando proyecto');
     }
-  };
-
-  const handleGenerarPDF = async (proyecto) => {
-    try {
-      await proyectosApi.generarPDF(proyecto._id);
-    } catch (error) {
-      console.error('Error generando PDF:', error);
-      setError('Error generando PDF');
-    }
-    handleMenuClose();
   };
 
   const handleGenerarExcel = async (proyecto) => {
@@ -527,13 +516,9 @@ const ProyectosList = () => {
           <SyncIcon sx={{ mr: 1 }} />
           Sincronizar
         </MenuItem>
-        <MenuItem onClick={() => handleGenerarPDF(proyectoSeleccionado)}>
-          <PdfIcon sx={{ mr: 1 }} />
-          Generar PDF
-        </MenuItem>
         <MenuItem onClick={() => handleGenerarExcel(proyectoSeleccionado)}>
           <ExcelIcon sx={{ mr: 1 }} />
-          Generar Excel
+          Exportar a Excel
         </MenuItem>
         <MenuItem 
           onClick={() => setDialogoEliminar(true)}

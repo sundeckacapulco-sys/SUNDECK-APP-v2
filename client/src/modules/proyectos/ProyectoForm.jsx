@@ -82,8 +82,31 @@ const ProyectoForm = () => {
   const cargarProyecto = async () => {
     try {
       setLoading(true);
-      const response = await proyectosApi.obtenerPorId(id);
-      setProyecto(response.data);
+      const response = await proyectosApi.obtenerProyectoPorId(id);
+      
+      // Asegurar que la estructura de datos sea correcta
+      const proyectoData = response.data;
+      
+      setProyecto({
+        cliente: {
+          nombre: proyectoData.cliente?.nombre || '',
+          telefono: proyectoData.cliente?.telefono || '',
+          email: proyectoData.cliente?.email || '',
+          direccion: {
+            calle: proyectoData.cliente?.direccion?.calle || '',
+            colonia: proyectoData.cliente?.direccion?.colonia || '',
+            ciudad: proyectoData.cliente?.direccion?.ciudad || '',
+            codigoPostal: proyectoData.cliente?.direccion?.codigoPostal || '',
+            referencias: proyectoData.cliente?.direccion?.referencias || ''
+          }
+        },
+        descripcion: proyectoData.descripcion || '',
+        tipoProyecto: proyectoData.tipoProyecto || 'persianas',
+        prioridad: proyectoData.prioridad || 'media',
+        observaciones: proyectoData.observaciones || ''
+      });
+      
+      console.log('Proyecto cargado:', proyectoData);
     } catch (error) {
       console.error('Error cargando proyecto:', error);
       setError('Error cargando el proyecto');
@@ -151,9 +174,9 @@ const ProyectoForm = () => {
       setError(null);
 
       if (esEdicion) {
-        await proyectosApi.actualizar(id, proyecto);
+        await proyectosApi.actualizarProyecto(id, proyecto);
       } else {
-        await proyectosApi.crear(proyecto);
+        await proyectosApi.crearProyecto(proyecto);
       }
 
       navigate('/proyectos');
@@ -384,17 +407,30 @@ const ProyectoForm = () => {
   return (
     <Box>
       {/* Header */}
-      <Box display="flex" alignItems="center" mb={3}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/proyectos')}
-          sx={{ mr: 2 }}
-        >
-          Volver
-        </Button>
-        <Typography variant="h4" component="h1">
-          {esEdicion ? 'Editar Proyecto' : 'Nuevo Proyecto'}
-        </Typography>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+        <Box display="flex" alignItems="center">
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate('/proyectos')}
+            sx={{ mr: 2 }}
+          >
+            Volver
+          </Button>
+          <Typography variant="h4" component="h1">
+            {esEdicion ? 'Editar Proyecto' : 'Nuevo Proyecto'}
+          </Typography>
+        </Box>
+        {esEdicion && (
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleSubmit}
+            disabled={loading}
+            sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } }}
+          >
+            {loading ? <CircularProgress size={20} /> : 'Guardar Cambios'}
+          </Button>
+        )}
       </Box>
 
       {error && (
@@ -403,56 +439,92 @@ const ProyectoForm = () => {
         </Alert>
       )}
 
-      <Card>
-        <CardContent>
-          <Stepper activeStep={pasoActual} orientation="vertical">
-            {PASOS_CREACION.map((paso, index) => (
-              <Step key={paso.label}>
-                <StepLabel>
-                  <Typography variant="h6">{paso.label}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {paso.description}
-                  </Typography>
-                </StepLabel>
-                <StepContent>
-                  <Box sx={{ mb: 2 }}>
-                    {index === 0 && renderPasoCliente()}
-                    {index === 1 && renderPasoProyecto()}
-                    {index === 2 && renderPasoConfirmacion()}
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    {index > 0 && (
-                      <Button onClick={handlePasoAnterior}>
-                        Anterior
-                      </Button>
-                    )}
+      {esEdicion ? (
+        /* Vista de edición: Todos los campos visibles sin wizard */
+        <Box>
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              {renderPasoCliente()}
+            </CardContent>
+          </Card>
+          
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              {renderPasoProyecto()}
+            </CardContent>
+          </Card>
+          
+          <Box display="flex" justifyContent="flex-end" gap={2}>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/proyectos')}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<SaveIcon />}
+              onClick={handleSubmit}
+              disabled={loading}
+              sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } }}
+            >
+              {loading ? <CircularProgress size={20} /> : 'Guardar Cambios'}
+            </Button>
+          </Box>
+        </Box>
+      ) : (
+        /* Vista de creación: Wizard con pasos */
+        <Card>
+          <CardContent>
+            <Stepper activeStep={pasoActual} orientation="vertical">
+              {PASOS_CREACION.map((paso, index) => (
+                <Step key={paso.label}>
+                  <StepLabel>
+                    <Typography variant="h6">{paso.label}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {paso.description}
+                    </Typography>
+                  </StepLabel>
+                  <StepContent>
+                    <Box sx={{ mb: 2 }}>
+                      {index === 0 && renderPasoCliente()}
+                      {index === 1 && renderPasoProyecto()}
+                      {index === 2 && renderPasoConfirmacion()}
+                    </Box>
                     
-                    {index < PASOS_CREACION.length - 1 ? (
-                      <Button
-                        variant="contained"
-                        onClick={handleSiguientePaso}
-                        disabled={!validarPaso(index)}
-                      >
-                        Siguiente
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="contained"
-                        startIcon={<SaveIcon />}
-                        onClick={handleSubmit}
-                        disabled={loading}
-                      >
-                        {loading ? <CircularProgress size={20} /> : (esEdicion ? 'Actualizar' : 'Crear Proyecto')}
-                      </Button>
-                    )}
-                  </Box>
-                </StepContent>
-              </Step>
-            ))}
-          </Stepper>
-        </CardContent>
-      </Card>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      {index > 0 && (
+                        <Button onClick={handlePasoAnterior}>
+                          Anterior
+                        </Button>
+                      )}
+                      
+                      {index < PASOS_CREACION.length - 1 ? (
+                        <Button
+                          variant="contained"
+                          onClick={handleSiguientePaso}
+                          disabled={!validarPaso(index)}
+                        >
+                          Siguiente
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="contained"
+                          startIcon={<SaveIcon />}
+                          onClick={handleSubmit}
+                          disabled={loading}
+                        >
+                          {loading ? <CircularProgress size={20} /> : 'Crear Proyecto'}
+                        </Button>
+                      )}
+                    </Box>
+                  </StepContent>
+                </Step>
+              ))}
+            </Stepper>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 };

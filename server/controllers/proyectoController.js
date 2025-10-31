@@ -1222,9 +1222,11 @@ const crearCotizacionDesdeProyecto = async (req, res) => {
 
     const nuevaCotizacion = new Cotizacion({
       numero: numeroCotizacion,
+      fecha: new Date(),
       proyecto: proyecto._id,
       prospecto: proyecto.prospecto_original,
       origen: 'cotizacion_vivo',
+      estado: 'borrador',
       comentarios: observaciones,
       precioGeneralM2: precioReglasNormalizado.precio_m2 || undefined,
       unidadMedida: 'm2',

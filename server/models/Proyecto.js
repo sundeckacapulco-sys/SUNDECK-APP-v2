@@ -29,6 +29,13 @@ const proyectoSchema = new mongoose.Schema({
     }
   },
 
+  // Número de proyecto profesional
+  numero: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+
   // Tipo de fuente del proyecto
   tipo_fuente: {
     type: String,
@@ -381,9 +388,50 @@ proyectoSchema.index({ fecha_creacion: -1 });
 proyectoSchema.index({ asesor_asignado: 1 });
 proyectoSchema.index({ tipo_fuente: 1 });
 
-// Middleware para actualizar fecha_actualizacion
-proyectoSchema.pre('save', function(next) {
+// Middleware para actualizar fecha_actualizacion y generar número de proyecto
+proyectoSchema.pre('save', async function(next) {
   this.fecha_actualizacion = new Date();
+  
+  // Generar número de proyecto si no existe
+  if (this.isNew && !this.numero) {
+    try {
+      const year = new Date().getFullYear();
+      
+      // Buscar el último proyecto del año actual
+      const lastProyecto = await this.constructor.findOne({
+        numero: new RegExp(`^${year}-`)
+      }).sort({ numero: -1 });
+      
+      let secuencial = 1;
+      if (lastProyecto && lastProyecto.numero) {
+        const match = lastProyecto.numero.match(/-(\d+)$/);
+        if (match) {
+          secuencial = parseInt(match[1]) + 1;
+        }
+      }
+      
+      // Limpiar nombre del cliente (solo primeras 2 palabras, sin caracteres especiales)
+      let nombreCorto = this.cliente.nombre
+        .split(' ')
+        .slice(0, 2)
+        .join(' ')
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+        .replace(/[^A-Z0-9\s]/g, '') // Solo letras y números
+        .replace(/\s+/g, '-') // Espacios a guiones
+        .substring(0, 15); // Máximo 15 caracteres
+      
+      // Formato: 2025-SAHID-CAMPOS-001
+      this.numero = `${year}-${nombreCorto}-${String(secuencial).padStart(3, '0')}`;
+      console.log('✅ Número de proyecto generado:', this.numero);
+    } catch (error) {
+      console.error('Error generando número de proyecto:', error);
+      // Si falla, usar timestamp como fallback
+      this.numero = `PROY-${Date.now()}`;
+    }
+  }
+  
   next();
 });
 

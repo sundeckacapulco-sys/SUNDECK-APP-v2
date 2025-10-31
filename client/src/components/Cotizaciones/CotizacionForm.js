@@ -486,6 +486,8 @@ const CotizacionForm = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const prospectoId = searchParams.get('prospecto');
+  const proyectoId = searchParams.get('proyecto');
+  const returnTo = searchParams.get('returnTo');
   const isEdit = Boolean(id);
 
   const { control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
@@ -701,16 +703,108 @@ const CotizacionForm = () => {
     });
   };
 
+  // Función para importar desde proyecto unificado
+  const importarDesdeProyectoUnificado = (proyecto) => {
+    const partidas = proyecto.levantamiento.partidas || [];
+    const productos = [];
+    
+    partidas.forEach((partida, partidaIndex) => {
+      const piezas = partida.piezas || [];
+      
+      piezas.forEach((pieza, piezaIndex) => {
+        // Calcular área
+        const ancho = parseFloat(pieza.ancho) || 0;
+        const alto = parseFloat(pieza.alto) || 0;
+        const area = ancho * alto;
+        
+        // Detectar si es motorizada
+        const esMotorizada = pieza.tipoOperacion === 'motorizado' || 
+                           pieza.tipoOperacion === 'Motorizado' ||
+                           partida.motorizado === true;
+        
+        // Construir descripción detallada
+        const detalles = [];
+        detalles.push(`${ancho}m x ${alto}m (${area.toFixed(2)}m²)`);
+        
+        if (pieza.sistema) {
+          const sistema = Array.isArray(pieza.sistema) ? pieza.sistema.join(', ') : pieza.sistema;
+          detalles.push(`Sistema: ${sistema}`);
+        }
+        if (pieza.tipoControl) detalles.push(`Control: ${pieza.tipoControl}`);
+        if (pieza.tipoInstalacion) detalles.push(`Instalación: ${pieza.tipoInstalacion}`);
+        if (pieza.tipoFijacion) detalles.push(`Fijación: ${pieza.tipoFijacion}`);
+        if (pieza.caida || pieza.orientacion) detalles.push(`Orientación: ${pieza.caida || pieza.orientacion}`);
+        if (pieza.galeria) detalles.push(`Galería: ${pieza.galeria}`);
+        if (esMotorizada) {
+          detalles.push(`⚡ MOTORIZADA`);
+          if (partida.motorizacion?.modeloMotor) {
+            detalles.push(`Motor: ${partida.motorizacion.modeloMotor}`);
+          }
+          if (partida.motorizacion?.modeloControl) {
+            detalles.push(`Control: ${partida.motorizacion.modeloControl}`);
+          }
+        } else {
+          detalles.push(`Operación: ${pieza.tipoOperacion || 'Manual'}`);
+        }
+        
+        const descripcion = `${partida.ubicacion || 'Sin ubicación'}\n${detalles.join(' • ')}`;
+        
+        productos.push({
+          nombreProducto: partida.producto || 'Persianas',
+          descripcionProducto: descripcion,
+          categoria: partida.producto || 'General',
+          material: pieza.sistema ? (Array.isArray(pieza.sistema) ? pieza.sistema.join(', ') : pieza.sistema) : 'Roller',
+          color: pieza.color || partida.color || 'Sin especificar',
+          ubicacion: partida.ubicacion || 'Sin ubicación',
+          medidas: {
+            ancho: ancho,
+            alto: alto,
+            area: area
+          },
+          cantidad: pieza.cantidad || 1,
+          precioUnitario: 0,
+          unidadMedida: 'm2',
+          subtotal: 0,
+          // Agregar campos adicionales que el formulario pueda necesitar
+          modelo: pieza.modeloCodigo || '',
+          marca: pieza.telaMarca || ''
+        });
+      });
+    });
+    
+    console.log('📦 Productos importados:', productos);
+    setValue('productos', productos);
+    setSuccess(`✅ Se importaron ${productos.length} productos desde el levantamiento con todas sus características técnicas`);
+  };
+
   // Función para obtener datos del levantamiento
   const fetchLevantamientoData = async () => {
-    const selectedProspecto = prospectoId || watchedProspecto;
-    if (!selectedProspecto) {
-      setError('No hay prospecto seleccionado');
-      return;
-    }
-
     try {
       setLoading(true);
+      
+      // Si viene desde un proyecto unificado, buscar ahí
+      if (proyectoId) {
+        console.log('🔍 Buscando levantamiento en proyecto:', proyectoId);
+        const { data } = await axiosConfig.get(`/proyectos/${proyectoId}`);
+        const proyecto = data.data;
+        
+        if (proyecto.levantamiento && proyecto.levantamiento.partidas) {
+          console.log('✅ Partidas encontradas:', proyecto.levantamiento.partidas);
+          importarDesdeProyectoUnificado(proyecto);
+          return;
+        } else {
+          setError('Este proyecto no tiene levantamiento técnico');
+          return;
+        }
+      }
+      
+      // Si no, buscar en el prospecto (formato viejo)
+      const selectedProspecto = prospectoId || watchedProspecto;
+      if (!selectedProspecto) {
+        setError('No hay prospecto o proyecto seleccionado');
+        return;
+      }
+
       // Obtener etapas del prospecto usando el mismo endpoint que funciona en ProspectoDetalle
       const { data } = await axiosConfig.get(`/etapas?prospectoId=${selectedProspecto}`);
       const etapas = data.etapas || [];
@@ -1098,7 +1192,7 @@ const CotizacionForm = () => {
       }}>
         <Button
           startIcon={<ArrowBack />}
-          onClick={() => navigate('/cotizaciones')}
+          onClick={() => navigate(returnTo || '/cotizaciones')}
           sx={{ 
             mr: 2,
             color: 'white',

@@ -36,7 +36,6 @@ import {
   Edit as EditIcon,
   Sync as SyncIcon,
   MoreVert as MoreVertIcon,
-  PictureAsPdf as PdfIcon,
   TableChart as ExcelIcon,
   Timeline as TimelineIcon,
   Phone as PhoneIcon,
@@ -46,7 +45,7 @@ import {
   TrendingUp as TrendingUpIcon,
   Assessment as AssessmentIcon
 } from '@mui/icons-material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import proyectosApi from './services/proyectosApi';
 
 // Importar componentes de pestañas
@@ -77,15 +76,17 @@ const PASOS_FLUJO = [
 const ProyectoDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
+  const [searchParams] = useSearchParams();
+  
   // Estados principales
   const [proyecto, setProyecto] = useState(null);
   const [estadisticas, setEstadisticas] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Estados de UI
-  const [tabActual, setTabActual] = useState(0);
+  // Estados de UI - leer tab de la URL si existe
+  const tabFromUrl = parseInt(searchParams.get('tab')) || 0;
+  const [tabActual, setTabActual] = useState(tabFromUrl);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [dialogoCambiarEstado, setDialogoCambiarEstado] = useState(false);
   const [nuevoEstado, setNuevoEstado] = useState('');
@@ -191,16 +192,6 @@ const ProyectoDetail = () => {
     }
   };
 
-  const handleGenerarPDF = async () => {
-    try {
-      await proyectosApi.generarPDF(id);
-    } catch (error) {
-      console.error('Error generando PDF:', error);
-      setError('Error generando PDF');
-    }
-    handleMenuClose();
-  };
-
   const handleGenerarExcel = async () => {
     try {
       await proyectosApi.generarExcel(id);
@@ -276,8 +267,8 @@ const ProyectoDetail = () => {
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: '#D4AF37' }}>
             {estadoConfig.icon} {proyecto.cliente.nombre}
           </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Proyecto ID: {proyecto._id}
+          <Typography variant="subtitle1" color="text.secondary" sx={{ fontWeight: 600 }}>
+            Proyecto: {proyecto.numero || `#${proyecto._id.slice(-8).toUpperCase()}`}
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -505,13 +496,9 @@ const ProyectoDetail = () => {
           <SyncIcon sx={{ mr: 1 }} />
           Sincronizar
         </MenuItem>
-        <MenuItem onClick={handleGenerarPDF}>
-          <PdfIcon sx={{ mr: 1 }} />
-          Generar PDF
-        </MenuItem>
         <MenuItem onClick={handleGenerarExcel}>
           <ExcelIcon sx={{ mr: 1 }} />
-          Generar Excel
+          Exportar a Excel
         </MenuItem>
       </Menu>
 

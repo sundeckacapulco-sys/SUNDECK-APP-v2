@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -32,10 +33,44 @@ import {
   Cancel as CancelIcon,
   Visibility as ViewIcon,
   GetApp as DownloadIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 
 const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
+  const navigate = useNavigate();
+  const [eliminando, setEliminando] = useState(null);
+  
+  const handleEliminarCotizacion = async (cotizacionId) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta cotización? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      setEliminando(cotizacionId);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5001/api/cotizaciones/${cotizacionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar la cotización');
+      }
+
+      alert('✅ Cotización eliminada exitosamente. La página se recargará para mostrar los cambios.');
+      
+      // Recargar toda la página para asegurar que todos los datos se actualicen
+      window.location.reload();
+    } catch (error) {
+      console.error('Error eliminando cotización:', error);
+      alert('❌ Error al eliminar la cotización: ' + error.message);
+      setEliminando(null);
+    }
+  };
   
   const formatearMoneda = (cantidad) => {
     return new Intl.NumberFormat('es-MX', {
@@ -159,7 +194,10 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
               startIcon={<AddIcon />}
               sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } }}
               onClick={() => {
-                window.open(nuevaCotizacionUrl, '_blank');
+                // Pasar el ID del proyecto para importar levantamiento y URL de retorno
+                const returnUrl = `/proyectos/${proyecto._id}?tab=1`; // tab=1 es Cotización
+                const urlConProyecto = `${nuevaCotizacionUrl}&proyecto=${proyecto._id}&returnTo=${encodeURIComponent(returnUrl)}`;
+                navigate(urlConProyecto);
               }}
             >
               Nueva Cotización
@@ -176,7 +214,7 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                 variant="text" 
                 sx={{ mt: 1 }}
                 onClick={() => {
-                  window.open(nuevaCotizacionUrl, '_blank');
+                  navigate(nuevaCotizacionUrl);
                 }}
               >
                 🚀 Crear cotización ahora
@@ -238,7 +276,7 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                         <IconButton
                           size="small"
                           onClick={() => {
-                            window.open(`/cotizaciones/${cotizacion._id}`, '_blank');
+                            navigate(`/cotizaciones/${cotizacion._id}`);
                           }}
                         >
                           <ViewIcon />
@@ -253,6 +291,16 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                           }}
                         >
                           <DownloadIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Eliminar cotización">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          disabled={eliminando === cotizacion._id}
+                          onClick={() => handleEliminarCotizacion(cotizacion._id)}
+                        >
+                          <DeleteIcon />
                         </IconButton>
                       </Tooltip>
                     </Box>

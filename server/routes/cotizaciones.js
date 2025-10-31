@@ -826,6 +826,120 @@ router.delete('/:id', auth, verificarPermiso('cotizaciones', 'eliminar'), async 
       return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
     }
 
+    // Si la cotización está asociada a un proyecto, actualizar el proyecto
+    if (cotizacion.proyecto) {
+      const Proyecto = require('../models/Proyecto');
+      const proyecto = await Proyecto.findById(cotizacion.proyecto);
+      
+      if (proyecto) {
+        console.log('📊 Proyecto antes de limpiar:', {
+          id: proyecto._id,
+          subtotal: proyecto.subtotal,
+          iva: proyecto.iva,
+          total: proyecto.total,
+          cotizaciones: proyecto.cotizaciones.length
+        });
+        
+        // Remover la cotización del array de cotizaciones
+        proyecto.cotizaciones = proyecto.cotizaciones.filter(
+          cotId => cotId.toString() !== req.params.id
+        );
+        
+        // Limpiar SIEMPRE los totales cuando se elimina una cotización
+        proyecto.cotizacionActual = null;
+        proyecto.subtotal = 0;
+        proyecto.iva = 0;
+        proyecto.total = 0;
+        proyecto.anticipo = 0;
+        proyecto.saldo_pendiente = 0;
+        
+        // Limpiar precios de proyecto.medidas (formato viejo)
+        if (proyecto.medidas && Array.isArray(proyecto.medidas)) {
+          proyecto.medidas.forEach(medida => {
+            if (medida.piezas && Array.isArray(medida.piezas)) {
+              medida.piezas.forEach(pieza => {
+                pieza.precioM2 = 0;
+                pieza.precioTotal = 0;
+                if (pieza.totales) {
+                  pieza.totales.subtotal = 0;
+                  pieza.totales.costoMotorizacion = 0;
+                  pieza.totales.costoInstalacion = 0;
+                }
+              });
+            }
+            if (medida.precioM2) medida.precioM2 = 0;
+            if (medida.precioTotal) medida.precioTotal = 0;
+          });
+        }
+        
+        // Limpiar los precios del levantamiento pero mantener las medidas físicas
+        if (proyecto.levantamiento) {
+          // Limpiar totales
+          if (proyecto.levantamiento.totales) {
+            proyecto.levantamiento.totales = {
+              m2: proyecto.levantamiento.totales.m2 || 0, // Mantener m2
+              subtotal: 0,
+              descuento: 0,
+              iva: 0,
+              total: 0
+            };
+          }
+          
+          // Limpiar precios de las partidas pero mantener las medidas
+          if (proyecto.levantamiento.partidas && Array.isArray(proyecto.levantamiento.partidas)) {
+            proyecto.levantamiento.partidas.forEach(partida => {
+              // Limpiar totales de la partida
+              if (partida.totales) {
+                partida.totales.subtotal = 0;
+                partida.totales.costoMotorizacion = 0;
+                partida.totales.costoInstalacion = 0;
+              }
+              
+              // Limpiar precios de cada pieza pero mantener dimensiones
+              if (partida.piezas && Array.isArray(partida.piezas)) {
+                partida.piezas.forEach(pieza => {
+                  pieza.precioM2 = 0;
+                  if (pieza.totales) {
+                    pieza.totales.subtotal = 0;
+                    pieza.totales.costoMotorizacion = 0;
+                    pieza.totales.costoInstalacion = 0;
+                  }
+                });
+              }
+              
+              // Limpiar motorización
+              if (partida.motorizacion) {
+                partida.motorizacion.precioMotor = 0;
+                partida.motorizacion.precioControl = 0;
+              }
+              
+              // Limpiar instalación especial
+              if (partida.instalacionEspecial) {
+                partida.instalacionEspecial.precioBase = 0;
+                partida.instalacionEspecial.precioPorPieza = 0;
+              }
+            });
+          }
+        }
+        
+        // Si no hay más cotizaciones, volver a estado levantamiento
+        if (proyecto.cotizaciones.length === 0 && proyecto.estado === 'cotizacion') {
+          proyecto.estado = 'levantamiento';
+        }
+        
+        await proyecto.save();
+        
+        console.log('✅ Proyecto limpiado después de eliminar cotización:', {
+          id: proyecto._id,
+          subtotal: proyecto.subtotal,
+          iva: proyecto.iva,
+          total: proyecto.total,
+          cotizaciones: proyecto.cotizaciones.length,
+          estado: proyecto.estado
+        });
+      }
+    }
+
     await cotizacion.deleteOne();
 
     res.json({ message: 'Cotización eliminada exitosamente' });
