@@ -1,4 +1,5 @@
 const ProyectoPedido = require('../models/ProyectoPedido');
+const logger = require('../config/logger');
 
 class FabricacionService {
   
@@ -57,7 +58,13 @@ class FabricacionService {
         proyecto
       };
     } catch (error) {
-      console.error('Error iniciando fabricación:', error);
+      logger.error('Error iniciando proceso de fabricación', {
+        servicio: 'fabricacionService',
+        accion: 'iniciarFabricacion',
+        proyectoId: proyectoId?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -107,7 +114,14 @@ class FabricacionService {
         progreso: proyecto.fabricacion.progreso
       };
     } catch (error) {
-      console.error('Error actualizando progreso:', error);
+      logger.error('Error actualizando progreso de fabricación', {
+        servicio: 'fabricacionService',
+        accion: 'actualizarProgreso',
+        proyectoId: proyectoId?.toString(),
+        procesoId,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -157,7 +171,14 @@ class FabricacionService {
         resultado
       };
     } catch (error) {
-      console.error('Error en control de calidad:', error);
+      logger.error('Error registrando control de calidad', {
+        servicio: 'fabricacionService',
+        accion: 'realizarControlCalidad',
+        proyectoId: proyectoId?.toString(),
+        resultado: datosCalidad?.resultado,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -194,7 +215,13 @@ class FabricacionService {
         proyecto
       };
     } catch (error) {
-      console.error('Error completando empaque:', error);
+      logger.error('Error completando empaque de proyecto', {
+        servicio: 'fabricacionService',
+        accion: 'completarEmpaque',
+        proyectoId: proyectoId?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -220,7 +247,12 @@ class FabricacionService {
         query['fabricacion.estado'] = filtros.estadoFabricacion;
       }
 
-      console.log('🔍 [FABRICACION] Query:', JSON.stringify(query, null, 2));
+      logger.info('Consultando cola de fabricación', {
+        servicio: 'fabricacionService',
+        accion: 'obtenerColaFabricacion',
+        filtros,
+        query
+      });
       
       const proyectos = await ProyectoPedido.find(query)
         .populate('fabricacion.asignadoA', 'nombre email')
@@ -230,14 +262,31 @@ class FabricacionService {
           'cronograma.fechaFinFabricacionEstimada': 1 // fecha más próxima primero
         });
 
-      console.log(`📊 [FABRICACION] Encontrados ${proyectos.length} proyectos`);
+      logger.info('Proyectos recuperados para cola de fabricación', {
+        servicio: 'fabricacionService',
+        accion: 'obtenerColaFabricacion',
+        total: proyectos.length
+      });
       proyectos.forEach(p => {
-        console.log(`   - ${p.numero}: ${p.estado} (fabricacion: ${p.fabricacion?.estado || 'sin fabricacion'})`);
+        logger.debug('Detalle de proyecto en cola de fabricación', {
+          servicio: 'fabricacionService',
+          accion: 'obtenerColaFabricacion',
+          proyectoId: p._id?.toString(),
+          numero: p.numero,
+          estado: p.estado,
+          estadoFabricacion: p.fabricacion?.estado || 'sin fabricacion'
+        });
       });
 
       return proyectos;
     } catch (error) {
-      console.error('Error obteniendo cola de fabricación:', error);
+      logger.error('Error obteniendo cola de fabricación', {
+        servicio: 'fabricacionService',
+        accion: 'obtenerColaFabricacion',
+        filtros,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }
@@ -247,11 +296,20 @@ class FabricacionService {
    */
   static async obtenerMetricas(fechaInicio, fechaFin) {
     try {
-      console.log(`📈 [METRICAS] Buscando proyectos entre ${fechaInicio} y ${fechaFin}`);
+      logger.info('Calculando métricas de fabricación en rango de fechas', {
+        servicio: 'fabricacionService',
+        accion: 'obtenerMetricas',
+        fechaInicio,
+        fechaFin
+      });
       
       // Buscar todos los proyectos primero para debug
       const todosLosProyectos = await ProyectoPedido.find({});
-      console.log(`📊 [METRICAS] Total proyectos en DB: ${todosLosProyectos.length}`);
+      logger.debug('Total de proyectos disponibles para métricas de fabricación', {
+        servicio: 'fabricacionService',
+        accion: 'obtenerMetricas',
+        totalProyectos: todosLosProyectos.length
+      });
       
       const proyectos = await ProyectoPedido.find({
         'cronograma.fechaInicioFabricacion': {
@@ -260,7 +318,11 @@ class FabricacionService {
         }
       });
       
-      console.log(`📊 [METRICAS] Proyectos con fabricación en rango: ${proyectos.length}`);
+      logger.info('Proyectos con fabricación en el rango solicitado', {
+        servicio: 'fabricacionService',
+        accion: 'obtenerMetricas',
+        proyectosEnRango: proyectos.length
+      });
 
       const metricas = {
         totalProyectos: proyectos.length,
@@ -287,7 +349,14 @@ class FabricacionService {
 
       return metricas;
     } catch (error) {
-      console.error('Error obteniendo métricas:', error);
+      logger.error('Error obteniendo métricas de fabricación', {
+        servicio: 'fabricacionService',
+        accion: 'obtenerMetricas',
+        fechaInicio,
+        fechaFin,
+        error: error.message,
+        stack: error.stack
+      });
       throw error;
     }
   }

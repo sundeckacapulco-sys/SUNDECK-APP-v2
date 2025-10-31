@@ -1,5 +1,6 @@
 const Pedido = require('../models/Pedido');
 const mongoose = require('mongoose');
+const logger = require('../config/logger');
 
 class NotificacionesComercialesService {
   
@@ -53,7 +54,12 @@ class NotificacionesComercialesService {
   // Obtener todas las notificaciones activas
   async obtenerNotificacionesActivas(usuarioId = null, limite = 20) {
     try {
-      console.log('🔔 Obteniendo notificaciones comerciales activas');
+      logger.info('Obteniendo notificaciones comerciales activas', {
+        servicio: 'notificacionesComerciales',
+        accion: 'obtenerNotificacionesActivas',
+        usuarioId: usuarioId?.toString(),
+        limite
+      });
 
       const notificaciones = await Promise.all([
         this.verificarPagosVencidos(),
@@ -70,7 +76,12 @@ class NotificacionesComercialesService {
         .sort((a, b) => this.compararPrioridad(a.prioridad, b.prioridad))
         .slice(0, limite);
 
-      console.log(`✅ ${todasNotificaciones.length} notificaciones activas encontradas`);
+      logger.info('Notificaciones comerciales activas calculadas', {
+        servicio: 'notificacionesComerciales',
+        accion: 'obtenerNotificacionesActivas',
+        usuarioId: usuarioId?.toString(),
+        totalNotificaciones: todasNotificaciones.length
+      });
 
       return {
         notificaciones: todasNotificaciones,
@@ -79,7 +90,14 @@ class NotificacionesComercialesService {
       };
 
     } catch (error) {
-      console.error('❌ Error obteniendo notificaciones:', error);
+      logger.error('Error obteniendo notificaciones comerciales', {
+        servicio: 'notificacionesComerciales',
+        accion: 'obtenerNotificacionesActivas',
+        usuarioId: usuarioId?.toString(),
+        limite,
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error('Error al obtener notificaciones comerciales');
     }
   }
@@ -374,7 +392,12 @@ class NotificacionesComercialesService {
   // Marcar notificación como leída
   async marcarComoLeida(notificacionId, usuarioId) {
     // TODO: Implementar sistema de notificaciones leídas en BD
-    console.log(`📖 Notificación ${notificacionId} marcada como leída por usuario ${usuarioId}`);
+    logger.info('Notificación comercial marcada como leída', {
+      servicio: 'notificacionesComerciales',
+      accion: 'marcarComoLeida',
+      notificacionId: notificacionId?.toString(),
+      usuarioId: usuarioId?.toString()
+    });
     return true;
   }
 
