@@ -67,10 +67,37 @@ Estas reglas aplican a cualquier nueva funcionalidad del repositorio.
 
 ---
 
-## ✅ SIGUIENTES PASOS SUGERIDOS
+## ✅ FASE 0 COMPLETADA - PRÓXIMOS PASOS
 
+**Fase 0: 100% ✅** - Baseline y Observabilidad completada exitosamente.
+
+### Mantenimiento Continuo:
 1. Mantener la cobertura de pruebas (`npm test`) como parte del flujo habitual.
 2. Auditar nuevos commits para verificar que no se reintroduzcan `console.log`.
-3. Cuando se creen scripts adicionales, iniciar con un helper `createLoggerContext` para reutilizar metadatos (opcional, recomendado).
+3. Cuando se creen scripts adicionales, iniciar con un helper `createLoggerContext` para reutilizar metadatos.
 
-¡Buen trabajo! 🎯
+### 🚀 INICIAR FASE 1: Desacoplo y Confiabilidad (1-4 meses)
+
+**Bloqueantes Críticos Identificados:**
+
+1. **🔴 PRIORIDAD MÁXIMA: Unificar Dominio de Pedidos**
+   - Problema: Duplicidad `Pedido` vs `ProyectoPedido`
+   - Impacto: Riesgo de divergencia de datos
+   - Esfuerzo: 5-7 días
+   - Ubicación: `server/models/Pedido.js` y `server/models/ProyectoPedido.js`
+
+2. **🔴 ALTA PRIORIDAD: Corregir Módulo Fabricación**
+   - Problema: Imports faltantes, módulo no funcional
+   - Impacto: Bloquea flujo de producción
+   - Esfuerzo: 2-3 días
+   - Ubicación: `server/controllers/fabricacionController.js`
+
+3. **⚠️ MEDIA PRIORIDAD: Pruebas Unitarias Básicas**
+   - Problema: 0% cobertura en módulos críticos
+   - Impacto: Sin garantías de calidad
+   - Esfuerzo: 3-4 días
+   - Módulos: PDF, Excel, Pedidos, Fabricación
+
+**Consultar:** `docschecklists/ROADMAP_TASKS.md` para plan detallado de Fase 1.
+
+¡Fase 0 completada exitosamente! 🎉

@@ -1,7 +1,7 @@
 # 🏢 Sundeck CRM - Sistema Completo de Gestión
 
 **Versión**: 3.0 | **Estado**: ✅ 100% FUNCIONAL | **Fecha**: 31 Octubre 2025
-**Sprint Actual**: Sprint 2 ✅ COMPLETADO | **Próximo**: Sprint 3 - Limpieza y Fase 1
+**Fase Actual**: Fase 0 ✅ COMPLETADA | **Próximo**: Fase 1 - Desacoplo y Confiabilidad
 
 ---
 
@@ -16,9 +16,10 @@
   - ✅ **Archivos de producción: 100% migrados** 🎉
   - ✅ **Scripts de migración: 100% migrados** 🎉
   - ✅ **Scripts utilitarios: 100% migrados** 🎉
-- ✅ Carpeta /logs/ (100%)
-- ✅ KPIs baseline (75% - Backend completo)
-- ⚠️ Dashboard métricas (0% - Opcional)
+- ✅ Carpeta /logs/ operativa (100%)
+- ✅ KPIs baseline (100% - Sistema capturando métricas)
+- ✅ API REST de métricas (4 endpoints operativos)
+- ⚠️ Dashboard métricas (0% - Opcional, no bloqueante)
 
 **Sistema de observabilidad:**
 - 15/15 tests pasando ✅
@@ -33,8 +34,10 @@
 - ✅ Eliminación total de `console.log` en `server/`
 
 **Próximo objetivo:**
-- 📋 Sprint 3 - Limpieza general y Fase 1
-- 👉 Consulta [`AGENTS.md`](AGENTS.md) para el estándar actualizado
+- 🚀 Fase 1 - Desacoplo y Confiabilidad
+- 🔴 Bloqueante #1: Unificar dominio de pedidos (Pedido vs ProyectoPedido)
+- 🔴 Bloqueante #2: Corregir módulo Fabricación (imports faltantes)
+- 👉 Consulta [`CONTINUAR_AQUI.md`](CONTINUAR_AQUI.md) para el plan de acción
 
 **Documentación:**
 - 📚 [`docschecklists/auditorias/AUDITORIA_SPRINT_02.md`](docschecklists/auditorias/AUDITORIA_SPRINT_02.md) - Auditoría Sprint 2
