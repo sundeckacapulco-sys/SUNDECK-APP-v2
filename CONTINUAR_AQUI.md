@@ -1,342 +1,181 @@
-# 🚀 CONTINUAR AQUÍ - Sprint 2
+# 🚀 CONTINUAR AQUÍ - Completar Logging
 
 **Fecha:** 31 Oct 2025  
-**Estado:** Tarea 2.2 ✅ COMPLETADA → Tarea 2.3 🚀 INICIAR
+**Estado:** Sprint 1 y 2 completados → Tarea pendiente: Completar console.log
 
 ---
 
 ## ✅ COMPLETADO
 
-### Tarea 2.1: Modelo Metric ✅
-- Modelo Metric creado con agregaciones
-- 3 pruebas unitarias pasando
+### Sprint 1: Logger Estructurado ⚠️ PARCIAL
+- ✅ Winston Logger implementado
+- ⚠️ 153/419 console.log reemplazados (36.5%)
+- ✅ Archivos críticos: 89.5%
 
-### Tarea 2.2: Middleware de Métricas ✅
-- Middleware capturando métricas automáticamente
-- Aplicado globalmente a todas las rutas /api/*
-- 3 pruebas de integración pasando
-- **10/10 tests totales** ✅
-- Fase 0: 70%
+### Sprint 2: Métricas Baseline ✅ BACKEND COMPLETO
+- ✅ Modelo Metric
+- ✅ Middleware de métricas
+- ✅ API REST (4 endpoints)
+- ✅ 15/15 tests pasando
+
+**Fase 0:** 71% completada
 
 ---
 
-## 🎯 SIGUIENTE TAREA: 2.3 API de Métricas
+## 🎯 TAREA ACTUAL: Completar console.log Restantes
 
-### Crear archivo: `server/routes/metrics.js`
+### Objetivo
+Reemplazar los 266 console.log restantes en archivos no críticos para completar la migración al logger estructurado.
+
+### Archivos Pendientes
+
+**Prioridad Media (66 console.log):**
+1. `server/services/pdfService.js` - 28 console.log
+2. `server/routes/proyectos.js` - 38 console.log (si tiene más)
+
+**Prioridad Baja (200 console.log):**
+- Scripts de utilidad
+- Seeders
+- Archivos de configuración
+- Tests (opcional)
+
+---
+
+## 📋 INSTRUCCIONES PASO A PASO
+
+### Paso 1: Identificar archivos pendientes
+
+```bash
+# Contar console.log por archivo
+grep -r "console.log" server/ --include="*.js" | cut -d: -f1 | sort | uniq -c | sort -rn
+
+# Ver archivos con más console.log
+grep -r "console.log" server/ --include="*.js" -l
+```
+
+### Paso 2: Empezar con pdfService.js (28 console.log)
+
+Este archivo ya tiene el logger importado pero no se usó en el Sprint 1.
+
+**Archivo:** `server/services/pdfService.js`
+
+**Patrón de reemplazo:**
 
 ```javascript
-const express = require('express');
-const router = express.Router();
-const Metric = require('../models/Metric');
+// Antes:
+console.log('Generando PDF...');
+
+// Después:
+logger.info('Generando PDF', { servicio: 'pdfService' });
+
+// Antes:
+console.error('Error generando PDF:', error);
+
+// Después:
+logger.error('Error generando PDF', { 
+  error: error.message, 
+  stack: error.stack,
+  servicio: 'pdfService'
+});
+
+// Antes:
+console.log('PDF generado:', filename);
+
+// Después:
+logger.info('PDF generado exitosamente', { 
+  filename,
+  servicio: 'pdfService'
+});
+```
+
+### Paso 3: Verificar que el logger esté importado
+
+```javascript
+// Al inicio del archivo debe estar:
 const logger = require('../config/logger');
-
-// GET /api/metrics - Listar métricas con filtros
-router.get('/', async (req, res) => {
-  try {
-    const {
-      tipo,
-      endpoint,
-      fechaInicio,
-      fechaFin,
-      limit = 100,
-      skip = 0
-    } = req.query;
-
-    const query = {};
-    
-    if (tipo) query.tipo = tipo;
-    if (endpoint) query.endpoint = new RegExp(endpoint, 'i');
-    if (fechaInicio || fechaFin) {
-      query.timestamp = {};
-      if (fechaInicio) query.timestamp.$gte = new Date(fechaInicio);
-      if (fechaFin) query.timestamp.$lte = new Date(fechaFin);
-    }
-
-    const metricas = await Metric.find(query)
-      .sort({ timestamp: -1 })
-      .limit(parseInt(limit))
-      .skip(parseInt(skip));
-
-    const total = await Metric.countDocuments(query);
-
-    res.json({
-      success: true,
-      data: metricas,
-      pagination: {
-        total,
-        limit: parseInt(limit),
-        skip: parseInt(skip),
-        hasMore: total > (parseInt(skip) + parseInt(limit))
-      }
-    });
-  } catch (error) {
-    logger.error('Error obteniendo métricas', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Error obteniendo métricas'
-    });
-  }
-});
-
-// GET /api/metrics/stats - Estadísticas agregadas
-router.get('/stats', async (req, res) => {
-  try {
-    const { tipo, periodo = 'dia' } = req.query;
-
-    let stats;
-    if (tipo) {
-      stats = await Metric.agregarPorTipo(tipo, periodo);
-    } else {
-      stats = await Metric.obtenerEstadisticas();
-    }
-
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    logger.error('Error obteniendo estadísticas', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Error obteniendo estadísticas'
-    });
-  }
-});
-
-// GET /api/metrics/performance - Métricas de rendimiento
-router.get('/performance', async (req, res) => {
-  try {
-    const { endpoint, limit = 50 } = req.query;
-
-    const query = { tipo: 'performance' };
-    if (endpoint) query.endpoint = new RegExp(endpoint, 'i');
-
-    const metricas = await Metric.find(query)
-      .sort({ timestamp: -1 })
-      .limit(parseInt(limit));
-
-    // Calcular promedios
-    const promedios = await Metric.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: '$endpoint',
-          promedioMs: { $avg: '$duracion' },
-          minimoMs: { $min: '$duracion' },
-          maximoMs: { $max: '$duracion' },
-          total: { $sum: 1 }
-        }
-      },
-      { $sort: { promedioMs: -1 } },
-      { $limit: 20 }
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        recientes: metricas,
-        promedios
-      }
-    });
-  } catch (error) {
-    logger.error('Error obteniendo métricas de performance', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Error obteniendo métricas de performance'
-    });
-  }
-});
-
-// GET /api/metrics/errors - Métricas de errores
-router.get('/errors', async (req, res) => {
-  try {
-    const { limit = 50 } = req.query;
-
-    const errores = await Metric.find({ tipo: 'error' })
-      .sort({ timestamp: -1 })
-      .limit(parseInt(limit));
-
-    // Agrupar por endpoint
-    const porEndpoint = await Metric.aggregate([
-      { $match: { tipo: 'error' } },
-      {
-        $group: {
-          _id: '$endpoint',
-          total: { $sum: 1 },
-          ultimoError: { $max: '$timestamp' }
-        }
-      },
-      { $sort: { total: -1 } },
-      { $limit: 10 }
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        recientes: errores,
-        porEndpoint
-      }
-    });
-  } catch (error) {
-    logger.error('Error obteniendo métricas de errores', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Error obteniendo métricas de errores'
-    });
-  }
-});
-
-module.exports = router;
 ```
 
-### Integrar en `server/index.js`
+Si no está, agregarlo.
 
-Agregar después de las otras rutas:
+### Paso 4: Reemplazar console.log uno por uno
 
+**Niveles a usar:**
+- `logger.info()` - Operaciones normales, inicio/fin de procesos
+- `logger.warn()` - Advertencias, situaciones inusuales
+- `logger.error()` - Errores, excepciones
+- `logger.debug()` - Información de debugging (opcional)
+
+**Contexto a agregar:**
 ```javascript
-// Después de las rutas existentes
-app.use('/api/metrics', require('./routes/metrics'));
+{
+  servicio: 'pdfService',
+  // + cualquier variable relevante
+}
 ```
 
-### Crear pruebas: `server/tests/metrics.routes.test.js`
-
-```javascript
-const request = require('supertest');
-const express = require('express');
-const mongoose = require('mongoose');
-const Metric = require('../models/Metric');
-const metricsRouter = require('../routes/metrics');
-
-const app = express();
-app.use(express.json());
-app.use('/api/metrics', metricsRouter);
-
-describe('API de Métricas', () => {
-  beforeAll(async () => {
-    await mongoose.connect(process.env.MONGODB_URI_TEST || 'mongodb://127.0.0.1:27017/sundeck-test');
-  });
-
-  afterAll(async () => {
-    await Metric.deleteMany({});
-    await mongoose.connection.close();
-  });
-
-  beforeEach(async () => {
-    await Metric.deleteMany({});
-    
-    // Crear datos de prueba
-    await Metric.create([
-      {
-        tipo: 'performance',
-        valor: 150,
-        endpoint: '/api/prospectos',
-        metodo: 'GET',
-        statusCode: 200,
-        duracion: 150,
-        timestamp: new Date('2025-10-31T10:00:00Z')
-      },
-      {
-        tipo: 'performance',
-        valor: 250,
-        endpoint: '/api/cotizaciones',
-        metodo: 'POST',
-        statusCode: 201,
-        duracion: 250,
-        timestamp: new Date('2025-10-31T11:00:00Z')
-      },
-      {
-        tipo: 'error',
-        valor: 1,
-        endpoint: '/api/proyectos',
-        metodo: 'GET',
-        statusCode: 500,
-        timestamp: new Date('2025-10-31T12:00:00Z')
-      }
-    ]);
-  });
-
-  test('GET /api/metrics debe listar métricas', async () => {
-    const response = await request(app).get('/api/metrics');
-
-    expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
-    expect(Array.isArray(response.body.data)).toBe(true);
-    expect(response.body.data.length).toBe(3);
-    expect(response.body.pagination).toBeDefined();
-    expect(response.body.pagination.total).toBe(3);
-  });
-
-  test('GET /api/metrics debe filtrar por tipo', async () => {
-    const response = await request(app).get('/api/metrics?tipo=performance');
-
-    expect(response.status).toBe(200);
-    expect(response.body.data.length).toBe(2);
-    expect(response.body.data.every(m => m.tipo === 'performance')).toBe(true);
-  });
-
-  test('GET /api/metrics/stats debe retornar estadísticas', async () => {
-    const response = await request(app).get('/api/metrics/stats');
-
-    expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
-    expect(Array.isArray(response.body.data)).toBe(true);
-    expect(response.body.data.length).toBeGreaterThan(0);
-  });
-
-  test('GET /api/metrics/performance debe retornar métricas de rendimiento', async () => {
-    const response = await request(app).get('/api/metrics/performance');
-
-    expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
-    expect(response.body.data).toHaveProperty('recientes');
-    expect(response.body.data).toHaveProperty('promedios');
-    expect(Array.isArray(response.body.data.recientes)).toBe(true);
-  });
-
-  test('GET /api/metrics/errors debe retornar métricas de errores', async () => {
-    const response = await request(app).get('/api/metrics/errors');
-
-    expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
-    expect(response.body.data).toHaveProperty('recientes');
-    expect(response.body.data).toHaveProperty('porEndpoint');
-    expect(response.body.data.recientes.length).toBe(1);
-  });
-});
-```
-
-### Instalar dependencia (si no está)
+### Paso 5: Ejecutar pruebas
 
 ```bash
-npm install --save-dev supertest
-```
+# Verificar sintaxis
+node server/services/pdfService.js
 
-### Ejecutar pruebas
-
-```bash
+# Ejecutar tests (si existen)
 npm test
-# Debe mostrar: 15/15 tests pasando (10 anteriores + 5 nuevos)
+
+# Verificar que no queden console.log
+grep "console.log" server/services/pdfService.js
 ```
-
----
-
-## 📚 Documentos de Referencia
-
-- `docschecklists/GUIA_CONTINUACION_TRABAJO.md` - Contexto completo
-- `server/models/Metric.js` - Modelo con métodos de agregación
-- `docs/logger_usage.md` - Cómo usar el logger
 
 ---
 
 ## ✅ Checklist
 
-- [ ] Crear `server/routes/metrics.js`
-- [ ] Integrar en `server/index.js`
-- [ ] Crear `server/tests/metrics.routes.test.js`
-- [ ] Instalar `supertest` (si no está)
-- [ ] Ejecutar `npm test` (15/15 pasando)
-- [ ] Actualizar `ESTADO_ACTUAL.md` (Fase 0: 85%)
+- [ ] Identificar archivos con más console.log
+- [ ] Reemplazar en `server/services/pdfService.js` (28)
+- [ ] Verificar logger importado
+- [ ] Ejecutar `npm test`
+- [ ] Verificar que no queden console.log en el archivo
+- [ ] Commit: "Completar logging en pdfService.js"
 
 ---
 
-**¡Adelante con la Tarea 2.3!** 🚀
+## 📊 Meta
+
+**Objetivo:** Completar logging al 100%
+- Actual: 153/419 (36.5%)
+- Meta: 419/419 (100%)
+- Pendiente: 266 console.log
+
+**Prioridad:**
+1. pdfService.js (28) - Archivo de servicio importante
+2. Otros archivos de servicios
+3. Scripts y utilidades (baja prioridad)
+
+---
+
+## 🔧 Comandos Útiles
+
+```bash
+# Ver console.log en un archivo específico
+grep -n "console.log" server/services/pdfService.js
+
+# Contar console.log restantes
+grep -r "console.log" server/ --include="*.js" | wc -l
+
+# Ver archivos ordenados por cantidad de console.log
+grep -r "console.log" server/ --include="*.js" | cut -d: -f1 | sort | uniq -c | sort -rn | head -10
+```
+
+---
+
+## 📚 Referencias
+
+- `docs/logger_usage.md` - Guía completa del logger
+- `server/routes/cotizaciones.js` - Ejemplo de migración completa
+- `server/config/logger.js` - Configuración del logger
+
+---
+
+**¡Adelante con la migración!** 🚀
+
+**Siguiente:** Una vez completado pdfService.js, continuar con el siguiente archivo con más console.log.
