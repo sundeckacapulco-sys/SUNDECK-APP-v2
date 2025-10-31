@@ -2,11 +2,16 @@ const mongoose = require('mongoose');
 const ProyectoPedido = require('../models/ProyectoPedido');
 const Prospecto = require('../models/Prospecto');
 const Cotizacion = require('../models/Cotizacion');
+const logger = require('../config/logger');
 
 async function crearDatos() {
   try {
-    await mongoose.connect('mongodb://localhost:27017/sundeck-crm');
-    console.log('✅ Conectado a MongoDB');
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm';
+    await mongoose.connect(mongoUri);
+    logger.info('Conexión a MongoDB establecida para crear datos simples', {
+      script: 'crearDatosSimple',
+      mongoUri: process.env.MONGODB_URI ? 'env:MONGODB_URI' : mongoUri
+    });
 
     // Crear prospecto
     const prospecto = new Prospecto({
@@ -17,6 +22,11 @@ async function crearDatos() {
       estado: 'activo'
     });
     await prospecto.save();
+    logger.info('Prospecto de prueba creado', {
+      script: 'crearDatosSimple',
+      prospectoId: prospecto._id.toString(),
+      nombre: prospecto.nombre
+    });
 
     // Crear cotización
     const cotizacion = new Cotizacion({
@@ -34,6 +44,12 @@ async function crearDatos() {
       estado: 'aprobada'
     });
     await cotizacion.save();
+    logger.info('Cotización de prueba creada', {
+      script: 'crearDatosSimple',
+      cotizacionId: cotizacion._id.toString(),
+      numero: cotizacion.numero,
+      prospectoId: prospecto._id.toString()
+    });
 
     // Crear proyecto en fabricación
     const proyecto = new ProyectoPedido({
@@ -91,13 +107,29 @@ async function crearDatos() {
     });
 
     await proyecto.save();
-    console.log('✅ Proyecto de prueba creado:', proyecto.numero);
-    console.log('🎉 ¡Datos creados! Ahora deberías ver información en /fabricacion');
+    logger.info('Proyecto de prueba creado para fabricación', {
+      script: 'crearDatosSimple',
+      proyectoId: proyecto._id.toString(),
+      numero: proyecto.numero,
+      estado: proyecto.estado
+    });
+    logger.info('Datos de fabricación de prueba generados', {
+      script: 'crearDatosSimple',
+      prospectoId: prospecto._id.toString(),
+      cotizacionId: cotizacion._id.toString()
+    });
 
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    logger.error('Error creando datos simples de fabricación', {
+      script: 'crearDatosSimple',
+      error: error.message,
+      stack: error.stack
+    });
   } finally {
     await mongoose.disconnect();
+    logger.info('Conexión a MongoDB cerrada tras crear datos simples', {
+      script: 'crearDatosSimple'
+    });
   }
 }
 
