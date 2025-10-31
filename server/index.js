@@ -10,6 +10,7 @@ require('dotenv').config();
 // Logger estructurado
 const logger = require('./config/logger');
 const requestLogger = require('./middleware/requestLogger');
+const metricsMiddleware = require('./middleware/metricsMiddleware');
 
 const app = express();
 
@@ -112,6 +113,10 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-c
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/proyectos', metricsMiddleware);
+app.use('/api/cotizaciones', metricsMiddleware);
+app.use('/api/instalaciones', metricsMiddleware);
+app.use('/api/metrics', require('./routes/metrics'));
 app.use('/api/prospectos', require('./routes/prospectos'));
 app.use('/api/cotizaciones', require('./routes/cotizaciones'));
 app.use('/api/pedidos', require('./routes/pedidos'));
