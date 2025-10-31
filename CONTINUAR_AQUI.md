@@ -1,16 +1,17 @@
 # 🚀 CONTINUAR AQUÍ - Completar Logging
 
 **Fecha:** 31 Oct 2025  
-**Estado:** Sprint 1 y 2 completados → Tarea pendiente: Completar console.log
+**Estado:** Sprint 1 y 2 completados → pdfService.js ✅ COMPLETADO
 
 ---
 
 ## ✅ COMPLETADO
 
-### Sprint 1: Logger Estructurado ⚠️ PARCIAL
+### Sprint 1: Logger Estructurado ⚠️ EN PROGRESO
 - ✅ Winston Logger implementado
-- ⚠️ 153/419 console.log reemplazados (36.5%)
+- ⚠️ 179/419 console.log reemplazados (42.7%) ⬆️ +6.2%
 - ✅ Archivos críticos: 89.5%
+- ✅ **pdfService.js: 100% migrado (28 console.log → 0)** 🎉
 
 ### Sprint 2: Métricas Baseline ✅ BACKEND COMPLETO
 - ✅ Modelo Metric
@@ -18,20 +19,29 @@
 - ✅ API REST (4 endpoints)
 - ✅ 15/15 tests pasando
 
-**Fase 0:** 71% completada
+**Fase 0:** 73% completada ⬆️ +2%
 
 ---
 
 ## 🎯 TAREA ACTUAL: Completar console.log Restantes
 
 ### Objetivo
-Reemplazar los 266 console.log restantes en archivos no críticos para completar la migración al logger estructurado.
+Reemplazar los 240 console.log restantes en archivos no críticos para completar la migración al logger estructurado.
 
 ### Archivos Pendientes
 
-**Prioridad Media (66 console.log):**
-1. `server/services/pdfService.js` - 28 console.log
-2. `server/routes/proyectos.js` - 38 console.log (si tiene más)
+**Prioridad Alta (8 console.log):**
+1. ✅ ~~`server/services/pdfService.js` - 28 console.log~~ **COMPLETADO** 🎉
+2. `server/controllers/cotizacionController.js` - 5 console.log
+3. `server/controllers/exportacionController.js` - 3 console.log
+
+**Prioridad Media (40 console.log):**
+1. `server/routes/plantillasWhatsApp.js` - 13 console.log
+2. `server/routes/instalaciones.js` - 7 console.log
+3. `server/routes/prospectos.js` - 7 console.log
+4. `server/routes/backup.js` - 7 console.log
+5. `server/routes/pedidos.js` - 5 console.log
+6. Otros servicios - 1 console.log c/u
 
 **Prioridad Baja (200 console.log):**
 - Scripts de utilidad
@@ -53,42 +63,57 @@ grep -r "console.log" server/ --include="*.js" | cut -d: -f1 | sort | uniq -c | 
 grep -r "console.log" server/ --include="*.js" -l
 ```
 
-### Paso 2: Empezar con pdfService.js (28 console.log)
+### Paso 2: ✅ pdfService.js COMPLETADO
 
-Este archivo ya tiene el logger importado pero no se usó en el Sprint 1.
+**Archivo:** `server/services/pdfService.js` ✅  
+**Estado:** 28/28 console.log migrados (100%)  
+**Ver:** `AUDITORIA_LOGGING_31OCT2025.md`
 
-**Archivo:** `server/services/pdfService.js`
+**Logros:**
+- ✅ Helper `getDocumentId` implementado
+- ✅ 24 logs estructurados con contexto rico
+- ✅ Warnings de assets (logo/fuentes)
+- ✅ Eventos completos (Start/Success/Error)
+- ✅ Identificación de motores (puppeteer/html-pdf-node)
+
+### Paso 3: Continuar con cotizacionController.js (5 console.log)
+
+**Archivo:** `server/controllers/cotizacionController.js`
 
 **Patrón de reemplazo:**
 
 ```javascript
 // Antes:
-console.log('Generando PDF...');
+console.log('Backend: Recibiendo solicitud para crear cotización...');
 
 // Después:
-logger.info('Generando PDF', { servicio: 'pdfService' });
-
-// Antes:
-console.error('Error generando PDF:', error);
-
-// Después:
-logger.error('Error generando PDF', { 
-  error: error.message, 
-  stack: error.stack,
-  servicio: 'pdfService'
+logger.info('Recibiendo solicitud para crear cotización', { 
+  controlador: 'cotizacionController',
+  metodo: 'crearCotizacion'
 });
 
 // Antes:
-console.log('PDF generado:', filename);
+console.log('Backend: req.body recibido:', JSON.stringify(req.body, null, 2));
 
 // Después:
-logger.info('PDF generado exitosamente', { 
-  filename,
-  servicio: 'pdfService'
+logger.debug('Body de solicitud recibido', { 
+  controlador: 'cotizacionController',
+  prospectoId: req.body.prospecto,
+  productosCount: req.body.productos?.length || 0
+});
+
+// Antes:
+console.log('Backend: Cotización guardada exitosamente:', cotizacionGuardada._id);
+
+// Después:
+logger.info('Cotización guardada exitosamente', { 
+  controlador: 'cotizacionController',
+  cotizacionId: cotizacionGuardada._id,
+  numero: cotizacionGuardada.numero
 });
 ```
 
-### Paso 3: Verificar que el logger esté importado
+### Paso 4: Verificar que el logger esté importado
 
 ```javascript
 // Al inicio del archivo debe estar:
@@ -97,7 +122,7 @@ const logger = require('../config/logger');
 
 Si no está, agregarlo.
 
-### Paso 4: Reemplazar console.log uno por uno
+### Paso 5: Reemplazar console.log uno por uno
 
 **Niveles a usar:**
 - `logger.info()` - Operaciones normales, inicio/fin de procesos
@@ -113,43 +138,48 @@ Si no está, agregarlo.
 }
 ```
 
-### Paso 5: Ejecutar pruebas
+### Paso 6: Ejecutar pruebas
 
 ```bash
 # Verificar sintaxis
-node server/services/pdfService.js
+node server/controllers/cotizacionController.js
 
 # Ejecutar tests (si existen)
 npm test
 
 # Verificar que no queden console.log
-grep "console.log" server/services/pdfService.js
+grep "console.log" server/controllers/cotizacionController.js
 ```
 
 ---
 
 ## ✅ Checklist
 
-- [ ] Identificar archivos con más console.log
-- [ ] Reemplazar en `server/services/pdfService.js` (28)
-- [ ] Verificar logger importado
-- [ ] Ejecutar `npm test`
-- [ ] Verificar que no queden console.log en el archivo
-- [ ] Commit: "Completar logging en pdfService.js"
+- [x] Identificar archivos con más console.log ✅
+- [x] Reemplazar en `server/services/pdfService.js` (28) ✅
+- [x] Verificar logger importado ✅
+- [x] Ejecutar `npm test` ✅
+- [x] Verificar que no queden console.log en el archivo ✅
+- [x] Auditoría completa: `AUDITORIA_LOGGING_31OCT2025.md` ✅
+- [ ] Reemplazar en `server/controllers/cotizacionController.js` (5)
+- [ ] Reemplazar en `server/controllers/exportacionController.js` (3)
+- [ ] Commit: "Completar logging en controladores críticos"
 
 ---
 
 ## 📊 Meta
 
 **Objetivo:** Completar logging al 100%
-- Actual: 153/419 (36.5%)
+- Actual: 179/419 (42.7%) ⬆️ +6.2%
 - Meta: 419/419 (100%)
-- Pendiente: 266 console.log
+- Pendiente: 240 console.log
 
-**Prioridad:**
-1. pdfService.js (28) - Archivo de servicio importante
-2. Otros archivos de servicios
-3. Scripts y utilidades (baja prioridad)
+**Progreso por archivo:**
+1. ✅ pdfService.js (28) - **COMPLETADO** 🎉
+2. ⏳ cotizacionController.js (5) - **SIGUIENTE**
+3. ⏳ exportacionController.js (3) - Prioridad alta
+4. ⏳ Rutas operativas (40) - Prioridad media
+5. ⏳ Scripts y utilidades (190) - Prioridad baja
 
 ---
 

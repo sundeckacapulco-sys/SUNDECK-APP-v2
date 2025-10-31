@@ -8,11 +8,12 @@
 ## 🎯 ESTADO ACTUAL
 
 **Sprints completados:**
-- ⚠️ Sprint 1: Logger Estructurado (67% - Logger funcional, 36.5% migrado)
+- ⚠️ Sprint 1: Logger Estructurado (73% - Logger funcional, 43.2% migrado)
 - ✅ Sprint 2: Métricas Baseline (75% - Backend completo)
 
-**Fase 0: Baseline y Observabilidad - 71%**
-- ⚠️ Logging estructurado (67% - 153/419 console.log migrados)
+**Fase 0: Baseline y Observabilidad - 73%** ⬆️ +2%
+- ⚠️ Logging estructurado (73% - 179/419 console.log migrados, 42.7%)
+  - ✅ pdfService.js completado (28/28 → 0) 🎉
 - ✅ Carpeta /logs/ (100%)
 - ✅ KPIs baseline (75% - Backend completo)
 - ⚠️ Dashboard métricas (0% - Opcional)
@@ -23,8 +24,14 @@
 - API REST con 4 endpoints operativos ✅
 - Listo para producción ✅
 
+**Progreso reciente:**
+- ✅ pdfService.js: 28 console.log → logger estructurado
+- ✅ Helper getDocumentId implementado
+- ✅ Eventos completos (Start/Success/Error)
+
 **Próxima tarea:**
-- 📋 Completar 266 console.log restantes
+- 📋 Completar 240 console.log restantes (57.3%)
+- 🎯 Siguiente: cotizacionController.js (5 console.log)
 - 👉 Ver [`CONTINUAR_AQUI.md`](CONTINUAR_AQUI.md) para instrucciones
 
 **Documentación:**
