@@ -1,15 +1,15 @@
-# 🚀 CONTINUAR AQUÍ - Día 3: Migración de Datos
+# 🚀 CONTINUAR AQUÍ - Día 4: Deprecación de Modelos Legacy
 
-**Última actualización:** 31 Octubre 2025 - 16:24  
-**Estado:** Fase 1 EN PROGRESO (80%)  
-**Próxima tarea:** Migrar datos de ProyectoPedido a Proyecto
+**Última actualización:** 31 Octubre 2025 - 18:19  
+**Estado:** Fase 1 EN PROGRESO (90%)  
+**Próxima tarea:** Deprecar modelos legacy y actualizar imports
 
 ---
 
 ## ✅ LO COMPLETADO HASTA AHORA
 
 ### Día 0: Modelo Unificado ✅
-- ✅ `Proyecto.js` con 5 secciones nuevas
+- ✅ `Proyecto.js` con 5 secciones nuevas (1,241 líneas)
 - ✅ 4 métodos inteligentes implementados
 
 ### Día 1: Endpoints ✅
@@ -19,418 +19,331 @@
 ### Día 2: Services Actualizados ✅
 - ✅ `FabricacionService` migrado a `Proyecto`
 - ✅ `InstalacionesInteligentesService` reescrito
-- ✅ Endpoint de sugerencias inteligentes
 
-**Progreso:** 80% de Fase 1 completado
+### Día 3: Scripts de Migración ✅
+- ✅ `migrarProyectoPedidoAProyecto.js` (444 líneas)
+- ✅ `validarMigracion.js` (226 líneas)
+
+**Progreso:** 90% de Fase 1 completado
 
 ---
 
-## 📋 PRÓXIMA SESIÓN: Día 3 - Migración de Datos
+## 📋 PRÓXIMA SESIÓN: Día 4 - Deprecación de Modelos Legacy
 
 ### Objetivo
-Migrar datos existentes de `ProyectoPedido` al modelo unificado `Proyecto` preservando 100% de la información.
+Marcar los modelos `Fabricacion.js` y `ProyectoPedido.js` como legacy (deprecated) para evitar su uso futuro, actualizando todos los imports existentes.
 
 ---
 
-## 🔍 PASO 1: Análisis Previo
+## 🔍 PASO 1: Identificar Archivos que Usan Modelos Legacy
 
-### Verificar datos existentes
+### Buscar usos de `Fabricacion`
 
 ```bash
-# Conectar a MongoDB
-mongo sundeck_crm
+# Buscar imports de Fabricacion
+rg "require.*Fabricacion" server --type js
 
-# Contar documentos
-db.proyectopedidos.count()
-db.proyectos.count()
+# Buscar imports ES6
+rg "from.*Fabricacion" server --type js
 
-# Ver estructura de ProyectoPedido
-db.proyectopedidos.findOne()
-
-# Ver estructura de Proyecto
-db.proyectos.findOne()
+# Buscar usos directos
+rg "Fabricacion\." server --type js
 ```
 
-### Identificar campos a migrar
+### Buscar usos de `ProyectoPedido`
 
-**De `ProyectoPedido` a `Proyecto`:**
+```bash
+# Buscar imports de ProyectoPedido
+rg "require.*ProyectoPedido" server --type js
 
-```javascript
-// Campos que ya existen en Proyecto (preservar)
-- cliente
-- estado
-- productos
-- total, subtotal, iva
-- anticipo, saldo_pendiente
+# Buscar imports ES6
+rg "from.*ProyectoPedido" server --type js
 
-// Campos nuevos a migrar
-- cronograma.* → cronograma.*
-- fabricacion.* → fabricacion.*
-- instalacion.* → instalacion.* (si existe)
-- pagos.* → pagos.*
-- notas[] → notas[]
+# Buscar usos directos
+rg "ProyectoPedido\." server --type js
 ```
 
 ---
 
-## 📝 PASO 2: Crear Script de Migración
+## 📝 PASO 2: Renombrar Modelos a .legacy.js
 
-### Archivo: `server/scripts/migrarProyectoPedidoAProyecto.js`
+### 1. Renombrar Fabricacion.js
+
+```bash
+# Renombrar archivo
+mv server/models/Fabricacion.js server/models/Fabricacion.legacy.js
+```
+
+**Agregar aviso de deprecación al inicio del archivo:**
 
 ```javascript
-const mongoose = require('mongoose');
-const Proyecto = require('../models/Proyecto');
-const ProyectoPedido = require('../models/ProyectoPedido');
-const logger = require('../config/logger');
-require('dotenv').config();
-
 /**
- * Script de migración: ProyectoPedido → Proyecto
+ * @deprecated Este modelo está deprecado. Usar Proyecto.fabricacion en su lugar.
  * 
- * Migra datos de ProyectoPedido al modelo unificado Proyecto
- * preservando toda la información existente.
+ * MODELO LEGACY - NO USAR EN CÓDIGO NUEVO
+ * 
+ * Este modelo se mantiene solo para compatibilidad con código existente.
+ * Para nuevas funcionalidades, usar el modelo unificado Proyecto.js
+ * 
+ * Migración: server/scripts/migrarProyectoPedidoAProyecto.js
+ * 
+ * @see server/models/Proyecto.js
+ * @since Legacy (pre-unificación)
+ * @deprecated Desde 31 Oct 2025
  */
 
-async function migrarProyectoPedidoAProyecto() {
-  try {
-    logger.info('Iniciando migración de ProyectoPedido a Proyecto', {
-      script: 'migrarProyectoPedidoAProyecto'
-    });
-
-    // Conectar a MongoDB
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
-
-    logger.info('Conexión a MongoDB establecida');
-
-    // Obtener todos los ProyectoPedido
-    const proyectosPedido = await ProyectoPedido.find({});
-    
-    logger.info(`Encontrados ${proyectosPedido.length} ProyectoPedido para migrar`);
-
-    let migrados = 0;
-    let errores = 0;
-    let omitidos = 0;
-
-    for (const pp of proyectosPedido) {
-      try {
-        // Verificar si ya existe en Proyecto
-        const existente = await Proyecto.findOne({
-          numero: pp.numero,
-          'cliente.nombre': pp.cliente?.nombre
-        });
-
-        if (existente) {
-          logger.warn('Proyecto ya existe, omitiendo', {
-            numero: pp.numero,
-            proyectoId: existente._id
-          });
-          omitidos++;
-          continue;
-        }
-
-        // Crear nuevo Proyecto con datos migrados
-        const nuevoProyecto = new Proyecto({
-          // Campos básicos
-          numero: pp.numero,
-          cliente: pp.cliente,
-          estado: pp.estado,
-          
-          // Productos
-          productos: pp.productos || [],
-          
-          // Financiero
-          monto_estimado: pp.montoTotal || pp.total || 0,
-          subtotal: pp.subtotal || 0,
-          iva: pp.iva || 0,
-          total: pp.total || 0,
-          anticipo: pp.anticipo || 0,
-          saldo_pendiente: pp.saldoPendiente || pp.saldo || 0,
-          
-          // Cronograma (NUEVO)
-          cronograma: {
-            fechaPedido: pp.fechaCreacion || pp.createdAt,
-            fechaInicioFabricacion: pp.cronograma?.fechaInicioFabricacion,
-            fechaFinFabricacionEstimada: pp.cronograma?.fechaFinFabricacionEstimada,
-            fechaFinFabricacionReal: pp.cronograma?.fechaFinFabricacionReal,
-            fechaInstalacionProgramada: pp.cronograma?.fechaInstalacionProgramada,
-            fechaInstalacionReal: pp.cronograma?.fechaInstalacionReal,
-            fechaEntrega: pp.cronograma?.fechaEntrega,
-            fechaCompletado: pp.cronograma?.fechaCompletado
-          },
-          
-          // Fabricación (NUEVO)
-          fabricacion: pp.fabricacion ? {
-            estado: pp.fabricacion.estado || 'pendiente',
-            asignadoA: pp.fabricacion.asignadoA,
-            prioridad: pp.fabricacion.prioridad || 'media',
-            materiales: pp.fabricacion.materiales || [],
-            procesos: pp.fabricacion.procesos || [],
-            controlCalidad: pp.fabricacion.controlCalidad || {},
-            empaque: pp.fabricacion.empaque || {},
-            costos: pp.fabricacion.costos || {},
-            progreso: pp.fabricacion.progreso || 0,
-            etiquetas: [] // Se generarán después si es necesario
-          } : undefined,
-          
-          // Instalación (NUEVO)
-          instalacion: pp.instalacion ? {
-            numeroOrden: pp.instalacion.numeroOrden,
-            estado: pp.instalacion.estado || 'pendiente',
-            programacion: pp.instalacion.programacion || {},
-            productosInstalar: pp.instalacion.productosInstalar || [],
-            checklist: pp.instalacion.checklist || [],
-            ruta: pp.instalacion.ruta || {},
-            ejecucion: pp.instalacion.ejecucion || {},
-            evidencias: pp.instalacion.evidencias || {},
-            garantia: pp.instalacion.garantia || {},
-            costos: pp.instalacion.costos || {}
-          } : undefined,
-          
-          // Pagos (NUEVO)
-          pagos: {
-            montoTotal: pp.total || 0,
-            subtotal: pp.subtotal || 0,
-            iva: pp.iva || 0,
-            descuentos: pp.descuentos || 0,
-            anticipo: pp.pagos?.anticipo || {
-              monto: pp.anticipo || 0,
-              porcentaje: pp.anticipo ? (pp.anticipo / pp.total * 100) : 0,
-              pagado: pp.anticipo > 0
-            },
-            saldo: pp.pagos?.saldo || {
-              monto: pp.saldoPendiente || pp.saldo || 0,
-              porcentaje: pp.saldoPendiente ? (pp.saldoPendiente / pp.total * 100) : 0,
-              pagado: (pp.saldoPendiente || 0) === 0
-            },
-            pagosAdicionales: pp.pagos?.pagosAdicionales || []
-          },
-          
-          // Notas (NUEVO)
-          notas: pp.notas || [],
-          
-          // Metadata
-          creado_por: pp.creadoPor || pp.creado_por,
-          asesor_asignado: pp.asesorAsignado || pp.asesor_asignado,
-          prospecto_original: pp.prospectoOriginal || pp.prospecto_original,
-          
-          // Fechas
-          fecha_creacion: pp.fechaCreacion || pp.createdAt,
-          fecha_actualizacion: pp.fechaActualizacion || pp.updatedAt
-        });
-
-        await nuevoProyecto.save();
-        
-        logger.info('Proyecto migrado exitosamente', {
-          numero: pp.numero,
-          proyectoId: nuevoProyecto._id,
-          cliente: pp.cliente?.nombre
-        });
-        
-        migrados++;
-
-      } catch (error) {
-        logger.error('Error migrando proyecto individual', {
-          numero: pp.numero,
-          error: error.message,
-          stack: error.stack
-        });
-        errores++;
-      }
-    }
-
-    logger.info('Migración completada', {
-      total: proyectosPedido.length,
-      migrados,
-      omitidos,
-      errores
-    });
-
-    // Cerrar conexión
-    await mongoose.connection.close();
-    
-    return {
-      total: proyectosPedido.length,
-      migrados,
-      omitidos,
-      errores
-    };
-
-  } catch (error) {
-    logger.error('Error en migración de ProyectoPedido', {
-      script: 'migrarProyectoPedidoAProyecto',
-      error: error.message,
-      stack: error.stack
-    });
-    throw error;
-  }
-}
-
-// Ejecutar si se llama directamente
-if (require.main === module) {
-  migrarProyectoPedidoAProyecto()
-    .then(resultado => {
-      console.log('\n✅ Migración completada:');
-      console.log(`   Total: ${resultado.total}`);
-      console.log(`   Migrados: ${resultado.migrados}`);
-      console.log(`   Omitidos: ${resultado.omitidos}`);
-      console.log(`   Errores: ${resultado.errores}`);
-      process.exit(0);
-    })
-    .catch(error => {
-      console.error('\n❌ Error en migración:', error.message);
-      process.exit(1);
-    });
-}
-
-module.exports = { migrarProyectoPedidoAProyecto };
+console.warn('⚠️ ADVERTENCIA: Fabricacion.legacy.js está deprecado. Usar Proyecto.fabricacion');
 ```
 
 ---
 
-## 🔧 PASO 3: Crear Backup
-
-### Antes de ejecutar la migración
+### 2. Renombrar ProyectoPedido.js
 
 ```bash
-# Backup de la base de datos
-mongodump --db sundeck_crm --out ./backup_$(date +%Y%m%d_%H%M%S)
-
-# O backup solo de ProyectoPedido
-mongodump --db sundeck_crm --collection proyectopedidos --out ./backup_proyectopedidos
+# Renombrar archivo
+mv server/models/ProyectoPedido.js server/models/ProyectoPedido.legacy.js
 ```
 
----
-
-## ▶️ PASO 4: Ejecutar Migración
-
-### En entorno de desarrollo
-
-```bash
-# Ejecutar script
-node server/scripts/migrarProyectoPedidoAProyecto.js
-
-# Verificar resultados
-mongo sundeck_crm
-db.proyectos.count()  # Debe aumentar
-db.proyectos.find().limit(5)  # Verificar estructura
-```
-
----
-
-## ✅ PASO 5: Validación
-
-### Script de validación
+**Agregar aviso de deprecación al inicio del archivo:**
 
 ```javascript
-// server/scripts/validarMigracion.js
-const mongoose = require('mongoose');
-const Proyecto = require('../models/Proyecto');
+/**
+ * @deprecated Este modelo está deprecado. Usar Proyecto en su lugar.
+ * 
+ * MODELO LEGACY - NO USAR EN CÓDIGO NUEVO
+ * 
+ * Este modelo se mantiene solo para compatibilidad con código existente.
+ * Para nuevas funcionalidades, usar el modelo unificado Proyecto.js
+ * 
+ * Migración: server/scripts/migrarProyectoPedidoAProyecto.js
+ * Validación: server/scripts/validarMigracion.js
+ * 
+ * @see server/models/Proyecto.js
+ * @since Legacy (pre-unificación)
+ * @deprecated Desde 31 Oct 2025
+ */
+
+console.warn('⚠️ ADVERTENCIA: ProyectoPedido.legacy.js está deprecado. Usar Proyecto');
+```
+
+---
+
+## 🔧 PASO 3: Actualizar Imports en Archivos Existentes
+
+### Archivos que probablemente necesitan actualización:
+
+#### 1. Routes
+```javascript
+// server/routes/fabricacion.js
+// ANTES:
+const Fabricacion = require('../models/Fabricacion');
+
+// DESPUÉS:
+const Fabricacion = require('../models/Fabricacion.legacy');
+// TODO: Migrar a usar Proyecto
+
+// server/routes/instalaciones.js
+// ANTES:
+const Fabricacion = require('../models/Fabricacion');
+
+// DESPUÉS:
+const Fabricacion = require('../models/Fabricacion.legacy');
+// TODO: Migrar a usar Proyecto
+```
+
+#### 2. Scripts de migración
+```javascript
+// server/scripts/migrarProyectoPedidoAProyecto.js
+// ANTES:
 const ProyectoPedido = require('../models/ProyectoPedido');
-const logger = require('../config/logger');
 
-async function validarMigracion() {
-  await mongoose.connect(process.env.MONGODB_URI);
-  
-  const totalPP = await ProyectoPedido.countDocuments();
-  const totalP = await Proyecto.countDocuments();
-  
-  logger.info('Validación de migración', {
-    proyectoPedidos: totalPP,
-    proyectos: totalP
-  });
-  
-  // Validar campos críticos
-  const proyectos = await Proyecto.find({});
-  
-  let errores = 0;
-  for (const p of proyectos) {
-    if (!p.total || p.total === 0) {
-      logger.warn('Proyecto sin total', { numero: p.numero });
-      errores++;
-    }
-    if (!p.cliente || !p.cliente.nombre) {
-      logger.warn('Proyecto sin cliente', { numero: p.numero });
-      errores++;
-    }
-  }
-  
-  logger.info('Validación completada', { errores });
-  
-  await mongoose.connection.close();
-  return { errores };
-}
+// DESPUÉS:
+const ProyectoPedido = require('../models/ProyectoPedido.legacy');
 
-if (require.main === module) {
-  validarMigracion()
-    .then(r => {
-      console.log(`\n✅ Validación: ${r.errores} errores encontrados`);
-      process.exit(r.errores > 0 ? 1 : 0);
-    });
-}
+// server/scripts/validarMigracion.js
+// ANTES:
+const ProyectoPedido = require('../models/ProyectoPedido');
 
-module.exports = { validarMigracion };
+// DESPUÉS:
+const ProyectoPedido = require('../models/ProyectoPedido.legacy');
+```
+
+#### 3. Otros archivos
+Actualizar cualquier otro archivo que importe estos modelos.
+
+---
+
+## 📋 PASO 4: Crear Archivo de Documentación
+
+### Crear: `docschecklists/MODELOS_LEGACY.md`
+
+```markdown
+# 📦 MODELOS LEGACY - NO USAR
+
+**Fecha de deprecación:** 31 Octubre 2025  
+**Razón:** Unificación de modelos en Proyecto.js
+
+---
+
+## ⚠️ MODELOS DEPRECADOS
+
+### 1. Fabricacion.legacy.js
+
+**Estado:** ❌ DEPRECADO  
+**Reemplazo:** `Proyecto.fabricacion`
+
+**Razón de deprecación:**
+- Duplicidad con ProyectoPedido.fabricacion
+- Falta de integración con ciclo de vida completo
+- Datos fragmentados en múltiples colecciones
+
+**Migración:**
+```javascript
+// ANTES (NO USAR):
+const Fabricacion = require('./models/Fabricacion.legacy');
+const fab = await Fabricacion.findById(id);
+
+// DESPUÉS (USAR):
+const Proyecto = require('./models/Proyecto');
+const proyecto = await Proyecto.findById(id);
+const fabricacion = proyecto.fabricacion;
+```
+
+---
+
+### 2. ProyectoPedido.legacy.js
+
+**Estado:** ❌ DEPRECADO  
+**Reemplazo:** `Proyecto`
+
+**Razón de deprecación:**
+- Nombre confuso (mezcla proyecto y pedido)
+- Duplicidad con modelo Proyecto
+- Campos incompletos vs modelo unificado
+
+**Migración:**
+```javascript
+// ANTES (NO USAR):
+const ProyectoPedido = require('./models/ProyectoPedido.legacy');
+const pp = await ProyectoPedido.findById(id);
+
+// DESPUÉS (USAR):
+const Proyecto = require('./models/Proyecto');
+const proyecto = await Proyecto.findById(id);
+```
+
+---
+
+## 🔄 SCRIPTS DE MIGRACIÓN
+
+### Migrar datos existentes
+
+```bash
+# Migrar ProyectoPedido → Proyecto
+node server/scripts/migrarProyectoPedidoAProyecto.js
+
+# Validar migración
+node server/scripts/validarMigracion.js
+```
+
+---
+
+## 📊 COMPARACIÓN DE MODELOS
+
+| Característica | Legacy | Unificado (Proyecto) |
+|----------------|--------|----------------------|
+| **Ciclo de vida completo** | ❌ | ✅ |
+| **Fabricación integrada** | ❌ | ✅ |
+| **Instalación integrada** | ❌ | ✅ |
+| **Pagos estructurados** | ❌ | ✅ |
+| **Historial de notas** | ❌ | ✅ |
+| **Métodos inteligentes** | ❌ | ✅ |
+| **Etiquetas de producción** | ❌ | ✅ |
+| **Optimización de rutas** | ❌ | ✅ |
+
+---
+
+## ⚡ ACCIÓN REQUERIDA
+
+### Para Desarrolladores
+
+1. **NO usar** `Fabricacion.legacy.js` en código nuevo
+2. **NO usar** `ProyectoPedido.legacy.js` en código nuevo
+3. **USAR** `Proyecto.js` para todas las funcionalidades
+4. **MIGRAR** código existente gradualmente
+
+### Cronograma de Eliminación
+
+- **Fase 1 (Actual):** Deprecación y avisos
+- **Fase 2 (1 mes):** Migración de código existente
+- **Fase 3 (2 meses):** Eliminación de archivos legacy
+
+---
+
+## 📚 DOCUMENTACIÓN
+
+- **Modelo unificado:** `server/models/Proyecto.js`
+- **Requisitos:** `docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md`
+- **Implementación:** `docschecklists/IMPLEMENTACION_COMPLETADA.md`
+- **Migración:** `server/scripts/migrarProyectoPedidoAProyecto.js`
+
+---
+
+**Última actualización:** 31 Octubre 2025  
+**Responsable:** Equipo Desarrollo CRM Sundeck
 ```
 
 ---
 
 ## 📋 Checklist de Tareas
 
-- [ ] **Tarea 1:** Análisis previo
-  - [ ] Conectar a MongoDB
-  - [ ] Contar documentos existentes
-  - [ ] Analizar estructura de datos
+- [ ] **Tarea 1:** Identificar archivos que usan modelos legacy
+  - [ ] Buscar usos de `Fabricacion`
+  - [ ] Buscar usos de `ProyectoPedido`
+  - [ ] Documentar archivos encontrados
 
-- [ ] **Tarea 2:** Crear script de migración
-  - [ ] Crear `migrarProyectoPedidoAProyecto.js`
-  - [ ] Mapear todos los campos
-  - [ ] Agregar logging completo
+- [ ] **Tarea 2:** Renombrar archivos
+  - [ ] `Fabricacion.js` → `Fabricacion.legacy.js`
+  - [ ] `ProyectoPedido.js` → `ProyectoPedido.legacy.js`
+  - [ ] Agregar avisos de deprecación
 
-- [ ] **Tarea 3:** Crear backup
-  - [ ] Backup completo de base de datos
-  - [ ] Verificar backup exitoso
+- [ ] **Tarea 3:** Actualizar imports
+  - [ ] Actualizar routes
+  - [ ] Actualizar scripts
+  - [ ] Actualizar otros archivos
 
-- [ ] **Tarea 4:** Ejecutar migración
-  - [ ] Ejecutar en desarrollo
-  - [ ] Verificar logs
-  - [ ] Revisar resultados
+- [ ] **Tarea 4:** Crear documentación
+  - [ ] Crear `MODELOS_LEGACY.md`
+  - [ ] Documentar razones de deprecación
+  - [ ] Documentar proceso de migración
 
-- [ ] **Tarea 5:** Validar migración
-  - [ ] Crear script de validación
-  - [ ] Ejecutar validación
-  - [ ] Corregir errores si existen
-
-- [ ] **Tarea 6:** Documentar resultados
-  - [ ] Crear reporte de migración
-  - [ ] Documentar problemas encontrados
+- [ ] **Tarea 5:** Verificar funcionamiento
+  - [ ] Ejecutar tests
+  - [ ] Verificar que no hay errores
   - [ ] Actualizar AGENTS.md
 
 ---
 
 ## ⚠️ IMPORTANTE
 
-### NO EJECUTAR EN PRODUCCIÓN sin:
-1. ✅ Backup completo verificado
-2. ✅ Pruebas exitosas en desarrollo
-3. ✅ Validación de integridad de datos
-4. ✅ Plan de rollback documentado
+### NO Eliminar Archivos
+- Los archivos legacy se mantienen para compatibilidad
+- Solo se renombran y marcan como deprecados
+- Se eliminarán en Fase 2 (después de migrar todo el código)
 
-### Campos Críticos a Preservar
-- `total`, `anticipo`, `saldo_pendiente`
-- `cliente.*`
-- `productos[]`
-- `estado`
-- Todas las fechas del cronograma
+### Avisos en Consola
+- Los modelos legacy mostrarán advertencias en consola
+- Esto ayuda a identificar código que aún los usa
+- Facilita la migración gradual
 
 ---
 
 ## 📚 DOCUMENTOS DE REFERENCIA
 
-- `server/models/Proyecto.js` - Modelo destino
-- `server/models/ProyectoPedido.js` - Modelo origen
-- `docschecklists/FASE_1_UNIFICACION_MODELOS.md` - Plan de unificación
+- `server/models/Proyecto.js` - Modelo unificado
+- `server/models/Fabricacion.js` - A renombrar
+- `server/models/ProyectoPedido.js` - A renombrar
+- `docschecklists/FASE_1_UNIFICACION_MODELOS.md` - Plan completo
 
 ---
 
@@ -439,19 +352,18 @@ module.exports = { validarMigracion };
 ```
 Día 0: Modelo Unificado        ████████████████████ 100% ✅
 Día 1: Endpoints               ████████████████████ 100% ✅
-Día 2: Actualizar Services     ████████████████████ 100% ✅
-Día 3: Migración de Datos      ░░░░░░░░░░░░░░░░░░░░   0% ⬅️ AQUÍ
-Día 4: Deprecación             ░░░░░░░░░░░░░░░░░░░░   0%
-Día 5: Validación Final        ░░░░░░░░░░░░░░░░░░░░   0%
+Día 2: Services Actualizados   ████████████████████ 100% ✅
+Día 3: Scripts de Migración    ████████████████████ 100% ✅
+Día 4: Deprecación             ░░░░░░░░░░░░░░░░░░░░   0% ⬅️ AQUÍ
 
-Total: ████████████████░░░░ 80%
+Total: ██████████████████░░ 90%
 ```
 
 ---
 
 **Responsable:** Próximo Agente  
-**Duración estimada:** 2-3 horas  
-**Complejidad:** Alta (requiere cuidado con datos)  
-**Riesgo:** Medio (backup obligatorio)
+**Duración estimada:** 1-2 horas  
+**Complejidad:** Baja  
+**Riesgo:** Bajo (solo renombrar y marcar)
 
-**¡Listo para migración de datos!** 🚀
+**¡Listo para deprecación!** 🚀

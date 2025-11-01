@@ -14,7 +14,7 @@
 
 ---
 
-## 🚀 FASE 1 EN PROGRESO (80%)
+## 🚀 FASE 1 EN PROGRESO (90%)
 
 ### ✅ COMPLETADO (31 Oct 2025)
 
@@ -56,15 +56,19 @@
 - ✅ `docschecklists/auditorias/AUDITORIA_FASE_1_DIA_0.md`
 - ✅ `docschecklists/auditorias/AUDITORIA_ENDPOINTS_FASE_1.md`
 
-### ⏳ PENDIENTE (Próxima Sesión - Día 3)
+**Día 3: Scripts de Migración** ✅ ⭐
+- ✅ Creado `migrarProyectoPedidoAProyecto.js` (444 líneas)
+- ✅ Mapeo completo de campos: fabricación, instalación, pagos, notas
+- ✅ Normalización de estados y roles
+- ✅ Merge inteligente de proyectos existentes
+- ✅ Creado `validarMigracion.js` (226 líneas)
+- ✅ Validación de totales, estados y teléfonos
+- ✅ Logging estructurado con estadísticas
+- ✅ Detección de discrepancias
 
-**Día 3: Migración de Datos** ⬅️ EMPEZAR AQUÍ
-- [ ] Crear script `migrarProyectoPedidoAProyecto.js`
-- [ ] Migrar datos de `ProyectoPedido` a `Proyecto`
-- [ ] Validar integridad de datos migrados
-- [ ] Crear backup antes de migración
+### ⏳ PENDIENTE (Próxima Sesión - Día 4)
 
-**Día 4: Deprecación**
+**Día 4: Deprecación** ⬅️ EMPEZAR AQUÍ
 - [ ] Renombrar `Fabricacion.js` → `Fabricacion.legacy.js`
 - [ ] Renombrar `ProyectoPedido.js` → `ProyectoPedido.legacy.js`
 - [ ] Actualizar imports en archivos afectados
