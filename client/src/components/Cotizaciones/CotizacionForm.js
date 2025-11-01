@@ -35,7 +35,8 @@ import {
   Calculate,
   Settings,
   CalendarToday,
-  Functions
+  Functions,
+  ContentCopy
 } from '@mui/icons-material';
 import SelectorProductos from './SelectorProductos';
 import AgregarProductoRapido from './AgregarProductoRapido';
@@ -701,6 +702,70 @@ const CotizacionForm = () => {
       unidadMedida: 'm2',
       subtotal: 0
     });
+  };
+
+  // Copiar el producto del primer item a todos los siguientes
+  const copiarProductoPrimero = () => {
+    const productos = watchedProductos;
+    if (productos.length < 2) {
+      alert('Necesitas al menos 2 productos para copiar');
+      return;
+    }
+
+    const primerProducto = productos[0];
+    if (!primerProducto?.nombre) {
+      alert('El primer producto debe tener un nombre');
+      return;
+    }
+
+    // Copiar nombre del primer producto a todos los demás
+    for (let i = 1; i < productos.length; i++) {
+      setValue(`productos.${i}.nombre`, primerProducto.nombre);
+      setValue(`productos.${i}.categoria`, primerProducto.categoria || 'ventana');
+      setValue(`productos.${i}.material`, primerProducto.material || '');
+      setValue(`productos.${i}.color`, primerProducto.color || '');
+      setValue(`productos.${i}.unidadMedida`, primerProducto.unidadMedida || 'm2');
+    }
+
+    alert(`✅ Producto "${primerProducto.nombre}" copiado a ${productos.length - 1} items`);
+  };
+
+  // Copiar el precio del primer item a todos los siguientes
+  const copiarPrecioPrimero = () => {
+    const productos = watchedProductos;
+    if (productos.length < 2) {
+      alert('Necesitas al menos 2 productos para copiar el precio');
+      return;
+    }
+
+    const primerProducto = productos[0];
+    const precioUnitario = parseFloat(primerProducto?.precioUnitario) || 0;
+    
+    if (precioUnitario === 0) {
+      alert('El primer producto debe tener un precio válido');
+      return;
+    }
+
+    // Copiar precio del primer producto a todos los demás y recalcular subtotales
+    for (let i = 1; i < productos.length; i++) {
+      setValue(`productos.${i}.precioUnitario`, precioUnitario);
+      
+      // Recalcular subtotal según tipo de producto
+      const producto = productos[i];
+      const cantidad = producto?.cantidad || 1;
+      const unidadMedida = producto?.unidadMedida;
+      
+      let subtotal = 0;
+      if (['pieza', 'par', 'juego', 'kit'].includes(unidadMedida)) {
+        subtotal = precioUnitario * cantidad;
+      } else {
+        const area = parseNumber(producto?.medidas?.area, 0);
+        subtotal = area * precioUnitario * cantidad;
+      }
+      setValue(`productos.${i}.subtotal`, subtotal);
+    }
+
+    alert(`✅ Precio $${precioUnitario.toLocaleString()} copiado a ${productos.length - 1} items`);
   };
 
   // Función para importar desde proyecto unificado
@@ -1428,6 +1493,40 @@ const CotizacionForm = () => {
               </Box>
             </Box>
 
+            {/* Botones de copiar - Solo aparecen si hay más de 1 producto */}
+            {fields.length > 1 && (
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, justifyContent: 'center' }}>
+                <Button
+                  variant="contained"
+                  startIcon={<ContentCopy />}
+                  onClick={copiarProductoPrimero}
+                  size="small"
+                  sx={{
+                    bgcolor: '#10b981',
+                    '&:hover': {
+                      bgcolor: '#059669'
+                    }
+                  }}
+                >
+                  Copiar Producto del 1° a los demás
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<ContentCopy />}
+                  onClick={copiarPrecioPrimero}
+                  size="small"
+                  sx={{
+                    bgcolor: '#f59e0b',
+                    '&:hover': {
+                      bgcolor: '#d97706'
+                    }
+                  }}
+                >
+                  Copiar Precio del 1° a los demás
+                </Button>
+              </Box>
+            )}
+
             {/* Calculadoras rápidas */}
             <Box sx={{ display: 'flex', gap: 1, mb: 2, justifyContent: 'center' }}>
               <Button
@@ -1464,7 +1563,7 @@ const CotizacionForm = () => {
                 <TableBody>
                   {fields.map((field, index) => (
                     <TableRow key={field.id}>
-                      <TableCell>
+                      <TableCell sx={{ minWidth: 200 }}>
                         <Controller
                           name={`productos.${index}.nombre`}
                           control={control}
@@ -1474,6 +1573,13 @@ const CotizacionForm = () => {
                               size="small"
                               label="Producto"
                               fullWidth
+                              sx={{
+                                '& .MuiInputBase-input': {
+                                  fontSize: '0.875rem',
+                                  whiteSpace: 'normal',
+                                  overflow: 'visible'
+                                }
+                              }}
                             />
                           )}
                         />

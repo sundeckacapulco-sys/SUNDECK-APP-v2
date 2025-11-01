@@ -14,7 +14,7 @@
 
 ---
 
-## 🚀 FASE 1 EN PROGRESO (60%)
+## 🚀 FASE 1 EN PROGRESO (80%)
 
 ### ✅ COMPLETADO (31 Oct 2025)
 
@@ -37,6 +37,17 @@
 - ✅ Logging estructurado en todos los endpoints
 - ✅ Manejo de errores robusto
 
+**Día 2: Services Actualizados** ✅ ⭐
+- ✅ `FabricacionService` migrado a `Proyecto` (+107/-37 líneas)
+- ✅ Normalización de productos centralizada
+- ✅ Cálculo automático de materiales y procesos
+- ✅ `InstalacionesInteligentesService` reescrito (+308/-91 líneas)
+- ✅ Integración con métodos del modelo
+- ✅ Análisis de datos históricos
+- ✅ Sugerencias inteligentes de cuadrilla y herramientas
+- ✅ Endpoint: `POST /api/instalaciones/sugerencias`
+- ✅ Rutas actualizadas para usar nueva lógica
+
 **Documentación:**
 - ✅ `docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md`
 - ✅ `docschecklists/IMPLEMENTACION_COMPLETADA.md`
@@ -45,27 +56,25 @@
 - ✅ `docschecklists/auditorias/AUDITORIA_FASE_1_DIA_0.md`
 - ✅ `docschecklists/auditorias/AUDITORIA_ENDPOINTS_FASE_1.md`
 
-### ⏳ PENDIENTE (Próxima Sesión - Día 2)
+### ⏳ PENDIENTE (Próxima Sesión - Día 3)
 
-**Día 2: Actualizar Services** ⬅️ EMPEZAR AQUÍ
-- [ ] Actualizar `FabricacionService` para usar `Proyecto.fabricacion`
-- [ ] Actualizar `instalacionesInteligentesService` para usar `Proyecto.instalacion`
-- [ ] Actualizar rutas de fabricación e instalación
-
-**Día 3: Migración de Datos**
+**Día 3: Migración de Datos** ⬅️ EMPEZAR AQUÍ
 - [ ] Crear script `migrarProyectoPedidoAProyecto.js`
-- [ ] Ejecutar migración en entorno de prueba
-- [ ] Validar integridad de datos
+- [ ] Migrar datos de `ProyectoPedido` a `Proyecto`
+- [ ] Validar integridad de datos migrados
+- [ ] Crear backup antes de migración
 
 **Día 4: Deprecación**
 - [ ] Renombrar `Fabricacion.js` → `Fabricacion.legacy.js`
 - [ ] Renombrar `ProyectoPedido.js` → `ProyectoPedido.legacy.js`
 - [ ] Actualizar imports en archivos afectados
+- [ ] Marcar como deprecated en código
 
 **Día 5: Validación Final**
 - [ ] Verificar KPIs comerciales intactos
 - [ ] Pruebas de integración completas
 - [ ] Documentación actualizada
+- [ ] Auditoría final de Fase 1
 
 ---
 
