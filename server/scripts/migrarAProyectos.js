@@ -3,7 +3,7 @@ const Prospecto = require('../models/Prospecto');
 const Etapa = require('../models/Etapa');
 const Cotizacion = require('../models/Cotizacion');
 const Pedido = require('../models/Pedido');
-const ProyectoPedido = require('../models/ProyectoPedido');
+const ProyectoPedido = require('../models/ProyectoPedido.legacy');
 const logger = require('../config/logger');
 require('dotenv').config();
 

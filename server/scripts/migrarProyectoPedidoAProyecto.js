@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 const Proyecto = require('../models/Proyecto');
-const ProyectoPedido = require('../models/ProyectoPedido');
+const ProyectoPedido = require('../models/ProyectoPedido.legacy');
 const logger = require('../config/logger');
 
 const ESTADOS_PROYECTO_MAP = {

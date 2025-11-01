@@ -1,5 +1,5 @@
 const express = require('express');
-const Fabricacion = require('../models/Fabricacion');
+const Fabricacion = require('../models/Fabricacion.legacy');
 const Pedido = require('../models/Pedido');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const CotizacionMappingService = require('../services/cotizacionMappingService');

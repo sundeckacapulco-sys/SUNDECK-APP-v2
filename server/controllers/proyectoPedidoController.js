@@ -1,4 +1,4 @@
-const ProyectoPedido = require('../models/ProyectoPedido');
+const ProyectoPedido = require('../models/ProyectoPedido.legacy');
 const Prospecto = require('../models/Prospecto');
 const Cotizacion = require('../models/Cotizacion');
 const mongoose = require('mongoose');
