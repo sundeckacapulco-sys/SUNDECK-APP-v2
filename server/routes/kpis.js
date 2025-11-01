@@ -2,7 +2,7 @@ const express = require('express');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const KPI = require('../models/KPI');
 const ProspectoNoConvertido = require('../models/ProspectoNoConvertido');
-const ProyectoPedido = require('../models/ProyectoPedido');
+const ProyectoPedido = require('../models/ProyectoPedido.legacy');
 const router = express.Router();
 
 // GET /api/kpis/dashboard - Dashboard principal de KPIs

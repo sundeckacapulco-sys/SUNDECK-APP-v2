@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const ProyectoPedido = require('../models/ProyectoPedido');
+const ProyectoPedido = require('../models/ProyectoPedido.legacy');
 const Prospecto = require('../models/Prospecto');
 const Cotizacion = require('../models/Cotizacion');
 const logger = require('../config/logger');

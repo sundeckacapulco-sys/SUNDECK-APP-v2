@@ -1,3 +1,20 @@
+/**
+ * @deprecated Este modelo está deprecado. Usar Proyecto.fabricacion en su lugar.
+ *
+ * MODELO LEGACY - NO USAR EN CÓDIGO NUEVO
+ *
+ * Este modelo se mantiene solo para compatibilidad con código existente.
+ * Para nuevas funcionalidades, usar el modelo unificado Proyecto.js
+ *
+ * Migración: server/scripts/migrarProyectoPedidoAProyecto.js
+ *
+ * @see server/models/Proyecto.js
+ * @since Legacy (pre-unificación)
+ * @deprecated Desde 31 Oct 2025
+ */
+
+console.warn('⚠️ ADVERTENCIA: Fabricacion.legacy.js está deprecado. Usar Proyecto.fabricacion');
+
 const mongoose = require('mongoose');
 
 const fabricacionSchema = new mongoose.Schema({

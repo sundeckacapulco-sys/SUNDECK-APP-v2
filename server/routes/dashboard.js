@@ -2,7 +2,7 @@ const express = require('express');
 const Prospecto = require('../models/Prospecto');
 const Cotizacion = require('../models/Cotizacion');
 const Pedido = require('../models/Pedido');
-const Fabricacion = require('../models/Fabricacion');
+const Fabricacion = require('../models/Fabricacion.legacy');
 const Instalacion = require('../models/Instalacion');
 const { auth } = require('../middleware/auth');
 

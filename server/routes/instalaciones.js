@@ -1,6 +1,6 @@
 const express = require('express');
 const Instalacion = require('../models/Instalacion');
-const Fabricacion = require('../models/Fabricacion');
+const Fabricacion = require('../models/Fabricacion.legacy');
 const Pedido = require('../models/Pedido');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const ValidacionTecnicaService = require('../services/validacionTecnicaService');

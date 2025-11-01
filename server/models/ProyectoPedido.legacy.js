@@ -1,3 +1,21 @@
+/**
+ * @deprecated Este modelo está deprecado. Usar Proyecto en su lugar.
+ *
+ * MODELO LEGACY - NO USAR EN CÓDIGO NUEVO
+ *
+ * Este modelo se mantiene solo para compatibilidad con código existente.
+ * Para nuevas funcionalidades, usar el modelo unificado Proyecto.js
+ *
+ * Migración: server/scripts/migrarProyectoPedidoAProyecto.js
+ * Validación: server/scripts/validarMigracion.js
+ *
+ * @see server/models/Proyecto.js
+ * @since Legacy (pre-unificación)
+ * @deprecated Desde 31 Oct 2025
+ */
+
+console.warn('⚠️ ADVERTENCIA: ProyectoPedido.legacy.js está deprecado. Usar Proyecto');
+
 const mongoose = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
 
