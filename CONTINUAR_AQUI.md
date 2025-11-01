@@ -1,327 +1,490 @@
-# 🎉 FASE 1 COMPLETADA - Próxima Sesión: FASE 2
+# 🚀 CONTINUAR AQUÍ - Fase 2: Pruebas Unitarias Básicas
 
-**Última actualización:** 31 Octubre 2025 - 18:35  
-**Estado:** ✅ FASE 1 COMPLETADA AL 100%  
-**Próxima fase:** FASE 2 - Desacoplo y Confiabilidad
-
----
-
-## 🎊 FASE 1 COMPLETADA CON ÉXITO
-
-### ✅ Logros Alcanzados
-
-**Día 0: Modelo Unificado** ✅
-- Proyecto.js expandido de 502 a 1,241 líneas
-- 5 secciones nuevas: cronograma, fabricación, instalación, pagos, notas
-- 4 métodos inteligentes implementados
-- 100% KPIs comerciales preservados
-
-**Día 1: Endpoints** ✅
-- 3 endpoints funcionales
-- QR Generator resiliente con fallback
-- Validaciones completas
-- Logging estructurado
-
-**Día 2: Services** ✅
-- FabricacionService migrado (+107/-37 líneas)
-- InstalacionesInteligentesService reescrito (+308/-91 líneas)
-- Endpoint de sugerencias inteligentes
-- Normalización centralizada
-
-**Día 3: Migración** ✅
-- Script de migración completo (444 líneas)
-- Script de validación (226 líneas)
-- Mapeo de 7 estados + 6 roles
-- Merge inteligente sin duplicados
-
-**Día 4: Deprecación** ✅
-- 2 modelos renombrados a .legacy
-- Warnings de deprecación agregados
-- 10 archivos actualizados con imports
-- Documentación completa
-
-### 📊 Métricas Finales
-
-| Métrica | Valor |
-|---------|-------|
-| **Progreso Fase 1** | 100% ✅ |
-| **Archivos creados** | 9 |
-| **Archivos modificados** | 22 |
-| **Líneas agregadas** | +2,044 |
-| **Endpoints nuevos** | 4 |
-| **Scripts creados** | 2 |
-| **Tests pasando** | 15/15 ✅ |
-| **Console.log** | 0 ✅ |
+**Última actualización:** 1 Noviembre 2025 - 08:51  
+**Estado:** Fase 2 EN PROGRESO (25%)  
+**Próxima tarea:** Crear tests unitarios para módulos críticos
 
 ---
 
-## 🚀 PRÓXIMA SESIÓN: FASE 2
+## ✅ LO COMPLETADO HASTA AHORA
 
-### Objetivo General
-Mejorar la confiabilidad y desacoplar dependencias críticas del sistema.
+### Fase 1: Unificación de Modelos ✅ (100%)
+- ✅ Modelo Proyecto.js unificado
+- ✅ 4 endpoints funcionales
+- ✅ Services actualizados
+- ✅ Scripts de migración
+- ✅ Modelos legacy deprecados
+
+### Fase 2: Bloqueante #1 ✅ (100%)
+- ✅ `fabricacionController.js` creado (346 líneas)
+- ✅ Routes simplificadas (365 → 37 líneas)
+- ✅ 5/5 tests pasando
+- ✅ Logging estructurado
+
+**Progreso Fase 2:** 25% completado
 
 ---
 
-## 🔴 BLOQUEANTE CRÍTICO #1: Módulo Fabricación
+## 📋 PRÓXIMA SESIÓN: Pruebas Unitarias Básicas
 
-### Problema Identificado
-El módulo de fabricación tiene imports faltantes y no es funcional.
+### Objetivo
+Crear tests unitarios para módulos críticos sin cobertura actual.
 
-### Ubicación
-`server/controllers/fabricacionController.js`
+---
 
-### Síntomas
-- Errores al intentar usar funcionalidades de fabricación
-- Imports incompletos o incorrectos
-- Posible falta de integración con modelo unificado
+## 🎯 MÓDULOS PRIORITARIOS
 
-### Acción Requerida
+### 1. PDF Generator ⚠️ ALTA PRIORIDAD
+**Archivo:** `server/utils/pdfGenerator.js`  
+**Problema:** 0% cobertura  
+**Impacto:** Generación de cotizaciones, órdenes, reportes
 
-#### 1. Auditar el Controller
-```bash
-# Revisar el archivo
-code server/controllers/fabricacionController.js
+### 2. Excel Generator ⚠️ ALTA PRIORIDAD
+**Archivo:** `server/utils/excelGenerator.js`  
+**Problema:** 0% cobertura  
+**Impacto:** Exportación de datos, levantamientos
 
-# Buscar imports faltantes
-rg "require" server/controllers/fabricacionController.js
-```
+### 3. Pedido Controller ⚠️ MEDIA PRIORIDAD
+**Archivo:** `server/controllers/pedidoController.js`  
+**Problema:** 0% cobertura  
+**Impacto:** Flujo completo de pedidos
 
-#### 2. Verificar Imports Necesarios
+---
+
+## 📝 TAREA 1: Tests para PDF Generator
+
+### Crear: `server/tests/utils/pdfGenerator.test.js`
+
 ```javascript
-// Verificar que estén presentes:
-const Proyecto = require('../models/Proyecto');
-const FabricacionService = require('../services/fabricacionService');
-const logger = require('../config/logger');
-// ... otros necesarios
-```
+const pdfGenerator = require('../../utils/pdfGenerator');
 
-#### 3. Revisar Rutas
-```bash
-# Verificar que las rutas estén correctamente configuradas
-code server/routes/fabricacion.js
-```
-
-#### 4. Probar Funcionalidad
-```bash
-# Crear test básico
-node -e "const fc = require('./server/controllers/fabricacionController'); console.log('Exports:', Object.keys(fc));"
-```
-
-### Duración Estimada
-2-3 días
-
----
-
-## ⚠️ TAREA MEDIA PRIORIDAD: Pruebas Unitarias
-
-### Problema
-0% de cobertura en módulos críticos
-
-### Módulos Sin Cobertura
-1. **PDF Generation** - `server/utils/pdfGenerator.js`
-2. **Excel Generation** - `server/utils/excelGenerator.js`
-3. **Pedidos** - `server/controllers/pedidoController.js`
-4. **Fabricación** - `server/controllers/fabricacionController.js`
-
-### Acción Requerida
-
-#### Crear Tests Básicos
-
-**1. Test para PDF Generator**
-```javascript
-// server/tests/pdfGenerator.test.js
-const pdfGenerator = require('../utils/pdfGenerator');
+// Mock de dependencias
+jest.mock('pdfkit', () => {
+  return jest.fn().mockImplementation(() => ({
+    pipe: jest.fn(),
+    fontSize: jest.fn().mockReturnThis(),
+    text: jest.fn().mockReturnThis(),
+    moveDown: jest.fn().mockReturnThis(),
+    end: jest.fn()
+  }));
+});
 
 describe('PDF Generator', () => {
-  test('debe generar PDF de cotización', async () => {
-    const mockCotizacion = {
-      numero: 'COT-2025-001',
-      cliente: { nombre: 'Test Cliente' },
-      productos: []
-    };
-    
-    const pdf = await pdfGenerator.generarCotizacion(mockCotizacion);
-    expect(pdf).toBeDefined();
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('generarCotizacion', () => {
+    test('debe generar PDF de cotización con datos válidos', async () => {
+      const mockCotizacion = {
+        numero: 'COT-2025-001',
+        fecha: new Date(),
+        cliente: {
+          nombre: 'Cliente Test',
+          telefono: '1234567890',
+          direccion: 'Calle Test 123'
+        },
+        productos: [
+          {
+            nombre: 'Persiana',
+            cantidad: 2,
+            precio_unitario: 1000,
+            subtotal: 2000
+          }
+        ],
+        subtotal: 2000,
+        iva: 320,
+        total: 2320
+      };
+
+      const result = await pdfGenerator.generarCotizacion(mockCotizacion);
+      
+      expect(result).toBeDefined();
+      // Verificar que se llamaron los métodos esperados
+    });
+
+    test('debe manejar cotización sin productos', async () => {
+      const mockCotizacion = {
+        numero: 'COT-2025-002',
+        cliente: { nombre: 'Cliente Test' },
+        productos: [],
+        total: 0
+      };
+
+      const result = await pdfGenerator.generarCotizacion(mockCotizacion);
+      expect(result).toBeDefined();
+    });
+
+    test('debe lanzar error si falta número de cotización', async () => {
+      const mockCotizacion = {
+        cliente: { nombre: 'Cliente Test' }
+      };
+
+      await expect(pdfGenerator.generarCotizacion(mockCotizacion))
+        .rejects.toThrow();
+    });
+  });
+
+  describe('generarOrdenFabricacion', () => {
+    test('debe generar PDF de orden de fabricación', async () => {
+      const mockOrden = {
+        numero: 'OF-2025-001',
+        pedido: { numero: 'PED-001' },
+        productos: [
+          {
+            nombre: 'Persiana',
+            medidas: { ancho: 2.5, alto: 1.8 },
+            especificacionesTecnicas: {}
+          }
+        ]
+      };
+
+      const result = await pdfGenerator.generarOrdenFabricacion(mockOrden);
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('generarOrdenInstalacion', () => {
+    test('debe generar PDF de orden de instalación', async () => {
+      const mockOrden = {
+        numeroOrden: 'OI-2025-001',
+        proyecto: { numero: 'PROJ-001' },
+        productosInstalar: [],
+        programacion: {
+          fechaProgramada: new Date(),
+          cuadrilla: []
+        }
+      };
+
+      const result = await pdfGenerator.generarOrdenInstalacion(mockOrden);
+      expect(result).toBeDefined();
+    });
   });
 });
 ```
 
-**2. Test para Excel Generator**
+### Duración Estimada: 2-3 horas
+
+---
+
+## 📝 TAREA 2: Tests para Excel Generator
+
+### Crear: `server/tests/utils/excelGenerator.test.js`
+
 ```javascript
-// server/tests/excelGenerator.test.js
-const excelGenerator = require('../utils/excelGenerator');
+const excelGenerator = require('../../utils/excelGenerator');
+
+// Mock de ExcelJS
+jest.mock('exceljs', () => {
+  return {
+    Workbook: jest.fn().mockImplementation(() => ({
+      addWorksheet: jest.fn().mockReturnValue({
+        columns: [],
+        addRow: jest.fn(),
+        getRow: jest.fn().mockReturnValue({
+          font: {},
+          fill: {},
+          alignment: {}
+        })
+      }),
+      xlsx: {
+        writeBuffer: jest.fn().mockResolvedValue(Buffer.from('test'))
+      }
+    }))
+  };
+});
 
 describe('Excel Generator', () => {
-  test('debe generar Excel de levantamiento', async () => {
-    const mockDatos = {
-      proyecto: 'PROJ-001',
-      medidas: []
-    };
-    
-    const excel = await excelGenerator.generarLevantamiento(mockDatos);
-    expect(excel).toBeDefined();
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('generarLevantamiento', () => {
+    test('debe generar Excel de levantamiento con datos válidos', async () => {
+      const mockDatos = {
+        proyecto: 'PROJ-001',
+        cliente: 'Cliente Test',
+        medidas: [
+          {
+            ubicacion: 'Sala',
+            ancho: 2.5,
+            alto: 1.8,
+            producto: 'Persiana'
+          }
+        ]
+      };
+
+      const result = await excelGenerator.generarLevantamiento(mockDatos);
+      expect(result).toBeDefined();
+      expect(Buffer.isBuffer(result)).toBe(true);
+    });
+
+    test('debe manejar levantamiento sin medidas', async () => {
+      const mockDatos = {
+        proyecto: 'PROJ-002',
+        medidas: []
+      };
+
+      const result = await excelGenerator.generarLevantamiento(mockDatos);
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('exportarProyectos', () => {
+    test('debe exportar lista de proyectos a Excel', async () => {
+      const mockProyectos = [
+        {
+          numero: 'PROJ-001',
+          cliente: { nombre: 'Cliente 1' },
+          estado: 'activo',
+          total: 5000
+        },
+        {
+          numero: 'PROJ-002',
+          cliente: { nombre: 'Cliente 2' },
+          estado: 'completado',
+          total: 3000
+        }
+      ];
+
+      const result = await excelGenerator.exportarProyectos(mockProyectos);
+      expect(result).toBeDefined();
+      expect(Buffer.isBuffer(result)).toBe(true);
+    });
+  });
+
+  describe('exportarInventario', () => {
+    test('debe exportar inventario a Excel', async () => {
+      const mockInventario = [
+        {
+          codigo: 'MAT-001',
+          nombre: 'Material Test',
+          cantidad: 100,
+          precio: 50
+        }
+      ];
+
+      const result = await excelGenerator.exportarInventario(mockInventario);
+      expect(result).toBeDefined();
+    });
   });
 });
 ```
 
-**3. Test para Pedidos**
+### Duración Estimada: 2-3 horas
+
+---
+
+## 📝 TAREA 3: Tests para Pedido Controller
+
+### Crear: `server/tests/controllers/pedidoController.test.js`
+
 ```javascript
-// server/tests/pedidoController.test.js
-const pedidoController = require('../controllers/pedidoController');
+// Mocks
+jest.mock('../../models/Pedido');
+jest.mock('../../models/Prospecto');
+jest.mock('../../models/Cotizacion');
+jest.mock('../../config/logger');
+
+const Pedido = require('../../models/Pedido');
+const pedidoController = require('../../controllers/pedidoController');
+
+function crearRespuestaMock() {
+  const res = {};
+  res.status = jest.fn().mockReturnValue(res);
+  res.json = jest.fn().mockReturnValue(res);
+  return res;
+}
 
 describe('Pedido Controller', () => {
-  test('debe crear pedido correctamente', async () => {
-    // Mock request/response
-    const req = { body: { /* datos */ } };
-    const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
-    
-    await pedidoController.crearPedido(req, res);
-    expect(res.json).toHaveBeenCalled();
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('crearPedido', () => {
+    test('debe crear pedido correctamente', async () => {
+      const mockPedido = {
+        _id: 'pedido123',
+        numero: 'PED-001',
+        save: jest.fn().mockResolvedValue(true)
+      };
+
+      Pedido.mockImplementation(() => mockPedido);
+
+      const req = {
+        body: {
+          prospectoId: 'prospecto123',
+          productos: [],
+          total: 1000
+        },
+        usuario: { _id: 'usuario123' }
+      };
+      const res = crearRespuestaMock();
+
+      await pedidoController.crearPedido(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.any(String),
+          pedido: expect.any(Object)
+        })
+      );
+    });
+
+    test('debe manejar errores al crear pedido', async () => {
+      Pedido.mockImplementation(() => {
+        throw new Error('Error de base de datos');
+      });
+
+      const req = { body: {}, usuario: { _id: 'usuario123' } };
+      const res = crearRespuestaMock();
+
+      await pedidoController.crearPedido(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('obtenerPedidos', () => {
+    test('debe obtener lista de pedidos', async () => {
+      const mockPedidos = [
+        { _id: '1', numero: 'PED-001' },
+        { _id: '2', numero: 'PED-002' }
+      ];
+
+      Pedido.find = jest.fn().mockReturnValue({
+        populate: jest.fn().mockResolvedValue(mockPedidos)
+      });
+
+      const req = { query: {} };
+      const res = crearRespuestaMock();
+
+      await pedidoController.obtenerPedidos(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(mockPedidos);
+    });
+  });
+
+  describe('actualizarEstadoPedido', () => {
+    test('debe actualizar estado de pedido', async () => {
+      const mockPedido = {
+        _id: 'pedido123',
+        estado: 'pendiente',
+        save: jest.fn().mockResolvedValue(true)
+      };
+
+      Pedido.findById = jest.fn().mockResolvedValue(mockPedido);
+
+      const req = {
+        params: { id: 'pedido123' },
+        body: { estado: 'confirmado' },
+        usuario: { _id: 'usuario123' }
+      };
+      const res = crearRespuestaMock();
+
+      await pedidoController.actualizarEstadoPedido(req, res);
+
+      expect(mockPedido.estado).toBe('confirmado');
+      expect(mockPedido.save).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalled();
+    });
   });
 });
 ```
 
-### Duración Estimada
-3-4 días
+### Duración Estimada: 2-3 horas
 
 ---
 
-## 📋 CHECKLIST PARA PRÓXIMA SESIÓN
+## 📋 Checklist de Tareas
 
-### Preparación
-- [ ] Revisar `AGENTS.md` - Estado actual
-- [ ] Revisar `RESUMEN_SESION_31_OCT_2025.md` - Contexto completo
-- [ ] Verificar que tests pasen: `npm test -- --runInBand`
+- [ ] **Tarea 1:** Tests para PDF Generator
+  - [ ] Crear archivo de test
+  - [ ] Configurar mocks de pdfkit
+  - [ ] Test: generarCotizacion
+  - [ ] Test: generarOrdenFabricacion
+  - [ ] Test: generarOrdenInstalacion
+  - [ ] Ejecutar y verificar
 
-### Bloqueante Crítico #1
-- [ ] Auditar `fabricacionController.js`
-- [ ] Identificar imports faltantes
-- [ ] Verificar integración con `FabricacionService`
-- [ ] Verificar rutas en `fabricacion.js`
-- [ ] Crear tests básicos
-- [ ] Documentar cambios
+- [ ] **Tarea 2:** Tests para Excel Generator
+  - [ ] Crear archivo de test
+  - [ ] Configurar mocks de ExcelJS
+  - [ ] Test: generarLevantamiento
+  - [ ] Test: exportarProyectos
+  - [ ] Test: exportarInventario
+  - [ ] Ejecutar y verificar
 
-### Pruebas Unitarias (Opcional)
-- [ ] Crear test para PDF Generator
-- [ ] Crear test para Excel Generator
-- [ ] Crear test para Pedido Controller
-- [ ] Ejecutar y verificar cobertura
+- [ ] **Tarea 3:** Tests para Pedido Controller
+  - [ ] Crear archivo de test
+  - [ ] Configurar mocks de modelos
+  - [ ] Test: crearPedido
+  - [ ] Test: obtenerPedidos
+  - [ ] Test: actualizarEstadoPedido
+  - [ ] Ejecutar y verificar
 
----
-
-## 📚 ARCHIVOS DE REFERENCIA
-
-### Documentación de Fase 1
-- `AGENTS.md` - Estado general del proyecto
-- `RESUMEN_SESION_31_OCT_2025.md` - Resumen completo
-- `docschecklists/MODELOS_LEGACY.md` - Modelos deprecados
-- `docschecklists/REQUISITOS_PRODUCCION_INSTALACION.md` - Requisitos
-- `docschecklists/IMPLEMENTACION_COMPLETADA.md` - Implementación
-
-### Código Crítico
-- `server/models/Proyecto.js` - Modelo unificado
-- `server/services/fabricacionService.js` - Service actualizado
-- `server/controllers/fabricacionController.js` - ⚠️ A REVISAR
-- `server/routes/fabricacion.js` - Rutas de fabricación
-
-### Scripts Útiles
-- `server/scripts/migrarProyectoPedidoAProyecto.js` - Migración
-- `server/scripts/validarMigracion.js` - Validación
-
----
-
-## 🔍 COMANDOS ÚTILES
-
-### Verificar Estado
-```bash
-# Tests
-npm test -- --runInBand
-
-# Console.log
-rg "console\.log" server --type js
-
-# Imports de modelos legacy
-rg "require.*\.legacy" server --type js
-```
-
-### Desarrollo
-```bash
-# Iniciar servidor
-npm run server
-
-# Ver logs
-tail -f logs/combined.log
-
-# Ejecutar migración (si es necesario)
-node server/scripts/migrarProyectoPedidoAProyecto.js
-```
+- [ ] **Verificación Final:**
+  - [ ] Ejecutar todos los tests: `npm test -- --runInBand`
+  - [ ] Verificar cobertura aumentada
+  - [ ] Actualizar AGENTS.md
 
 ---
 
 ## ⚠️ IMPORTANTE
 
-### NO Modificar
-- ✅ Modelo `Proyecto.js` - Está completo y funcional
-- ✅ Scripts de migración - Ya están validados
-- ✅ Services actualizados - Funcionan correctamente
+### Estrategia de Testing
+1. **Mockear dependencias externas** (pdfkit, ExcelJS, mongoose)
+2. **Probar casos de éxito** primero
+3. **Probar casos de error** después
+4. **Verificar validaciones** de entrada
 
-### SÍ Modificar
-- 🔴 `fabricacionController.js` - Necesita corrección
-- ⚠️ Tests - Necesitan crearse
-- ⚠️ Documentación - Actualizar según cambios
+### Comandos Útiles
 
----
+```bash
+# Ejecutar tests específicos
+npm test -- pdfGenerator.test.js
+npm test -- excelGenerator.test.js
+npm test -- pedidoController.test.js
 
-## 📊 ESTADO ACTUAL
+# Ejecutar todos los tests
+npm test -- --runInBand
 
-```
-┌─────────────────────────────────────────────────┐
-│  FASE 0: BASELINE Y OBSERVABILIDAD              │
-│  ████████████████████ 100% ✅ COMPLETADO        │
-├─────────────────────────────────────────────────┤
-│  FASE 1: UNIFICACIÓN DE MODELOS                 │
-│  ████████████████████ 100% ✅ COMPLETADO        │
-├─────────────────────────────────────────────────┤
-│  FASE 2: DESACOPLO Y CONFIABILIDAD              │
-│  ░░░░░░░░░░░░░░░░░░░░   0% ⬅️ PRÓXIMA SESIÓN   │
-└─────────────────────────────────────────────────┘
+# Ver cobertura
+npm test -- --coverage
 ```
 
 ---
 
-## 🎯 OBJETIVO DE PRÓXIMA SESIÓN
+## 📚 ARCHIVOS DE REFERENCIA
 
-**Prioridad 1:** Corregir módulo de fabricación  
-**Prioridad 2:** Crear tests básicos  
-**Duración estimada:** 1-2 días
+### Ejemplo de Test Exitoso
+- `server/tests/controllers/fabricacionController.test.js` - ✅ 5/5 pasando
+
+### Documentación
+- `AGENTS.md` - Estado general (Fase 2 al 25%)
+- `RESUMEN_SESION_31_OCT_2025.md` - Contexto de Fase 1
+
+### Código a Testear
+- `server/utils/pdfGenerator.js` - PDF Generator
+- `server/utils/excelGenerator.js` - Excel Generator
+- `server/controllers/pedidoController.js` - Pedido Controller
 
 ---
 
-## 💡 NOTAS PARA EL PRÓXIMO AGENTE
+## 📊 PROGRESO FASE 2
 
-### Contexto
-- Fase 1 completada exitosamente
-- Todos los tests pasando (15/15)
-- Modelo unificado funcionando perfectamente
-- Modelos legacy deprecados correctamente
+```
+Bloqueante #1: Módulo Fabricación  ████████████████████ 100% ✅
+Pruebas Unitarias Básicas          ░░░░░░░░░░░░░░░░░░░░   0% ⬅️ AQUÍ
 
-### Enfoque
-- Priorizar corrección de fabricación
-- Mantener calidad del código
-- Agregar tests según sea necesario
-- Documentar todos los cambios
-
-### Recursos
-- Toda la documentación está en `docschecklists/`
-- Ejemplos de código en archivos existentes
-- Logger estructurado disponible
-- Modelo unificado como referencia
+Total: █████░░░░░░░░░░░░░░ 25%
+```
 
 ---
 
 **Responsable:** Próximo Agente  
-**Fecha de inicio:** Próxima sesión  
+**Duración estimada:** 1 día (6-9 horas)  
 **Complejidad:** Media  
-**Riesgo:** Bajo (código bien estructurado)
+**Riesgo:** Bajo
 
-**¡Fase 1 completada con éxito! Lista para Fase 2!** 🚀
+**¡Listo para crear tests unitarios!** 🚀

@@ -1,7 +1,7 @@
 # 🤖 INSTRUCCIONES PARA AGENTES
 
-**Fecha:** 31 Oct 2025
-**Estado:** Fase 0 ✅ COMPLETADA | Fase 1 🔄 EN PROGRESO
+**Fecha:** 1 Nov 2025
+**Estado:** Fase 0 ✅ COMPLETADA | Fase 1 ✅ COMPLETADA | Fase 2 🔄 EN PROGRESO (25%)
 
 ---
 
@@ -107,25 +107,36 @@
 
 ---
 
-## 🚀 PRÓXIMOS PASOS: FASE 2
+## 🚀 FASE 2 EN PROGRESO (25%)
 
-**Fase 2: Desacoplo y Confiabilidad (1-4 meses)**
+### ✅ COMPLETADO (1 Nov 2025)
 
-### Bloqueantes Críticos Identificados:
+**Bloqueante Crítico #1: Módulo Fabricación** ✅
+- ✅ Creado `fabricacionController.js` (346 líneas)
+- ✅ 4 handlers principales implementados
+- ✅ Helpers de utilidad exportados
+- ✅ Routes simplificadas (365 → 37 líneas, -328)
+- ✅ Tests unitarios creados (125 líneas)
+- ✅ 5/5 tests pasando ✅
+- ✅ Logging estructurado completo
+- ✅ Validaciones robustas
 
-1. **🔴 PRIORIDAD MÁXIMA: Corregir Módulo Fabricación**
-   - Problema: Imports faltantes, módulo no funcional
-   - Impacto: Bloquea flujo de producción
-   - Esfuerzo: 2-3 días
-   - Ubicación: `server/controllers/fabricacionController.js`
+**Archivos:**
+- `server/controllers/fabricacionController.js` - Nuevo
+- `server/routes/fabricacion.js` - Refactorizado
+- `server/tests/controllers/fabricacionController.test.js` - Nuevo
 
-2. **⚠️ MEDIA PRIORIDAD: Pruebas Unitarias Básicas**
-   - Problema: 0% cobertura en módulos críticos
-   - Impacto: Sin garantías de calidad
-   - Esfuerzo: 3-4 días
-   - Módulos: PDF, Excel, Pedidos, Fabricación
+### ⏳ PENDIENTE (Próxima Sesión)
 
-**Consultar:** `docschecklists/ROADMAP_TASKS.md` para plan detallado de Fase 2.
+**⚠️ MEDIA PRIORIDAD: Pruebas Unitarias Básicas** ⬅️ EMPEZAR AQUÍ
+- [ ] Tests para PDF Generator (`pdfGenerator.test.js`)
+- [ ] Tests para Excel Generator (`excelGenerator.test.js`)
+- [ ] Tests para Pedido Controller (`pedidoController.test.js`)
+- Esfuerzo: 1 día (6-9 horas)
+
+**Objetivo:** Aumentar cobertura de tests en módulos críticos
+
+**Consultar:** `CONTINUAR_AQUI.md` para instrucciones detalladas y plantillas de código.
 
 ---
 
@@ -134,10 +145,13 @@
 ```bash
 # Fase 0
 rg "console\.log" server              # Debe regresar sin resultados
-npm test -- --runInBand                # 15/15 pruebas pasando
+npm test -- --runInBand                # Tests pasando
 
 # Fase 1
 node -e "const P = require('./server/models/Proyecto'); console.log(typeof P.schema.methods.generarEtiquetasProduccion)"  # function
+
+# Fase 2
+npm test -- fabricacionController.test.js  # 5/5 tests pasando
 ```
 
 ---

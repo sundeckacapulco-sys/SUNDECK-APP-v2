@@ -12,17 +12,17 @@ jest.mock('../../models/Pedido', () => ({
   findByIdAndUpdate: jest.fn()
 }));
 
-const ordenSaveMock = jest.fn();
-const ordenFindOneMock = jest.fn();
-const ordenFindByIdMock = jest.fn();
-
 jest.mock('../../models/OrdenFabricacion', () => {
+  const mockSave = jest.fn().mockResolvedValue({ _id: 'orden123' });
+  const mockFindOne = jest.fn();
+  const mockFindById = jest.fn();
+  
   const mockConstructor = jest.fn().mockImplementation(() => ({
-    save: ordenSaveMock.mockResolvedValue({ _id: 'orden123' })
+    save: mockSave
   }));
 
-  mockConstructor.findOne = ordenFindOneMock;
-  mockConstructor.findById = ordenFindByIdMock;
+  mockConstructor.findOne = mockFindOne;
+  mockConstructor.findById = mockFindById;
 
   return mockConstructor;
 });
@@ -97,7 +97,9 @@ describe('fabricacionController', () => {
   });
 
   test('crearOrdenDesdePedido responde 404 cuando el pedido no existe', async () => {
-    Pedido.findById.mockResolvedValueOnce(null);
+    Pedido.findById.mockReturnValueOnce({
+      populate: jest.fn().mockResolvedValueOnce(null)
+    });
 
     const req = { params: { pedidoId: 'pedido-inexistente' }, body: {}, usuario: { _id: 'usuario' } };
     const res = crearRespuestaMock();
