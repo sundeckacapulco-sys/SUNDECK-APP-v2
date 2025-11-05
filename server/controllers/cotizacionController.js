@@ -3,6 +3,7 @@ const Prospecto = require('../models/Prospecto');
 const CotizacionMappingService = require('../services/cotizacionMappingService');
 const ValidacionTecnicaService = require('../services/validacionTecnicaService');
 const logger = require('../config/logger');
+const eventBus = require('../services/eventBusService');
 
 exports.crearCotizacion = async (req, res) => {
   try {
@@ -218,6 +219,109 @@ exports.crearCotizacion = async (req, res) => {
       message: 'Error interno del servidor al crear la cotización',
       error: error.message
     });
+  }
+};
+
+exports.aprobarCotizacion = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const cotizacion = await Cotizacion.findById(id).populate('prospecto');
+
+    if (!cotizacion) {
+      logger.warn('Cotización no encontrada para aprobación', {
+        controlador: 'CotizacionController',
+        accion: 'aprobarCotizacion',
+        cotizacionId: id,
+        usuarioId: req.usuario?._id || null
+      });
+      return res.status(404).json({ message: 'Cotización no encontrada' });
+    }
+
+    if (cotizacion.estado === 'aprobada') {
+      logger.info('Cotización ya estaba aprobada', {
+        controlador: 'CotizacionController',
+        accion: 'aprobarCotizacion',
+        cotizacionId: id
+      });
+    }
+
+    cotizacion.estado = 'aprobada';
+    cotizacion.fechaRespuesta = new Date();
+    await cotizacion.save();
+
+    if (cotizacion.prospecto?._id) {
+      await Prospecto.findByIdAndUpdate(cotizacion.prospecto._id, {
+        etapa: 'pedido',
+        fechaUltimoContacto: new Date()
+      });
+    }
+
+    const anticipo = cotizacion.formaPago?.anticipo || {};
+    const anticipoMonto = typeof anticipo.monto === 'number' ? anticipo.monto : (cotizacion.total || 0) * ((anticipo.porcentaje || 60) / 100);
+
+    const eventoCotizacion = {
+      cotizacionId: cotizacion._id,
+      numero: cotizacion.numero,
+      monto: cotizacion.total,
+      origen: cotizacion.origen,
+      prospectoId: cotizacion.prospecto?._id,
+      cliente: {
+        id: cotizacion.prospecto?._id,
+        nombre: cotizacion.prospecto?.nombre,
+        telefono: cotizacion.prospecto?.telefono,
+        correo: cotizacion.prospecto?.correo
+      },
+      anticipo: {
+        porcentaje: anticipo.porcentaje || 60,
+        monto: anticipoMonto,
+        pagado: Boolean(anticipo.pagado),
+        metodoPago: anticipo.metodoPago || cotizacion.pago?.metodoAnticipo || 'transferencia',
+        fechaPago: anticipo.fechaPago || null,
+        referencia: anticipo.referencia || '',
+        comprobante: anticipo.comprobante || ''
+      },
+      productos: (cotizacion.productos || []).map(producto => ({
+        nombre: producto.nombre,
+        descripcion: producto.descripcion,
+        categoria: producto.categoria,
+        material: producto.material,
+        color: producto.color,
+        medidas: producto.medidas,
+        cantidad: producto.cantidad,
+        precioUnitario: producto.precioUnitario,
+        subtotal: producto.subtotal,
+        requiereR24: producto.requiereR24,
+        tiempoFabricacion: producto.tiempoFabricacion,
+        esToldo: producto.esToldo
+      })),
+      vendedorId: cotizacion.elaboradaPor || null,
+      usuarioId: req.usuario?._id || null
+    };
+
+    await eventBus.emit('cotizacion.aprobada', eventoCotizacion, 'CotizacionController', req.usuario?._id || null);
+
+    logger.info('Cotización aprobada y evento emitido', {
+      controlador: 'CotizacionController',
+      accion: 'aprobarCotizacion',
+      cotizacionId: cotizacion._id
+    });
+
+    return res.json({
+      message: 'Cotización aprobada exitosamente',
+      cotizacion
+    });
+  } catch (error) {
+    logger.error('Error aprobando cotización', {
+      controlador: 'CotizacionController',
+      accion: 'aprobarCotizacion',
+      cotizacionId: id,
+      usuarioId: req.usuario?._id || null,
+      error: error.message,
+      stack: error.stack
+    });
+
+    return res.status(500).json({ message: 'Error interno del servidor' });
   }
 };
 

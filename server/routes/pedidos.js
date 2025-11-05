@@ -6,6 +6,8 @@ const { auth, verificarPermiso } = require('../middleware/auth');
 const CotizacionMappingService = require('../services/cotizacionMappingService');
 const ValidacionTecnicaService = require('../services/validacionTecnicaService');
 const logger = require('../config/logger');
+const pedidoController = require('../controllers/pedidoController');
+const eventBus = require('../services/eventBusService');
 
 const router = express.Router();
 
@@ -198,6 +200,27 @@ router.post('/desde-cotizacion/:cotizacionId', auth, verificarPermiso('pedidos',
     });
     await nuevoPedido.save();
 
+    await eventBus.emit('pedido.creado', {
+      pedidoId: nuevoPedido._id,
+      cotizacionId,
+      numero: nuevoPedido.numero,
+      monto: nuevoPedido.montoTotal,
+      anticipo: {
+        ...nuevoPedido.anticipo,
+        pagado: nuevoPedido.anticipo?.pagado || false
+      },
+      productos: nuevoPedido.productos.map(producto => ({
+        nombre: producto.nombre,
+        cantidad: producto.cantidad,
+        subtotal: producto.subtotal,
+        requiereR24: producto.requiereR24,
+        tiempoFabricacion: producto.tiempoFabricacion
+      })),
+      prospectoId: nuevoPedido.prospecto?._id,
+      prioridad: 'normal',
+      fechaInicio
+    }, 'pedidosRoutes', req.usuario?._id || null);
+
     res.status(201).json({
       message: 'Pedido creado exitosamente desde cotización',
       pedido: nuevoPedido
@@ -216,206 +239,7 @@ router.post('/desde-cotizacion/:cotizacionId', auth, verificarPermiso('pedidos',
 });
 
 // Aplicar anticipo y convertir cotización a pedido automáticamente
-router.post('/aplicar-anticipo/:cotizacionId', auth, verificarPermiso('pedidos', 'crear'), async (req, res) => {
-  try {
-    const { cotizacionId } = req.params;
-    const { 
-      metodoPago,
-      referencia,
-      comprobante,
-      fechaPago = new Date(),
-      direccionEntrega,
-      contactoEntrega,
-      observaciones
-    } = req.body;
-
-    // Verificar que la cotización existe
-    const cotizacion = await Cotizacion.findById(cotizacionId).populate('prospecto');
-    if (!cotizacion) {
-      return res.status(404).json({ message: 'Cotización no encontrada' });
-    }
-
-    // Verificar si ya existe un pedido para esta cotización
-    const pedidoExistente = await Pedido.findOne({ cotizacion: cotizacionId });
-    if (pedidoExistente) {
-      return res.status(400).json({ message: 'Ya existe un pedido para esta cotización' });
-    }
-
-    // Calcular fechas estimadas basadas en productos
-    const fechaInicio = new Date();
-    const tiempoMaxFabricacion = Math.max(...cotizacion.productos.map(p => p.tiempoFabricacion || 15));
-    const fechaFinFabricacion = new Date(fechaInicio);
-    fechaFinFabricacion.setDate(fechaFinFabricacion.getDate() + tiempoMaxFabricacion);
-    
-    const fechaInstalacion = new Date(fechaFinFabricacion);
-    fechaInstalacion.setDate(fechaInstalacion.getDate() + (cotizacion.tiempoInstalacion || 1));
-
-    // Crear el pedido automáticamente
-    const nuevoPedido = new Pedido({
-      cotizacion: cotizacionId,
-      prospecto: cotizacion.prospecto._id,
-      montoTotal: cotizacion.total,
-      anticipo: {
-        monto: cotizacion.formaPago?.anticipo?.monto || (cotizacion.total * 0.6),
-        porcentaje: cotizacion.formaPago?.anticipo?.porcentaje || 60,
-        fechaPago: new Date(fechaPago),
-        metodoPago: metodoPago || 'transferencia',
-        referencia: referencia || '',
-        comprobante: comprobante || '',
-        pagado: true // Se marca como pagado al aplicar
-      },
-      saldo: {
-        monto: cotizacion.formaPago?.saldo?.monto || (cotizacion.total * 0.4),
-        porcentaje: cotizacion.formaPago?.saldo?.porcentaje || 40,
-        fechaVencimiento: fechaInstalacion, // Vence el día de instalación
-        pagado: false
-      },
-      productos: cotizacion.productos.map(producto => ({
-        // === DATOS BÁSICOS ===
-        nombre: producto.nombre,
-        descripcion: producto.descripcion,
-        categoria: producto.categoria,
-        material: producto.material,
-        color: producto.color,
-        cristal: producto.cristal,
-        herrajes: producto.herrajes,
-        medidas: producto.medidas,
-        cantidad: producto.cantidad,
-        precioUnitario: producto.precioUnitario,
-        subtotal: producto.subtotal,
-        requiereR24: producto.requiereR24,
-        tiempoFabricacion: producto.tiempoFabricacion,
-        
-        // === ESPECIFICACIONES COMPLEJAS PARA PEDIDO ===
-        // Motorización
-        motorizado: producto.motorizado,
-        motorModelo: producto.motorModelo,
-        motorModeloManual: producto.motorModeloManual,
-        motorPrecio: producto.motorPrecio,
-        
-        // Controles
-        controlModelo: producto.controlModelo,
-        controlModeloManual: producto.controlModeloManual,
-        controlPrecio: producto.controlPrecio,
-        esControlMulticanal: producto.esControlMulticanal,
-        numMotores: producto.numMotores,
-        
-        // Toldos
-        esToldo: producto.esToldo,
-        tipoToldo: producto.tipoToldo,
-        kitModelo: producto.kitModelo,
-        kitModeloManual: producto.kitModeloManual,
-        kitPrecio: producto.kitPrecio,
-        
-        // Instalación especial
-        requiereAndamios: producto.requiereAndamios,
-        requiereObraElectrica: producto.requiereObraElectrica,
-        nivelAndamio: producto.nivelAndamio,
-        costoAndamios: producto.costoAndamios,
-        costoObraElectrica: producto.costoObraElectrica,
-        
-        // Medidas individuales (para levantamientos)
-        medidasIndividuales: producto.medidasIndividuales,
-        
-        // Observaciones y especificaciones técnicas
-        observaciones: producto.observaciones,
-        fotoUrls: producto.fotoUrls,
-        videoUrl: producto.videoUrl,
-        
-        // Garantías específicas
-        garantiaMotor: producto.garantiaMotor,
-        garantiaTela: producto.garantiaTela,
-        
-        // Accesorios adicionales
-        accionamiento: producto.accionamiento,
-        montaje: producto.montaje,
-        tipoTela: producto.tipoTela,
-        forroBlackout: producto.forroBlackout,
-        rielDecorativo: producto.rielDecorativo,
-        
-        // Estado de fabricación
-        estadoFabricacion: 'pendiente'
-      })),
-      direccionEntrega: direccionEntrega || {
-        calle: cotizacion.prospecto.direccion?.calle || '',
-        colonia: cotizacion.prospecto.direccion?.colonia || '',
-        ciudad: cotizacion.prospecto.direccion?.ciudad || 'Acapulco, Guerrero',
-        codigoPostal: cotizacion.prospecto.direccion?.codigoPostal || '',
-        referencias: cotizacion.prospecto.direccion?.referencias || ''
-      },
-      contactoEntrega: contactoEntrega || {
-        nombre: cotizacion.prospecto.nombre,
-        telefono: cotizacion.prospecto.telefono,
-        horarioPreferido: '9:00 AM - 6:00 PM'
-      },
-      fechaInicioFabricacion: fechaInicio,
-      fechaFinFabricacion: fechaFinFabricacion,
-      fechaInstalacion: fechaInstalacion,
-      fechaEntrega: fechaInstalacion,
-      vendedor: cotizacion.elaboradaPor,
-      estado: 'confirmado',
-      notas: [{
-        usuario: req.usuario._id,
-        contenido: `🎉 Pedido creado automáticamente al recibir anticipo de $${(cotizacion.formaPago?.anticipo?.monto || (cotizacion.total * 0.6)).toLocaleString()}. Método: ${metodoPago}. ${observaciones ? 'Obs: ' + observaciones : ''}`,
-        tipo: 'pago'
-      }]
-    });
-
-    await nuevoPedido.save();
-    await nuevoPedido.populate([
-      { path: 'prospecto', select: 'nombre telefono email direccion' },
-      { path: 'cotizacion', select: 'numero' },
-      { path: 'vendedor', select: 'nombre apellido' }
-    ]);
-
-    // Actualizar estado de la cotización
-    cotizacion.estado = 'convertida';
-    cotizacion.fechaRespuesta = new Date();
-    await cotizacion.save();
-
-    // Actualizar prospecto con timeline completo
-    await Prospecto.findByIdAndUpdate(cotizacion.prospecto._id, {
-      etapa: 'pedido',
-      fechaUltimoContacto: new Date(),
-      $push: {
-        etapas: {
-          nombre: 'Anticipo Recibido - Pedido Confirmado',
-          fechaHora: new Date(),
-          observaciones: `💰 Anticipo de $${nuevoPedido.anticipo.monto.toLocaleString()} recibido vía ${metodoPago}. Pedido ${nuevoPedido.numero} confirmado. Fabricación inicia: ${fechaInicio.toLocaleDateString('es-MX')}. Entrega estimada: ${fechaInstalacion.toLocaleDateString('es-MX')}`,
-          usuario: req.usuario._id
-        },
-        notas: {
-          fecha: new Date(),
-          usuario: req.usuario._id,
-          contenido: `🚀 ¡PEDIDO CONFIRMADO! Anticipo recibido: $${nuevoPedido.anticipo.monto.toLocaleString()}. Saldo pendiente: $${nuevoPedido.saldo.monto.toLocaleString()}. Tiempo de fabricación: ${tiempoMaxFabricacion} días.`,
-          tipo: 'nota',
-          categoria: 'General'
-        }
-      }
-    });
-
-    res.status(201).json({
-      message: '¡Anticipo aplicado y pedido creado exitosamente!',
-      pedido: nuevoPedido,
-      timeline: {
-        fechaInicio: fechaInicio,
-        fechaFinFabricacion: fechaFinFabricacion,
-        fechaInstalacion: fechaInstalacion,
-        tiempoFabricacion: tiempoMaxFabricacion
-      }
-    });
-  } catch (error) {
-    logger.error('Error aplicando anticipo y creando pedido', {
-      ruta: 'pedidosRoutes',
-      accion: 'aplicarAnticipo',
-      cotizacionId: req.params.cotizacionId,
-      usuarioId: req.usuario?._id || null,
-      error: error.message,
-      stack: error.stack
-    });
-    res.status(500).json({ message: 'Error interno del servidor' });
-  }
-});
+router.post('/aplicar-anticipo/:cotizacionId', auth, verificarPermiso('pedidos', 'crear'), pedidoController.aplicarAnticipo);
 
 // Actualizar estado de fabricación
 router.put('/:id/fabricacion', auth, verificarPermiso('pedidos', 'editar'), async (req, res) => {

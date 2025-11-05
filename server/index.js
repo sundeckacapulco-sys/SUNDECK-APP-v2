@@ -11,6 +11,7 @@ require('dotenv').config();
 const logger = require('./config/logger');
 const requestLogger = require('./middleware/requestLogger');
 const metricsMiddleware = require('./middleware/metricsMiddleware');
+const { registrarListeners } = require('./listeners');
 
 const app = express();
 
@@ -108,7 +109,10 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-c
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => logger.info('Conectado a MongoDB exitosamente'))
+.then(() => {
+  logger.info('Conectado a MongoDB exitosamente');
+  registrarListeners();
+})
 .catch(err => logger.error('Error conectando a MongoDB', { error: err.message, stack: err.stack }));
 
 // Middleware de métricas (aplicado globalmente a todas las rutas /api/*)

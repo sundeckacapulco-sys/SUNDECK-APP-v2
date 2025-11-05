@@ -886,33 +886,7 @@ router.delete('/:id', auth, verificarPermiso('cotizaciones', 'eliminar'), async 
 });
 
 // Aprobar cotización (convertir a pedido)
-router.put('/:id/aprobar', auth, verificarPermiso('cotizaciones', 'actualizar'), async (req, res) => {
-  try {
-    const cotizacion = await Cotizacion.findById(req.params.id);
-    
-    if (!cotizacion) {
-      return res.status(404).json({ message: 'Cotización no encontrada' });
-    }
-
-    cotizacion.estado = 'aprobada';
-    cotizacion.fechaRespuesta = new Date();
-    
-    await cotizacion.save();
-
-    // Actualizar etapa del prospecto
-    await Prospecto.findByIdAndUpdate(cotizacion.prospecto, {
-      etapa: 'pedido'
-    });
-
-    res.json({
-      message: 'Cotización aprobada exitosamente',
-      cotizacion
-    });
-  } catch (error) {
-    logger.logError(error, { context: 'aprobarCotizacion', cotizacionId: req.params.id, userId: req.usuario?.id });
-    res.status(500).json({ message: 'Error interno del servidor' });
-  }
-});
+router.put('/:id/aprobar', auth, verificarPermiso('cotizaciones', 'actualizar'), cotizacionController.aprobarCotizacion);
 
 // Generar PDF de cotización
 router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res) => {
