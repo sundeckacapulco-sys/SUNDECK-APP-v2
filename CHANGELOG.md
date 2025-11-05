@@ -37,6 +37,23 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - 0 discrepancias en montos
 - 100% de datos migrados correctamente
 
+### ⚡ Fase 2.1: Event Bus Service
+
+#### Agregado
+- Modelo `Event.js` para persistir eventos de dominio con trazabilidad completa.
+- Servicio `eventBusService.js` con registro dinámico de listeners, persistencia y control de errores.
+- Listeners automáticos para pedidos, fabricación e instalación (`server/listeners/*`).
+- Registro centralizado de listeners en `server/index.js`.
+- Tests unitarios para el Event Bus y el `PedidoListener`.
+
+#### Cambiado
+- Controladores de cotización, pedido y fabricación emiten eventos críticos (`cotizacion.aprobada`, `pedido.anticipo_pagado`, `fabricacion.completada`).
+- Rutas de pedidos reutilizan controlador dedicado y notifican al Event Bus en creaciones manuales.
+
+#### Validado
+- Nuevas pruebas Jest: `eventBusService.test.js` y `pedidoListener.test.js`.
+- Flujo de aprobación de cotizaciones → pedidos → fabricación → instalación automatizado mediante eventos.
+
 ---
 
 ## [1.0.0] - 2025-11-04

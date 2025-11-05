@@ -3,6 +3,7 @@ const CotizacionMappingService = require('../services/cotizacionMappingService')
 const Pedido = require('../models/Pedido');
 const OrdenFabricacion = require('../models/OrdenFabricacion');
 const logger = require('../config/logger');
+const eventBus = require('../services/eventBusService');
 
 const ESTADOS_VALIDOS_ORDEN = ['pendiente', 'en_proceso', 'terminado', 'entregado_instalacion', 'cancelado'];
 
@@ -201,13 +202,34 @@ async function actualizarEstadoOrden(req, res) {
       orden.fechaInicioReal = new Date();
     }
 
+    let pedidoEvento = null;
+    let datosEventoFabricacion = null;
+
     if (estado === 'terminado') {
       orden.fechaFinReal = fechaCompletado ? new Date(fechaCompletado) : new Date();
 
-      await Pedido.findByIdAndUpdate(orden.pedido, {
+      pedidoEvento = await Pedido.findByIdAndUpdate(orden.pedido, {
         estado: 'fabricado',
         fechaFinFabricacion: orden.fechaFinReal
-      });
+      }, { new: true }).populate('prospecto', 'nombre telefono direccion email');
+
+      datosEventoFabricacion = {
+        fabricacionId: orden._id,
+        pedidoId: pedidoEvento?._id,
+        numero: orden.numero,
+        productos: orden.productos,
+        cliente: {
+          nombre: pedidoEvento?.prospecto?.nombre,
+          telefono: pedidoEvento?.prospecto?.telefono,
+          direccion: pedidoEvento?.direccionEntrega || {}
+        },
+        fechaInicio: orden.fechaInicioReal || orden.fechaInicioEstimada,
+        fechaFin: orden.fechaFinReal,
+        tiempoTotal: orden.fechaFinReal && (orden.fechaInicioReal || orden.fechaInicioEstimada)
+          ? Math.max(1, Math.ceil((orden.fechaFinReal - (orden.fechaInicioReal || orden.fechaInicioEstimada)) / (1000 * 60 * 60 * 24)))
+          : null,
+        prioridad: orden.prioridad || 'normal'
+      };
     }
 
     if (observaciones) {
@@ -223,7 +245,11 @@ async function actualizarEstadoOrden(req, res) {
     await orden.save();
 
     const ordenActualizada = await OrdenFabricacion.findById(id)
-      .populate('pedido', 'numero')
+      .populate({
+        path: 'pedido',
+        select: 'numero prospecto productos estado fechaInstalacion fechaEntrega direccionEntrega contactoEntrega',
+        populate: { path: 'prospecto', select: 'nombre telefono email direccion' }
+      })
       .populate('fabricante', 'nombre apellido');
 
     logger.info('Estado de orden de fabricación actualizado', {
@@ -234,6 +260,19 @@ async function actualizarEstadoOrden(req, res) {
       nuevoEstado: estado,
       usuarioId: req.usuario?._id
     });
+
+    if (datosEventoFabricacion) {
+      await eventBus.emit('fabricacion.completada', {
+        ...datosEventoFabricacion,
+        pedidoId: datosEventoFabricacion.pedidoId || ordenActualizada.pedido?._id,
+        productos: ordenActualizada.productos,
+        cliente: datosEventoFabricacion.cliente || {
+          nombre: ordenActualizada.pedido?.prospecto?.nombre,
+          telefono: ordenActualizada.pedido?.prospecto?.telefono,
+          direccion: ordenActualizada.pedido?.direccionEntrega
+        }
+      }, 'fabricacionController', req.usuario?._id || null);
+    }
 
     return res.json({
       message: 'Estado actualizado exitosamente',
