@@ -54,7 +54,7 @@ describe('ExcelService helper utilities', () => {
       const resultado = excelService.formatDate(fecha);
 
       expect(resultado).toEqual(expect.stringContaining('2025'));
-      expect(resultado).toEqual(expect.stringContaining('12'));
+      expect(resultado).toEqual(expect.stringContaining('enero'));
     });
   });
 });
