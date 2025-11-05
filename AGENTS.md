@@ -1,7 +1,7 @@
 # 🤖 INSTRUCCIONES PARA AGENTES
 
 **Fecha:** 4 Nov 2025
-**Estado:** Fase 0 ✅ COMPLETADA | Fase 1 ✅ COMPLETADA | Fase 2 ✅ COMPLETADA | Fase 3 🔄 EN PROGRESO (0%)
+**Estado:** Fase 0 ✅ COMPLETADA | Fase 1 ✅ COMPLETADA | Fase 2 ✅ COMPLETADA | Fase 3 ✅ COMPLETADA | Fase 4 ✅ COMPLETADA
 
 ---
 
@@ -227,42 +227,20 @@ Estas reglas aplican a cualquier nueva funcionalidad del repositorio.
 
 ---
 
-## 🔄 FASE 3 EN PROGRESO (0%)
+## 🧭 SIGUIENTE FOCO (POST FASE 4)
 
-### Objetivo: Auditoría y Documentación del Sistema
+### Objetivo General: Consolidar el dominio unificado y retirar dependencias legacy
 
-**Propósito:** Revisar y documentar el estado actual del sistema sin modificar lógica ni datos.
+- ✅ **Auditoría completada:** `docs/auditoria_sistema_actual.md` documenta radiografía, riesgos y sugerencias priorizadas.
+- ✅ **Fases 0-4 cerradas:** Logger estructurado, modelo unificado, fabricación refactorizada y guardados inteligentes operativos.
+- 📌 **Nuevo plan activo:** `CONTINUAR_AQUI.md` (Plan de 3 sprints) describe el roadmap de consolidación Nov–Dic 2025.
 
-### ⏳ PENDIENTE (Próxima Sesión) ⬅️ EMPEZAR AQUÍ
+### Acciones Clave Próximas
+- Enfocarse en los tres sprints definidos (congelación legacy → métricas → retiro definitivo).
+- Mantener logging estructurado obligatorio y revisar `logs/` al cierre de cada sprint.
+- Documentar cada hito completado en los checklists correspondientes (`docschecklists/`).
+- Preparar reporte ejecutivo tras completar el Sprint 3 con métricas actualizadas.
 
-**Tarea 1: Auditoría de Modelos**
-- [ ] Revisar modelos principales (Proyecto, Pedido, Cotización, Instalación)
-- [ ] Documentar relaciones entre modelos
-- [ ] Identificar campos duplicados o inconsistentes
-- [ ] Mapear flujo de datos
-
-**Tarea 2: Auditoría de Controllers y Routes**
-- [ ] Analizar todos los controladores activos
-- [ ] Revisar endpoints y su estado
-- [ ] Identificar duplicidades o errores
-- [ ] Documentar rutas funcionales vs no funcionales
-
-**Tarea 3: Auditoría de Servicios**
-- [ ] Revisar conexión con MongoDB
-- [ ] Analizar pdfService, excelService, logger
-- [ ] Revisar servicios de IA
-- [ ] Documentar flujo completo: Levantamiento → Cotización → Pedido → Instalación
-
-**Tarea 4: Documento de Auditoría**
-- [ ] Crear `/docs/auditoria_sistema_actual.md`
-- [ ] Clasificar módulos: ✅ Activos | ⚙️ Parciales | ❌ Inactivos
-- [ ] Documentar observaciones y riesgos
-- [ ] Sugerencias de optimización (sin alterar datos)
-
-**Duración estimada:** 1-2 días  
-**Complejidad:** Media  
-**Riesgo:** Ninguno (solo lectura y documentación)
-
-**Consultar:** `CONTINUAR_AQUI.md` para instrucciones detalladas.
+> **Recordatorio:** No reactivar rutas o modelos legacy sin documentar el motivo y la ventana de tiempo. Toda nueva funcionalidad debe construirse sobre el modelo `Proyecto` + `Pedido` unificado.
 
 ---
