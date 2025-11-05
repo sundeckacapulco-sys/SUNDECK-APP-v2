@@ -58,12 +58,14 @@ class ProyectosAPI {
   }
 
   // Cambiar estado del proyecto
-  async cambiarEstado(id, nuevoEstado, observaciones = '') {
+  async cambiarEstado(id, datos) {
     try {
-      const response = await axiosConfig.patch(`/proyectos/${id}/estado`, {
-        nuevo_estado: nuevoEstado,
-        observaciones
-      });
+      // Soportar tanto objeto como parámetros individuales
+      const payload = typeof datos === 'object' && datos !== null
+        ? datos
+        : { nuevo_estado: datos, observaciones: arguments[2] || '' };
+
+      const response = await axiosConfig.patch(`/proyectos/${id}/estado`, payload);
       return response.data;
     } catch (error) {
       console.error('Error cambiando estado:', error);
