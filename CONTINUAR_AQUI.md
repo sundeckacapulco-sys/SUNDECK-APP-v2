@@ -1,8 +1,8 @@
 # 🚀 Próxima Sesión: Ejecutar Migración de Datos
 
-**Última actualización:** 4 Noviembre 2025 - 18:57  
+**Última actualización:** 5 Noviembre 2025 - 09:45  
 **Estado:** ✅ Consolidación Legacy COMPLETADA - Listo para migrar  
-**Próxima acción:** Ejecutar migración en entorno de prueba
+**Próxima acción:** Ejecutar migración siguiendo plan de 8 pasos
 
 ---
 
@@ -42,110 +42,137 @@
 
 ## 🎯 PLAN DE EJECUCIÓN (Próxima Sesión)
 
-### Paso 1: Preparación (5 min)
+> **IMPORTANTE:** Seguir los 8 pasos exactamente como están en `AGENTS.md` - Fase 4
 
-```bash
-# 1. Leer documentación
-cat docs/fase3_consolidacion.md
+### 📖 PASO 0: LEER DOCUMENTACIÓN (5 min)
 
-# 2. Verificar conexión a BD
-mongo --eval "db.adminCommand('ping')"
-
-# 3. Backup de seguridad
-mongodump --db sundeck --out backup_pre_migracion_$(date +%Y%m%d_%H%M%S)
-```
+Lee en este orden:
+1. `CONTINUAR_AQUI.md` ⬅️ **EMPEZAR AQUÍ** (este archivo)
+2. `docs/fase3_consolidacion.md` (contexto técnico)
+3. `docs/analisis_consolidacion_legacy.md` (detalles de implementación)
 
 ---
 
-### Paso 2: Migración de Prueba (10 min)
+### 🚀 PASO 1: BACKUP (CRÍTICO - NO OMITIR)
 
 ```bash
-# Migrar primeros 10 registros (prueba)
+# Crear backup completo de la base de datos
+mongodump --db sundeck --out backup_pre_migracion
+
+# Verificar que se creó correctamente
+ls -lh backup_pre_migracion/sundeck/
+```
+
+**✅ Criterio de éxito:**
+- Carpeta `backup_pre_migracion/sundeck/` existe
+- Contiene archivos `.bson` y `.json`
+- Tamaño > 0 bytes
+
+---
+
+### 🧪 PASO 2: MIGRACIÓN DE PRUEBA (10 registros)
+
+```bash
+# Ejecutar migración con límite de 10 registros
 node server/scripts/ejecutarConsolidacionLegacy.js 10
 ```
 
-**Verificar:**
-- ✅ Sin errores en consola
-- ✅ Reporte generado en `docs/consolidacion_resultados.md`
-- ✅ Totales coinciden
-- ✅ Montos coinciden
+**✅ Criterio de éxito:**
+- Script termina sin errores críticos
+- Muestra: "✅ Migración completada: X/10 registros"
+- Totales ANTES y DESPUÉS coinciden
+- Logs muestran operaciones exitosas
+
+**📊 Captura estos datos:**
+```
+Registros procesados: X/10
+Errores: X
+Total antes: $X
+Total después: $X
+¿Coinciden?: ✅/❌
+```
 
 ---
 
-### Paso 3: Migración Completa (20 min)
+### 🔍 PASO 3: VALIDACIÓN DE PRUEBA
 
 ```bash
-# Si prueba exitosa, migrar 100 registros
+# Verificar que los datos se migraron correctamente
+node -e "const mongoose = require('mongoose'); const Pedido = require('./server/models/Pedido'); mongoose.connect('mongodb://localhost:27017/sundeck'); Pedido.find().limit(10).then(pedidos => { console.log('Pedidos migrados:', pedidos.length); pedidos.forEach(p => { console.log('ID:', p._id, 'Total:', p.total, 'Fuente:', p.fuenteDatos); }); process.exit(0); });"
+```
+
+**✅ Criterio de éxito:**
+- Muestra 10 pedidos
+- Todos tienen campo `fuenteDatos`
+- Totales son consistentes
+
+---
+
+### ⚠️ PUNTO DE DECISIÓN
+
+**SI la prueba fue exitosa (✅):** Continúa al Paso 4
+**SI hubo errores (❌):** DETENTE y reporta los logs completos
+
+---
+
+### 🚀 PASO 4: MIGRACIÓN COMPLETA (100%)
+
+```bash
+# Ejecutar migración completa
 node server/scripts/ejecutarConsolidacionLegacy.js 100
-
-# O migrar todos (si hay pocos)
-node server/scripts/ejecutarConsolidacionLegacy.js 1000
 ```
 
-**Monitorear:**
-- Progreso cada 10 registros
-- Errores (si existen)
-- Tiempo de ejecución
+**✅ Criterio de éxito:**
+- Script termina sin errores críticos
+- Muestra: "✅ Migración completada: X/X registros"
+- Totales finales coinciden 100%
+- Sin duplicados creados
+
+**📊 Captura estos datos:**
+```
+Registros procesados: X/total
+Errores: X
+Total antes: $X
+Total después: $X
+¿Coinciden?: ✅/❌
+Duplicados: X
+```
 
 ---
 
-### Paso 4: Validación (15 min)
+### 🔍 PASO 5: VALIDACIÓN COMPLETA
 
 ```bash
-# 1. Revisar reporte completo
-cat docs/consolidacion_resultados.md
-
-# 2. Verificar en MongoDB
-mongo sundeck --eval "
-  db.pedidos.countDocuments();
-  db.proyectoPedidos.countDocuments();
-"
-
-# 3. Comparar montos
-mongo sundeck --eval "
-  db.pedidos.aggregate([
-    { \$group: { _id: null, total: { \$sum: '\$montoTotal' } } }
-  ]);
-  db.proyectoPedidos.aggregate([
-    { \$group: { _id: null, total: { \$sum: '\$pagos.montoTotal' } } }
-  ]);
-"
+# Verificar totales
+node -e "const mongoose = require('mongoose'); const Pedido = require('./server/models/Pedido'); mongoose.connect('mongodb://localhost:27017/sundeck'); async function validar() { const total = await Pedido.countDocuments(); const conFuente = await Pedido.countDocuments({ fuenteDatos: { \$exists: true } }); const totalMonto = await Pedido.aggregate([{ \$group: { _id: null, total: { \$sum: '\$total' } } }]); console.log('Total pedidos:', total); console.log('Con fuenteDatos:', conFuente); console.log('Monto total:', totalMonto[0]?.total || 0); process.exit(0); } validar();"
 ```
-
-**Criterios de éxito:**
-- ✅ Diferencia de registros = 0
-- ✅ Diferencia de montos < $0.01
-- ✅ Sin números duplicados
-- ✅ Todos con cotización válida
 
 ---
 
-### Paso 5: Validación de KPIs (10 min)
+### 📊 PASO 6: VALIDAR KPIs
 
 ```bash
-# Calcular KPIs antes de migración
-# (guardar para comparar)
-
-# Calcular KPIs después de migración
-# (deben ser iguales o muy similares)
+# Probar que los KPIs siguen funcionando
+curl http://localhost:5001/api/kpis/comerciales
+curl http://localhost:5001/api/kpis/operacionales
 ```
 
-**Verificar:**
-- Ventas cerradas
-- Monto total de ventas
-- Proyectos completados
-- Tasas de conversión
+**✅ Criterio de éxito:**
+- Ambos endpoints responden 200 OK
+- Datos son consistentes
+- Sin errores en consola del servidor
 
 ---
 
-### Paso 6: Documentar Resultados (10 min)
+### 📝 PASO 7: GENERAR REPORTE
 
-**Actualizar `docs/consolidacion_resultados.md` con:**
-- Total migrado
-- Errores (si existen)
-- Discrepancias (si existen)
-- KPIs antes/después
-- Recomendación final
+Crear archivo `docs/consolidacion_resultados.md` con el template completo (ver sección Template de Reporte abajo)
+
+---
+
+### 📤 PASO 8: ENTREGAR RESUMEN
+
+Proporcionar resumen final al usuario con métricas, estado y recomendación (ver sección Formato de Entrega abajo)
 
 ---
 
@@ -182,42 +209,30 @@ mongo sundeck --eval "
 
 ## 🔍 COMANDOS ÚTILES
 
-### Verificación de Datos
+### Verificación de Datos (PowerShell/CMD)
 
 ```bash
 # Contar registros
-mongo sundeck --eval "
-  print('Legacy:', db.proyectoPedidos.countDocuments());
-  print('Moderno:', db.pedidos.countDocuments());
-"
+mongosh sundeck --eval "db.proyectoPedidos.countDocuments(); db.pedidos.countDocuments();"
 
 # Ver últimos migrados
-mongo sundeck --eval "
-  db.pedidos.find().sort({createdAt: -1}).limit(5).pretty();
-"
+mongosh sundeck --eval "db.pedidos.find().sort({createdAt: -1}).limit(5);"
 
 # Buscar duplicados
-mongo sundeck --eval "
-  db.pedidos.aggregate([
-    { \$group: { _id: '\$numero', count: { \$sum: 1 } } },
-    { \$match: { count: { \$gt: 1 } } }
-  ]);
-"
+mongosh sundeck --eval "db.pedidos.aggregate([{ \$group: { _id: '\$numero', count: { \$sum: 1 } } }, { \$match: { count: { \$gt: 1 } } }]);"
 
 # Verificar sin cotización
-mongo sundeck --eval "
-  db.pedidos.countDocuments({ cotizacion: null });
-"
+mongosh sundeck --eval "db.pedidos.countDocuments({ cotizacion: null });"
 ```
 
 ### Rollback (si es necesario)
 
 ```bash
 # Restaurar desde backup
-mongorestore --db sundeck --drop backup_pre_migracion_YYYYMMDD_HHMMSS/sundeck
+mongorestore --db sundeck --drop backup_pre_migracion/sundeck
 
 # Verificar restauración
-mongo sundeck --eval "db.pedidos.countDocuments();"
+mongosh sundeck --eval "db.pedidos.countDocuments();"
 ```
 
 ---
@@ -398,6 +413,40 @@ mongo sundeck --eval "db.pedidos.countDocuments();"
    - Discrepancias
    - Decisiones
    - Resultados
+
+---
+
+---
+
+## 📊 FORMATO DE ENTREGA REQUERIDO
+
+Al terminar la migración, entregar este resumen:
+
+```markdown
+## ✅ MIGRACIÓN COMPLETADA
+
+### Estado: [EXITOSA/FALLIDA/PARCIAL]
+
+### Métricas:
+- Backup: ✅ [tamaño]
+- Prueba (10): ✅ X/10 procesados
+- Completa (100%): ✅ X/X procesados
+- Totales coinciden: ✅ ($X antes = $X después)
+- KPIs funcionan: ✅
+
+### Errores: X
+
+### Reporte completo:
+Ver: `docs/consolidacion_resultados.md`
+
+### Recomendación: [CONTINUAR/ROLLBACK/REVISAR]
+
+### Justificación:
+[Explicar por qué recomiendas esa acción]
+
+### Logs críticos:
+[Solo si hay errores importantes]
+```
 
 ---
 
