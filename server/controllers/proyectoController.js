@@ -6,6 +6,7 @@ const pdfService = require('../services/pdfService');
 const excelService = require('../services/excelService');
 const logger = require('../config/logger');
 const qrCodeGenerator = require('../utils/qrcodeGenerator');
+const notificacionService = require('../services/notificacionService');
 
 const toNumber = (value, defaultValue = 0) => {
   if (value === null || value === undefined || value === '') {
@@ -1117,11 +1118,39 @@ function calcularSubtotal(proyecto) {
 
 async function ejecutarTriggersEstado(proyecto, estadoAnterior, nuevoEstado, usuarioId) {
   try {
+    // Ejecutar triggers de sincronización
     const sincronizacionService = require('../services/sincronizacionService');
     await sincronizacionService.ejecutarTriggersEstado(proyecto, estadoAnterior, nuevoEstado, usuarioId);
+
+    // Enviar notificación automática al aprobar pedido
+    if (nuevoEstado === 'aprobado' && estadoAnterior !== 'aprobado') {
+      logger.info('Enviando notificación de aprobación de pedido', {
+        proyectoId: proyecto._id,
+        proyectoNumero: proyecto.numero,
+        cliente: proyecto.cliente?.nombre,
+        total: proyecto.total
+      });
+
+      const resultadoNotificacion = await notificacionService.enviarNotificacionAprobacionPedido(proyecto);
+      
+      if (resultadoNotificacion.success) {
+        logger.info('Notificación de aprobación enviada exitosamente', {
+          proyectoId: proyecto._id,
+          whatsappEnviado: resultadoNotificacion.resultados?.whatsapp?.enviado || false,
+          correoEnviado: resultadoNotificacion.resultados?.correo?.enviado || false
+        });
+      } else {
+        logger.warn('Error al enviar notificación de aprobación', {
+          proyectoId: proyecto._id,
+          error: resultadoNotificacion.message
+        });
+      }
+    }
+
   } catch (error) {
     logger.warn('Error en triggers de estado', {
       error: error.message,
+      stack: error.stack,
       proyectoId: proyecto._id,
       estadoAnterior,
       nuevoEstado

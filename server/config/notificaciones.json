@@ -1,0 +1,13 @@
+{
+  "whatsappAdmin": "5217441996923",
+  "correoAdmin": "sundeck.acapulco@gmail.com",
+  "whatsappEnabled": true,
+  "correoEnabled": true,
+  "comentarios": {
+    "whatsappAdmin": "Número de WhatsApp del administrador (formato: 52XXXXXXXXXX)",
+    "correoAdmin": "Correo electrónico del administrador",
+    "whatsappEnabled": "Activar/desactivar notificaciones por WhatsApp",
+    "correoEnabled": "Activar/desactivar notificaciones por correo",
+    "nota": "Para habilitar el envío real de correos, configurar variables de entorno SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS en .env"
+  }
+}

@@ -267,9 +267,17 @@ Estas reglas aplican a cualquier nueva funcionalidad del repositorio.
 
 ### 🚀 PRÓXIMOS PASOS (Post-Fase 3)
 
-**Consultar:** `CONTINUAR_AQUI.md` para plan detallado de 3 sprints:
-1. **Sprint 1:** Consolidación de Controllers
-2. **Sprint 2:** Deprecación Legacy
-3. **Sprint 3:** Centralización Exportaciones
+**Consolidación Legacy Implementada:** ✅
+- Métodos portados a Pedido.js
+- syncLegacyService.js creado
+- KPI.js actualizado con adaptador
+- Script de migración listo
+
+**Consultar:** `docs/fase3_consolidacion.md` para detalles completos
+
+**Próxima acción:** Ejecutar migración en entorno de prueba
+```bash
+node server/scripts/ejecutarConsolidacionLegacy.js 100
+```
 
 ---

@@ -1,569 +1,409 @@
-# 🔍 FASE 3: Auditoría y Documentación del Sistema
+# 🚀 Próxima Sesión: Ejecutar Migración de Datos
 
-**Última actualización:** 4 Noviembre 2025 - 18:12  
-**Estado:** Fase 3 EN PROGRESO (0%)  
-**Objetivo:** Revisar y documentar el estado actual sin modificar código ni datos
-
----
-
-## 🎯 OBJETIVO PRINCIPAL
-
-**Generar una radiografía técnica completa del CRM** para:
-- Saber qué está funcionando bien
-- Identificar duplicidades o riesgos
-- Detectar oportunidades de optimización
-- **SIN alterar flujo comercial, pedidos ni KPIs**
+**Última actualización:** 4 Noviembre 2025 - 18:57  
+**Estado:** ✅ Consolidación Legacy COMPLETADA - Listo para migrar  
+**Próxima acción:** Ejecutar migración en entorno de prueba
 
 ---
 
-## 📋 TAREAS DETALLADAS
+## 🎯 OBJETIVO PRÓXIMA SESIÓN
 
-### Tarea 1: Auditoría de Modelos 📊
+**Ejecutar migración de ProyectoPedido.legacy → Pedido moderno**
 
-**Objetivo:** Documentar estructura y relaciones de modelos principales
+- Migrar datos con validación
+- Verificar integridad
+- Generar reporte de resultados
+- Confirmar éxito antes de desactivar legacy
 
-#### Modelos a Revisar:
-1. **Proyecto** (`server/models/Proyecto.js`)
-   - Campos principales
-   - Relaciones con otros modelos
-   - Métodos disponibles
-   - Estado: ✅ Activo / ⚙️ Parcial / ❌ Inactivo
+---
 
-2. **Pedido** (`server/models/Pedido.js`)
-   - Campos principales
-   - Relación con Proyecto
-   - Flujo de estados
-   - Duplicidades con ProyectoPedido
+## 📋 ESTADO ACTUAL
 
-3. **ProyectoPedido.legacy** (`server/models/ProyectoPedido.legacy.js`)
-   - Estado de deprecación
-   - Uso actual en el código
-   - Plan de migración
+### ✅ Implementación Completada (100%)
 
-4. **Cotización** (`server/models/Cotizacion.js`)
-   - Campos principales
-   - Relación con Proyecto/Pedido
-   - Flujo de conversión
+**Código listo:**
+- ✅ Pedido.js con 5 métodos portados
+- ✅ syncLegacyService.js completo
+- ✅ KPI.js con adaptador multi-fuente
+- ✅ Script de ejecución funcional
+- ✅ Documentación exhaustiva
 
-5. **Instalación** (`server/models/Instalacion.js`)
-   - Campos principales
-   - Relación con Proyecto
-   - Flujo de programación
+**Archivos creados/modificados:**
+- `server/models/Pedido.js` (+124 líneas)
+- `server/models/KPI.js` (+82 líneas)
+- `server/services/syncLegacyService.js` (+450 líneas)
+- `server/scripts/ejecutarConsolidacionLegacy.js` (+200 líneas)
+- `docs/analisis_consolidacion_legacy.md` (+650 líneas)
+- `docs/fase3_consolidacion.md` (+400 líneas)
 
-6. **Otros modelos relevantes:**
-   - Prospecto
-   - OrdenFabricacion
-   - Usuario
-   - KPI
+**Total agregado:** +1,906 líneas
 
-#### Análisis Requerido:
-```markdown
-Para cada modelo documentar:
-- ✅ Estado (Activo/Parcial/Inactivo)
-- 📊 Campos principales y tipos
-- 🔗 Relaciones (populate, refs)
-- ⚙️ Métodos y hooks
-- ⚠️ Campos duplicados entre modelos
-- 💡 Observaciones y riesgos
-```
+---
 
-#### Comandos Útiles:
+## 🎯 PLAN DE EJECUCIÓN (Próxima Sesión)
+
+### Paso 1: Preparación (5 min)
+
 ```bash
-# Listar todos los modelos
-ls server/models/*.js
+# 1. Leer documentación
+cat docs/fase3_consolidacion.md
 
-# Ver estructura de un modelo
-code server/models/Proyecto.js
+# 2. Verificar conexión a BD
+mongo --eval "db.adminCommand('ping')"
 
-# Buscar referencias a un modelo
-rg "require.*Proyecto" server --type js
-rg "Proyecto\.find" server --type js
+# 3. Backup de seguridad
+mongodump --db sundeck --out backup_pre_migracion_$(date +%Y%m%d_%H%M%S)
 ```
 
 ---
 
-### Tarea 2: Auditoría de Controllers y Routes 🛣️
+### Paso 2: Migración de Prueba (10 min)
 
-**Objetivo:** Mapear todos los endpoints y su estado funcional
-
-#### Controllers a Revisar:
-1. **proyectoController.js**
-   - Endpoints disponibles
-   - Validaciones
-   - Manejo de errores
-   - Estado funcional
-
-2. **cotizacionController.js**
-   - Endpoints disponibles
-   - Integración con servicios
-   - Estado funcional
-
-3. **pedidoController.js** / **proyectoPedidoController.js**
-   - Identificar duplicidad
-   - Endpoints activos
-   - Estado funcional
-
-4. **fabricacionController.js**
-   - Endpoints disponibles (ya refactorizado)
-   - Estado funcional
-
-5. **exportacionController.js**
-   - Funcionalidades de exportación
-   - Estado funcional
-
-#### Routes a Revisar:
 ```bash
-# Listar todas las rutas
-ls server/routes/*.js
-
-# Ver estructura de rutas
-code server/routes/proyectos.js
-code server/routes/cotizaciones.js
-code server/routes/pedidos.js
-code server/routes/instalaciones.js
-code server/routes/fabricacion.js
+# Migrar primeros 10 registros (prueba)
+node server/scripts/ejecutarConsolidacionLegacy.js 10
 ```
 
-#### Análisis Requerido:
-```markdown
-Para cada endpoint documentar:
-- Método HTTP (GET/POST/PUT/PATCH/DELETE)
-- Ruta completa
-- Middleware aplicado (auth, permisos)
-- Controller/handler
-- ✅ Funcional / ⚙️ Parcial / ❌ No funcional / ❓ Sin probar
-- Validaciones presentes
-- Manejo de errores
-- Tests disponibles
-```
+**Verificar:**
+- ✅ Sin errores en consola
+- ✅ Reporte generado en `docs/consolidacion_resultados.md`
+- ✅ Totales coinciden
+- ✅ Montos coinciden
 
-#### Comandos Útiles:
+---
+
+### Paso 3: Migración Completa (20 min)
+
 ```bash
-# Buscar definiciones de rutas
-rg "router\.(get|post|put|patch|delete)" server/routes --type js
+# Si prueba exitosa, migrar 100 registros
+node server/scripts/ejecutarConsolidacionLegacy.js 100
 
-# Buscar endpoints específicos
-rg "'/api/" server/routes --type js
-
-# Ver middleware de autenticación
-rg "auth.*verificarPermiso" server/routes --type js
+# O migrar todos (si hay pocos)
+node server/scripts/ejecutarConsolidacionLegacy.js 1000
 ```
+
+**Monitorear:**
+- Progreso cada 10 registros
+- Errores (si existen)
+- Tiempo de ejecución
 
 ---
 
-### Tarea 3: Auditoría de Servicios 🔧
+### Paso 4: Validación (15 min)
 
-**Objetivo:** Documentar servicios y su integración
-
-#### Servicios a Revisar:
-
-**1. Servicios de Datos:**
-- `fabricacionService.js` - ✅ Actualizado en Fase 2
-- `instalacionesInteligentesService.js` - ✅ Actualizado en Fase 1
-- `cotizacionMappingService.js`
-- `validacionTecnicaService.js`
-
-**2. Servicios de Exportación:**
-- `pdfService.js` - ✅ Tests en Fase 2
-- `excelService.js` - ✅ Tests en Fase 2
-
-**3. Servicios de IA:**
-- `openaiService.js`
-- `claudeService.js`
-- `geminiService.js`
-
-**4. Servicios de Infraestructura:**
-- `logger` (config/logger.js) - ✅ Implementado en Fase 0
-- Conexión MongoDB
-- Middleware de métricas
-
-#### Análisis Requerido:
-```markdown
-Para cada servicio documentar:
-- ✅ Estado (Activo/Parcial/Inactivo)
-- 🎯 Propósito principal
-- 📥 Dependencias externas
-- 🔗 Integración con otros módulos
-- ⚙️ Métodos principales
-- ✅ Tests disponibles
-- ⚠️ Riesgos o problemas
-- 💡 Sugerencias de optimización
-```
-
-#### Flujo Completo a Documentar:
-```
-Levantamiento → Cotización → Pedido → Fabricación → Instalación
-     ↓              ↓           ↓           ↓            ↓
-  [Modelo]      [Modelo]    [Modelo]    [Modelo]    [Modelo]
-     ↓              ↓           ↓           ↓            ↓
-[Controller]  [Controller][Controller][Controller][Controller]
-     ↓              ↓           ↓           ↓            ↓
- [Service]     [Service]   [Service]   [Service]   [Service]
-     ↓              ↓           ↓           ↓            ↓
-   [PDF]         [PDF]       [PDF]       [PDF]       [PDF]
-  [Excel]       [Excel]     [Excel]     [Excel]     [Excel]
-```
-
-#### Comandos Útiles:
 ```bash
-# Listar todos los servicios
-ls server/services/*.js
+# 1. Revisar reporte completo
+cat docs/consolidacion_resultados.md
 
-# Ver dependencias de un service
-rg "require" server/services/fabricacionService.js
+# 2. Verificar en MongoDB
+mongo sundeck --eval "
+  db.pedidos.countDocuments();
+  db.proyectoPedidos.countDocuments();
+"
 
-# Buscar uso de servicios
-rg "FabricacionService" server --type js
+# 3. Comparar montos
+mongo sundeck --eval "
+  db.pedidos.aggregate([
+    { \$group: { _id: null, total: { \$sum: '\$montoTotal' } } }
+  ]);
+  db.proyectoPedidos.aggregate([
+    { \$group: { _id: null, total: { \$sum: '\$pagos.montoTotal' } } }
+  ]);
+"
 ```
 
----
-
-### Tarea 4: Documento de Auditoría 📄
-
-**Objetivo:** Crear documento consolidado con hallazgos
-
-#### Estructura del Documento:
-
-```markdown
-# 🔍 Auditoría del Sistema CRM Sundeck
-
-**Fecha:** 4 Noviembre 2025
-**Versión:** 1.0
-**Responsable:** [Nombre del Agente]
+**Criterios de éxito:**
+- ✅ Diferencia de registros = 0
+- ✅ Diferencia de montos < $0.01
+- ✅ Sin números duplicados
+- ✅ Todos con cotización válida
 
 ---
 
-## 📊 RESUMEN EJECUTIVO
+### Paso 5: Validación de KPIs (10 min)
 
-### Estado General
-- Módulos activos: X
-- Módulos parciales: Y
-- Módulos inactivos: Z
-- Riesgos críticos: N
-- Oportunidades de optimización: M
+```bash
+# Calcular KPIs antes de migración
+# (guardar para comparar)
 
-### Hallazgos Principales
-1. [Hallazgo 1]
-2. [Hallazgo 2]
-3. [Hallazgo 3]
-
----
-
-## 🗂️ AUDITORÍA DE MODELOS
-
-### Proyecto ✅
-**Estado:** Activo
-**Ubicación:** `server/models/Proyecto.js`
-**Líneas:** 1,241
-
-**Campos Principales:**
-- numero: String
-- cliente: ObjectId → Prospecto
-- productos: Array
-- cronograma: Object
-- fabricacion: Object
-- instalacion: Object
-- pagos: Object
-- notas: Array
-
-**Relaciones:**
-- → Prospecto (cliente)
-- → Cotizacion (cotizacion)
-- → Usuario (creadoPor)
-
-**Métodos:**
-- generarEtiquetasProduccion()
-- calcularTiempoInstalacion()
-- generarRecomendacionesInstalacion()
-- optimizarRutaDiaria() [static]
-
-**Observaciones:**
-- ✅ Modelo bien estructurado
-- ✅ Métodos inteligentes implementados
-- ⚠️ [Cualquier observación]
-
-**Riesgos:** Ninguno detectado
-
----
-
-### Pedido ⚙️
-**Estado:** Parcial (duplicidad con ProyectoPedido)
-**Ubicación:** `server/models/Pedido.js`
-
-[Continuar con análisis similar...]
-
----
-
-### ProyectoPedido.legacy ❌
-**Estado:** Deprecado
-**Ubicación:** `server/models/ProyectoPedido.legacy.js`
-
-**Observaciones:**
-- ✅ Correctamente marcado como legacy
-- ⚠️ Aún en uso en X archivos
-- 💡 Migración pendiente
-
----
-
-## 🛣️ AUDITORÍA DE ENDPOINTS
-
-### Proyectos
-
-#### GET /api/proyectos ✅
-**Estado:** Funcional
-**Controller:** proyectoController.obtenerProyectos
-**Auth:** ✅ Requerida
-**Permisos:** proyectos:leer
-**Tests:** ❌ No disponibles
-**Observaciones:** Funciona correctamente
-
-#### POST /api/proyectos ✅
-**Estado:** Funcional
-[Continuar...]
-
----
-
-## 🔧 AUDITORÍA DE SERVICIOS
-
-### FabricacionService ✅
-**Estado:** Activo y actualizado
-**Ubicación:** `server/services/fabricacionService.js`
-**Tests:** ✅ 5/5 pasando
-
-**Métodos:**
-- obtenerColaFabricacion()
-- obtenerMetricas()
-- [etc...]
-
-**Dependencias:**
-- Proyecto (modelo)
-- CotizacionMappingService
-- Logger
-
-**Observaciones:**
-- ✅ Refactorizado en Fase 2
-- ✅ Bien integrado
-- ✅ Tests completos
-
----
-
-## 🔄 FLUJO COMPLETO DEL SISTEMA
-
-### Levantamiento → Cotización
-**Estado:** ✅ Funcional
-**Modelos:** Prospecto → Cotizacion
-**Controllers:** cotizacionController
-**Services:** cotizacionMappingService
-**Observaciones:** [...]
-
-### Cotización → Pedido
-**Estado:** ⚙️ Parcial (duplicidad)
-[Continuar...]
-
----
-
-## ⚠️ RIESGOS IDENTIFICADOS
-
-### Críticos 🔴
-1. **[Riesgo 1]**
-   - Descripción
-   - Impacto
-   - Recomendación
-
-### Medios 🟡
-[...]
-
-### Bajos 🟢
-[...]
-
----
-
-## 💡 SUGERENCIAS DE OPTIMIZACIÓN
-
-### Inmediatas (sin alterar datos)
-1. **[Sugerencia 1]**
-   - Descripción
-   - Beneficio
-   - Esfuerzo estimado
-
-### Corto Plazo
-[...]
-
-### Largo Plazo
-[...]
-
----
-
-## 📊 MÉTRICAS DEL SISTEMA
-
-### Código
-- Modelos: X
-- Controllers: Y
-- Routes: Z
-- Services: W
-- Tests: 32/32 ✅
-
-### Cobertura
-- Controllers con tests: X%
-- Services con tests: Y%
-- Routes con tests: Z%
-
----
-
-## ✅ CONCLUSIONES
-
-### Fortalezas
-1. [...]
-2. [...]
-
-### Áreas de Mejora
-1. [...]
-2. [...]
-
-### Próximos Pasos Recomendados
-1. [...]
-2. [...]
-
----
-
-**Fin del Documento**
+# Calcular KPIs después de migración
+# (deben ser iguales o muy similares)
 ```
 
+**Verificar:**
+- Ventas cerradas
+- Monto total de ventas
+- Proyectos completados
+- Tasas de conversión
+
 ---
 
-## 📋 CHECKLIST DE EJECUCIÓN
+### Paso 6: Documentar Resultados (10 min)
 
-### Preparación
-- [ ] Leer `AGENTS.md` - Contexto completo
-- [ ] Leer `RESUMEN_SESION_04_NOV_2025.md` - Estado actual
-- [ ] Verificar que tests pasen: `npm test -- --runInBand`
+**Actualizar `docs/consolidacion_resultados.md` con:**
+- Total migrado
+- Errores (si existen)
+- Discrepancias (si existen)
+- KPIs antes/después
+- Recomendación final
 
-### Tarea 1: Modelos
-- [ ] Listar todos los modelos
-- [ ] Analizar Proyecto.js
-- [ ] Analizar Pedido.js
-- [ ] Analizar ProyectoPedido.legacy.js
-- [ ] Analizar Cotizacion.js
-- [ ] Analizar Instalacion.js
-- [ ] Documentar relaciones
-- [ ] Identificar duplicidades
+---
 
-### Tarea 2: Controllers y Routes
-- [ ] Listar todos los controllers
-- [ ] Listar todas las routes
-- [ ] Mapear endpoints por módulo
-- [ ] Verificar estado funcional
-- [ ] Identificar duplicidades
-- [ ] Documentar middleware
+## 📊 CRITERIOS DE ÉXITO
 
-### Tarea 3: Servicios
-- [ ] Listar todos los services
-- [ ] Analizar servicios de datos
-- [ ] Analizar servicios de exportación
-- [ ] Analizar servicios de IA
-- [ ] Documentar flujo completo
-- [ ] Identificar integraciones
+### ✅ Migración Exitosa
 
-### Tarea 4: Documento
-- [ ] Crear carpeta `/docs` si no existe
-- [ ] Crear `auditoria_sistema_actual.md`
-- [ ] Completar sección de modelos
-- [ ] Completar sección de endpoints
-- [ ] Completar sección de servicios
-- [ ] Completar flujo completo
-- [ ] Documentar riesgos
-- [ ] Agregar sugerencias
-- [ ] Revisar y validar documento
+**Debe cumplir:**
+- [ ] 100% de registros migrados
+- [ ] 0 errores críticos
+- [ ] Diferencia de montos < $0.01
+- [ ] Sin números duplicados
+- [ ] KPIs consistentes antes/después
+- [ ] Reporte generado correctamente
+
+### ⚠️ Migración con Discrepancias
+
+**Si hay discrepancias menores:**
+- [ ] Documentar en reporte
+- [ ] Analizar causa
+- [ ] Decidir si es aceptable
+- [ ] Corregir si es necesario
+
+### ❌ Migración Fallida
+
+**Si falla:**
+- [ ] Revisar logs de error
+- [ ] Identificar causa raíz
+- [ ] Restaurar desde backup
+- [ ] Corregir código
+- [ ] Re-ejecutar
 
 ---
 
 ## 🔍 COMANDOS ÚTILES
 
-### Exploración
+### Verificación de Datos
+
 ```bash
-# Listar modelos
-ls server/models/*.js
+# Contar registros
+mongo sundeck --eval "
+  print('Legacy:', db.proyectoPedidos.countDocuments());
+  print('Moderno:', db.pedidos.countDocuments());
+"
 
-# Listar controllers
-ls server/controllers/*.js
+# Ver últimos migrados
+mongo sundeck --eval "
+  db.pedidos.find().sort({createdAt: -1}).limit(5).pretty();
+"
 
-# Listar routes
-ls server/routes/*.js
+# Buscar duplicados
+mongo sundeck --eval "
+  db.pedidos.aggregate([
+    { \$group: { _id: '\$numero', count: { \$sum: 1 } } },
+    { \$match: { count: { \$gt: 1 } } }
+  ]);
+"
 
-# Listar services
-ls server/services/*.js
-
-# Contar líneas de código
-(Get-ChildItem -Recurse -Include *.js server/models | Measure-Object -Property Length -Sum).Sum
+# Verificar sin cotización
+mongo sundeck --eval "
+  db.pedidos.countDocuments({ cotizacion: null });
+"
 ```
 
-### Búsqueda
+### Rollback (si es necesario)
+
 ```bash
-# Buscar uso de un modelo
-rg "require.*Proyecto[^P]" server --type js
+# Restaurar desde backup
+mongorestore --db sundeck --drop backup_pre_migracion_YYYYMMDD_HHMMSS/sundeck
 
-# Buscar endpoints
-rg "router\.(get|post)" server/routes --type js
-
-# Buscar populate
-rg "\.populate\(" server --type js
-
-# Buscar validaciones
-rg "\.validate\(|validator\." server --type js
-```
-
-### Análisis
-```bash
-# Ver dependencias de un archivo
-rg "^const.*require" server/models/Proyecto.js
-
-# Contar métodos en un modelo
-rg "^\s+(async\s+)?[a-zA-Z]+\s*\(" server/models/Proyecto.js
-
-# Ver middleware en routes
-rg "auth|verificarPermiso" server/routes --type js
+# Verificar restauración
+mongo sundeck --eval "db.pedidos.countDocuments();"
 ```
 
 ---
 
-## ⚠️ IMPORTANTE
+## 📚 DOCUMENTACIÓN DE REFERENCIA
 
-### Reglas Estrictas
-- ❌ NO modificar código
-- ❌ NO modificar base de datos
-- ❌ NO ejecutar scripts de migración
-- ❌ NO alterar flujo comercial
-- ✅ SOLO leer y documentar
-- ✅ SOLO analizar y observar
+### Leer ANTES de ejecutar
 
-### Enfoque
-- Ser exhaustivo pero conciso
-- Documentar hechos, no suposiciones
-- Clasificar claramente: ✅ ⚙️ ❌
-- Priorizar hallazgos críticos
-- Sugerir optimizaciones seguras
+1. **`docs/fase3_consolidacion.md`** ⬅️ **LEER PRIMERO**
+   - Resumen completo de implementación
+   - Fragmentos portados
+   - Flujo de migración
+   - Próximos pasos
+
+2. **`docs/analisis_consolidacion_legacy.md`**
+   - Análisis técnico detallado
+   - Comparativa legacy vs moderno
+   - Plan de consolidación
+   - Código de ejemplo
+
+3. **`RESUMEN_SESION_04_NOV_2025_CONSOLIDACION.md`**
+   - Resumen de sesión anterior
+   - Logros y métricas
+   - Estado actual
+
+### Código Relevante
+
+- `server/services/syncLegacyService.js` - Servicio de migración
+- `server/scripts/ejecutarConsolidacionLegacy.js` - Script de ejecución
+- `server/models/Pedido.js` - Modelo con métodos portados
+- `server/models/KPI.js` - Adaptador multi-fuente
 
 ---
 
-## 📚 ARCHIVOS DE REFERENCIA
+## ⚠️ PRECAUCIONES
 
-### Documentación Existente
-- `AGENTS.md` - Estado del proyecto
-- `docschecklists/MODELOS_LEGACY.md` - Modelos deprecados
-- `docschecklists/FASE_1_UNIFICACION_MODELOS.md` - Unificación
-- `RESUMEN_SESION_*.md` - Historial de sesiones
+### Antes de Ejecutar
 
-### Código Clave
-- `server/models/Proyecto.js` - Modelo unificado
-- `server/controllers/fabricacionController.js` - Controller refactorizado
-- `server/services/fabricacionService.js` - Service actualizado
-- `server/tests/` - Tests disponibles
+- ✅ Hacer backup completo de BD
+- ✅ Verificar espacio en disco
+- ✅ Confirmar conexión a BD
+- ✅ Leer documentación completa
+- ✅ Tener plan de rollback
+
+### Durante Ejecución
+
+- ✅ Monitorear logs en tiempo real
+- ✅ Verificar progreso cada 10 registros
+- ✅ Anotar cualquier error
+- ✅ No interrumpir proceso
+
+### Después de Ejecutar
+
+- ✅ Revisar reporte completo
+- ✅ Validar totales y montos
+- ✅ Verificar KPIs
+- ✅ Documentar resultados
+- ✅ Guardar backup exitoso
+
+---
+
+## 🎯 DECISIONES POST-MIGRACIÓN
+
+### Si Migración Exitosa ✅
+
+**Próximos pasos (1 semana después):**
+1. Monitorear KPIs diarios
+2. Verificar funcionalidad
+3. Revisar logs de errores
+4. Desactivar rutas legacy
+5. Eliminar código legacy
+
+### Si Migración con Discrepancias ⚠️
+
+**Acciones:**
+1. Analizar discrepancias
+2. Determinar si son aceptables
+3. Corregir datos si es necesario
+4. Re-validar
+5. Documentar decisiones
+
+### Si Migración Fallida ❌
+
+**Acciones:**
+1. Restaurar desde backup
+2. Analizar causa raíz
+3. Corregir código
+4. Probar en ambiente local
+5. Re-ejecutar con más logging
+
+---
+
+## 📊 TEMPLATE DE REPORTE
+
+```markdown
+# Reporte de Migración Legacy → Moderno
+
+**Fecha:** [Fecha]
+**Ejecutado por:** [Nombre]
+**Estado:** [EXITOSO/CON_DISCREPANCIAS/FALLIDO]
+
+## Resultados
+
+- **Registros legacy:** X
+- **Registros migrados:** Y
+- **Errores:** Z
+- **Diferencia de montos:** $W
+
+## Validaciones
+
+- [ ] Totales coinciden
+- [ ] Montos coinciden
+- [ ] Sin duplicados
+- [ ] KPIs consistentes
+
+## Discrepancias
+
+[Listar si existen]
+
+## Recomendación
+
+[CONTINUAR/CORREGIR/ROLLBACK]
+```
+
+---
+
+## 🚀 CHECKLIST PRÓXIMA SESIÓN
+
+### Preparación
+- [ ] Leer `docs/fase3_consolidacion.md`
+- [ ] Leer `docs/analisis_consolidacion_legacy.md`
+- [ ] Verificar conexión a MongoDB
+- [ ] Hacer backup completo
+
+### Ejecución
+- [ ] Migrar 10 registros (prueba)
+- [ ] Revisar reporte de prueba
+- [ ] Migrar 100+ registros (completo)
+- [ ] Monitorear progreso
+
+### Validación
+- [ ] Verificar totales
+- [ ] Verificar montos
+- [ ] Verificar KPIs
+- [ ] Buscar duplicados
+- [ ] Verificar cotizaciones
+
+### Documentación
+- [ ] Actualizar reporte de resultados
+- [ ] Documentar discrepancias
+- [ ] Generar recomendación
+- [ ] Actualizar AGENTS.md
+
+---
+
+## 💡 TIPS
+
+### Para Migración Exitosa
+
+1. **Empezar pequeño**
+   - Migrar 10 primero
+   - Validar completamente
+   - Luego escalar
+
+2. **Monitorear activamente**
+   - Ver logs en tiempo real
+   - Anotar errores
+   - Verificar progreso
+
+3. **Validar exhaustivamente**
+   - Totales
+   - Montos
+   - KPIs
+   - Duplicados
+
+4. **Documentar todo**
+   - Errores
+   - Discrepancias
+   - Decisiones
+   - Resultados
 
 ---
 
 **Responsable:** Próximo Agente  
-**Duración estimada:** 1-2 días  
+**Duración estimada:** 60-90 minutos  
 **Complejidad:** Media  
-**Riesgo:** Ninguno (solo lectura)
+**Riesgo:** Bajo (con backup)
 
-**¡Listo para auditar el sistema!** 🔍📊
+**¡Listo para ejecutar migración!** 🚀✨

@@ -112,13 +112,10 @@ const ProyectoDetail = () => {
       if (response.success) {
         setProyecto(response.data);
         
-        // Cargar transiciones válidas para el estado actual
-        if (response.data.estado) {
-          const transiciones = await proyectosApi.obtenerTransicionesValidas(response.data.estado);
-          if (transiciones.success) {
-            setTransicionesValidas(transiciones.data.transiciones_validas || []);
-          }
-        }
+        // Definir transiciones válidas según el estado actual
+        const estadoActual = response.data.estado;
+        const transiciones = obtenerTransicionesValidas(estadoActual);
+        setTransicionesValidas(transiciones);
         
         // Recargar estadísticas después de actualizar el proyecto
         await cargarEstadisticas();
@@ -131,6 +128,21 @@ const ProyectoDetail = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función para obtener transiciones válidas según el estado actual
+  const obtenerTransicionesValidas = (estadoActual) => {
+    const flujoNormal = {
+      'levantamiento': ['cotizacion', 'cancelado'],
+      'cotizacion': ['aprobado', 'levantamiento', 'cancelado'],
+      'aprobado': ['fabricacion', 'cotizacion', 'cancelado'],
+      'fabricacion': ['instalacion', 'aprobado', 'cancelado'],
+      'instalacion': ['completado', 'fabricacion', 'cancelado'],
+      'completado': [],
+      'cancelado': ['levantamiento', 'cotizacion', 'aprobado']
+    };
+    
+    return flujoNormal[estadoActual] || [];
   };
 
   const cargarEstadisticas = async () => {
@@ -159,7 +171,11 @@ const ProyectoDetail = () => {
 
   const handleCambiarEstado = async () => {
     try {
-      const response = await proyectosApi.cambiarEstado(id, nuevoEstado, observacionesEstado);
+      setError(null);
+      const response = await proyectosApi.cambiarEstado(id, {
+        nuevo_estado: nuevoEstado,
+        observaciones: observacionesEstado
+      });
       
       if (response.success) {
         await cargarProyecto();
@@ -167,10 +183,13 @@ const ProyectoDetail = () => {
         setDialogoCambiarEstado(false);
         setNuevoEstado('');
         setObservacionesEstado('');
+        handleMenuClose();
+      } else {
+        setError(response.message || 'Error cambiando estado del proyecto');
       }
     } catch (error) {
       console.error('Error cambiando estado:', error);
-      setError('Error cambiando estado del proyecto');
+      setError(error.response?.data?.message || 'Error cambiando estado del proyecto');
     }
   };
 
@@ -503,9 +522,23 @@ const ProyectoDetail = () => {
       </Menu>
 
       {/* Diálogo cambiar estado */}
-      <Dialog open={dialogoCambiarEstado} onClose={() => setDialogoCambiarEstado(false)}>
+      <Dialog 
+        open={dialogoCambiarEstado} 
+        onClose={() => {
+          setDialogoCambiarEstado(false);
+          setNuevoEstado('');
+          setObservacionesEstado('');
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Cambiar Estado del Proyecto</DialogTitle>
         <DialogContent>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
           <FormControl fullWidth sx={{ mt: 2 }}>
             <InputLabel>Nuevo Estado</InputLabel>
             <Select
@@ -513,11 +546,15 @@ const ProyectoDetail = () => {
               onChange={(e) => setNuevoEstado(e.target.value)}
               label="Nuevo Estado"
             >
-              {transicionesValidas.map((estado) => (
-                <MenuItem key={estado} value={estado}>
-                  {ESTADOS_CONFIG[estado]?.icon} {ESTADOS_CONFIG[estado]?.label || estado}
-                </MenuItem>
-              ))}
+              {transicionesValidas.length > 0 ? (
+                transicionesValidas.map((estado) => (
+                  <MenuItem key={estado} value={estado}>
+                    {ESTADOS_CONFIG[estado]?.icon} {ESTADOS_CONFIG[estado]?.label || estado}
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem disabled>No hay transiciones disponibles</MenuItem>
+              )}
             </Select>
           </FormControl>
           <TextField
@@ -529,17 +566,32 @@ const ProyectoDetail = () => {
             onChange={(e) => setObservacionesEstado(e.target.value)}
             sx={{ mt: 2 }}
           />
+          {nuevoEstado === 'aprobado' && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              ℹ️ Al aprobar el pedido, se enviará una notificación automática al administrador.
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogoCambiarEstado(false)}>
+          <Button onClick={() => {
+            setDialogoCambiarEstado(false);
+            setNuevoEstado('');
+            setObservacionesEstado('');
+          }}>
             Cancelar
           </Button>
           <Button 
             onClick={handleCambiarEstado} 
             variant="contained"
             disabled={!nuevoEstado}
+            sx={{
+              bgcolor: nuevoEstado === 'aprobado' ? '#28a745' : 'primary.main',
+              '&:hover': {
+                bgcolor: nuevoEstado === 'aprobado' ? '#218838' : 'primary.dark'
+              }
+            }}
           >
-            Cambiar Estado
+            {nuevoEstado === 'aprobado' ? '✅ Aprobar Pedido' : 'Cambiar Estado'}
           </Button>
         </DialogActions>
       </Dialog>

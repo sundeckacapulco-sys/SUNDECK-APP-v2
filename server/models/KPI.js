@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const logger = require('../config/logger');
 
 // Modelo para tracking de KPIs y métricas comerciales
 const kpiSchema = new mongoose.Schema({
@@ -123,36 +124,83 @@ const kpiSchema = new mongoose.Schema({
 kpiSchema.index({ fecha: -1, periodo: 1 });
 kpiSchema.index({ 'porVendedor.vendedor': 1, fecha: -1 });
 
-// Método para calcular KPIs automáticamente
+// Método para calcular KPIs automáticamente (actualizado con adaptador legacy)
 kpiSchema.statics.calcularKPIs = async function(fechaInicio, fechaFin, periodo = 'mensual') {
-  const ProyectoPedido = mongoose.model('ProyectoPedido');
+  const Proyecto = mongoose.model('Proyecto');
+  const Pedido = mongoose.model('Pedido');
+  const ProyectoPedido = mongoose.model('ProyectoPedido'); // Temporal durante transición
   
-  // Obtener todos los proyectos del período
-  const proyectos = await ProyectoPedido.find({
-    fechaCreacion: {
-      $gte: fechaInicio,
-      $lte: fechaFin
-    }
-  }).populate('cliente').lean();
+  // Verificar si existen registros legacy recientes
+  const legacyCount = await ProyectoPedido.countDocuments({
+    createdAt: { $gte: fechaInicio }
+  });
   
-  // Calcular métricas básicas
+  if (legacyCount > 0) {
+    logger.warn('KPI: Detectados registros legacy en el período', {
+      cantidad: legacyCount,
+      fechaInicio,
+      fechaFin,
+      recomendacion: 'Ejecutar migración completa'
+    });
+  }
+  
+  // Obtener datos de TODAS las fuentes durante transición
+  const proyectos = await Proyecto.find({
+    createdAt: { $gte: fechaInicio, $lte: fechaFin }
+  }).lean();
+  
+  const pedidos = await Pedido.find({
+    fechaPedido: { $gte: fechaInicio, $lte: fechaFin }
+  }).lean();
+  
+  // TEMPORAL: Incluir legacy solo si existen
+  let proyectosLegacy = [];
+  if (legacyCount > 0) {
+    proyectosLegacy = await ProyectoPedido.find({
+      createdAt: { $gte: fechaInicio, $lte: fechaFin }
+    }).lean();
+  }
+  
+  // Normalizar datos de todas las fuentes
+  const datosNormalizados = [
+    ...proyectos.map(p => this.normalizarProyecto(p)),
+    ...pedidos.map(p => this.normalizarPedido(p)),
+    ...proyectosLegacy.map(p => this.normalizarLegacy(p))
+  ];
+  
+  // Calcular métricas básicas sobre datos normalizados
+  const estadosVenta = ['confirmado', 'en_fabricacion', 'fabricado', 'en_instalacion', 'completado', 'entregado', 'instalado'];
+  const estadosCompletados = ['completado', 'entregado', 'instalado'];
+  const estadosProceso = ['confirmado', 'en_fabricacion', 'fabricado', 'en_instalacion'];
+  
   const metricas = {
-    prospectosNuevos: proyectos.length,
-    prospectosActivos: proyectos.filter(p => !['completado', 'cancelado'].includes(p.estado)).length,
-    prospectosConvertidos: proyectos.filter(p => p.estado === 'completado').length,
-    prospectosPerdidos: proyectos.filter(p => p.estado === 'cancelado').length,
+    prospectosNuevos: datosNormalizados.length,
+    prospectosActivos: datosNormalizados.filter(p => !['completado', 'cancelado', 'entregado', 'instalado'].includes(p.estado)).length,
+    prospectosConvertidos: datosNormalizados.filter(p => estadosCompletados.includes(p.estado)).length,
+    prospectosPerdidos: datosNormalizados.filter(p => p.estado === 'cancelado').length,
     
-    cotizacionesEnviadas: proyectos.filter(p => ['cotizacion', 'aprobado', 'confirmado', 'en_fabricacion', 'fabricado', 'en_instalacion', 'completado'].includes(p.estado)).length,
-    cotizacionesAprobadas: proyectos.filter(p => ['aprobado', 'confirmado', 'en_fabricacion', 'fabricado', 'en_instalacion', 'completado'].includes(p.estado)).length,
-    cotizacionesRechazadas: proyectos.filter(p => p.estado === 'cancelado' && p.historial?.some(h => h.tipo === 'cotizacion')).length,
+    cotizacionesEnviadas: datosNormalizados.filter(p => estadosVenta.includes(p.estado) || p.estado === 'cotizado').length,
+    cotizacionesAprobadas: datosNormalizados.filter(p => estadosVenta.includes(p.estado)).length,
+    cotizacionesRechazadas: datosNormalizados.filter(p => p.estado === 'cancelado').length,
     
-    ventasCerradas: proyectos.filter(p => ['confirmado', 'en_fabricacion', 'fabricado', 'en_instalacion', 'completado'].includes(p.estado)).length,
-    montoVentas: proyectos.filter(p => ['confirmado', 'en_fabricacion', 'fabricado', 'en_instalacion', 'completado'].includes(p.estado)).reduce((sum, p) => sum + (p.precios?.total || 0), 0),
+    ventasCerradas: datosNormalizados.filter(p => estadosVenta.includes(p.estado)).length,
+    montoVentas: datosNormalizados
+      .filter(p => estadosVenta.includes(p.estado))
+      .reduce((sum, p) => sum + (p.montoTotal || 0), 0),
     
-    proyectosCompletados: proyectos.filter(p => p.estado === 'completado').length,
-    proyectosEnProceso: proyectos.filter(p => ['confirmado', 'en_fabricacion', 'fabricado', 'en_instalacion'].includes(p.estado)).length,
-    proyectosCancelados: proyectos.filter(p => p.estado === 'cancelado').length
+    proyectosCompletados: datosNormalizados.filter(p => estadosCompletados.includes(p.estado)).length,
+    proyectosEnProceso: datosNormalizados.filter(p => estadosProceso.includes(p.estado)).length,
+    proyectosCancelados: datosNormalizados.filter(p => p.estado === 'cancelado').length
   };
+  
+  logger.info('KPIs calculados desde fuentes unificadas', {
+    totalRegistros: datosNormalizados.length,
+    proyectos: proyectos.length,
+    pedidos: pedidos.length,
+    legacy: proyectosLegacy.length,
+    ventasCerradas: metricas.ventasCerradas,
+    montoVentas: metricas.montoVentas
+  });
   
   // Calcular ticket promedio
   metricas.ticketPromedio = metricas.ventasCerradas > 0 ? metricas.montoVentas / metricas.ventasCerradas : 0;
@@ -202,6 +250,40 @@ kpiSchema.statics.obtenerTendencias = async function(meses = 6) {
     fecha: { $gte: fechaInicio },
     periodo: 'mensual'
   }).sort({ fecha: 1 });
+};
+
+// Funciones de normalización para adaptador multi-fuente
+kpiSchema.statics.normalizarProyecto = function(proyecto) {
+  return {
+    id: proyecto._id,
+    tipo: 'proyecto',
+    estado: proyecto.estado,
+    montoTotal: proyecto.pagos?.montoTotal || 0,
+    fechaCreacion: proyecto.createdAt,
+    fuente: 'Proyecto'
+  };
+};
+
+kpiSchema.statics.normalizarPedido = function(pedido) {
+  return {
+    id: pedido._id,
+    tipo: 'pedido',
+    estado: pedido.estado,
+    montoTotal: pedido.montoTotal || 0,
+    fechaCreacion: pedido.fechaPedido || pedido.createdAt,
+    fuente: 'Pedido'
+  };
+};
+
+kpiSchema.statics.normalizarLegacy = function(legacy) {
+  return {
+    id: legacy._id,
+    tipo: 'legacy',
+    estado: legacy.estado,
+    montoTotal: legacy.pagos?.montoTotal || 0,
+    fechaCreacion: legacy.createdAt,
+    fuente: 'ProyectoPedido.legacy'
+  };
 };
 
 module.exports = mongoose.model('KPI', kpiSchema);
