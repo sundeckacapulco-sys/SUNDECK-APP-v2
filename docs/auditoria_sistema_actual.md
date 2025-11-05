@@ -1,345 +1,308 @@
 # 🔍 Auditoría del Sistema CRM Sundeck
 
-**Fecha:** 4 Noviembre 2025  
-**Versión:** 1.0 (Plantilla)  
-**Responsable:** [Pendiente - Próximo Agente]  
-**Estado:** 📝 Pendiente de completar
+**Fecha:** 5 Noviembre 2025
+**Versión:** 1.1 (Auditoría Fase 3)
+**Responsable:** Agente gpt-5-codex
+**Estado:** ✅ Documentación inicial completada
 
 ---
 
 ## 📊 RESUMEN EJECUTIVO
 
 ### Estado General
-- **Módulos activos:** [Pendiente]
-- **Módulos parciales:** [Pendiente]
-- **Módulos inactivos:** [Pendiente]
-- **Riesgos críticos:** [Pendiente]
-- **Oportunidades de optimización:** [Pendiente]
+- **Módulos activos:** Proyectos unificados, Gestión de fabricación, Motor de exportación (PDF/Excel), Instalaciones inteligentes.
+- **Módulos parciales:** Cotizaciones (lógica distribuida entre controller y rutas), Pedidos (sin controller dedicado y sin sincronización automática con Proyecto), KPIs (dependen de datos legacy), ProyectoPedido.legacy (deprecado pero aún expuesto vía API).
+- **Módulos inactivos:** Fabricacion.legacy (solo compatibilidad), antiguos scripts de exportación reemplazados por exportacionController.
+- **Riesgos críticos:** Doble flujo Proyecto vs ProyectoPedido, endpoints duplicados de exportación, servicios de métricas leyendo colecciones legacy.
+- **Oportunidades de optimización:** Consolidar endpoints en controllers, retirar rutas legacy tras migrar datos, centralizar cálculos de cotización/pedido sobre Proyecto.
 
 ### Hallazgos Principales
-1. [Pendiente de análisis]
-2. [Pendiente de análisis]
-3. [Pendiente de análisis]
+1. **Persisten dos modelos operativos para pedidos** (`Proyecto` y `ProyectoPedido`), con rutas independientes que permiten divergencia de estados y pagos.
+2. **Varias rutas contienen lógica compleja inline** (especialmente en `cotizaciones.js` y `pedidos.js`), dificultando reutilización y pruebas; los controllers solo cubren una parte del flujo.
+3. **Exportaciones y servicios de métricas tienen implementaciones duplicadas**, coexistiendo endpoints nuevos (`exportacionController`) con versiones heredadas en `proyectos.js`, y KPIs que siguen leyendo del modelo legacy.
 
 ---
 
 ## 🗂️ AUDITORÍA DE MODELOS
 
 ### Proyecto ✅
-**Estado:** Activo  
-**Ubicación:** `server/models/Proyecto.js`  
-**Líneas:** 1,241
+**Estado:** Activo
+**Ubicación:** `server/models/Proyecto.js`
+**Líneas:** ~1,240
 
 **Campos Principales:**
-- [Pendiente de documentar]
+- **Cliente y metadatos:** `cliente`, `numero`, `tipo_fuente`, `estado`, fechas de creación/actualización.
+- **Levantamiento técnico:** Subdocumentos `levantamiento`, `medidas`, `materiales`, `productos`, galería de `fotos`.
+- **Operación unificada:** Bloques estructurados para `cronograma`, `fabricacion`, `instalacion`, `pagos`, `notas` y referencias a otras colecciones (`prospecto_original`, `cotizaciones`, `pedidos`, `ordenes_fabricacion`, `instalaciones`).
 
 **Relaciones:**
-- [Pendiente de documentar]
+- Referencias directas a `Usuario`, `Prospecto`, `Cotizacion`, `Pedido`, `OrdenFabricacion`, `Instalacion`.
+- Hooks `pre('save')` generan número secuencial y actualizan `fecha_actualizacion`.
 
-**Métodos:**
-- generarEtiquetasProduccion()
-- calcularTiempoInstalacion()
-- generarRecomendacionesInstalacion()
-- optimizarRutaDiaria() [static]
+**Métodos y virtuales relevantes:**
+- Virtuales `area_total`, `cliente_nombre_completo`, `progreso_porcentaje`.
+- Métodos `toExportData`, `generarEtiquetasProduccion()`, `calcularTiempoInstalacion()`, `generarRecomendacionesInstalacion()`, estático `optimizarRutaDiaria()`.
 
 **Observaciones:**
-- ✅ Modelo unificado en Fase 1
-- ✅ Métodos inteligentes implementados
-- [Pendiente de análisis detallado]
+- Consolidación completa del flujo comercial y operativo con campos para programación, costos y evidencias.
+- El método `pre('save')` registra eventos con logger estructurado; fallback a timestamp ante fallas.
 
-**Riesgos:** [Pendiente de análisis]
+**Riesgos:**
+- Mantiene arrays de referencias (`cotizaciones`, `pedidos`) sin sincronización automática con controladores legacy; riesgo de referencias huérfanas si se opera desde rutas antiguas.
 
 ---
 
-### Pedido
-**Estado:** [Pendiente de análisis]  
+### Pedido ⚙️
+**Estado:** Parcial
 **Ubicación:** `server/models/Pedido.js`
 
-[Pendiente de documentar]
+**Campos Principales:** Referencias obligatorias a `Cotizacion` y `Prospecto`, numeración secuencial, estructura financiera (`anticipo`, `saldo`), cronograma (`fechaInicioFabricacion`, `fechaInstalacion`), productos copiados desde cotización y notas/archivos asociados.
+
+**Relaciones:** Referencias a `Usuario` (vendedor, fabricante, instalador), índices por número, estado y vendedor.
+
+**Métodos:** `estaPagado()`, `diasRetraso()`.
+
+**Observaciones:**
+- Modelo moderno con plugin de paginación.
+- Su flujo se ejecuta desde `routes/pedidos.js` (sin controller dedicado), mezclando lógica de negocio y HTTP.
+
+**Riesgos:**
+- Duplicidad de campos respecto a `Proyecto`. La conversión desde cotización rellena estructuras pero no actualiza `Proyecto`, generando posibles divergencias.
 
 ---
 
-### ProyectoPedido.legacy
-**Estado:** ❌ Deprecado  
+### ProyectoPedido.legacy ⚠️
+**Estado:** ❌ Deprecado (aún expuesto)
 **Ubicación:** `server/models/ProyectoPedido.legacy.js`
 
 **Observaciones:**
-- ✅ Correctamente marcado como legacy en Fase 1
-- [Pendiente: verificar uso actual]
+- Archivo incluye banner `console.warn` y documentación de deprecación.
+- Sigue exportando `mongoose.model('ProyectoPedido')` y mantiene hooks/métodos (`agregarNota`, `cambiarEstado`).
+- Controladores y rutas específicas (`proyectoPedidoController`, `routes/proyectoPedido.js`) permiten crear, actualizar y gestionar pagos sobre este modelo.
+
+**Riesgos:**
+- El mantenimiento paralelo con `Proyecto` habilita entradas duplicadas y métricas inconsistentes.
+- KPI.js continúa consultando `ProyectoPedido`, manteniendo dependencia con datos legacy.
 
 ---
 
-### Cotización
-**Estado:** [Pendiente de análisis]  
+### Cotización ⚙️
+**Estado:** Parcial
 **Ubicación:** `server/models/Cotizacion.js`
 
-[Pendiente de documentar]
+**Campos Principales:** Referencias a `Prospecto` y `Proyecto`, numeración auto-generada en `pre('save')`, lista de productos enriquecidos (motorización, toldos, medidas), configuraciones de instalación, descuentos, facturación y términos.
+
+**Relaciones:** `elaboradaPor` → `Usuario`; plugin de paginación e índices por `numero`, `estado`, `proyecto`.
+
+**Métodos/Hooks:** Hook `pre('save')` genera consecutivo con logging y fallback.
+
+**Observaciones:**
+- Controller dedicado (`crearCotizacion`) concentra validaciones y normalización (usa `CotizacionMappingService` y `ValidacionTecnicaService`).
+- Otras operaciones (listar, exportar, archivar, vista previa) permanecen embebidas en `routes/cotizaciones.js`.
+
+**Riesgos:**
+- Falta de controller unificado provoca duplicación de lógica para filtros, exportaciones y actualizaciones.
 
 ---
 
-### Instalación
-**Estado:** [Pendiente de análisis]  
+### Instalación ✅
+**Estado:** Activo
 **Ubicación:** `server/models/Instalacion.js`
 
-[Pendiente de documentar]
+**Campos Principales:** Referencias opcionales a `Pedido`/`Fabricacion`, `proyectoId` obligatorio, configuración de programación (`instaladores`, `herramientas`, `productos`, `checklist`), evidencias fotográficas y control de tiempos.
+
+**Relaciones:** Hooks `pre('save')` para numeración `INS-YYYY-XXXX`; métodos `calcularProgreso()`, `listaParaEntrega()`, `generarOrdenInstalacion()`, `calcularTiempoTotal()` apoyados en `ValidacionTecnicaService`.
+
+**Observaciones:**
+- Datos listos para integrarse con sugerencias inteligentes y validaciones técnicas.
+
+**Riesgos:**
+- `proyectoId` almacenado como `String`; dependencias externas deben asegurar consistencia con IDs de `Proyecto`.
 
 ---
 
 ### Otros Modelos
-- **Prospecto:** [Pendiente]
-- **OrdenFabricacion:** [Pendiente]
-- **Usuario:** [Pendiente]
-- **KPI:** [Pendiente]
-- **Fabricacion.legacy:** ❌ Deprecado
+- **Prospecto ✅:** Activo como origen comercial; incluye scoring (`calcularScore`) y seguimiento (`necesitaSeguimiento`).
+- **OrdenFabricacion ✅:** Activo para órdenes derivadas de `Pedido`, con métodos de progreso y control de calidad.
+- **Usuario ✅:** Activo para autenticación/permisos; métodos `compararPassword`, `tienePermiso`, `enHorarioTrabajo`.
+- **KPI ⚙️:** Parcial; `calcularKPIs` todavía usa `ProyectoPedido`, lo que limita la confiabilidad tras la migración al modelo `Proyecto`.
+- **Fabricacion.legacy ❌:** Solo para compatibilidad; no tiene rutas activas en la nueva fase.
 
 ---
 
 ## 🛣️ AUDITORÍA DE ENDPOINTS
 
-### Proyectos
+### Proyectos (`server/routes/proyectos.js`)
+- `GET /api/proyectos` → `obtenerProyectos` (auth + permisos) ✅
+- `GET /api/proyectos/ruta-diaria/:fecha` → `optimizarRutaDiaria` ✅ (usa método estático del modelo)
+- `GET /api/proyectos/:id` → `obtenerProyectoPorId` ✅
+- `POST /api/proyectos` → `crearProyecto` ✅
+- `PUT /api/proyectos/:id` → `actualizarProyecto` ✅
+- `PATCH /api/proyectos/:id/estado` → `cambiarEstado` (middleware de transición) ✅
+- `DELETE /api/proyectos/:id` → `eliminarProyecto` (soft delete) ✅
+- Flujos avanzados: levantamiento (`PATCH /:id/levantamiento`), cotización (`POST /:id/cotizaciones`), sincronización, estadísticas, generación de etiquetas, cálculo de tiempo de instalación.
+- **Duplicidad exportación:** Rutas nuevas (`GET /:id/generar-pdf`, `GET /:id/generar-excel`) conviven con endpoints antiguos (`GET/POST /:id/pdf`, `/excel`) que reproducen la lógica dentro del router.
+- **Fabricación integrada:** Endpoints delegan en `fabricacionService` (`/fabricacion/iniciar`, `/proceso/:procesoId`, `/control-calidad`, `/empaque`).
 
-#### GET /api/proyectos
-**Estado:** [Pendiente de verificar]  
-**Controller:** proyectoController.obtenerProyectos  
-**Auth:** [Pendiente]  
-**Permisos:** [Pendiente]  
-**Tests:** [Pendiente]
+### Cotizaciones (`server/routes/cotizaciones.js`)
+- `GET /api/cotizaciones` con filtros y paginación (lógica en ruta). ✅
+- `POST /api/cotizaciones/desde-visita` genera cotización desde visitas; normaliza piezas manualmente. ✅
+- `POST /api/cotizaciones` usa `cotizacionController.crearCotizacion`. ✅
+- Exportaciones y vistas previas se gestionan desde las rutas usando `pdfService`/`excelService` sin pasar por controller.
+- Varias rutas manejan archivado, duplicado y actualización de estados directamente en el router → estado ⚙️ (parcial).
 
-[Continuar con análisis...]
+### Pedidos (`server/routes/pedidos.js`)
+- `GET /api/pedidos` con filtros por estado/vendedor (inline). ✅
+- `POST /api/pedidos/desde-cotizacion/:cotizacionId` crea pedidos copiando datos de cotización. ✅
+- `POST /api/pedidos/aplicar-anticipo/:cotizacionId`, `PUT /api/pedidos/:id/fabricacion`, `PUT /api/pedidos/:id/pagar-saldo`, `POST /api/pedidos/desde-etapa` cubren pagos y actualizaciones de estado. ✅
+- **Observación:** No existe `pedidoController`; toda la lógica reside en rutas, dificultando pruebas y reutilización (estado ⚙️).
 
----
+### ProyectoPedido Legacy (`server/routes/proyectoPedido.js`)
+- Rutas completas (`GET`, `POST`, `PATCH`, `POST /pagos`, `PATCH /productos/...`) todavía exponen el modelo deprecado. ⚠️
+- Riesgo: operaciones paralelas pueden reintroducir registros legacy.
 
-#### POST /api/proyectos
-**Estado:** [Pendiente de verificar]
+### Fabricación (`server/routes/fabricacion.js`)
+- `GET /cola`, `GET /metricas` → `fabricacionController` ✅
+- `POST /desde-pedido/:pedidoId` crea orden de fabricación desde `Pedido`. ✅
+- `PATCH /:id/estado` actualiza estado de orden; valida contra lista `ESTADOS_VALIDOS_ORDEN`. ✅
 
-[Pendiente de documentar]
+### Exportación (`server/routes/exportacion.js`)
+- Endpoints unificados para formatos (`GET /formatos`), vista previa, validación y generación de PDF/Excel/ZIP. ✅
+- Recomendación: retirar endpoints duplicados en `routes/proyectos.js` una vez adoptado este módulo.
 
----
-
-### Cotizaciones
-[Pendiente de documentar]
-
----
-
-### Pedidos
-[Pendiente de documentar]
-
----
-
-### Fabricación
-
-#### GET /api/fabricacion/cola ✅
-**Estado:** Funcional (refactorizado en Fase 2)  
-**Controller:** fabricacionController.obtenerColaFabricacion  
-**Auth:** ✅ Requerida  
-**Permisos:** fabricacion:leer  
-**Tests:** ✅ 5/5 pasando
-
----
-
-### Instalaciones
-[Pendiente de documentar]
+### Instalaciones (`server/routes/instalaciones.js`)
+- Incluye endpoint `POST /sugerencias` que invoca `instalacionesInteligentesService.generarSugerenciasInstalacion`. ✅
 
 ---
 
 ## 🔧 AUDITORÍA DE SERVICIOS
 
-### Servicios de Datos
+### FabricacionService (`server/services/fabricacionService.js`)
+- Funciones para iniciar fabricación, actualizar procesos, registrar control de calidad y empaque.
+- Calcula materiales, procesos y fechas estimadas usando los datos del `Proyecto`.
+- Maneja progreso y registra eventos con logger.
 
-#### FabricacionService ✅
-**Estado:** Activo y actualizado (Fase 2)  
-**Ubicación:** `server/services/fabricacionService.js`  
-**Tests:** ✅ 5/5 pasando
+### InstalacionesInteligentesService (`server/services/instalacionesInteligentesService.js`)
+- Analiza productos del proyecto, complejidad, datos históricos y disponibilidad de cuadrilla para sugerir programación.
+- Integra cálculo del modelo `Proyecto.calcularTiempoInstalacion()` y recomendaciones históricas.
 
-**Métodos:**
-- obtenerColaFabricacion()
-- obtenerMetricas()
-- [Pendiente: documentar otros métodos]
+### CotizacionMappingService (`server/services/cotizacionMappingService.js`)
+- Normaliza productos de cotización/pedido y unifica cálculos de totales.
+- Genera payloads para fabricación (`generarPayloadUnificado`).
 
-**Observaciones:**
-- ✅ Refactorizado en Fase 2
-- ✅ Tests completos
-- ✅ Bien integrado
+### ValidacionTecnicaService (`server/services/validacionTecnicaService.js`)
+- Evalúa requisitos técnicos por etapa (`validarAvanceEtapa`), genera órdenes de instalación y plantillas de checklist.
+- Usado por `cotizacionController` e `Instalacion` para asegurar consistencia.
 
----
+### Servicios de exportación
+- **pdfService:** Genera PDF para proyectos, cotizaciones, levantamientos y paquetes personalizados.
+- **excelService:** Produce libros Excel para proyectos y levantamientos con hojas separadas por secciones.
+- **exportNormalizer:** Fuente única para vistas previas y paquetes unificados; utilizada por `exportacionController`.
 
-#### InstalacionesInteligentesService ✅
-**Estado:** Activo y actualizado (Fase 1)  
-**Ubicación:** `server/services/instalacionesInteligentesService.js`
-
-**Observaciones:**
-- ✅ Actualizado en Fase 1
-- [Pendiente: documentar métodos]
-
----
-
-#### Otros Services
-- **cotizacionMappingService:** [Pendiente]
-- **validacionTecnicaService:** [Pendiente]
-
----
-
-### Servicios de Exportación
-
-#### PDFService ✅
-**Estado:** Activo  
-**Ubicación:** `server/services/pdfService.js`  
-**Tests:** ✅ 4/4 pasando (Fase 2)
-
-**Observaciones:**
-- ✅ Tests agregados en Fase 2
-- [Pendiente: documentar métodos]
-
----
-
-#### ExcelService ✅
-**Estado:** Activo  
-**Ubicación:** `server/services/excelService.js`  
-**Tests:** ✅ 5/5 pasando (Fase 2)
-
-**Observaciones:**
-- ✅ Tests agregados en Fase 2
-- [Pendiente: documentar métodos]
-
----
-
-### Servicios de IA
-- **openaiService:** [Pendiente de análisis]
-- **claudeService:** [Pendiente de análisis]
-- **geminiService:** [Pendiente de análisis]
-
----
-
-### Servicios de Infraestructura
-
-#### Logger ✅
-**Estado:** Activo  
-**Ubicación:** `server/config/logger.js`  
-**Tests:** ✅ 4/4 pasando
-
-**Observaciones:**
-- ✅ Implementado en Fase 0
-- ✅ 419 console.log eliminados
-- ✅ Logging estructurado completo
-
----
-
-#### MongoDB Connection
-**Estado:** [Pendiente de verificar]
-
-[Pendiente de documentar]
+### Otros servicios relevantes
+- `notificacionesComerciales.js` y `notificacionesService.js` gestionan recordatorios y envíos (sin cambios recientes, revisar al consolidar flujos).
+- `sincronizacionService.js` centraliza sincronizaciones batch con fuentes externas.
 
 ---
 
 ## 🔄 FLUJO COMPLETO DEL SISTEMA
 
 ### Levantamiento → Cotización
-**Estado:** [Pendiente de verificar]  
-**Modelos:** Prospecto → Cotizacion  
-**Controllers:** [Pendiente]  
-**Services:** [Pendiente]
-
-[Pendiente de documentar]
-
----
+- **Modelos:** `Prospecto` recopila datos iniciales y agenda visitas; `Proyecto` almacena levantamientos estructurados (`levantamiento.partidas`, `medidas`).
+- **Controllers/Rutas:** Proyectos (`PATCH /:id/levantamiento`) normaliza partidas; `cotizacionController.crearCotizacion` o `POST /cotizaciones/desde-visita` generan cotizaciones con validación técnica y totales unificados.
+- **Estado:** ✅ Funcional, aunque con lógica repartida.
 
 ### Cotización → Pedido
-**Estado:** [Pendiente de verificar]  
-**Observaciones:** [Posible duplicidad Pedido/ProyectoPedido]
-
-[Pendiente de documentar]
-
----
+- **Conversión:** `POST /pedidos/desde-cotizacion/:cotizacionId` crea `Pedido` y calcula cronograma base.
+- **Paralelo Legacy:** `POST /proyecto-pedido/desde-cotizacion/:cotizacionId` mantiene flujo deprecado. ⚠️
+- **Estado:** ⚙️ Parcial por duplicidad y ausencia de sincronización con `Proyecto`.
 
 ### Pedido → Fabricación
-**Estado:** [Pendiente de verificar]
-
-[Pendiente de documentar]
-
----
+- **Modernizado:** `fabricacionController.crearOrdenDesdePedido` crea `OrdenFabricacion` y actualiza estado del pedido.
+- **Proyecto:** Endpoints en `routes/proyectos.js` permiten iniciar y monitorear fabricación directamente sobre `Proyecto`.
+- **Estado:** ✅ Activo; verificar alineación entre orden independiente y bloque `proyecto.fabricacion`.
 
 ### Fabricación → Instalación
-**Estado:** [Pendiente de verificar]
-
-[Pendiente de documentar]
+- **Instalación inteligente:** `instalacionesInteligentesService` genera sugerencias; `Instalacion` registra ejecución con checklist y evidencias.
+- **Integraciones:** Métodos del modelo calculan progreso y tiempos reales; garantías y costos documentados.
+- **Estado:** ✅ Activo.
 
 ---
 
 ## ⚠️ RIESGOS IDENTIFICADOS
 
 ### Críticos 🔴
-[Pendiente de análisis]
+1. **Doble fuente de verdad para pedidos** (`Proyecto` vs `ProyectoPedido` vs `Pedido`), con endpoints aún habilitados para el modelo legacy.
+2. **Lógica de negocio distribuida en rutas** dificulta auditorías y pruebas (cotizaciones y pedidos tienen cálculos duplicados).
+3. **KPIs basados en modelos legacy** (`KPI.calcularKPIs` consulta `ProyectoPedido`), comprometiendo la confiabilidad de reportes posteriores a la migración.
 
 ### Medios 🟡
-[Pendiente de análisis]
+1. Endpoints duplicados de exportación pueden generar versiones diferentes de un mismo documento.
+2. `Instalacion.proyectoId` como `String` sin referencia directa a `Proyecto` puede producir datos inconsistentes.
+3. Falta de sincronización automática entre arrays de referencias (`proyecto.cotizaciones`, `proyecto.pedidos`) y operaciones en rutas legacy.
 
 ### Bajos 🟢
-[Pendiente de análisis]
+1. Persisten rutas legacy con mensajes de advertencia en consola (ruido operativo, pero controlado).
+2. Algunos servicios (`notificaciones*`) no cuentan con documentación actualizada, aunque sin impactos inmediatos.
 
 ---
 
 ## 💡 SUGERENCIAS DE OPTIMIZACIÓN
 
 ### Inmediatas (sin alterar datos)
-[Pendiente de análisis]
+- Documentar y comunicar la desactivación de rutas `proyectoPedido` antes de continuar la migración.
+- Centralizar exportaciones en `exportacionController`, retirando endpoints duplicados en `routes/proyectos.js`.
+- Crear controllers dedicados para `pedidos` y consolidar lógica de cotizaciones actualmente en routers.
 
 ### Corto Plazo
-[Pendiente de análisis]
+- Actualizar `KPI.calcularKPIs` para consumir datos desde `Proyecto`, conservando un adaptador que traduzca registros legacy mientras existan.
+- Diseñar sincronización explícita entre `Pedido` y el bloque `proyecto.fabricacion` para evitar divergencias de estados.
+- Incorporar pruebas unitarias para nuevos controllers (pedidos/cotizaciones) y servicios de exportación.
 
 ### Largo Plazo
-[Pendiente de análisis]
+- Completar la migración eliminando `ProyectoPedido.legacy` y su controller una vez validados los datos.
+- Evaluar consolidar órdenes de fabricación dentro de `Proyecto` para reducir duplicidad con `OrdenFabricacion`.
+- Implementar métricas automatizadas directamente sobre `Proyecto`/`Instalacion` para alimentar dashboards sin dependencias legacy.
 
 ---
 
 ## 📊 MÉTRICAS DEL SISTEMA
 
 ### Código
-- **Modelos:** [Pendiente de contar]
-- **Controllers:** [Pendiente de contar]
-- **Routes:** [Pendiente de contar]
-- **Services:** [Pendiente de contar]
-- **Tests:** 32/32 ✅ (100%)
+- **Modelos:** 19
+- **Controllers:** 5 principales (`proyecto`, `cotizacion`, `proyectoPedido`, `fabricacion`, `exportacion`).
+- **Routes:** 27 archivos (incluye módulos legacy y utilitarios).
+- **Services:** 13 activos.
+- **Tests:** 32/32 ✅ (según documentación de fases anteriores).
 
 ### Cobertura
-- **Controllers con tests:** [Pendiente]
-- **Services con tests:** [Pendiente]
-- **Routes con tests:** [Pendiente]
+- **Controllers con tests:** Fabricación y pedidos cuentan con suites mencionadas; otros controllers carecen de pruebas automatizadas recientes.
+- **Services con tests:** `pdfService`, `excelService`, `fabricacionService` documentados con pruebas en fases anteriores.
+- **Routes con tests:** No se encontraron pruebas específicas para rutas nuevas en esta fase.
 
 ---
 
 ## ✅ CONCLUSIONES
 
 ### Fortalezas
-1. [Pendiente de análisis]
-2. [Pendiente de análisis]
+1. Modelo `Proyecto` concentra el ciclo completo con métodos inteligentes y logging estructurado.
+2. Servicios de fabricación e instalación proporcionan cálculos avanzados y sugerencias inteligentes.
 
 ### Áreas de Mejora
-1. [Pendiente de análisis]
-2. [Pendiente de análisis]
+1. Consolidar lógica dispersa entre rutas y controllers para reducir duplicidad.
+2. Retirar gradualmente dependencias del modelo legacy para estabilizar métricas y reportes.
 
 ### Próximos Pasos Recomendados
-1. [Pendiente de análisis]
-2. [Pendiente de análisis]
+1. Deshabilitar rutas `ProyectoPedido` tras migrar datos a `Proyecto` y `Pedido`.
+2. Refactorizar rutas de cotizaciones/pedidos hacia controllers testeables y sincronizados con `Proyecto`.
 
 ---
 
 ## 📝 NOTAS DEL AUDITOR
 
-[Espacio para notas durante el análisis]
+- Registrar métricas de adopción tras retirar rutas legacy.
+- Verificar con el equipo comercial el impacto de consolidar reportes sobre `Proyecto`.
 
 ---
 
-**Fin del Documento - Plantilla**
-
----
-
-## 🔍 INSTRUCCIONES PARA COMPLETAR
-
-1. Revisar cada sección marcada como [Pendiente]
-2. Usar comandos de búsqueda en `CONTINUAR_AQUI.md`
-3. Clasificar módulos: ✅ Activo | ⚙️ Parcial | ❌ Inactivo
-4. Documentar hallazgos objetivos
-5. Priorizar riesgos críticos
-6. Sugerir optimizaciones seguras
-
-**NO modificar código ni datos - Solo documentar**
+**Fin del Documento - Auditoría Fase 3**
