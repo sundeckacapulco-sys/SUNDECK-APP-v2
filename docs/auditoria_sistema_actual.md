@@ -16,6 +16,20 @@
 - **Riesgos críticos:** Doble flujo Proyecto vs ProyectoPedido, endpoints duplicados de exportación, servicios de métricas leyendo colecciones legacy.
 - **Oportunidades de optimización:** Consolidar endpoints en controllers, retirar rutas legacy tras migrar datos, centralizar cálculos de cotización/pedido sobre Proyecto.
 
+## 📋 Radiografía Completa del Sistema
+
+| Área | Estado | Evidencia clave | Observaciones inmediatas |
+| --- | --- | --- | --- |
+| **Proyecto** | ✅ Activo | Modelo unificado con métodos inteligentes y logging completo. | Consolida el flujo comercial y operativo; arrays de referencias requieren sincronización con rutas legacy. |
+| **Pedido** | ⚙️ Parcial | Modelo moderno pero operado solo desde rutas. | Falta controller dedicado y sincronización con `Proyecto`. |
+| **ProyectoPedido.legacy** | ⚠️ Riesgo | Modelo y rutas legacy aún habilitados. | Puede reintroducir divergencias si se usa en paralelo al modelo moderno. |
+| **Cotización** | ⚙️ Parcial | Controller especializado solo cubre creación. | Exportaciones y mantenimiento siguen embebidos en rutas. |
+| **Instalación** | ✅ Activo | Modelo con numeración automática y métodos de progreso. | Depende de `proyectoId` como `String`; validar integridad al consolidar dominio. |
+| **Servicios de exportación** | ✅ Activo | `exportacionController` consume `pdfService`/`excelService`. | Rutas legacy de proyectos siguen exponiendo endpoints duplicados. |
+| **KPIs** | ⚙️ Parcial | `KPI.calcularKPIs` consulta colecciones legacy. | Necesita migración hacia métricas basadas en `Proyecto`. |
+
+> _Esta radiografía refleja el estado al 5 de noviembre de 2025 tras la auditoría de Fase 3. Los elementos señalados como ⚙️ o ⚠️ requieren intervención planificada en los sprints propuestos en `CONTINUAR_AQUI.md`._
+
 ### Hallazgos Principales
 1. **Persisten dos modelos operativos para pedidos** (`Proyecto` y `ProyectoPedido`), con rutas independientes que permiten divergencia de estados y pagos.
 2. **Varias rutas contienen lógica compleja inline** (especialmente en `cotizaciones.js` y `pedidos.js`), dificultando reutilización y pruebas; los controllers solo cubren una parte del flujo.
@@ -231,38 +245,35 @@
 
 ## ⚠️ RIESGOS IDENTIFICADOS
 
-### Críticos 🔴
-1. **Doble fuente de verdad para pedidos** (`Proyecto` vs `ProyectoPedido` vs `Pedido`), con endpoints aún habilitados para el modelo legacy.
-2. **Lógica de negocio distribuida en rutas** dificulta auditorías y pruebas (cotizaciones y pedidos tienen cálculos duplicados).
-3. **KPIs basados en modelos legacy** (`KPI.calcularKPIs` consulta `ProyectoPedido`), comprometiendo la confiabilidad de reportes posteriores a la migración.
+### Riesgos Priorizados
 
-### Medios 🟡
-1. Endpoints duplicados de exportación pueden generar versiones diferentes de un mismo documento.
-2. `Instalacion.proyectoId` como `String` sin referencia directa a `Proyecto` puede producir datos inconsistentes.
-3. Falta de sincronización automática entre arrays de referencias (`proyecto.cotizaciones`, `proyecto.pedidos`) y operaciones en rutas legacy.
-
-### Bajos 🟢
-1. Persisten rutas legacy con mensajes de advertencia en consola (ruido operativo, pero controlado).
-2. Algunos servicios (`notificaciones*`) no cuentan con documentación actualizada, aunque sin impactos inmediatos.
+| Prioridad | Riesgo | Impacto | Recomendación inmediata |
+| --- | --- | --- | --- |
+| 🔴 Crítica | Doble fuente de verdad para pedidos (`Proyecto`, `Pedido`, `ProyectoPedido`). | Divergencia de estados, pagos y métricas. | Congelar rutas legacy, planificar migración definitiva y sincronizar arrays en `Proyecto`. |
+| 🔴 Crítica | Lógica de negocio distribuida en routers (cotizaciones/pedidos). | Alta probabilidad de bugs y dificultad para probar. | Extraer controllers dedicados y compartir validaciones/mapeos desde servicios. |
+| 🔴 Crítica | `KPI.calcularKPIs` consume `ProyectoPedido`. | Reportes comerciales inconsistentes tras migración. | Redirigir cálculos a `Proyecto` con adaptador temporal para datos legacy. |
+| 🟡 Media | Endpoints duplicados de exportación. | Documentos divergentes y mantenimiento doble. | Consolidar uso de `exportacionController` y retirar rutas heredadas. |
+| 🟡 Media | `Instalacion.proyectoId` es `String`. | Riesgo de referencias huérfanas al eliminar proyectos. | Migrar a `ObjectId` y validar relaciones al crear instalaciones. |
+| 🟡 Media | Falta de sincronización automática entre arrays (`proyecto.cotizaciones`, `proyecto.pedidos`). | Reportes y vistas pueden quedar desactualizados. | Agregar servicios de sincronización y pruebas de regresión para altas/bajas. |
+| 🟢 Baja | Rutas legacy con `console.warn`. | Ruido operativo y riesgo mínimo si se monitorea. | Documentar fecha de retiro y monitorear logs. |
+| 🟢 Baja | Servicios de notificaciones desactualizados. | Limitado al equipo interno; no bloquea operación. | Incluir en backlog de documentación y pruebas en sprint de mantenimiento. |
 
 ---
 
 ## 💡 SUGERENCIAS DE OPTIMIZACIÓN
 
-### Inmediatas (sin alterar datos)
-- Documentar y comunicar la desactivación de rutas `proyectoPedido` antes de continuar la migración.
-- Centralizar exportaciones en `exportacionController`, retirando endpoints duplicados en `routes/proyectos.js`.
-- Crear controllers dedicados para `pedidos` y consolidar lógica de cotizaciones actualmente en routers.
+### Sugerencias Priorizadas
 
-### Corto Plazo
-- Actualizar `KPI.calcularKPIs` para consumir datos desde `Proyecto`, conservando un adaptador que traduzca registros legacy mientras existan.
-- Diseñar sincronización explícita entre `Pedido` y el bloque `proyecto.fabricacion` para evitar divergencias de estados.
-- Incorporar pruebas unitarias para nuevos controllers (pedidos/cotizaciones) y servicios de exportación.
-
-### Largo Plazo
-- Completar la migración eliminando `ProyectoPedido.legacy` y su controller una vez validados los datos.
-- Evaluar consolidar órdenes de fabricación dentro de `Proyecto` para reducir duplicidad con `OrdenFabricacion`.
-- Implementar métricas automatizadas directamente sobre `Proyecto`/`Instalacion` para alimentar dashboards sin dependencias legacy.
+| Horizonte | Acción | Objetivo | Resultado esperado |
+| --- | --- | --- | --- |
+| Inmediato | Documentar y bloquear rutas `proyectoPedido`. | Evitar nuevas divergencias mientras se migra. | Única fuente de verdad para altas y actualizaciones. |
+| Inmediato | Consolidar exportaciones en `exportacionController`. | Eliminar duplicidad de lógica en rutas. | Menor mantenimiento y consistencia en documentos. |
+| Corto plazo | Crear controllers dedicados para `pedidos` y extraer lógica de cotizaciones. | Facilitar pruebas unitarias y reutilización. | Flujo comercial consistente y testeable. |
+| Corto plazo | Actualizar `KPI.calcularKPIs` para usar `Proyecto`. | Modernizar métricas sin depender de modelos legacy. | Reportería confiable en dashboards existentes. |
+| Corto plazo | Sincronizar arrays de `Proyecto` (`cotizaciones`, `pedidos`). | Mantener integridad entre colecciones. | Visualizaciones y reportes siempre actualizados. |
+| Largo plazo | Retirar `ProyectoPedido.legacy` y su controller. | Culminar migración al modelo unificado. | Reducción de deuda técnica y riesgos. |
+| Largo plazo | Unificar órdenes de fabricación dentro de `Proyecto`. | Simplificar dominio operativo. | Menos duplicidad de estados y procesos. |
+| Largo plazo | Documentar y testear servicios de notificaciones/IA. | Garantizar calidad y trazabilidad futura. | Base sólida para automatizaciones posteriores. |
 
 ---
 
