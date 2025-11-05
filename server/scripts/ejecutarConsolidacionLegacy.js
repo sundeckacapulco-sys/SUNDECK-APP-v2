@@ -16,7 +16,7 @@ const logger = require('../config/logger');
 const syncLegacyService = require('../services/syncLegacyService');
 
 // Configuración de MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-crm';
 
 /**
  * Conectar a MongoDB

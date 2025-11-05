@@ -1,0 +1,5911 @@
+[
+  {
+    "_id": "6904f31b4e5a6ddd1182f64c",
+    "tipo": "performance",
+    "valor": 27,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 27
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 27,
+    "timestamp": "2025-10-31T17:34:19.865Z",
+    "createdAt": "2025-10-31T17:34:19.867Z",
+    "updatedAt": "2025-10-31T17:34:19.867Z",
+    "__v": 0
+  },
+  {
+    "_id": "6904f31e4e5a6ddd1182f68d",
+    "tipo": "performance",
+    "valor": 12,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 12
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 12,
+    "timestamp": "2025-10-31T17:34:22.424Z",
+    "createdAt": "2025-10-31T17:34:22.425Z",
+    "updatedAt": "2025-10-31T17:34:22.425Z",
+    "__v": 0
+  },
+  {
+    "_id": "6904f3244e5a6ddd1182f7b3",
+    "tipo": "performance",
+    "valor": 12,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 12
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 12,
+    "timestamp": "2025-10-31T17:34:28.265Z",
+    "createdAt": "2025-10-31T17:34:28.266Z",
+    "updatedAt": "2025-10-31T17:34:28.266Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905042b4f48a87d2c960875",
+    "tipo": "performance",
+    "valor": 9,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 401,
+      "duracion": 9
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 401,
+    "duracion": 9,
+    "timestamp": "2025-10-31T18:47:07.159Z",
+    "createdAt": "2025-10-31T18:47:07.173Z",
+    "updatedAt": "2025-10-31T18:47:07.173Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905042d4f48a87d2c960882",
+    "tipo": "performance",
+    "valor": 105,
+    "metadata": {
+      "endpoint": "/api/auth/login",
+      "metodo": "POST",
+      "statusCode": 200,
+      "duracion": 105
+    },
+    "endpoint": "/api/auth/login",
+    "metodo": "POST",
+    "statusCode": 200,
+    "duracion": 105,
+    "timestamp": "2025-10-31T18:47:09.228Z",
+    "createdAt": "2025-10-31T18:47:09.229Z",
+    "updatedAt": "2025-10-31T18:47:09.229Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905042d4f48a87d2c9608a4",
+    "tipo": "performance",
+    "valor": 39,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 39
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 39,
+    "timestamp": "2025-10-31T18:47:09.401Z",
+    "createdAt": "2025-10-31T18:47:09.402Z",
+    "updatedAt": "2025-10-31T18:47:09.402Z",
+    "__v": 0
+  },
+  {
+    "_id": "690504314f48a87d2c9608d6",
+    "tipo": "performance",
+    "valor": 34,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 34
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 34,
+    "timestamp": "2025-10-31T18:47:13.435Z",
+    "createdAt": "2025-10-31T18:47:13.436Z",
+    "updatedAt": "2025-10-31T18:47:13.436Z",
+    "__v": 0
+  },
+  {
+    "_id": "690504314f48a87d2c9608d8",
+    "tipo": "performance",
+    "valor": 33,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 33
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 33,
+    "timestamp": "2025-10-31T18:47:13.438Z",
+    "createdAt": "2025-10-31T18:47:13.439Z",
+    "updatedAt": "2025-10-31T18:47:13.439Z",
+    "__v": 0
+  },
+  {
+    "_id": "690504314f48a87d2c9608e5",
+    "tipo": "performance",
+    "valor": 7,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 7
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 7,
+    "timestamp": "2025-10-31T18:47:13.451Z",
+    "createdAt": "2025-10-31T18:47:13.452Z",
+    "updatedAt": "2025-10-31T18:47:13.452Z",
+    "__v": 0
+  },
+  {
+    "_id": "690504314f48a87d2c9608fd",
+    "tipo": "performance",
+    "valor": 9,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 9
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 9,
+    "timestamp": "2025-10-31T18:47:13.465Z",
+    "createdAt": "2025-10-31T18:47:13.466Z",
+    "updatedAt": "2025-10-31T18:47:13.466Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905043b4f48a87d2c96090e",
+    "tipo": "performance",
+    "valor": 22,
+    "metadata": {
+      "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 22
+    },
+    "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 22,
+    "timestamp": "2025-10-31T18:47:23.636Z",
+    "createdAt": "2025-10-31T18:47:23.638Z",
+    "updatedAt": "2025-10-31T18:47:23.638Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905043b4f48a87d2c960910",
+    "tipo": "performance",
+    "valor": 25,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 25
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 25,
+    "timestamp": "2025-10-31T18:47:23.641Z",
+    "createdAt": "2025-10-31T18:47:23.642Z",
+    "updatedAt": "2025-10-31T18:47:23.642Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905043b4f48a87d2c960917",
+    "tipo": "performance",
+    "valor": 33,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 33
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 33,
+    "timestamp": "2025-10-31T18:47:23.651Z",
+    "createdAt": "2025-10-31T18:47:23.651Z",
+    "updatedAt": "2025-10-31T18:47:23.651Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905043d4f48a87d2c960933",
+    "tipo": "performance",
+    "valor": 13,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 13
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 13,
+    "timestamp": "2025-10-31T18:47:25.680Z",
+    "createdAt": "2025-10-31T18:47:25.681Z",
+    "updatedAt": "2025-10-31T18:47:25.681Z",
+    "__v": 0
+  },
+  {
+    "_id": "690504904f48a87d2c96094a",
+    "tipo": "performance",
+    "valor": 34,
+    "metadata": {
+      "endpoint": "/api/cotizaciones",
+      "metodo": "POST",
+      "statusCode": 201,
+      "duracion": 34
+    },
+    "endpoint": "/api/cotizaciones",
+    "metodo": "POST",
+    "statusCode": 201,
+    "duracion": 34,
+    "timestamp": "2025-10-31T18:48:48.922Z",
+    "createdAt": "2025-10-31T18:48:48.922Z",
+    "updatedAt": "2025-10-31T18:48:48.922Z",
+    "__v": 0
+  },
+  {
+    "_id": "690504934f48a87d2c96096c",
+    "tipo": "performance",
+    "valor": 16,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 16
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 16,
+    "timestamp": "2025-10-31T18:48:51.065Z",
+    "createdAt": "2025-10-31T18:48:51.066Z",
+    "updatedAt": "2025-10-31T18:48:51.066Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905049a4f48a87d2c96099e",
+    "tipo": "performance",
+    "valor": 33,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 33
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 33,
+    "timestamp": "2025-10-31T18:48:58.954Z",
+    "createdAt": "2025-10-31T18:48:58.955Z",
+    "updatedAt": "2025-10-31T18:48:58.955Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905049a4f48a87d2c9609a0",
+    "tipo": "performance",
+    "valor": 31,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 31
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 31,
+    "timestamp": "2025-10-31T18:48:58.957Z",
+    "createdAt": "2025-10-31T18:48:58.958Z",
+    "updatedAt": "2025-10-31T18:48:58.958Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905049a4f48a87d2c9609ad",
+    "tipo": "performance",
+    "valor": 6,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 6
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 6,
+    "timestamp": "2025-10-31T18:48:58.967Z",
+    "createdAt": "2025-10-31T18:48:58.968Z",
+    "updatedAt": "2025-10-31T18:48:58.968Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905049a4f48a87d2c9609c5",
+    "tipo": "performance",
+    "valor": 10,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 10
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 10,
+    "timestamp": "2025-10-31T18:48:58.983Z",
+    "createdAt": "2025-10-31T18:48:58.983Z",
+    "updatedAt": "2025-10-31T18:48:58.983Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905052b4f48a87d2c9609e7",
+    "tipo": "performance",
+    "valor": 33,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 33
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 33,
+    "timestamp": "2025-10-31T18:51:23.392Z",
+    "createdAt": "2025-10-31T18:51:23.393Z",
+    "updatedAt": "2025-10-31T18:51:23.393Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905052b4f48a87d2c9609f9",
+    "tipo": "performance",
+    "valor": 43,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 43
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 43,
+    "timestamp": "2025-10-31T18:51:23.405Z",
+    "createdAt": "2025-10-31T18:51:23.405Z",
+    "updatedAt": "2025-10-31T18:51:23.405Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905052e4f48a87d2c960a0a",
+    "tipo": "performance",
+    "valor": 11,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 11
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 11,
+    "timestamp": "2025-10-31T18:51:26.407Z",
+    "createdAt": "2025-10-31T18:51:26.407Z",
+    "updatedAt": "2025-10-31T18:51:26.407Z",
+    "__v": 0
+  },
+  {
+    "_id": "690505324f48a87d2c960a29",
+    "tipo": "performance",
+    "valor": 22,
+    "metadata": {
+      "endpoint": "/api/usuarios?rol=instalador&activo=true",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 22
+    },
+    "endpoint": "/api/usuarios?rol=instalador&activo=true",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 22,
+    "timestamp": "2025-10-31T18:51:30.026Z",
+    "createdAt": "2025-10-31T18:51:30.027Z",
+    "updatedAt": "2025-10-31T18:51:30.027Z",
+    "__v": 0
+  },
+  {
+    "_id": "690505324f48a87d2c960a2b",
+    "tipo": "performance",
+    "valor": 29,
+    "metadata": {
+      "endpoint": "/api/proyecto-pedido?estado=fabricado&limit=100&page=1",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 29
+    },
+    "endpoint": "/api/proyecto-pedido?estado=fabricado&limit=100&page=1",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 29,
+    "timestamp": "2025-10-31T18:51:30.030Z",
+    "createdAt": "2025-10-31T18:51:30.030Z",
+    "updatedAt": "2025-10-31T18:51:30.030Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905053c4f48a87d2c960a4d",
+    "tipo": "performance",
+    "valor": 14,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 14
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 14,
+    "timestamp": "2025-10-31T18:51:40.663Z",
+    "createdAt": "2025-10-31T18:51:40.663Z",
+    "updatedAt": "2025-10-31T18:51:40.663Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905146a1afba6f84603d66e",
+    "tipo": "performance",
+    "valor": 194,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 194
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 194,
+    "timestamp": "2025-10-31T19:56:26.920Z",
+    "createdAt": "2025-10-31T19:56:26.922Z",
+    "updatedAt": "2025-10-31T19:56:26.922Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905146b1afba6f84603d690",
+    "tipo": "performance",
+    "valor": 29,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 29
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 29,
+    "timestamp": "2025-10-31T19:56:27.862Z",
+    "createdAt": "2025-10-31T19:56:27.863Z",
+    "updatedAt": "2025-10-31T19:56:27.863Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523de778d4dcffb507575",
+    "tipo": "performance",
+    "valor": 99,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 99
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 99,
+    "timestamp": "2025-10-31T21:02:22.164Z",
+    "createdAt": "2025-10-31T21:02:22.166Z",
+    "updatedAt": "2025-10-31T21:02:22.166Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523df778d4dcffb5075a0",
+    "tipo": "performance",
+    "valor": 45,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 45
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 45,
+    "timestamp": "2025-10-31T21:02:23.753Z",
+    "createdAt": "2025-10-31T21:02:23.755Z",
+    "updatedAt": "2025-10-31T21:02:23.755Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523df778d4dcffb5075a9",
+    "tipo": "performance",
+    "valor": 51,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 51
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 51,
+    "timestamp": "2025-10-31T21:02:23.762Z",
+    "createdAt": "2025-10-31T21:02:23.762Z",
+    "updatedAt": "2025-10-31T21:02:23.762Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523e0778d4dcffb5075ba",
+    "tipo": "performance",
+    "valor": 17,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 17
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 17,
+    "timestamp": "2025-10-31T21:02:24.531Z",
+    "createdAt": "2025-10-31T21:02:24.531Z",
+    "updatedAt": "2025-10-31T21:02:24.531Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523e1778d4dcffb5075dc",
+    "tipo": "performance",
+    "valor": 18,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 18
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 18,
+    "timestamp": "2025-10-31T21:02:25.651Z",
+    "createdAt": "2025-10-31T21:02:25.652Z",
+    "updatedAt": "2025-10-31T21:02:25.652Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523e1778d4dcffb5075ee",
+    "tipo": "performance",
+    "valor": 27,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 27
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 27,
+    "timestamp": "2025-10-31T21:02:25.663Z",
+    "createdAt": "2025-10-31T21:02:25.664Z",
+    "updatedAt": "2025-10-31T21:02:25.664Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523e5778d4dcffb507610",
+    "tipo": "performance",
+    "valor": 23,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 23
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 23,
+    "timestamp": "2025-10-31T21:02:29.425Z",
+    "createdAt": "2025-10-31T21:02:29.427Z",
+    "updatedAt": "2025-10-31T21:02:29.427Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523eb778d4dcffb507632",
+    "tipo": "performance",
+    "valor": 18,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 18
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 18,
+    "timestamp": "2025-10-31T21:02:35.048Z",
+    "createdAt": "2025-10-31T21:02:35.049Z",
+    "updatedAt": "2025-10-31T21:02:35.049Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523eb778d4dcffb507644",
+    "tipo": "performance",
+    "valor": 29,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 29
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 29,
+    "timestamp": "2025-10-31T21:02:35.061Z",
+    "createdAt": "2025-10-31T21:02:35.061Z",
+    "updatedAt": "2025-10-31T21:02:35.061Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523f0778d4dcffb507666",
+    "tipo": "performance",
+    "valor": 21,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 21
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 21,
+    "timestamp": "2025-10-31T21:02:40.556Z",
+    "createdAt": "2025-10-31T21:02:40.557Z",
+    "updatedAt": "2025-10-31T21:02:40.557Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523f4778d4dcffb507698",
+    "tipo": "performance",
+    "valor": 40,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 40
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 40,
+    "timestamp": "2025-10-31T21:02:44.688Z",
+    "createdAt": "2025-10-31T21:02:44.689Z",
+    "updatedAt": "2025-10-31T21:02:44.689Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523f4778d4dcffb50769a",
+    "tipo": "performance",
+    "valor": 38,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 38
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 38,
+    "timestamp": "2025-10-31T21:02:44.691Z",
+    "createdAt": "2025-10-31T21:02:44.692Z",
+    "updatedAt": "2025-10-31T21:02:44.692Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523f4778d4dcffb5076a7",
+    "tipo": "performance",
+    "valor": 8,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 8
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 8,
+    "timestamp": "2025-10-31T21:02:44.705Z",
+    "createdAt": "2025-10-31T21:02:44.706Z",
+    "updatedAt": "2025-10-31T21:02:44.706Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523f4778d4dcffb5076bf",
+    "tipo": "performance",
+    "valor": 13,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 13
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 13,
+    "timestamp": "2025-10-31T21:02:44.723Z",
+    "createdAt": "2025-10-31T21:02:44.723Z",
+    "updatedAt": "2025-10-31T21:02:44.723Z",
+    "__v": 0
+  },
+  {
+    "_id": "690523fc778d4dcffb5076e9",
+    "tipo": "performance",
+    "valor": 45,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 45
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 45,
+    "timestamp": "2025-10-31T21:02:52.926Z",
+    "createdAt": "2025-10-31T21:02:52.927Z",
+    "updatedAt": "2025-10-31T21:02:52.927Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052400778d4dcffb50770b",
+    "tipo": "performance",
+    "valor": 26,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 26
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 26,
+    "timestamp": "2025-10-31T21:02:56.240Z",
+    "createdAt": "2025-10-31T21:02:56.241Z",
+    "updatedAt": "2025-10-31T21:02:56.241Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052400778d4dcffb50771d",
+    "tipo": "performance",
+    "valor": 35,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 35
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 35,
+    "timestamp": "2025-10-31T21:02:56.253Z",
+    "createdAt": "2025-10-31T21:02:56.254Z",
+    "updatedAt": "2025-10-31T21:02:56.254Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052402778d4dcffb50772e",
+    "tipo": "performance",
+    "valor": 13,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 13
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 13,
+    "timestamp": "2025-10-31T21:02:58.798Z",
+    "createdAt": "2025-10-31T21:02:58.798Z",
+    "updatedAt": "2025-10-31T21:02:58.798Z",
+    "__v": 0
+  },
+  {
+    "_id": "690527b7778d4dcffb507750",
+    "tipo": "performance",
+    "valor": 43,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 43
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 43,
+    "timestamp": "2025-10-31T21:18:47.201Z",
+    "createdAt": "2025-10-31T21:18:47.202Z",
+    "updatedAt": "2025-10-31T21:18:47.202Z",
+    "__v": 0
+  },
+  {
+    "_id": "690527b7778d4dcffb507762",
+    "tipo": "performance",
+    "valor": 60,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 60
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 60,
+    "timestamp": "2025-10-31T21:18:47.223Z",
+    "createdAt": "2025-10-31T21:18:47.223Z",
+    "updatedAt": "2025-10-31T21:18:47.223Z",
+    "__v": 0
+  },
+  {
+    "_id": "690527bd778d4dcffb507784",
+    "tipo": "performance",
+    "valor": 18,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 18
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 18,
+    "timestamp": "2025-10-31T21:18:53.414Z",
+    "createdAt": "2025-10-31T21:18:53.416Z",
+    "updatedAt": "2025-10-31T21:18:53.416Z",
+    "__v": 0
+  },
+  {
+    "_id": "690527bd778d4dcffb507796",
+    "tipo": "performance",
+    "valor": 26,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 26
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 26,
+    "timestamp": "2025-10-31T21:18:53.426Z",
+    "createdAt": "2025-10-31T21:18:53.426Z",
+    "updatedAt": "2025-10-31T21:18:53.426Z",
+    "__v": 0
+  },
+  {
+    "_id": "690529ae778d4dcffb5077b8",
+    "tipo": "performance",
+    "valor": 36,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 36
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 36,
+    "timestamp": "2025-10-31T21:27:10.172Z",
+    "createdAt": "2025-10-31T21:27:10.172Z",
+    "updatedAt": "2025-10-31T21:27:10.172Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052c06eb4a33771e2938ad",
+    "tipo": "performance",
+    "valor": 81,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 81
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 81,
+    "timestamp": "2025-10-31T21:37:10.511Z",
+    "createdAt": "2025-10-31T21:37:10.514Z",
+    "updatedAt": "2025-10-31T21:37:10.514Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052c06eb4a33771e2938bf",
+    "tipo": "performance",
+    "valor": 74,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 74
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 74,
+    "timestamp": "2025-10-31T21:37:10.527Z",
+    "createdAt": "2025-10-31T21:37:10.528Z",
+    "updatedAt": "2025-10-31T21:37:10.528Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052c0aeb4a33771e2938d0",
+    "tipo": "performance",
+    "valor": 19,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 19
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 19,
+    "timestamp": "2025-10-31T21:37:14.059Z",
+    "createdAt": "2025-10-31T21:37:14.060Z",
+    "updatedAt": "2025-10-31T21:37:14.060Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052c0eeb4a33771e2938f2",
+    "tipo": "performance",
+    "valor": 30,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 30
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 30,
+    "timestamp": "2025-10-31T21:37:18.435Z",
+    "createdAt": "2025-10-31T21:37:18.435Z",
+    "updatedAt": "2025-10-31T21:37:18.435Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052c0eeb4a33771e293904",
+    "tipo": "performance",
+    "valor": 38,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 38
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 38,
+    "timestamp": "2025-10-31T21:37:18.447Z",
+    "createdAt": "2025-10-31T21:37:18.448Z",
+    "updatedAt": "2025-10-31T21:37:18.448Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f8a875db829c5b3cb06",
+    "tipo": "performance",
+    "valor": 75,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 75
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 75,
+    "timestamp": "2025-10-31T21:52:10.746Z",
+    "createdAt": "2025-10-31T21:52:10.750Z",
+    "updatedAt": "2025-10-31T21:52:10.750Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f8a875db829c5b3cb18",
+    "tipo": "performance",
+    "valor": 74,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 74
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 74,
+    "timestamp": "2025-10-31T21:52:10.764Z",
+    "createdAt": "2025-10-31T21:52:10.764Z",
+    "updatedAt": "2025-10-31T21:52:10.764Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f8b875db829c5b3cb3a",
+    "tipo": "performance",
+    "valor": 20,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 20
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 20,
+    "timestamp": "2025-10-31T21:52:11.868Z",
+    "createdAt": "2025-10-31T21:52:11.869Z",
+    "updatedAt": "2025-10-31T21:52:11.869Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f8b875db829c5b3cb4c",
+    "tipo": "performance",
+    "valor": 27,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 27
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 27,
+    "timestamp": "2025-10-31T21:52:11.878Z",
+    "createdAt": "2025-10-31T21:52:11.880Z",
+    "updatedAt": "2025-10-31T21:52:11.880Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f8f875db829c5b3cb66",
+    "tipo": "performance",
+    "valor": 23,
+    "metadata": {
+      "endpoint": "/api/proyectos/68fa55fb45b37aa6801ee509",
+      "metodo": "GET",
+      "statusCode": 404,
+      "duracion": 23
+    },
+    "endpoint": "/api/proyectos/68fa55fb45b37aa6801ee509",
+    "metodo": "GET",
+    "statusCode": 404,
+    "duracion": 23,
+    "timestamp": "2025-10-31T21:52:15.100Z",
+    "createdAt": "2025-10-31T21:52:15.101Z",
+    "updatedAt": "2025-10-31T21:52:15.101Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f8f875db829c5b3cb68",
+    "tipo": "performance",
+    "valor": 21,
+    "metadata": {
+      "endpoint": "/api/proyectos/68fa55fb45b37aa6801ee509/estadisticas",
+      "metodo": "GET",
+      "statusCode": 404,
+      "duracion": 21
+    },
+    "endpoint": "/api/proyectos/68fa55fb45b37aa6801ee509/estadisticas",
+    "metodo": "GET",
+    "statusCode": 404,
+    "duracion": 21,
+    "timestamp": "2025-10-31T21:52:15.103Z",
+    "createdAt": "2025-10-31T21:52:15.103Z",
+    "updatedAt": "2025-10-31T21:52:15.103Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f90875db829c5b3cb8a",
+    "tipo": "performance",
+    "valor": 28,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 28
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 28,
+    "timestamp": "2025-10-31T21:52:16.764Z",
+    "createdAt": "2025-10-31T21:52:16.764Z",
+    "updatedAt": "2025-10-31T21:52:16.764Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f92875db829c5b3cbbc",
+    "tipo": "performance",
+    "valor": 21,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 21
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 21,
+    "timestamp": "2025-10-31T21:52:18.090Z",
+    "createdAt": "2025-10-31T21:52:18.091Z",
+    "updatedAt": "2025-10-31T21:52:18.091Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f92875db829c5b3cbbe",
+    "tipo": "performance",
+    "valor": 27,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 27
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 27,
+    "timestamp": "2025-10-31T21:52:18.098Z",
+    "createdAt": "2025-10-31T21:52:18.098Z",
+    "updatedAt": "2025-10-31T21:52:18.098Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f92875db829c5b3cbcb",
+    "tipo": "performance",
+    "valor": 9,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 9
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 9,
+    "timestamp": "2025-10-31T21:52:18.113Z",
+    "createdAt": "2025-10-31T21:52:18.113Z",
+    "updatedAt": "2025-10-31T21:52:18.113Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f92875db829c5b3cbe3",
+    "tipo": "performance",
+    "valor": 11,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 11
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 11,
+    "timestamp": "2025-10-31T21:52:18.127Z",
+    "createdAt": "2025-10-31T21:52:18.128Z",
+    "updatedAt": "2025-10-31T21:52:18.128Z",
+    "__v": 0
+  },
+  {
+    "_id": "69052f98875db829c5b3cc0d",
+    "tipo": "performance",
+    "valor": 41,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 41
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 41,
+    "timestamp": "2025-10-31T21:52:24.278Z",
+    "createdAt": "2025-10-31T21:52:24.278Z",
+    "updatedAt": "2025-10-31T21:52:24.278Z",
+    "__v": 0
+  },
+  {
+    "_id": "69053690565b85664ce70138",
+    "tipo": "performance",
+    "valor": 136,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 136
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 136,
+    "timestamp": "2025-10-31T22:22:08.906Z",
+    "createdAt": "2025-10-31T22:22:08.910Z",
+    "updatedAt": "2025-10-31T22:22:08.910Z",
+    "__v": 0
+  },
+  {
+    "_id": "69053691565b85664ce7015a",
+    "tipo": "performance",
+    "valor": 109,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 109
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 109,
+    "timestamp": "2025-10-31T22:22:09.453Z",
+    "createdAt": "2025-10-31T22:22:09.453Z",
+    "updatedAt": "2025-10-31T22:22:09.453Z",
+    "__v": 0
+  },
+  {
+    "_id": "69053694565b85664ce70185",
+    "tipo": "performance",
+    "valor": 28,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 28
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 28,
+    "timestamp": "2025-10-31T22:22:12.193Z",
+    "createdAt": "2025-10-31T22:22:12.194Z",
+    "updatedAt": "2025-10-31T22:22:12.194Z",
+    "__v": 0
+  },
+  {
+    "_id": "69053694565b85664ce70187",
+    "tipo": "performance",
+    "valor": 28,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 28
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 28,
+    "timestamp": "2025-10-31T22:22:12.196Z",
+    "createdAt": "2025-10-31T22:22:12.197Z",
+    "updatedAt": "2025-10-31T22:22:12.197Z",
+    "__v": 0
+  },
+  {
+    "_id": "69053694565b85664ce70198",
+    "tipo": "performance",
+    "valor": 14,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 14
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 14,
+    "timestamp": "2025-10-31T22:22:12.609Z",
+    "createdAt": "2025-10-31T22:22:12.610Z",
+    "updatedAt": "2025-10-31T22:22:12.610Z",
+    "__v": 0
+  },
+  {
+    "_id": "69053695565b85664ce701d3",
+    "tipo": "performance",
+    "valor": 40,
+    "metadata": {
+      "endpoint": "/api/kpis/recuperables",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 40
+    },
+    "endpoint": "/api/kpis/recuperables",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 40,
+    "timestamp": "2025-10-31T22:22:13.547Z",
+    "createdAt": "2025-10-31T22:22:13.549Z",
+    "updatedAt": "2025-10-31T22:22:13.549Z",
+    "__v": 0
+  },
+  {
+    "_id": "69053695565b85664ce701d6",
+    "tipo": "performance",
+    "valor": 49,
+    "metadata": {
+      "endpoint": "/api/kpis/conversion",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 49
+    },
+    "endpoint": "/api/kpis/conversion",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 49,
+    "timestamp": "2025-10-31T22:22:13.553Z",
+    "createdAt": "2025-10-31T22:22:13.554Z",
+    "updatedAt": "2025-10-31T22:22:13.554Z",
+    "__v": 0
+  },
+  {
+    "_id": "69053695565b85664ce701db",
+    "tipo": "performance",
+    "valor": 59,
+    "metadata": {
+      "endpoint": "/api/kpis/dashboard",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 59
+    },
+    "endpoint": "/api/kpis/dashboard",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 59,
+    "timestamp": "2025-10-31T22:22:13.560Z",
+    "createdAt": "2025-10-31T22:22:13.560Z",
+    "updatedAt": "2025-10-31T22:22:13.560Z",
+    "__v": 0
+  },
+  {
+    "_id": "69053695565b85664ce701de",
+    "tipo": "performance",
+    "valor": 65,
+    "metadata": {
+      "endpoint": "/api/kpis/perdidas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 65
+    },
+    "endpoint": "/api/kpis/perdidas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 65,
+    "timestamp": "2025-10-31T22:22:13.570Z",
+    "createdAt": "2025-10-31T22:22:13.571Z",
+    "updatedAt": "2025-10-31T22:22:13.571Z",
+    "__v": 0
+  },
+  {
+    "_id": "69053698565b85664ce701ef",
+    "tipo": "performance",
+    "valor": 22,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 22
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 22,
+    "timestamp": "2025-10-31T22:22:16.758Z",
+    "createdAt": "2025-10-31T22:22:16.759Z",
+    "updatedAt": "2025-10-31T22:22:16.759Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905369c565b85664ce70211",
+    "tipo": "performance",
+    "valor": 22,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 22
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 22,
+    "timestamp": "2025-10-31T22:22:20.295Z",
+    "createdAt": "2025-10-31T22:22:20.296Z",
+    "updatedAt": "2025-10-31T22:22:20.296Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905369f565b85664ce70222",
+    "tipo": "performance",
+    "valor": 12,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 12
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 12,
+    "timestamp": "2025-10-31T22:22:23.390Z",
+    "createdAt": "2025-10-31T22:22:23.391Z",
+    "updatedAt": "2025-10-31T22:22:23.391Z",
+    "__v": 0
+  },
+  {
+    "_id": "690536a2565b85664ce70233",
+    "tipo": "performance",
+    "valor": 8,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 8
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 8,
+    "timestamp": "2025-10-31T22:22:26.845Z",
+    "createdAt": "2025-10-31T22:22:26.846Z",
+    "updatedAt": "2025-10-31T22:22:26.846Z",
+    "__v": 0
+  },
+  {
+    "_id": "690536a5565b85664ce70252",
+    "tipo": "performance",
+    "valor": 36,
+    "metadata": {
+      "endpoint": "/api/usuarios?rol=instalador&activo=true",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 36
+    },
+    "endpoint": "/api/usuarios?rol=instalador&activo=true",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 36,
+    "timestamp": "2025-10-31T22:22:29.191Z",
+    "createdAt": "2025-10-31T22:22:29.191Z",
+    "updatedAt": "2025-10-31T22:22:29.191Z",
+    "__v": 0
+  },
+  {
+    "_id": "690536a5565b85664ce70254",
+    "tipo": "performance",
+    "valor": 43,
+    "metadata": {
+      "endpoint": "/api/proyecto-pedido?estado=fabricado&limit=100&page=1",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 43
+    },
+    "endpoint": "/api/proyecto-pedido?estado=fabricado&limit=100&page=1",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 43,
+    "timestamp": "2025-10-31T22:22:29.196Z",
+    "createdAt": "2025-10-31T22:22:29.196Z",
+    "updatedAt": "2025-10-31T22:22:29.196Z",
+    "__v": 0
+  },
+  {
+    "_id": "690536be565b85664ce7027e",
+    "tipo": "performance",
+    "valor": 43,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 43
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 43,
+    "timestamp": "2025-10-31T22:22:54.852Z",
+    "createdAt": "2025-10-31T22:22:54.853Z",
+    "updatedAt": "2025-10-31T22:22:54.853Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905384e565b85664ce7028b",
+    "tipo": "performance",
+    "valor": 8,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 8
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 8,
+    "timestamp": "2025-10-31T22:29:34.970Z",
+    "createdAt": "2025-10-31T22:29:34.971Z",
+    "updatedAt": "2025-10-31T22:29:34.971Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905384f565b85664ce702b5",
+    "tipo": "performance",
+    "valor": 43,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 43
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 43,
+    "timestamp": "2025-10-31T22:29:35.237Z",
+    "createdAt": "2025-10-31T22:29:35.238Z",
+    "updatedAt": "2025-10-31T22:29:35.238Z",
+    "__v": 0
+  },
+  {
+    "_id": "69053852565b85664ce702d7",
+    "tipo": "performance",
+    "valor": 22,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 22
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 22,
+    "timestamp": "2025-10-31T22:29:38.448Z",
+    "createdAt": "2025-10-31T22:29:38.448Z",
+    "updatedAt": "2025-10-31T22:29:38.448Z",
+    "__v": 0
+  },
+  {
+    "_id": "690549aaa0dd6b7ee0b19f76",
+    "tipo": "performance",
+    "valor": 84,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 84
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 84,
+    "timestamp": "2025-10-31T23:43:38.997Z",
+    "createdAt": "2025-10-31T23:43:39.000Z",
+    "updatedAt": "2025-10-31T23:43:39.000Z",
+    "__v": 0
+  },
+  {
+    "_id": "690549aba0dd6b7ee0b19f98",
+    "tipo": "performance",
+    "valor": 59,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 59
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 59,
+    "timestamp": "2025-10-31T23:43:39.558Z",
+    "createdAt": "2025-10-31T23:43:39.559Z",
+    "updatedAt": "2025-10-31T23:43:39.559Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054a3ba0dd6b7ee0b19fca",
+    "tipo": "performance",
+    "valor": 59,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 59
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 59,
+    "timestamp": "2025-10-31T23:46:03.888Z",
+    "createdAt": "2025-10-31T23:46:03.889Z",
+    "updatedAt": "2025-10-31T23:46:03.889Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054a3ba0dd6b7ee0b19fcc",
+    "tipo": "performance",
+    "valor": 54,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 54
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 54,
+    "timestamp": "2025-10-31T23:46:03.891Z",
+    "createdAt": "2025-10-31T23:46:03.892Z",
+    "updatedAt": "2025-10-31T23:46:03.892Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054a3ba0dd6b7ee0b19fd9",
+    "tipo": "performance",
+    "valor": 10,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 10
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 10,
+    "timestamp": "2025-10-31T23:46:03.907Z",
+    "createdAt": "2025-10-31T23:46:03.908Z",
+    "updatedAt": "2025-10-31T23:46:03.908Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054a3ba0dd6b7ee0b19ff1",
+    "tipo": "performance",
+    "valor": 24,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 24
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 24,
+    "timestamp": "2025-10-31T23:46:03.936Z",
+    "createdAt": "2025-10-31T23:46:03.936Z",
+    "updatedAt": "2025-10-31T23:46:03.936Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054a43a0dd6b7ee0b1a002",
+    "tipo": "performance",
+    "valor": 26,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 26
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 26,
+    "timestamp": "2025-10-31T23:46:11.839Z",
+    "createdAt": "2025-10-31T23:46:11.839Z",
+    "updatedAt": "2025-10-31T23:46:11.839Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054a43a0dd6b7ee0b1a004",
+    "tipo": "performance",
+    "valor": 29,
+    "metadata": {
+      "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 29
+    },
+    "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 29,
+    "timestamp": "2025-10-31T23:46:11.844Z",
+    "createdAt": "2025-10-31T23:46:11.844Z",
+    "updatedAt": "2025-10-31T23:46:11.844Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054a43a0dd6b7ee0b1a00b",
+    "tipo": "performance",
+    "valor": 42,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 42
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 42,
+    "timestamp": "2025-10-31T23:46:11.859Z",
+    "createdAt": "2025-10-31T23:46:11.859Z",
+    "updatedAt": "2025-10-31T23:46:11.859Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054a46a0dd6b7ee0b1a027",
+    "tipo": "performance",
+    "valor": 15,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 15
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 15,
+    "timestamp": "2025-10-31T23:46:14.974Z",
+    "createdAt": "2025-10-31T23:46:14.974Z",
+    "updatedAt": "2025-10-31T23:46:14.974Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054acd62a763f62be22d1b",
+    "tipo": "performance",
+    "valor": 53,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 53
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 53,
+    "timestamp": "2025-10-31T23:48:29.159Z",
+    "createdAt": "2025-10-31T23:48:29.161Z",
+    "updatedAt": "2025-10-31T23:48:29.161Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054acd62a763f62be22d22",
+    "tipo": "performance",
+    "valor": 69,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 69
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 69,
+    "timestamp": "2025-10-31T23:48:29.183Z",
+    "createdAt": "2025-10-31T23:48:29.183Z",
+    "updatedAt": "2025-10-31T23:48:29.183Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054ae3378579b0f547ad9d",
+    "tipo": "performance",
+    "valor": 95,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 95
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 95,
+    "timestamp": "2025-10-31T23:48:51.203Z",
+    "createdAt": "2025-10-31T23:48:51.206Z",
+    "updatedAt": "2025-10-31T23:48:51.206Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054ae3378579b0f547ada4",
+    "tipo": "performance",
+    "valor": 108,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 108
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 108,
+    "timestamp": "2025-10-31T23:48:51.228Z",
+    "createdAt": "2025-10-31T23:48:51.228Z",
+    "updatedAt": "2025-10-31T23:48:51.228Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054b03fb834e8dc68701f5",
+    "tipo": "performance",
+    "valor": 62,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 62
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 62,
+    "timestamp": "2025-10-31T23:49:23.878Z",
+    "createdAt": "2025-10-31T23:49:23.883Z",
+    "updatedAt": "2025-10-31T23:49:23.883Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054b03fb834e8dc68701fc",
+    "tipo": "performance",
+    "valor": 87,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 87
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 87,
+    "timestamp": "2025-10-31T23:49:23.912Z",
+    "createdAt": "2025-10-31T23:49:23.913Z",
+    "updatedAt": "2025-10-31T23:49:23.913Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054f99fb834e8dc687021e",
+    "tipo": "performance",
+    "valor": 59,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 59
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 59,
+    "timestamp": "2025-11-01T00:08:57.860Z",
+    "createdAt": "2025-11-01T00:08:57.862Z",
+    "updatedAt": "2025-11-01T00:08:57.862Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054f9afb834e8dc6870250",
+    "tipo": "performance",
+    "valor": 55,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 55
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 55,
+    "timestamp": "2025-11-01T00:08:58.680Z",
+    "createdAt": "2025-11-01T00:08:58.681Z",
+    "updatedAt": "2025-11-01T00:08:58.681Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054f9afb834e8dc6870252",
+    "tipo": "performance",
+    "valor": 50,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 50
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 50,
+    "timestamp": "2025-11-01T00:08:58.683Z",
+    "createdAt": "2025-11-01T00:08:58.683Z",
+    "updatedAt": "2025-11-01T00:08:58.683Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054f9afb834e8dc687025f",
+    "tipo": "performance",
+    "valor": 9,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 9
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 9,
+    "timestamp": "2025-11-01T00:08:58.697Z",
+    "createdAt": "2025-11-01T00:08:58.698Z",
+    "updatedAt": "2025-11-01T00:08:58.698Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054f9afb834e8dc6870277",
+    "tipo": "performance",
+    "valor": 13,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 13
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 13,
+    "timestamp": "2025-11-01T00:08:58.715Z",
+    "createdAt": "2025-11-01T00:08:58.715Z",
+    "updatedAt": "2025-11-01T00:08:58.715Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054f9dfb834e8dc6870288",
+    "tipo": "performance",
+    "valor": 21,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 21
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 21,
+    "timestamp": "2025-11-01T00:09:01.738Z",
+    "createdAt": "2025-11-01T00:09:01.739Z",
+    "updatedAt": "2025-11-01T00:09:01.739Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054f9dfb834e8dc687028c",
+    "tipo": "performance",
+    "valor": 23,
+    "metadata": {
+      "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 23
+    },
+    "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 23,
+    "timestamp": "2025-11-01T00:09:01.746Z",
+    "createdAt": "2025-11-01T00:09:01.747Z",
+    "updatedAt": "2025-11-01T00:09:01.747Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054f9dfb834e8dc6870291",
+    "tipo": "performance",
+    "valor": 32,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 32
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 32,
+    "timestamp": "2025-11-01T00:09:01.752Z",
+    "createdAt": "2025-11-01T00:09:01.753Z",
+    "updatedAt": "2025-11-01T00:09:01.753Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fa0fb834e8dc68702a2",
+    "tipo": "performance",
+    "valor": 9,
+    "metadata": {
+      "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 9
+    },
+    "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 9,
+    "timestamp": "2025-11-01T00:09:04.428Z",
+    "createdAt": "2025-11-01T00:09:04.428Z",
+    "updatedAt": "2025-11-01T00:09:04.428Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fa1fb834e8dc68702b3",
+    "tipo": "performance",
+    "valor": 10,
+    "metadata": {
+      "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 10
+    },
+    "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 10,
+    "timestamp": "2025-11-01T00:09:05.646Z",
+    "createdAt": "2025-11-01T00:09:05.647Z",
+    "updatedAt": "2025-11-01T00:09:05.647Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fa2fb834e8dc68702c4",
+    "tipo": "performance",
+    "valor": 7,
+    "metadata": {
+      "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 7
+    },
+    "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 7,
+    "timestamp": "2025-11-01T00:09:06.124Z",
+    "createdAt": "2025-11-01T00:09:06.124Z",
+    "updatedAt": "2025-11-01T00:09:06.124Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fa2fb834e8dc68702d5",
+    "tipo": "performance",
+    "valor": 10,
+    "metadata": {
+      "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 10
+    },
+    "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 10,
+    "timestamp": "2025-11-01T00:09:06.545Z",
+    "createdAt": "2025-11-01T00:09:06.545Z",
+    "updatedAt": "2025-11-01T00:09:06.545Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fa6fb834e8dc68702e6",
+    "tipo": "performance",
+    "valor": 7,
+    "metadata": {
+      "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 7
+    },
+    "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 7,
+    "timestamp": "2025-11-01T00:09:10.989Z",
+    "createdAt": "2025-11-01T00:09:10.989Z",
+    "updatedAt": "2025-11-01T00:09:10.989Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fa7fb834e8dc68702f7",
+    "tipo": "performance",
+    "valor": 7,
+    "metadata": {
+      "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 7
+    },
+    "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 7,
+    "timestamp": "2025-11-01T00:09:11.266Z",
+    "createdAt": "2025-11-01T00:09:11.266Z",
+    "updatedAt": "2025-11-01T00:09:11.266Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fa7fb834e8dc6870308",
+    "tipo": "performance",
+    "valor": 13,
+    "metadata": {
+      "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 13
+    },
+    "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 13,
+    "timestamp": "2025-11-01T00:09:11.463Z",
+    "createdAt": "2025-11-01T00:09:11.463Z",
+    "updatedAt": "2025-11-01T00:09:11.463Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fa7fb834e8dc6870319",
+    "tipo": "performance",
+    "valor": 16,
+    "metadata": {
+      "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 16
+    },
+    "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 16,
+    "timestamp": "2025-11-01T00:09:11.659Z",
+    "createdAt": "2025-11-01T00:09:11.660Z",
+    "updatedAt": "2025-11-01T00:09:11.660Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fa7fb834e8dc687032a",
+    "tipo": "performance",
+    "valor": 8,
+    "metadata": {
+      "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 8
+    },
+    "endpoint": "/api/etapas?prospectoId=68f8231337108dff7cb87bc4",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 8,
+    "timestamp": "2025-11-01T00:09:11.867Z",
+    "createdAt": "2025-11-01T00:09:11.867Z",
+    "updatedAt": "2025-11-01T00:09:11.867Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe202a557806a47a973",
+    "tipo": "performance",
+    "valor": 65,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 65
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 65,
+    "timestamp": "2025-11-01T00:10:10.821Z",
+    "createdAt": "2025-11-01T00:10:10.824Z",
+    "updatedAt": "2025-11-01T00:10:10.824Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe202a557806a47a980",
+    "tipo": "performance",
+    "valor": 9,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 9
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 9,
+    "timestamp": "2025-11-01T00:10:10.981Z",
+    "createdAt": "2025-11-01T00:10:10.982Z",
+    "updatedAt": "2025-11-01T00:10:10.982Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe302a557806a47a9a2",
+    "tipo": "performance",
+    "valor": 43,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 43
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 43,
+    "timestamp": "2025-11-01T00:10:11.329Z",
+    "createdAt": "2025-11-01T00:10:11.329Z",
+    "updatedAt": "2025-11-01T00:10:11.329Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe402a557806a47a9d4",
+    "tipo": "performance",
+    "valor": 37,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 37
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 37,
+    "timestamp": "2025-11-01T00:10:12.481Z",
+    "createdAt": "2025-11-01T00:10:12.483Z",
+    "updatedAt": "2025-11-01T00:10:12.483Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe402a557806a47a9d6",
+    "tipo": "performance",
+    "valor": 40,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 40
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 40,
+    "timestamp": "2025-11-01T00:10:12.488Z",
+    "createdAt": "2025-11-01T00:10:12.488Z",
+    "updatedAt": "2025-11-01T00:10:12.488Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe402a557806a47a9e3",
+    "tipo": "performance",
+    "valor": 9,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 9
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 9,
+    "timestamp": "2025-11-01T00:10:12.502Z",
+    "createdAt": "2025-11-01T00:10:12.503Z",
+    "updatedAt": "2025-11-01T00:10:12.503Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe402a557806a47a9fb",
+    "tipo": "performance",
+    "valor": 17,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 17
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 17,
+    "timestamp": "2025-11-01T00:10:12.524Z",
+    "createdAt": "2025-11-01T00:10:12.525Z",
+    "updatedAt": "2025-11-01T00:10:12.525Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe402a557806a47aa0c",
+    "tipo": "performance",
+    "valor": 30,
+    "metadata": {
+      "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 30
+    },
+    "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 30,
+    "timestamp": "2025-11-01T00:10:12.586Z",
+    "createdAt": "2025-11-01T00:10:12.587Z",
+    "updatedAt": "2025-11-01T00:10:12.587Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe402a557806a47aa0e",
+    "tipo": "performance",
+    "valor": 31,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 31
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 31,
+    "timestamp": "2025-11-01T00:10:12.591Z",
+    "createdAt": "2025-11-01T00:10:12.591Z",
+    "updatedAt": "2025-11-01T00:10:12.591Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe402a557806a47aa15",
+    "tipo": "performance",
+    "valor": 42,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 42
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 42,
+    "timestamp": "2025-11-01T00:10:12.603Z",
+    "createdAt": "2025-11-01T00:10:12.604Z",
+    "updatedAt": "2025-11-01T00:10:12.604Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe602a557806a47aa26",
+    "tipo": "performance",
+    "valor": 26,
+    "metadata": {
+      "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 26
+    },
+    "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 26,
+    "timestamp": "2025-11-01T00:10:14.523Z",
+    "createdAt": "2025-11-01T00:10:14.524Z",
+    "updatedAt": "2025-11-01T00:10:14.524Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe602a557806a47aa28",
+    "tipo": "performance",
+    "valor": 28,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 28
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 28,
+    "timestamp": "2025-11-01T00:10:14.527Z",
+    "createdAt": "2025-11-01T00:10:14.527Z",
+    "updatedAt": "2025-11-01T00:10:14.527Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe602a557806a47aa2f",
+    "tipo": "performance",
+    "valor": 35,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 35
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 35,
+    "timestamp": "2025-11-01T00:10:14.536Z",
+    "createdAt": "2025-11-01T00:10:14.537Z",
+    "updatedAt": "2025-11-01T00:10:14.537Z",
+    "__v": 0
+  },
+  {
+    "_id": "69054fe702a557806a47aa4b",
+    "tipo": "performance",
+    "valor": 13,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 13
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 13,
+    "timestamp": "2025-11-01T00:10:15.683Z",
+    "createdAt": "2025-11-01T00:10:15.683Z",
+    "updatedAt": "2025-11-01T00:10:15.683Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905503ef5671402cc94bf57",
+    "tipo": "performance",
+    "valor": 63,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 63
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 63,
+    "timestamp": "2025-11-01T00:11:42.166Z",
+    "createdAt": "2025-11-01T00:11:42.169Z",
+    "updatedAt": "2025-11-01T00:11:42.169Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905503ef5671402cc94bf5e",
+    "tipo": "performance",
+    "valor": 85,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 85
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 85,
+    "timestamp": "2025-11-01T00:11:42.199Z",
+    "createdAt": "2025-11-01T00:11:42.200Z",
+    "updatedAt": "2025-11-01T00:11:42.200Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905503ef5671402cc94bf6d",
+    "tipo": "performance",
+    "valor": 29,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 29
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 29,
+    "timestamp": "2025-11-01T00:11:42.552Z",
+    "createdAt": "2025-11-01T00:11:42.553Z",
+    "updatedAt": "2025-11-01T00:11:42.553Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905503ef5671402cc94bf74",
+    "tipo": "performance",
+    "valor": 39,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 39
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 39,
+    "timestamp": "2025-11-01T00:11:42.566Z",
+    "createdAt": "2025-11-01T00:11:42.567Z",
+    "updatedAt": "2025-11-01T00:11:42.567Z",
+    "__v": 0
+  },
+  {
+    "_id": "690550425bfdecff28643594",
+    "tipo": "performance",
+    "valor": 41,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 41
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 41,
+    "timestamp": "2025-11-01T00:11:46.992Z",
+    "createdAt": "2025-11-01T00:11:46.994Z",
+    "updatedAt": "2025-11-01T00:11:46.994Z",
+    "__v": 0
+  },
+  {
+    "_id": "690550435bfdecff2864359b",
+    "tipo": "performance",
+    "valor": 46,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 46
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 46,
+    "timestamp": "2025-11-01T00:11:47.006Z",
+    "createdAt": "2025-11-01T00:11:47.007Z",
+    "updatedAt": "2025-11-01T00:11:47.007Z",
+    "__v": 0
+  },
+  {
+    "_id": "690550435bfdecff286435aa",
+    "tipo": "performance",
+    "valor": 11,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 11
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 11,
+    "timestamp": "2025-11-01T00:11:47.191Z",
+    "createdAt": "2025-11-01T00:11:47.191Z",
+    "updatedAt": "2025-11-01T00:11:47.191Z",
+    "__v": 0
+  },
+  {
+    "_id": "690550435bfdecff286435b1",
+    "tipo": "performance",
+    "valor": 21,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 21
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 21,
+    "timestamp": "2025-11-01T00:11:47.203Z",
+    "createdAt": "2025-11-01T00:11:47.203Z",
+    "updatedAt": "2025-11-01T00:11:47.203Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905507dfbeee530ebb1202e",
+    "tipo": "performance",
+    "valor": 67,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 67
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 67,
+    "timestamp": "2025-11-01T00:12:45.008Z",
+    "createdAt": "2025-11-01T00:12:45.011Z",
+    "updatedAt": "2025-11-01T00:12:45.011Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905507dfbeee530ebb12035",
+    "tipo": "performance",
+    "valor": 77,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 77
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 77,
+    "timestamp": "2025-11-01T00:12:45.029Z",
+    "createdAt": "2025-11-01T00:12:45.030Z",
+    "updatedAt": "2025-11-01T00:12:45.030Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905507dfbeee530ebb12044",
+    "tipo": "performance",
+    "valor": 19,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 19
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 19,
+    "timestamp": "2025-11-01T00:12:45.130Z",
+    "createdAt": "2025-11-01T00:12:45.131Z",
+    "updatedAt": "2025-11-01T00:12:45.131Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905507dfbeee530ebb1204b",
+    "tipo": "performance",
+    "valor": 24,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 24
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 24,
+    "timestamp": "2025-11-01T00:12:45.138Z",
+    "createdAt": "2025-11-01T00:12:45.138Z",
+    "updatedAt": "2025-11-01T00:12:45.138Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905509bfbeee530ebb12075",
+    "tipo": "performance",
+    "valor": 77,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 77
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 77,
+    "timestamp": "2025-11-01T00:13:15.954Z",
+    "createdAt": "2025-11-01T00:13:15.955Z",
+    "updatedAt": "2025-11-01T00:13:15.955Z",
+    "__v": 0
+  },
+  {
+    "_id": "69055149ed598a1f5c796b1c",
+    "tipo": "performance",
+    "valor": 53,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 53
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 53,
+    "timestamp": "2025-11-01T00:16:09.978Z",
+    "createdAt": "2025-11-01T00:16:09.980Z",
+    "updatedAt": "2025-11-01T00:16:09.980Z",
+    "__v": 0
+  },
+  {
+    "_id": "69055149ed598a1f5c796b2f",
+    "tipo": "performance",
+    "valor": 58,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 58
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 58,
+    "timestamp": "2025-11-01T00:16:09.996Z",
+    "createdAt": "2025-11-01T00:16:09.997Z",
+    "updatedAt": "2025-11-01T00:16:09.997Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905514aed598a1f5c796b40",
+    "tipo": "performance",
+    "valor": 18,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 18
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 18,
+    "timestamp": "2025-11-01T00:16:10.476Z",
+    "createdAt": "2025-11-01T00:16:10.477Z",
+    "updatedAt": "2025-11-01T00:16:10.477Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905514ced598a1f5c796b62",
+    "tipo": "performance",
+    "valor": 44,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 44
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 44,
+    "timestamp": "2025-11-01T00:16:12.230Z",
+    "createdAt": "2025-11-01T00:16:12.230Z",
+    "updatedAt": "2025-11-01T00:16:12.230Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905514ded598a1f5c796b94",
+    "tipo": "performance",
+    "valor": 29,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 29
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 29,
+    "timestamp": "2025-11-01T00:16:13.349Z",
+    "createdAt": "2025-11-01T00:16:13.350Z",
+    "updatedAt": "2025-11-01T00:16:13.350Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905514ded598a1f5c796b96",
+    "tipo": "performance",
+    "valor": 45,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 45
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 45,
+    "timestamp": "2025-11-01T00:16:13.362Z",
+    "createdAt": "2025-11-01T00:16:13.363Z",
+    "updatedAt": "2025-11-01T00:16:13.363Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905514ded598a1f5c796ba3",
+    "tipo": "performance",
+    "valor": 11,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 11
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 11,
+    "timestamp": "2025-11-01T00:16:13.380Z",
+    "createdAt": "2025-11-01T00:16:13.381Z",
+    "updatedAt": "2025-11-01T00:16:13.381Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905514ded598a1f5c796bbb",
+    "tipo": "performance",
+    "valor": 15,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 15
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 15,
+    "timestamp": "2025-11-01T00:16:13.401Z",
+    "createdAt": "2025-11-01T00:16:13.401Z",
+    "updatedAt": "2025-11-01T00:16:13.401Z",
+    "__v": 0
+  },
+  {
+    "_id": "69055151ed598a1f5c796bcc",
+    "tipo": "performance",
+    "valor": 26,
+    "metadata": {
+      "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 26
+    },
+    "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 26,
+    "timestamp": "2025-11-01T00:16:17.703Z",
+    "createdAt": "2025-11-01T00:16:17.703Z",
+    "updatedAt": "2025-11-01T00:16:17.703Z",
+    "__v": 0
+  },
+  {
+    "_id": "69055151ed598a1f5c796bce",
+    "tipo": "performance",
+    "valor": 28,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 28
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 28,
+    "timestamp": "2025-11-01T00:16:17.707Z",
+    "createdAt": "2025-11-01T00:16:17.708Z",
+    "updatedAt": "2025-11-01T00:16:17.708Z",
+    "__v": 0
+  },
+  {
+    "_id": "69055151ed598a1f5c796bd5",
+    "tipo": "performance",
+    "valor": 42,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 42
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 42,
+    "timestamp": "2025-11-01T00:16:17.722Z",
+    "createdAt": "2025-11-01T00:16:17.722Z",
+    "updatedAt": "2025-11-01T00:16:17.722Z",
+    "__v": 0
+  },
+  {
+    "_id": "69055162ed598a1f5c796bd9",
+    "tipo": "performance",
+    "valor": 13,
+    "metadata": {
+      "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 13
+    },
+    "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 13,
+    "timestamp": "2025-11-01T00:16:34.265Z",
+    "createdAt": "2025-11-01T00:16:34.266Z",
+    "updatedAt": "2025-11-01T00:16:34.266Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905517ced598a1f5c796c03",
+    "tipo": "performance",
+    "valor": 49,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 49
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 49,
+    "timestamp": "2025-11-01T00:17:00.506Z",
+    "createdAt": "2025-11-01T00:17:00.507Z",
+    "updatedAt": "2025-11-01T00:17:00.507Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905517ded598a1f5c796c25",
+    "tipo": "performance",
+    "valor": 17,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 17
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 17,
+    "timestamp": "2025-11-01T00:17:01.151Z",
+    "createdAt": "2025-11-01T00:17:01.151Z",
+    "updatedAt": "2025-11-01T00:17:01.151Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905517eed598a1f5c796c3f",
+    "tipo": "performance",
+    "valor": 18,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 18
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 18,
+    "timestamp": "2025-11-01T00:17:02.703Z",
+    "createdAt": "2025-11-01T00:17:02.703Z",
+    "updatedAt": "2025-11-01T00:17:02.703Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905517eed598a1f5c796c52",
+    "tipo": "performance",
+    "valor": 26,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 26
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 26,
+    "timestamp": "2025-11-01T00:17:02.714Z",
+    "createdAt": "2025-11-01T00:17:02.714Z",
+    "updatedAt": "2025-11-01T00:17:02.714Z",
+    "__v": 0
+  },
+  {
+    "_id": "69055181ed598a1f5c796c63",
+    "tipo": "performance",
+    "valor": 11,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 11
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 11,
+    "timestamp": "2025-11-01T00:17:05.707Z",
+    "createdAt": "2025-11-01T00:17:05.707Z",
+    "updatedAt": "2025-11-01T00:17:05.707Z",
+    "__v": 0
+  },
+  {
+    "_id": "69055228ed598a1f5c796c82",
+    "tipo": "performance",
+    "valor": 32,
+    "metadata": {
+      "endpoint": "/api/usuarios?rol=instalador&activo=true",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 32
+    },
+    "endpoint": "/api/usuarios?rol=instalador&activo=true",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 32,
+    "timestamp": "2025-11-01T00:19:52.632Z",
+    "createdAt": "2025-11-01T00:19:52.634Z",
+    "updatedAt": "2025-11-01T00:19:52.634Z",
+    "__v": 0
+  },
+  {
+    "_id": "69055228ed598a1f5c796c84",
+    "tipo": "performance",
+    "valor": 44,
+    "metadata": {
+      "endpoint": "/api/proyecto-pedido?estado=fabricado&limit=100&page=1",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 44
+    },
+    "endpoint": "/api/proyecto-pedido?estado=fabricado&limit=100&page=1",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 44,
+    "timestamp": "2025-11-01T00:19:52.640Z",
+    "createdAt": "2025-11-01T00:19:52.641Z",
+    "updatedAt": "2025-11-01T00:19:52.641Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905522aed598a1f5c796c95",
+    "tipo": "performance",
+    "valor": 11,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 11
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 11,
+    "timestamp": "2025-11-01T00:19:54.122Z",
+    "createdAt": "2025-11-01T00:19:54.123Z",
+    "updatedAt": "2025-11-01T00:19:54.123Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905522aed598a1f5c796ca6",
+    "tipo": "performance",
+    "valor": 10,
+    "metadata": {
+      "endpoint": "/api/instalaciones?fecha_desde=2025-10-01T06%3A00%3A00.000Z&fecha_hasta=2025-10-31T06%3A00%3A00.000Z",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 10
+    },
+    "endpoint": "/api/instalaciones?fecha_desde=2025-10-01T06%3A00%3A00.000Z&fecha_hasta=2025-10-31T06%3A00%3A00.000Z",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 10,
+    "timestamp": "2025-11-01T00:19:54.978Z",
+    "createdAt": "2025-11-01T00:19:54.978Z",
+    "updatedAt": "2025-11-01T00:19:54.978Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905522ded598a1f5c796cb7",
+    "tipo": "performance",
+    "valor": 21,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 21
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 21,
+    "timestamp": "2025-11-01T00:19:57.298Z",
+    "createdAt": "2025-11-01T00:19:57.299Z",
+    "updatedAt": "2025-11-01T00:19:57.299Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905526d03e4136bba83b04b",
+    "tipo": "performance",
+    "valor": 50,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 50
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 50,
+    "timestamp": "2025-11-01T00:21:01.278Z",
+    "createdAt": "2025-11-01T00:21:01.280Z",
+    "updatedAt": "2025-11-01T00:21:01.280Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905526d03e4136bba83b058",
+    "tipo": "performance",
+    "valor": 10,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 10
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 10,
+    "timestamp": "2025-11-01T00:21:01.320Z",
+    "createdAt": "2025-11-01T00:21:01.320Z",
+    "updatedAt": "2025-11-01T00:21:01.320Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905526d03e4136bba83b07a",
+    "tipo": "performance",
+    "valor": 51,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 51
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 51,
+    "timestamp": "2025-11-01T00:21:01.814Z",
+    "createdAt": "2025-11-01T00:21:01.815Z",
+    "updatedAt": "2025-11-01T00:21:01.815Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905526e03e4136bba83b08b",
+    "tipo": "performance",
+    "valor": 32,
+    "metadata": {
+      "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 32
+    },
+    "endpoint": "/api/productos?activo=true&disponible=true&limit=20",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 32,
+    "timestamp": "2025-11-01T00:21:02.719Z",
+    "createdAt": "2025-11-01T00:21:02.720Z",
+    "updatedAt": "2025-11-01T00:21:02.720Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905526e03e4136bba83b08d",
+    "tipo": "performance",
+    "valor": 34,
+    "metadata": {
+      "endpoint": "/api/productos",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 34
+    },
+    "endpoint": "/api/productos",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 34,
+    "timestamp": "2025-11-01T00:21:02.724Z",
+    "createdAt": "2025-11-01T00:21:02.725Z",
+    "updatedAt": "2025-11-01T00:21:02.725Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905526e03e4136bba83b094",
+    "tipo": "performance",
+    "valor": 45,
+    "metadata": {
+      "endpoint": "/api/prospectos?limit=100",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 45
+    },
+    "endpoint": "/api/prospectos?limit=100",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 45,
+    "timestamp": "2025-11-01T00:21:02.737Z",
+    "createdAt": "2025-11-01T00:21:02.738Z",
+    "updatedAt": "2025-11-01T00:21:02.738Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905526f03e4136bba83b0ae",
+    "tipo": "performance",
+    "valor": 27,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 27
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 27,
+    "timestamp": "2025-11-01T00:21:03.072Z",
+    "createdAt": "2025-11-01T00:21:03.072Z",
+    "updatedAt": "2025-11-01T00:21:03.072Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905526f03e4136bba83b0c1",
+    "tipo": "performance",
+    "valor": 34,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 34
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 34,
+    "timestamp": "2025-11-01T00:21:03.083Z",
+    "createdAt": "2025-11-01T00:21:03.084Z",
+    "updatedAt": "2025-11-01T00:21:03.084Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905527103e4136bba83b0db",
+    "tipo": "performance",
+    "valor": 23,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 23
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 23,
+    "timestamp": "2025-11-01T00:21:05.178Z",
+    "createdAt": "2025-11-01T00:21:05.179Z",
+    "updatedAt": "2025-11-01T00:21:05.179Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905527103e4136bba83b0ee",
+    "tipo": "performance",
+    "valor": 28,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 28
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 28,
+    "timestamp": "2025-11-01T00:21:05.187Z",
+    "createdAt": "2025-11-01T00:21:05.187Z",
+    "updatedAt": "2025-11-01T00:21:05.187Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905527a03e4136bba83b110",
+    "tipo": "performance",
+    "valor": 33,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 33
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 33,
+    "timestamp": "2025-11-01T00:21:14.569Z",
+    "createdAt": "2025-11-01T00:21:14.570Z",
+    "updatedAt": "2025-11-01T00:21:14.570Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905527c03e4136bba83b121",
+    "tipo": "performance",
+    "valor": 12,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 12
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 12,
+    "timestamp": "2025-11-01T00:21:16.514Z",
+    "createdAt": "2025-11-01T00:21:16.515Z",
+    "updatedAt": "2025-11-01T00:21:16.515Z",
+    "__v": 0
+  },
+  {
+    "_id": "690552ea54a7bd711659aaaa",
+    "tipo": "performance",
+    "valor": 142,
+    "metadata": {
+      "endpoint": "/api/auth/login",
+      "metodo": "POST",
+      "statusCode": 200,
+      "duracion": 142
+    },
+    "endpoint": "/api/auth/login",
+    "metodo": "POST",
+    "statusCode": 200,
+    "duracion": 142,
+    "timestamp": "2025-11-01T00:23:06.519Z",
+    "createdAt": "2025-11-01T00:23:06.521Z",
+    "updatedAt": "2025-11-01T00:23:06.521Z",
+    "__v": 0
+  },
+  {
+    "_id": "690552ea54a7bd711659aacc",
+    "tipo": "performance",
+    "valor": 49,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 49
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 49,
+    "timestamp": "2025-11-01T00:23:06.760Z",
+    "createdAt": "2025-11-01T00:23:06.762Z",
+    "updatedAt": "2025-11-01T00:23:06.762Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905536d54a7bd711659aaf6",
+    "tipo": "performance",
+    "valor": 68,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 68
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 68,
+    "timestamp": "2025-11-01T00:25:17.488Z",
+    "createdAt": "2025-11-01T00:25:17.489Z",
+    "updatedAt": "2025-11-01T00:25:17.489Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905553df9a13f72510107db",
+    "tipo": "performance",
+    "valor": 54,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 54
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 54,
+    "timestamp": "2025-11-01T00:33:01.300Z",
+    "createdAt": "2025-11-01T00:33:01.302Z",
+    "updatedAt": "2025-11-01T00:33:01.302Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905553df9a13f72510107f5",
+    "tipo": "performance",
+    "valor": 19,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 19
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 19,
+    "timestamp": "2025-11-01T00:33:01.768Z",
+    "createdAt": "2025-11-01T00:33:01.769Z",
+    "updatedAt": "2025-11-01T00:33:01.769Z",
+    "__v": 0
+  },
+  {
+    "_id": "6905553df9a13f7251010808",
+    "tipo": "performance",
+    "valor": 27,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 27
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 27,
+    "timestamp": "2025-11-01T00:33:01.780Z",
+    "createdAt": "2025-11-01T00:33:01.781Z",
+    "updatedAt": "2025-11-01T00:33:01.781Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061b89b100337dac046a51",
+    "tipo": "performance",
+    "valor": 99,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 99
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 99,
+    "timestamp": "2025-11-01T14:39:05.622Z",
+    "createdAt": "2025-11-01T14:39:05.625Z",
+    "updatedAt": "2025-11-01T14:39:05.625Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061b8ab100337dac046a73",
+    "tipo": "performance",
+    "valor": 65,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 65
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 65,
+    "timestamp": "2025-11-01T14:39:06.068Z",
+    "createdAt": "2025-11-01T14:39:06.069Z",
+    "updatedAt": "2025-11-01T14:39:06.069Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061ba8b100337dac046a9e",
+    "tipo": "performance",
+    "valor": 29,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 29
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 29,
+    "timestamp": "2025-11-01T14:39:36.682Z",
+    "createdAt": "2025-11-01T14:39:36.683Z",
+    "updatedAt": "2025-11-01T14:39:36.683Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061ba8b100337dac046aa0",
+    "tipo": "performance",
+    "valor": 35,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 35
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 35,
+    "timestamp": "2025-11-01T14:39:36.685Z",
+    "createdAt": "2025-11-01T14:39:36.686Z",
+    "updatedAt": "2025-11-01T14:39:36.686Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bb2b100337dac046ac2",
+    "tipo": "performance",
+    "valor": 26,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 26
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 26,
+    "timestamp": "2025-11-01T14:39:46.631Z",
+    "createdAt": "2025-11-01T14:39:46.632Z",
+    "updatedAt": "2025-11-01T14:39:46.632Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bb4b100337dac046aec",
+    "tipo": "performance",
+    "valor": 47,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 47
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 47,
+    "timestamp": "2025-11-01T14:39:48.052Z",
+    "createdAt": "2025-11-01T14:39:48.052Z",
+    "updatedAt": "2025-11-01T14:39:48.052Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bb5b100337dac046b0e",
+    "tipo": "performance",
+    "valor": 21,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 21
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 21,
+    "timestamp": "2025-11-01T14:39:49.290Z",
+    "createdAt": "2025-11-01T14:39:49.291Z",
+    "updatedAt": "2025-11-01T14:39:49.291Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bb5b100337dac046b28",
+    "tipo": "performance",
+    "valor": 20,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 20
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 20,
+    "timestamp": "2025-11-01T14:39:49.789Z",
+    "createdAt": "2025-11-01T14:39:49.790Z",
+    "updatedAt": "2025-11-01T14:39:49.790Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bb5b100337dac046b3b",
+    "tipo": "performance",
+    "valor": 30,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 30
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 30,
+    "timestamp": "2025-11-01T14:39:49.801Z",
+    "createdAt": "2025-11-01T14:39:49.801Z",
+    "updatedAt": "2025-11-01T14:39:49.801Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bb7b100337dac046b4c",
+    "tipo": "performance",
+    "valor": 12,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 12
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 12,
+    "timestamp": "2025-11-01T14:39:51.182Z",
+    "createdAt": "2025-11-01T14:39:51.183Z",
+    "updatedAt": "2025-11-01T14:39:51.183Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bb8b100337dac046b87",
+    "tipo": "performance",
+    "valor": 37,
+    "metadata": {
+      "endpoint": "/api/kpis/conversion",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 37
+    },
+    "endpoint": "/api/kpis/conversion",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 37,
+    "timestamp": "2025-11-01T14:39:52.861Z",
+    "createdAt": "2025-11-01T14:39:52.862Z",
+    "updatedAt": "2025-11-01T14:39:52.862Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bb8b100337dac046b8a",
+    "tipo": "performance",
+    "valor": 36,
+    "metadata": {
+      "endpoint": "/api/kpis/recuperables",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 36
+    },
+    "endpoint": "/api/kpis/recuperables",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 36,
+    "timestamp": "2025-11-01T14:39:52.865Z",
+    "createdAt": "2025-11-01T14:39:52.865Z",
+    "updatedAt": "2025-11-01T14:39:52.865Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bb8b100337dac046b90",
+    "tipo": "performance",
+    "valor": 49,
+    "metadata": {
+      "endpoint": "/api/kpis/dashboard",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 49
+    },
+    "endpoint": "/api/kpis/dashboard",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 49,
+    "timestamp": "2025-11-01T14:39:52.870Z",
+    "createdAt": "2025-11-01T14:39:52.870Z",
+    "updatedAt": "2025-11-01T14:39:52.870Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bb8b100337dac046b92",
+    "tipo": "performance",
+    "valor": 46,
+    "metadata": {
+      "endpoint": "/api/kpis/perdidas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 46
+    },
+    "endpoint": "/api/kpis/perdidas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 46,
+    "timestamp": "2025-11-01T14:39:52.873Z",
+    "createdAt": "2025-11-01T14:39:52.873Z",
+    "updatedAt": "2025-11-01T14:39:52.873Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bbab100337dac046ba3",
+    "tipo": "performance",
+    "valor": 9,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 9
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 9,
+    "timestamp": "2025-11-01T14:39:54.257Z",
+    "createdAt": "2025-11-01T14:39:54.257Z",
+    "updatedAt": "2025-11-01T14:39:54.257Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bdb90a62b1ab9655b5c",
+    "tipo": "performance",
+    "valor": 60,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 60
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 60,
+    "timestamp": "2025-11-01T14:40:27.112Z",
+    "createdAt": "2025-11-01T14:40:27.117Z",
+    "updatedAt": "2025-11-01T14:40:27.117Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061bdc90a62b1ab9655b7e",
+    "tipo": "performance",
+    "valor": 32,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 32
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 32,
+    "timestamp": "2025-11-01T14:40:28.173Z",
+    "createdAt": "2025-11-01T14:40:28.173Z",
+    "updatedAt": "2025-11-01T14:40:28.173Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061e18d8f06d746052c9db",
+    "tipo": "performance",
+    "valor": 75,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 75
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 75,
+    "timestamp": "2025-11-01T14:50:00.540Z",
+    "createdAt": "2025-11-01T14:50:00.545Z",
+    "updatedAt": "2025-11-01T14:50:00.545Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061e18d8f06d746052c9ee",
+    "tipo": "performance",
+    "valor": 82,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 82
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 82,
+    "timestamp": "2025-11-01T14:50:00.566Z",
+    "createdAt": "2025-11-01T14:50:00.567Z",
+    "updatedAt": "2025-11-01T14:50:00.567Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061e28d8f06d746052ca10",
+    "tipo": "performance",
+    "valor": 30,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 30
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 30,
+    "timestamp": "2025-11-01T14:50:16.261Z",
+    "createdAt": "2025-11-01T14:50:16.262Z",
+    "updatedAt": "2025-11-01T14:50:16.262Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061e2fd8f06d746052ca42",
+    "tipo": "performance",
+    "valor": 50,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 50
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 50,
+    "timestamp": "2025-11-01T14:50:23.736Z",
+    "createdAt": "2025-11-01T14:50:23.736Z",
+    "updatedAt": "2025-11-01T14:50:23.736Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061e2fd8f06d746052ca44",
+    "tipo": "performance",
+    "valor": 49,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 49
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 49,
+    "timestamp": "2025-11-01T14:50:23.739Z",
+    "createdAt": "2025-11-01T14:50:23.740Z",
+    "updatedAt": "2025-11-01T14:50:23.740Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061e2fd8f06d746052ca51",
+    "tipo": "performance",
+    "valor": 8,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 8
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 8,
+    "timestamp": "2025-11-01T14:50:23.756Z",
+    "createdAt": "2025-11-01T14:50:23.757Z",
+    "updatedAt": "2025-11-01T14:50:23.757Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061e2fd8f06d746052ca69",
+    "tipo": "performance",
+    "valor": 19,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 19
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 19,
+    "timestamp": "2025-11-01T14:50:23.783Z",
+    "createdAt": "2025-11-01T14:50:23.784Z",
+    "updatedAt": "2025-11-01T14:50:23.784Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061f0fd8f06d746052ca76",
+    "tipo": "performance",
+    "valor": 18,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 18
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 18,
+    "timestamp": "2025-11-01T14:54:07.442Z",
+    "createdAt": "2025-11-01T14:54:07.443Z",
+    "updatedAt": "2025-11-01T14:54:07.443Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061f2fd8f06d746052ca87",
+    "tipo": "performance",
+    "valor": 19,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 19
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 19,
+    "timestamp": "2025-11-01T14:54:39.767Z",
+    "createdAt": "2025-11-01T14:54:39.767Z",
+    "updatedAt": "2025-11-01T14:54:39.767Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061f35d8f06d746052ca98",
+    "tipo": "performance",
+    "valor": 12,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 12
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 12,
+    "timestamp": "2025-11-01T14:54:45.412Z",
+    "createdAt": "2025-11-01T14:54:45.413Z",
+    "updatedAt": "2025-11-01T14:54:45.413Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061f722f48dceef1ff744f",
+    "tipo": "performance",
+    "valor": 86,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 86
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 86,
+    "timestamp": "2025-11-01T14:55:46.307Z",
+    "createdAt": "2025-11-01T14:55:46.314Z",
+    "updatedAt": "2025-11-01T14:55:46.314Z",
+    "__v": 0
+  },
+  {
+    "_id": "69061f732f48dceef1ff7471",
+    "tipo": "performance",
+    "valor": 28,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 28
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 28,
+    "timestamp": "2025-11-01T14:55:47.585Z",
+    "createdAt": "2025-11-01T14:55:47.586Z",
+    "updatedAt": "2025-11-01T14:55:47.586Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a96e7f28d8d4b92b5226e",
+    "tipo": "performance",
+    "valor": 35,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 401,
+      "duracion": 35
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 401,
+    "duracion": 35,
+    "timestamp": "2025-11-05T00:14:31.134Z",
+    "createdAt": "2025-11-05T00:14:31.162Z",
+    "updatedAt": "2025-11-05T00:14:31.162Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a96e9f28d8d4b92b5227b",
+    "tipo": "performance",
+    "valor": 298,
+    "metadata": {
+      "endpoint": "/api/auth/login",
+      "metodo": "POST",
+      "statusCode": 200,
+      "duracion": 298
+    },
+    "endpoint": "/api/auth/login",
+    "metodo": "POST",
+    "statusCode": 200,
+    "duracion": 298,
+    "timestamp": "2025-11-05T00:14:33.117Z",
+    "createdAt": "2025-11-05T00:14:33.118Z",
+    "updatedAt": "2025-11-05T00:14:33.118Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a96e9f28d8d4b92b522a8",
+    "tipo": "performance",
+    "valor": 24,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 24
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 24,
+    "timestamp": "2025-11-05T00:14:33.733Z",
+    "createdAt": "2025-11-05T00:14:33.735Z",
+    "updatedAt": "2025-11-05T00:14:33.735Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a96eaf28d8d4b92b522ca",
+    "tipo": "performance",
+    "valor": 57,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 57
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 57,
+    "timestamp": "2025-11-05T00:14:34.068Z",
+    "createdAt": "2025-11-05T00:14:34.069Z",
+    "updatedAt": "2025-11-05T00:14:34.069Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a96eff28d8d4b92b522ec",
+    "tipo": "performance",
+    "valor": 23,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 23
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 23,
+    "timestamp": "2025-11-05T00:14:39.692Z",
+    "createdAt": "2025-11-05T00:14:39.693Z",
+    "updatedAt": "2025-11-05T00:14:39.693Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a96f0f28d8d4b92b52318",
+    "tipo": "performance",
+    "valor": 46,
+    "metadata": {
+      "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b/estadisticas",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 46
+    },
+    "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b/estadisticas",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 46,
+    "timestamp": "2025-11-05T00:14:40.765Z",
+    "createdAt": "2025-11-05T00:14:40.765Z",
+    "updatedAt": "2025-11-05T00:14:40.765Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a96f0f28d8d4b92b5231a",
+    "tipo": "performance",
+    "valor": 45,
+    "metadata": {
+      "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 45
+    },
+    "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 45,
+    "timestamp": "2025-11-05T00:14:40.769Z",
+    "createdAt": "2025-11-05T00:14:40.770Z",
+    "updatedAt": "2025-11-05T00:14:40.770Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a96f0f28d8d4b92b52327",
+    "tipo": "performance",
+    "valor": 10,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 10
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 10,
+    "timestamp": "2025-11-05T00:14:40.785Z",
+    "createdAt": "2025-11-05T00:14:40.786Z",
+    "updatedAt": "2025-11-05T00:14:40.786Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a96f0f28d8d4b92b5233d",
+    "tipo": "performance",
+    "valor": 14,
+    "metadata": {
+      "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 14
+    },
+    "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 14,
+    "timestamp": "2025-11-05T00:14:40.804Z",
+    "createdAt": "2025-11-05T00:14:40.805Z",
+    "updatedAt": "2025-11-05T00:14:40.805Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9700f28d8d4b92b52368",
+    "tipo": "performance",
+    "valor": 43,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 43
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 43,
+    "timestamp": "2025-11-05T00:14:56.837Z",
+    "createdAt": "2025-11-05T00:14:56.837Z",
+    "updatedAt": "2025-11-05T00:14:56.837Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9700f28d8d4b92b5236a",
+    "tipo": "performance",
+    "valor": 35,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 35
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 35,
+    "timestamp": "2025-11-05T00:14:56.840Z",
+    "createdAt": "2025-11-05T00:14:56.840Z",
+    "updatedAt": "2025-11-05T00:14:56.840Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a970af28d8d4b92b5237b",
+    "tipo": "performance",
+    "valor": 15,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 15
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 15,
+    "timestamp": "2025-11-05T00:15:06.418Z",
+    "createdAt": "2025-11-05T00:15:06.419Z",
+    "updatedAt": "2025-11-05T00:15:06.419Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a970df28d8d4b92b523b5",
+    "tipo": "performance",
+    "valor": 43,
+    "metadata": {
+      "endpoint": "/api/kpis/recuperables",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 43
+    },
+    "endpoint": "/api/kpis/recuperables",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 43,
+    "timestamp": "2025-11-05T00:15:09.574Z",
+    "createdAt": "2025-11-05T00:15:09.575Z",
+    "updatedAt": "2025-11-05T00:15:09.575Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a970df28d8d4b92b523ba",
+    "tipo": "performance",
+    "valor": 46,
+    "metadata": {
+      "endpoint": "/api/kpis/conversion",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 46
+    },
+    "endpoint": "/api/kpis/conversion",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 46,
+    "timestamp": "2025-11-05T00:15:09.584Z",
+    "createdAt": "2025-11-05T00:15:09.584Z",
+    "updatedAt": "2025-11-05T00:15:09.584Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a970df28d8d4b92b523be",
+    "tipo": "performance",
+    "valor": 54,
+    "metadata": {
+      "endpoint": "/api/kpis/dashboard",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 54
+    },
+    "endpoint": "/api/kpis/dashboard",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 54,
+    "timestamp": "2025-11-05T00:15:09.589Z",
+    "createdAt": "2025-11-05T00:15:09.590Z",
+    "updatedAt": "2025-11-05T00:15:09.590Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a970df28d8d4b92b523c1",
+    "tipo": "performance",
+    "valor": 63,
+    "metadata": {
+      "endpoint": "/api/kpis/perdidas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 63
+    },
+    "endpoint": "/api/kpis/perdidas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 63,
+    "timestamp": "2025-11-05T00:15:09.599Z",
+    "createdAt": "2025-11-05T00:15:09.600Z",
+    "updatedAt": "2025-11-05T00:15:09.600Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9712f28d8d4b92b523c5",
+    "tipo": "performance",
+    "valor": 13,
+    "metadata": {
+      "endpoint": "/api/productos?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 13
+    },
+    "endpoint": "/api/productos?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 13,
+    "timestamp": "2025-11-05T00:15:14.190Z",
+    "createdAt": "2025-11-05T00:15:14.190Z",
+    "updatedAt": "2025-11-05T00:15:14.190Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9713f28d8d4b92b523f4",
+    "tipo": "performance",
+    "valor": 20,
+    "metadata": {
+      "endpoint": "/api/plantillas-whatsapp",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 20
+    },
+    "endpoint": "/api/plantillas-whatsapp",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 20,
+    "timestamp": "2025-11-05T00:15:15.652Z",
+    "createdAt": "2025-11-05T00:15:15.652Z",
+    "updatedAt": "2025-11-05T00:15:15.652Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9713f28d8d4b92b5240f",
+    "tipo": "performance",
+    "valor": 20,
+    "metadata": {
+      "endpoint": "/api/plantillas-whatsapp/mejores",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 20
+    },
+    "endpoint": "/api/plantillas-whatsapp/mejores",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 20,
+    "timestamp": "2025-11-05T00:15:15.684Z",
+    "createdAt": "2025-11-05T00:15:15.685Z",
+    "updatedAt": "2025-11-05T00:15:15.685Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9713f28d8d4b92b52413",
+    "tipo": "performance",
+    "valor": 33,
+    "metadata": {
+      "endpoint": "/api/plantillas-whatsapp/estadisticas/resumen",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 33
+    },
+    "endpoint": "/api/plantillas-whatsapp/estadisticas/resumen",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 33,
+    "timestamp": "2025-11-05T00:15:15.692Z",
+    "createdAt": "2025-11-05T00:15:15.693Z",
+    "updatedAt": "2025-11-05T00:15:15.693Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9716f28d8d4b92b5243c",
+    "tipo": "performance",
+    "valor": 41,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 41
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 41,
+    "timestamp": "2025-11-05T00:15:18.238Z",
+    "createdAt": "2025-11-05T00:15:18.239Z",
+    "updatedAt": "2025-11-05T00:15:18.239Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9718f28d8d4b92b5245e",
+    "tipo": "performance",
+    "valor": 20,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 20
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 20,
+    "timestamp": "2025-11-05T00:15:20.429Z",
+    "createdAt": "2025-11-05T00:15:20.431Z",
+    "updatedAt": "2025-11-05T00:15:20.431Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a971af28d8d4b92b52480",
+    "tipo": "performance",
+    "valor": 15,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 15
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 15,
+    "timestamp": "2025-11-05T00:15:22.661Z",
+    "createdAt": "2025-11-05T00:15:22.662Z",
+    "updatedAt": "2025-11-05T00:15:22.662Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a971cf28d8d4b92b524b2",
+    "tipo": "performance",
+    "valor": 21,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 21
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 21,
+    "timestamp": "2025-11-05T00:15:24.508Z",
+    "createdAt": "2025-11-05T00:15:24.509Z",
+    "updatedAt": "2025-11-05T00:15:24.509Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a971cf28d8d4b92b524b4",
+    "tipo": "performance",
+    "valor": 26,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 26
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 26,
+    "timestamp": "2025-11-05T00:15:24.515Z",
+    "createdAt": "2025-11-05T00:15:24.516Z",
+    "updatedAt": "2025-11-05T00:15:24.516Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a971cf28d8d4b92b524c1",
+    "tipo": "performance",
+    "valor": 10,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 10
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 10,
+    "timestamp": "2025-11-05T00:15:24.534Z",
+    "createdAt": "2025-11-05T00:15:24.535Z",
+    "updatedAt": "2025-11-05T00:15:24.535Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a971cf28d8d4b92b524d9",
+    "tipo": "performance",
+    "valor": 16,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 16
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 16,
+    "timestamp": "2025-11-05T00:15:24.555Z",
+    "createdAt": "2025-11-05T00:15:24.556Z",
+    "updatedAt": "2025-11-05T00:15:24.556Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f53f28d8d4b92b52504",
+    "tipo": "performance",
+    "valor": 54,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 54
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 54,
+    "timestamp": "2025-11-05T00:50:27.967Z",
+    "createdAt": "2025-11-05T00:50:27.968Z",
+    "updatedAt": "2025-11-05T00:50:27.968Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f53f28d8d4b92b52506",
+    "tipo": "performance",
+    "valor": 94,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 94
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 94,
+    "timestamp": "2025-11-05T00:50:27.973Z",
+    "createdAt": "2025-11-05T00:50:27.974Z",
+    "updatedAt": "2025-11-05T00:50:27.974Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f55f28d8d4b92b52528",
+    "tipo": "performance",
+    "valor": 49,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 49
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 49,
+    "timestamp": "2025-11-05T00:50:29.795Z",
+    "createdAt": "2025-11-05T00:50:29.795Z",
+    "updatedAt": "2025-11-05T00:50:29.795Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f56f28d8d4b92b52551",
+    "tipo": "performance",
+    "valor": 36,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 36
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 36,
+    "timestamp": "2025-11-05T00:50:30.448Z",
+    "createdAt": "2025-11-05T00:50:30.449Z",
+    "updatedAt": "2025-11-05T00:50:30.449Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f57f28d8d4b92b52573",
+    "tipo": "performance",
+    "valor": 18,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 18
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 18,
+    "timestamp": "2025-11-05T00:50:31.013Z",
+    "createdAt": "2025-11-05T00:50:31.013Z",
+    "updatedAt": "2025-11-05T00:50:31.013Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f57f28d8d4b92b5258d",
+    "tipo": "performance",
+    "valor": 13,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 13
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 13,
+    "timestamp": "2025-11-05T00:50:31.892Z",
+    "createdAt": "2025-11-05T00:50:31.892Z",
+    "updatedAt": "2025-11-05T00:50:31.892Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f57f28d8d4b92b525a0",
+    "tipo": "performance",
+    "valor": 16,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 16
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 16,
+    "timestamp": "2025-11-05T00:50:31.897Z",
+    "createdAt": "2025-11-05T00:50:31.898Z",
+    "updatedAt": "2025-11-05T00:50:31.898Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f58f28d8d4b92b525b1",
+    "tipo": "performance",
+    "valor": 17,
+    "metadata": {
+      "endpoint": "/api/instalaciones?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 17
+    },
+    "endpoint": "/api/instalaciones?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 17,
+    "timestamp": "2025-11-05T00:50:32.370Z",
+    "createdAt": "2025-11-05T00:50:32.371Z",
+    "updatedAt": "2025-11-05T00:50:32.371Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f58f28d8d4b92b525ec",
+    "tipo": "performance",
+    "valor": 42,
+    "metadata": {
+      "endpoint": "/api/kpis/conversion",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 42
+    },
+    "endpoint": "/api/kpis/conversion",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 42,
+    "timestamp": "2025-11-05T00:50:32.804Z",
+    "createdAt": "2025-11-05T00:50:32.805Z",
+    "updatedAt": "2025-11-05T00:50:32.805Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f58f28d8d4b92b525ef",
+    "tipo": "performance",
+    "valor": 46,
+    "metadata": {
+      "endpoint": "/api/kpis/recuperables",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 46
+    },
+    "endpoint": "/api/kpis/recuperables",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 46,
+    "timestamp": "2025-11-05T00:50:32.810Z",
+    "createdAt": "2025-11-05T00:50:32.811Z",
+    "updatedAt": "2025-11-05T00:50:32.811Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f58f28d8d4b92b525f5",
+    "tipo": "performance",
+    "valor": 61,
+    "metadata": {
+      "endpoint": "/api/kpis/dashboard",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 61
+    },
+    "endpoint": "/api/kpis/dashboard",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 61,
+    "timestamp": "2025-11-05T00:50:32.816Z",
+    "createdAt": "2025-11-05T00:50:32.817Z",
+    "updatedAt": "2025-11-05T00:50:32.817Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f58f28d8d4b92b525f7",
+    "tipo": "performance",
+    "valor": 62,
+    "metadata": {
+      "endpoint": "/api/kpis/perdidas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 62
+    },
+    "endpoint": "/api/kpis/perdidas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 62,
+    "timestamp": "2025-11-05T00:50:32.821Z",
+    "createdAt": "2025-11-05T00:50:32.822Z",
+    "updatedAt": "2025-11-05T00:50:32.822Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f59f28d8d4b92b525fb",
+    "tipo": "performance",
+    "valor": 14,
+    "metadata": {
+      "endpoint": "/api/productos?",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 14
+    },
+    "endpoint": "/api/productos?",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 14,
+    "timestamp": "2025-11-05T00:50:33.215Z",
+    "createdAt": "2025-11-05T00:50:33.216Z",
+    "updatedAt": "2025-11-05T00:50:33.216Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f59f28d8d4b92b5262a",
+    "tipo": "performance",
+    "valor": 19,
+    "metadata": {
+      "endpoint": "/api/plantillas-whatsapp",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 19
+    },
+    "endpoint": "/api/plantillas-whatsapp",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 19,
+    "timestamp": "2025-11-05T00:50:33.703Z",
+    "createdAt": "2025-11-05T00:50:33.704Z",
+    "updatedAt": "2025-11-05T00:50:33.704Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f59f28d8d4b92b52645",
+    "tipo": "performance",
+    "valor": 20,
+    "metadata": {
+      "endpoint": "/api/plantillas-whatsapp/mejores",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 20
+    },
+    "endpoint": "/api/plantillas-whatsapp/mejores",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 20,
+    "timestamp": "2025-11-05T00:50:33.736Z",
+    "createdAt": "2025-11-05T00:50:33.737Z",
+    "updatedAt": "2025-11-05T00:50:33.737Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f59f28d8d4b92b52649",
+    "tipo": "performance",
+    "valor": 33,
+    "metadata": {
+      "endpoint": "/api/plantillas-whatsapp/estadisticas/resumen",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 33
+    },
+    "endpoint": "/api/plantillas-whatsapp/estadisticas/resumen",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 33,
+    "timestamp": "2025-11-05T00:50:33.747Z",
+    "createdAt": "2025-11-05T00:50:33.747Z",
+    "updatedAt": "2025-11-05T00:50:33.747Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f5af28d8d4b92b52682",
+    "tipo": "performance",
+    "valor": 27,
+    "metadata": {
+      "endpoint": "/api/kpis/conversion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 27
+    },
+    "endpoint": "/api/kpis/conversion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 27,
+    "timestamp": "2025-11-05T00:50:34.568Z",
+    "createdAt": "2025-11-05T00:50:34.569Z",
+    "updatedAt": "2025-11-05T00:50:34.569Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f5af28d8d4b92b52688",
+    "tipo": "performance",
+    "valor": 30,
+    "metadata": {
+      "endpoint": "/api/kpis/recuperables",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 30
+    },
+    "endpoint": "/api/kpis/recuperables",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 30,
+    "timestamp": "2025-11-05T00:50:34.576Z",
+    "createdAt": "2025-11-05T00:50:34.576Z",
+    "updatedAt": "2025-11-05T00:50:34.576Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f5af28d8d4b92b5268d",
+    "tipo": "performance",
+    "valor": 37,
+    "metadata": {
+      "endpoint": "/api/kpis/perdidas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 37
+    },
+    "endpoint": "/api/kpis/perdidas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 37,
+    "timestamp": "2025-11-05T00:50:34.581Z",
+    "createdAt": "2025-11-05T00:50:34.581Z",
+    "updatedAt": "2025-11-05T00:50:34.581Z",
+    "__v": 0
+  },
+  {
+    "_id": "690a9f5af28d8d4b92b5268f",
+    "tipo": "performance",
+    "valor": 46,
+    "metadata": {
+      "endpoint": "/api/kpis/dashboard",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 46
+    },
+    "endpoint": "/api/kpis/dashboard",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 46,
+    "timestamp": "2025-11-05T00:50:34.583Z",
+    "createdAt": "2025-11-05T00:50:34.583Z",
+    "updatedAt": "2025-11-05T00:50:34.583Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa08f83032fcaf85f24c1",
+    "tipo": "performance",
+    "valor": 78,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 78
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 78,
+    "timestamp": "2025-11-05T00:55:43.465Z",
+    "createdAt": "2025-11-05T00:55:43.467Z",
+    "updatedAt": "2025-11-05T00:55:43.467Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa09083032fcaf85f24ea",
+    "tipo": "performance",
+    "valor": 47,
+    "metadata": {
+      "endpoint": "/api/dashboard",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 47
+    },
+    "endpoint": "/api/dashboard",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 47,
+    "timestamp": "2025-11-05T00:55:44.479Z",
+    "createdAt": "2025-11-05T00:55:44.479Z",
+    "updatedAt": "2025-11-05T00:55:44.479Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa0ea83032fcaf85f250c",
+    "tipo": "performance",
+    "valor": 26,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 26
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 26,
+    "timestamp": "2025-11-05T00:57:14.014Z",
+    "createdAt": "2025-11-05T00:57:14.014Z",
+    "updatedAt": "2025-11-05T00:57:14.014Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa0ec83032fcaf85f252e",
+    "tipo": "performance",
+    "valor": 18,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 18
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 18,
+    "timestamp": "2025-11-05T00:57:16.287Z",
+    "createdAt": "2025-11-05T00:57:16.287Z",
+    "updatedAt": "2025-11-05T00:57:16.287Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa0ed83032fcaf85f255a",
+    "tipo": "performance",
+    "valor": 24,
+    "metadata": {
+      "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 24
+    },
+    "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 24,
+    "timestamp": "2025-11-05T00:57:17.810Z",
+    "createdAt": "2025-11-05T00:57:17.811Z",
+    "updatedAt": "2025-11-05T00:57:17.811Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa0ed83032fcaf85f255c",
+    "tipo": "performance",
+    "valor": 25,
+    "metadata": {
+      "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 25
+    },
+    "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 25,
+    "timestamp": "2025-11-05T00:57:17.814Z",
+    "createdAt": "2025-11-05T00:57:17.814Z",
+    "updatedAt": "2025-11-05T00:57:17.814Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa0ed83032fcaf85f2569",
+    "tipo": "performance",
+    "valor": 7,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 7
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 7,
+    "timestamp": "2025-11-05T00:57:17.827Z",
+    "createdAt": "2025-11-05T00:57:17.827Z",
+    "updatedAt": "2025-11-05T00:57:17.827Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa0ed83032fcaf85f257f",
+    "tipo": "performance",
+    "valor": 13,
+    "metadata": {
+      "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 13
+    },
+    "endpoint": "/api/proyectos/69038d15b8188c55a56e3a4b/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 13,
+    "timestamp": "2025-11-05T00:57:17.843Z",
+    "createdAt": "2025-11-05T00:57:17.844Z",
+    "updatedAt": "2025-11-05T00:57:17.844Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa0ef83032fcaf85f25a1",
+    "tipo": "performance",
+    "valor": 18,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 18
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 18,
+    "timestamp": "2025-11-05T00:57:19.193Z",
+    "createdAt": "2025-11-05T00:57:19.193Z",
+    "updatedAt": "2025-11-05T00:57:19.193Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa0f083032fcaf85f25d3",
+    "tipo": "performance",
+    "valor": 32,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 32
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 32,
+    "timestamp": "2025-11-05T00:57:20.062Z",
+    "createdAt": "2025-11-05T00:57:20.063Z",
+    "updatedAt": "2025-11-05T00:57:20.063Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa0f083032fcaf85f25d5",
+    "tipo": "performance",
+    "valor": 32,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 32
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 32,
+    "timestamp": "2025-11-05T00:57:20.066Z",
+    "createdAt": "2025-11-05T00:57:20.067Z",
+    "updatedAt": "2025-11-05T00:57:20.067Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa0f083032fcaf85f25e2",
+    "tipo": "performance",
+    "valor": 7,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 7
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 7,
+    "timestamp": "2025-11-05T00:57:20.079Z",
+    "createdAt": "2025-11-05T00:57:20.079Z",
+    "updatedAt": "2025-11-05T00:57:20.079Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa0f083032fcaf85f25fa",
+    "tipo": "performance",
+    "valor": 13,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 13
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 13,
+    "timestamp": "2025-11-05T00:57:20.097Z",
+    "createdAt": "2025-11-05T00:57:20.097Z",
+    "updatedAt": "2025-11-05T00:57:20.097Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa29683032fcaf85f262c",
+    "tipo": "performance",
+    "valor": 75,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 75
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 75,
+    "timestamp": "2025-11-05T01:04:22.056Z",
+    "createdAt": "2025-11-05T01:04:22.057Z",
+    "updatedAt": "2025-11-05T01:04:22.057Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa29683032fcaf85f262e",
+    "tipo": "performance",
+    "valor": 65,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 65
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 65,
+    "timestamp": "2025-11-05T01:04:22.060Z",
+    "createdAt": "2025-11-05T01:04:22.060Z",
+    "updatedAt": "2025-11-05T01:04:22.060Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa29683032fcaf85f263b",
+    "tipo": "performance",
+    "valor": 7,
+    "metadata": {
+      "endpoint": "/api/proyectos/transiciones/cotizacion",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 7
+    },
+    "endpoint": "/api/proyectos/transiciones/cotizacion",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 7,
+    "timestamp": "2025-11-05T01:04:22.075Z",
+    "createdAt": "2025-11-05T01:04:22.075Z",
+    "updatedAt": "2025-11-05T01:04:22.075Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa29683032fcaf85f2653",
+    "tipo": "performance",
+    "valor": 15,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 15
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 15,
+    "timestamp": "2025-11-05T01:04:22.096Z",
+    "createdAt": "2025-11-05T01:04:22.097Z",
+    "updatedAt": "2025-11-05T01:04:22.097Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa29d83032fcaf85f2685",
+    "tipo": "performance",
+    "valor": 23,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 23
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 23,
+    "timestamp": "2025-11-05T01:04:29.838Z",
+    "createdAt": "2025-11-05T01:04:29.839Z",
+    "updatedAt": "2025-11-05T01:04:29.839Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa29d83032fcaf85f2687",
+    "tipo": "performance",
+    "valor": 23,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 23
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 23,
+    "timestamp": "2025-11-05T01:04:29.842Z",
+    "createdAt": "2025-11-05T01:04:29.842Z",
+    "updatedAt": "2025-11-05T01:04:29.842Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa29d83032fcaf85f269f",
+    "tipo": "performance",
+    "valor": 16,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 16
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 16,
+    "timestamp": "2025-11-05T01:04:29.860Z",
+    "createdAt": "2025-11-05T01:04:29.861Z",
+    "updatedAt": "2025-11-05T01:04:29.861Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa2af83032fcaf85f26d1",
+    "tipo": "performance",
+    "valor": 20,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 20
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 20,
+    "timestamp": "2025-11-05T01:04:47.865Z",
+    "createdAt": "2025-11-05T01:04:47.866Z",
+    "updatedAt": "2025-11-05T01:04:47.866Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa2af83032fcaf85f26d3",
+    "tipo": "performance",
+    "valor": 22,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 22
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 22,
+    "timestamp": "2025-11-05T01:04:47.869Z",
+    "createdAt": "2025-11-05T01:04:47.870Z",
+    "updatedAt": "2025-11-05T01:04:47.870Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa2af83032fcaf85f26eb",
+    "tipo": "performance",
+    "valor": 8,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 8
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 8,
+    "timestamp": "2025-11-05T01:04:47.880Z",
+    "createdAt": "2025-11-05T01:04:47.881Z",
+    "updatedAt": "2025-11-05T01:04:47.881Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa420b01d3907e692bbea",
+    "tipo": "performance",
+    "valor": 57,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 57
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 57,
+    "timestamp": "2025-11-05T01:10:56.818Z",
+    "createdAt": "2025-11-05T01:10:56.820Z",
+    "updatedAt": "2025-11-05T01:10:56.820Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa420b01d3907e692bbec",
+    "tipo": "performance",
+    "valor": 52,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 52
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 52,
+    "timestamp": "2025-11-05T01:10:56.824Z",
+    "createdAt": "2025-11-05T01:10:56.825Z",
+    "updatedAt": "2025-11-05T01:10:56.825Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa420b01d3907e692bc04",
+    "tipo": "performance",
+    "valor": 14,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 14
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 14,
+    "timestamp": "2025-11-05T01:10:56.840Z",
+    "createdAt": "2025-11-05T01:10:56.841Z",
+    "updatedAt": "2025-11-05T01:10:56.841Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa437b01d3907e692bc1c",
+    "tipo": "performance",
+    "valor": 18,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estado",
+      "metodo": "PATCH",
+      "statusCode": 400,
+      "duracion": 18
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estado",
+    "metodo": "PATCH",
+    "statusCode": 400,
+    "duracion": 18,
+    "timestamp": "2025-11-05T01:11:19.381Z",
+    "createdAt": "2025-11-05T01:11:19.383Z",
+    "updatedAt": "2025-11-05T01:11:19.383Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa43fb01d3907e692bc36",
+    "tipo": "performance",
+    "valor": 27,
+    "metadata": {
+      "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 27
+    },
+    "endpoint": "/api/fabricacion/cola?estado=&prioridad=&asignadoA=",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 27,
+    "timestamp": "2025-11-05T01:11:27.197Z",
+    "createdAt": "2025-11-05T01:11:27.198Z",
+    "updatedAt": "2025-11-05T01:11:27.198Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa43fb01d3907e692bc49",
+    "tipo": "performance",
+    "valor": 37,
+    "metadata": {
+      "endpoint": "/api/fabricacion/metricas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 37
+    },
+    "endpoint": "/api/fabricacion/metricas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 37,
+    "timestamp": "2025-11-05T01:11:27.211Z",
+    "createdAt": "2025-11-05T01:11:27.212Z",
+    "updatedAt": "2025-11-05T01:11:27.212Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa442b01d3907e692bc6b",
+    "tipo": "performance",
+    "valor": 20,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 20
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 20,
+    "timestamp": "2025-11-05T01:11:30.381Z",
+    "createdAt": "2025-11-05T01:11:30.382Z",
+    "updatedAt": "2025-11-05T01:11:30.382Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa444b01d3907e692bc9d",
+    "tipo": "performance",
+    "valor": 28,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 28
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 28,
+    "timestamp": "2025-11-05T01:11:32.203Z",
+    "createdAt": "2025-11-05T01:11:32.203Z",
+    "updatedAt": "2025-11-05T01:11:32.203Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa444b01d3907e692bc9f",
+    "tipo": "performance",
+    "valor": 29,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 29
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 29,
+    "timestamp": "2025-11-05T01:11:32.206Z",
+    "createdAt": "2025-11-05T01:11:32.207Z",
+    "updatedAt": "2025-11-05T01:11:32.207Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa444b01d3907e692bcb7",
+    "tipo": "performance",
+    "valor": 12,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 12
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 12,
+    "timestamp": "2025-11-05T01:11:32.222Z",
+    "createdAt": "2025-11-05T01:11:32.223Z",
+    "updatedAt": "2025-11-05T01:11:32.223Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa454b01d3907e692bcd9",
+    "tipo": "performance",
+    "valor": 16,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 16
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 16,
+    "timestamp": "2025-11-05T01:11:48.990Z",
+    "createdAt": "2025-11-05T01:11:48.990Z",
+    "updatedAt": "2025-11-05T01:11:48.990Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa458b01d3907e692bcf0",
+    "tipo": "performance",
+    "valor": 16,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "DELETE",
+      "statusCode": 200,
+      "duracion": 16
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "DELETE",
+    "statusCode": 200,
+    "duracion": 16,
+    "timestamp": "2025-11-05T01:11:52.723Z",
+    "createdAt": "2025-11-05T01:11:52.723Z",
+    "updatedAt": "2025-11-05T01:11:52.723Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa458b01d3907e692bd12",
+    "tipo": "performance",
+    "valor": 15,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 15
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 15,
+    "timestamp": "2025-11-05T01:11:52.741Z",
+    "createdAt": "2025-11-05T01:11:52.741Z",
+    "updatedAt": "2025-11-05T01:11:52.741Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa45fb01d3907e692bd1f",
+    "tipo": "performance",
+    "valor": 10,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 10
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 10,
+    "timestamp": "2025-11-05T01:11:59.384Z",
+    "createdAt": "2025-11-05T01:11:59.385Z",
+    "updatedAt": "2025-11-05T01:11:59.385Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa45fb01d3907e692bd41",
+    "tipo": "performance",
+    "valor": 16,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 16
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 16,
+    "timestamp": "2025-11-05T01:11:59.696Z",
+    "createdAt": "2025-11-05T01:11:59.697Z",
+    "updatedAt": "2025-11-05T01:11:59.697Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa48fb01d3907e692bd58",
+    "tipo": "performance",
+    "valor": 10,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "DELETE",
+      "statusCode": 200,
+      "duracion": 10
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "DELETE",
+    "statusCode": 200,
+    "duracion": 10,
+    "timestamp": "2025-11-05T01:12:47.620Z",
+    "createdAt": "2025-11-05T01:12:47.621Z",
+    "updatedAt": "2025-11-05T01:12:47.621Z",
+    "__v": 0
+  },
+  {
+    "_id": "690aa48fb01d3907e692bd7a",
+    "tipo": "performance",
+    "valor": 17,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 17
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 17,
+    "timestamp": "2025-11-05T01:12:47.645Z",
+    "createdAt": "2025-11-05T01:12:47.646Z",
+    "updatedAt": "2025-11-05T01:12:47.646Z",
+    "__v": 0
+  },
+  {
+    "_id": "690b703c76d38742291a2244",
+    "tipo": "performance",
+    "valor": 78,
+    "metadata": {
+      "endpoint": "/api/auth/verificar",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 78
+    },
+    "endpoint": "/api/auth/verificar",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 78,
+    "timestamp": "2025-11-05T15:41:48.414Z",
+    "createdAt": "2025-11-05T15:41:48.416Z",
+    "updatedAt": "2025-11-05T15:41:48.416Z",
+    "__v": 0
+  },
+  {
+    "_id": "690b703d76d38742291a2266",
+    "tipo": "performance",
+    "valor": 33,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 33
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 33,
+    "timestamp": "2025-11-05T15:41:49.186Z",
+    "createdAt": "2025-11-05T15:41:49.187Z",
+    "updatedAt": "2025-11-05T15:41:49.187Z",
+    "__v": 0
+  },
+  {
+    "_id": "690b707c76d38742291a2298",
+    "tipo": "performance",
+    "valor": 83,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 83
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 83,
+    "timestamp": "2025-11-05T15:42:52.738Z",
+    "createdAt": "2025-11-05T15:42:52.739Z",
+    "updatedAt": "2025-11-05T15:42:52.739Z",
+    "__v": 0
+  },
+  {
+    "_id": "690b707c76d38742291a229a",
+    "tipo": "performance",
+    "valor": 74,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 200,
+      "duracion": 74
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 200,
+    "duracion": 74,
+    "timestamp": "2025-11-05T15:42:52.744Z",
+    "createdAt": "2025-11-05T15:42:52.746Z",
+    "updatedAt": "2025-11-05T15:42:52.746Z",
+    "__v": 0
+  },
+  {
+    "_id": "690b707c76d38742291a22b2",
+    "tipo": "performance",
+    "valor": 33,
+    "metadata": {
+      "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 33
+    },
+    "endpoint": "/api/proyectos/68f8f89aca4798f5414480fe/estadisticas",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 33,
+    "timestamp": "2025-11-05T15:42:52.790Z",
+    "createdAt": "2025-11-05T15:42:52.791Z",
+    "updatedAt": "2025-11-05T15:42:52.791Z",
+    "__v": 0
+  },
+  {
+    "_id": "690b709476d38742291a22d4",
+    "tipo": "performance",
+    "valor": 23,
+    "metadata": {
+      "endpoint": "/api/proyectos?page=1&limit=10",
+      "metodo": "GET",
+      "statusCode": 304,
+      "duracion": 23
+    },
+    "endpoint": "/api/proyectos?page=1&limit=10",
+    "metodo": "GET",
+    "statusCode": 304,
+    "duracion": 23,
+    "timestamp": "2025-11-05T15:43:16.402Z",
+    "createdAt": "2025-11-05T15:43:16.403Z",
+    "updatedAt": "2025-11-05T15:43:16.403Z",
+    "__v": 0
+  },
+  {
+    "_id": "690ba1dd76d38742291a22d6",
+    "tipo": "performance",
+    "valor": 7,
+    "metadata": {
+      "endpoint": "/api/kpis/comerciales",
+      "metodo": "GET",
+      "statusCode": 404,
+      "duracion": 7
+    },
+    "endpoint": "/api/kpis/comerciales",
+    "metodo": "GET",
+    "statusCode": 404,
+    "duracion": 7,
+    "timestamp": "2025-11-05T19:13:33.228Z",
+    "createdAt": "2025-11-05T19:13:33.233Z",
+    "updatedAt": "2025-11-05T19:13:33.233Z",
+    "__v": 0
+  },
+  {
+    "_id": "690ba1e376d38742291a22d8",
+    "tipo": "performance",
+    "valor": 2,
+    "metadata": {
+      "endpoint": "/api/kpi/comerciales",
+      "metodo": "GET",
+      "statusCode": 404,
+      "duracion": 2
+    },
+    "endpoint": "/api/kpi/comerciales",
+    "metodo": "GET",
+    "statusCode": 404,
+    "duracion": 2,
+    "timestamp": "2025-11-05T19:13:39.209Z",
+    "createdAt": "2025-11-05T19:13:39.210Z",
+    "updatedAt": "2025-11-05T19:13:39.210Z",
+    "__v": 0
+  }
+]

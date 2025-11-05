@@ -1,0 +1,650 @@
+[
+  {
+    "_id": "68d56cd8d2b6cdce43ded563",
+    "nombre": "Seguimiento Cotización - Formal",
+    "categoria": "cotizacion_enviada",
+    "estilo": "formal_profesional",
+    "mensaje": "Hola {nombre}, espero que esté muy bien.\n\nLe envié la cotización #{numero_cotizacion} por {total} el día de ayer.\n\n¿Ha tenido oportunidad de revisarla? Me gustaría saber si tiene alguna pregunta o si necesita alguna aclaración sobre los productos cotizados.\n\nQuedo atento a sus comentarios.\n\nSaludos cordiales,\nSundeck Acapulco",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded564"
+      },
+      {
+        "nombre": "numero_cotizacion",
+        "descripcion": "Número de cotización",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded565"
+      },
+      {
+        "nombre": "total",
+        "descripcion": "Monto total",
+        "tipo": "moneda",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded566"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 0,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": true,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.264Z",
+    "fecha_actualizacion": "2025-09-25T16:24:56.268Z",
+    "createdAt": "2025-09-25T16:24:56.268Z",
+    "updatedAt": "2025-09-25T16:24:56.268Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded56b",
+    "nombre": "Seguimiento Cotización - Breve",
+    "categoria": "cotizacion_enviada",
+    "estilo": "breve_persuasivo",
+    "mensaje": "¡Hola {nombre}! 👋\n\n¿Ya pudiste revisar la cotización de {total}?\n\nSi tienes dudas o quieres ajustar algo, aquí estoy para apoyarte 😊\n\n¡Saludos!",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded56c"
+      },
+      {
+        "nombre": "total",
+        "descripcion": "Monto total",
+        "tipo": "moneda",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded56d"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 0,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.278Z",
+    "fecha_actualizacion": "2025-09-25T16:24:56.278Z",
+    "createdAt": "2025-09-25T16:24:56.278Z",
+    "updatedAt": "2025-09-25T16:24:56.278Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded570",
+    "nombre": "Seguimiento Post-Levantamiento - Formal",
+    "categoria": "seguimiento_cotizacion",
+    "estilo": "formal_profesional",
+    "mensaje": "Estimado/a {nombre},\n\nEspero que se encuentre muy bien. Hace unos días realizamos el levantamiento de medidas en su propiedad y me da mucho gusto poder confirmarle que ya tenemos lista su cotización.\n\nLos productos que levantamos suman un total de {total_m2} m² y el presupuesto final es de {total}.\n\n¿Cuándo sería un buen momento para presentarle los detalles y resolver cualquier duda que pueda tener?\n\nQuedo a sus órdenes.\n\nSaludos cordiales,\nSundeck Acapulco",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded571"
+      },
+      {
+        "nombre": "total_m2",
+        "descripcion": "Total en metros cuadrados",
+        "tipo": "numero",
+        "requerida": false,
+        "_id": "68d56cd8d2b6cdce43ded572"
+      },
+      {
+        "nombre": "total",
+        "descripcion": "Monto total",
+        "tipo": "moneda",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded573"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 0,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.283Z",
+    "fecha_actualizacion": "2025-09-25T16:24:56.283Z",
+    "createdAt": "2025-09-25T16:24:56.283Z",
+    "updatedAt": "2025-09-25T16:24:56.283Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded576",
+    "nombre": "Seguimiento Post-Levantamiento - Breve",
+    "categoria": "seguimiento_cotizacion",
+    "estilo": "breve_persuasivo",
+    "mensaje": "¡Hola {nombre}! \n\nYa está lista tu cotización después del levantamiento 📐✨\n\nTotal: {total} para {total_m2} m²\n\n¿Te parece si la revisamos juntos? ¿Cuándo tienes un ratito libre?\n\n¡Saludos! 😊",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded577"
+      },
+      {
+        "nombre": "total_m2",
+        "descripcion": "Total en metros cuadrados",
+        "tipo": "numero",
+        "requerida": false,
+        "_id": "68d56cd8d2b6cdce43ded578"
+      },
+      {
+        "nombre": "total",
+        "descripcion": "Monto total",
+        "tipo": "moneda",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded579"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 0,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.287Z",
+    "fecha_actualizacion": "2025-09-25T16:24:56.287Z",
+    "createdAt": "2025-09-25T16:24:56.287Z",
+    "updatedAt": "2025-09-25T16:24:56.287Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded57c",
+    "nombre": "Recontacto Prospecto Frío - Formal",
+    "categoria": "recontacto",
+    "estilo": "formal_profesional",
+    "mensaje": "Estimado/a {nombre},\n\nEspero que se encuentre muy bien. Hace algunos días le envié información sobre nuestros productos Sundeck y me gustaría saber si tuvo oportunidad de revisarla.\n\nEntiendo que puede estar ocupado/a, pero me encantaría poder platicarle sobre las ventajas de nuestros sistemas y cómo pueden beneficiar su hogar o negocio.\n\nSi este no es un buen momento, por favor déjeme saber cuándo sería más conveniente para usted.\n\nQuedo atento a su respuesta.\n\nSaludos cordiales,\nSundeck Acapulco",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded57d"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 2,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.290Z",
+    "fecha_actualizacion": "2025-10-06T16:14:02.446Z",
+    "createdAt": "2025-09-25T16:24:56.290Z",
+    "updatedAt": "2025-10-06T16:14:02.446Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded580",
+    "nombre": "Recontacto Prospecto Frío - Breve",
+    "categoria": "recontacto",
+    "estilo": "breve_persuasivo",
+    "mensaje": "Hola {nombre} 👋\n\nSé que andas ocupado/a, pero no quería dejar pasar la oportunidad de platicar contigo sobre Sundeck.\n\n¿5 minutos para una llamada rápida? Te aseguro que vale la pena 😊\n\n¡Que tengas excelente día!",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded581"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 6,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.293Z",
+    "fecha_actualizacion": "2025-10-06T16:53:05.626Z",
+    "createdAt": "2025-09-25T16:24:56.293Z",
+    "updatedAt": "2025-10-06T16:53:05.626Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded584",
+    "nombre": "Cliente Indeciso - Formal",
+    "categoria": "seguimiento_cotizacion",
+    "estilo": "formal_profesional",
+    "mensaje": "Estimado/a {nombre},\n\nComprendo perfectamente que una decisión como esta requiere tiempo y análisis. Es normal tener dudas cuando se trata de una inversión importante para su hogar.\n\nMe gustaría ofrecerle algunas referencias de clientes satisfechos en su zona y, si gusta, podemos agendar una visita para que conozca de cerca la calidad de nuestros productos ya instalados.\n\nTambién puedo explicarle nuestras opciones de financiamiento y garantías que respaldan su inversión.\n\n¿Qué le parece si conversamos sobre sus inquietudes específicas?\n\nQuedo a sus órdenes.\n\nSaludos cordiales,\nSundeck Acapulco",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded585"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 0,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.295Z",
+    "fecha_actualizacion": "2025-09-25T16:24:56.295Z",
+    "createdAt": "2025-09-25T16:24:56.295Z",
+    "updatedAt": "2025-09-25T16:24:56.295Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded588",
+    "nombre": "Cliente Indeciso - Breve",
+    "categoria": "seguimiento_cotizacion",
+    "estilo": "breve_persuasivo",
+    "mensaje": "Hola {nombre} 😊\n\nEntiendo que es una decisión importante. ¿Te ayudaría ver fotos de trabajos similares al tuyo?\n\nTambién tengo referencias de clientes en tu zona que están súper contentos con su Sundeck.\n\n¿Qué dudas específicas tienes? Estoy aquí para resolverlas 👍",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded589"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 0,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.298Z",
+    "fecha_actualizacion": "2025-09-25T16:24:56.299Z",
+    "createdAt": "2025-09-25T16:24:56.299Z",
+    "updatedAt": "2025-09-25T16:24:56.299Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded58c",
+    "nombre": "Cliente Referido - Formal",
+    "categoria": "recontacto",
+    "estilo": "formal_profesional",
+    "mensaje": "Estimado/a {nombre},\n\n¡Qué gusto saludarle! Me comunico con usted porque {referido_por} me recomendó contactarle, ya que está interesado/a en conocer nuestros productos Sundeck.\n\n{referido_por} quedó muy satisfecho/a con su instalación y pensó que nuestros sistemas también podrían ser de su interés.\n\nMe encantaría poder platicarle sobre las ventajas de nuestros productos y, si gusta, agendar una visita sin compromiso para conocer sus necesidades específicas.\n\n¿Cuándo sería un buen momento para conversar?\n\nSaludos cordiales,\nSundeck Acapulco",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded58d"
+      },
+      {
+        "nombre": "referido_por",
+        "descripcion": "Nombre de quien lo refirió",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded58e"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 0,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.302Z",
+    "fecha_actualizacion": "2025-09-25T16:24:56.302Z",
+    "createdAt": "2025-09-25T16:24:56.302Z",
+    "updatedAt": "2025-09-25T16:24:56.302Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded591",
+    "nombre": "Cliente Referido - Breve",
+    "categoria": "recontacto",
+    "estilo": "breve_persuasivo",
+    "mensaje": "¡Hola {nombre}! 👋\n\n{referido_por} me dio tu contacto porque quedó súper contento con su Sundeck y pensó que te podría interesar 😊\n\n¿Te parece si platicamos? Te aseguro que vale la pena conocer nuestros productos.\n\n¡Saludos!",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded592"
+      },
+      {
+        "nombre": "referido_por",
+        "descripcion": "Nombre de quien lo refirió",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded593"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 3,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.305Z",
+    "fecha_actualizacion": "2025-10-06T16:45:56.708Z",
+    "createdAt": "2025-09-25T16:24:56.305Z",
+    "updatedAt": "2025-10-06T16:45:56.708Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded596",
+    "nombre": "Cotización por Vencer - Formal",
+    "categoria": "cotizacion_vencimiento",
+    "estilo": "formal_profesional",
+    "mensaje": "Estimado/a {nombre},\n\nEspero que se encuentre muy bien. Le escribo para recordarle que su cotización #{numero_cotizacion} por {total} vence el {fecha_vencimiento}.\n\nSi está interesado/a en proceder con el proyecto, me gustaría coordinar los siguientes pasos para no perder esta oportunidad.\n\nEn caso de que necesite más tiempo para decidir o tenga alguna pregunta, con mucho gusto podemos extender la vigencia de su cotización.\n\nQuedo atento a sus comentarios.\n\nSaludos cordiales,\nSundeck Acapulco",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded597"
+      },
+      {
+        "nombre": "numero_cotizacion",
+        "descripcion": "Número de cotización",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded598"
+      },
+      {
+        "nombre": "total",
+        "descripcion": "Monto total",
+        "tipo": "moneda",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded599"
+      },
+      {
+        "nombre": "fecha_vencimiento",
+        "descripcion": "Fecha de vencimiento",
+        "tipo": "fecha",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded59a"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 0,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.307Z",
+    "fecha_actualizacion": "2025-09-25T16:24:56.308Z",
+    "createdAt": "2025-09-25T16:24:56.308Z",
+    "updatedAt": "2025-09-25T16:24:56.308Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded59d",
+    "nombre": "Cotización por Vencer - Breve",
+    "categoria": "cotizacion_vencimiento",
+    "estilo": "breve_persuasivo",
+    "mensaje": "¡Hola {nombre}! ⏰\n\nTu cotización de {total} vence el {fecha_vencimiento}.\n\n¿Ya decidiste? Si necesitas más tiempo o tienes dudas, avísame y la extendemos sin problema 😊\n\n¡Saludos!",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded59e"
+      },
+      {
+        "nombre": "total",
+        "descripcion": "Monto total",
+        "tipo": "moneda",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded59f"
+      },
+      {
+        "nombre": "fecha_vencimiento",
+        "descripcion": "Fecha de vencimiento",
+        "tipo": "fecha",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded5a0"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 0,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.310Z",
+    "fecha_actualizacion": "2025-09-25T16:24:56.310Z",
+    "createdAt": "2025-09-25T16:24:56.310Z",
+    "updatedAt": "2025-09-25T16:24:56.310Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded5a3",
+    "nombre": "Anticipo Confirmado - Formal",
+    "categoria": "anticipo_confirmado",
+    "estilo": "formal_profesional",
+    "mensaje": "Estimado/a {nombre},\n\n¡Excelente noticia! Hemos recibido su anticipo de {monto_anticipo} y su pedido ya está confirmado oficialmente.\n\nSu proyecto iniciará fabricación el {fecha_fabricacion} y estimamos tener todo listo para instalación en aproximadamente 15-20 días hábiles.\n\nLe estaremos informando del progreso de fabricación y coordinaremos con usted la fecha exacta de instalación.\n\n¡Muchas gracias por confiar en Sundeck!\n\nSaludos cordiales,\nSundeck Acapulco",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded5a4"
+      },
+      {
+        "nombre": "monto_anticipo",
+        "descripcion": "Monto del anticipo",
+        "tipo": "moneda",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded5a5"
+      },
+      {
+        "nombre": "fecha_fabricacion",
+        "descripcion": "Fecha de inicio de fabricación",
+        "tipo": "fecha",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded5a6"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 0,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": true,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.314Z",
+    "fecha_actualizacion": "2025-09-25T16:24:56.314Z",
+    "createdAt": "2025-09-25T16:24:56.314Z",
+    "updatedAt": "2025-09-25T16:24:56.314Z",
+    "__v": 0
+  },
+  {
+    "_id": "68d56cd8d2b6cdce43ded5a9",
+    "nombre": "Fabricación Iniciada - Formal",
+    "categoria": "fabricacion_iniciada",
+    "estilo": "formal_profesional",
+    "mensaje": "Estimado/a {nombre},\n\n¡Excelentes noticias! Su proyecto ya está en fabricación desde hoy.\n\nNuestro equipo técnico está trabajando en sus productos con los más altos estándares de calidad. Estimamos tener todo terminado para el {fecha_estimada_terminacion}.\n\nLe estaremos informando del progreso y coordinaremos la instalación una vez que esté todo listo.\n\n¡Gracias por su paciencia!\n\nSaludos cordiales,\nSundeck Acapulco",
+    "variables": [
+      {
+        "nombre": "nombre",
+        "descripcion": "Nombre del cliente",
+        "tipo": "texto",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded5aa"
+      },
+      {
+        "nombre": "fecha_estimada_terminacion",
+        "descripcion": "Fecha estimada de terminación",
+        "tipo": "fecha",
+        "requerida": true,
+        "_id": "68d56cd8d2b6cdce43ded5ab"
+      }
+    ],
+    "metricas": {
+      "veces_usada": 0,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 0,
+      "rating_count": 0
+    },
+    "activa": true,
+    "es_predeterminada": true,
+    "creada_por": "68d56cd8d2b6cdce43ded55f",
+    "tags": [
+      "inicial",
+      "sistema"
+    ],
+    "notas_admin": "Plantilla creada automáticamente por el sistema",
+    "fecha_creacion": "2025-09-25T16:24:56.317Z",
+    "fecha_actualizacion": "2025-09-25T16:24:56.317Z",
+    "createdAt": "2025-09-25T16:24:56.317Z",
+    "updatedAt": "2025-09-25T16:24:56.317Z",
+    "__v": 0
+  },
+  {
+    "_id": "68e3eab6960050156afeddbb",
+    "nombre": "🔔 Recordatorio de Visita Programada – Sundeck",
+    "categoria": "seguimiento_cotizacion",
+    "estilo": "breve_persuasivo",
+    "mensaje": "🔔 Recordatorio de Visita Programada – Sundeck\n\nHola [Nombre del cliente], buen día 👋🏼\nSolo te recordamos que tenemos agendada nuestra visita para:\n\n📅 [Día, Fecha]\n🕒 [Hora aproximada]\n📍 [Dirección o ubicación si aplica]\n\nVamos preparados para mostrarte opciones, tomar medidas y resolver cualquier duda que tengas.\n¡Gracias por tu tiempo y preferencia! 🙌🏼\n\nQuedamos atentos a cualquier ajuste que necesites.",
+    "metricas": {
+      "veces_usada": 10,
+      "respuestas_positivas": 0,
+      "conversiones": 0,
+      "rating_total": 48,
+      "rating_count": 10
+    },
+    "activa": true,
+    "es_predeterminada": false,
+    "creada_por": "68cc13722bf86c5ed8fd211a",
+    "tags": [],
+    "notas_admin": "Este mensaje se envia una hora antes de que se vaya a la visita asi logramos que el cliente tambien llegue puntual. ",
+    "variables": [],
+    "fecha_creacion": "2025-10-06T16:13:42.223Z",
+    "fecha_actualizacion": "2025-10-06T17:11:19.601Z",
+    "createdAt": "2025-10-06T16:13:42.223Z",
+    "updatedAt": "2025-10-06T17:11:19.601Z",
+    "__v": 0
+  }
+]

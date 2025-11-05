@@ -1,0 +1,257 @@
+[
+  {
+    "_id": "68c871dd0165792fe90422eb",
+    "nombre": "Carlos",
+    "apellido": "Mendoza",
+    "email": "carlos@sundeck.com",
+    "telefono": "555-0002",
+    "password": "$2a$10$8JQZNTIptAtS5KAFjYVpeO87bnriflBeEC/ZJLDfV5Bq/xCJlw4tS",
+    "rol": "vendedor",
+    "permisos": [
+      {
+        "modulo": "prospectos",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar"
+        ],
+        "_id": "68c871dd0165792fe90422ec"
+      },
+      {
+        "modulo": "cotizaciones",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar"
+        ],
+        "_id": "68c871dd0165792fe90422ed"
+      }
+    ],
+    "activo": true,
+    "configuracion": {
+      "notificaciones": {
+        "email": true,
+        "whatsapp": true,
+        "push": true
+      },
+      "horarioTrabajo": {
+        "inicio": "09:00",
+        "fin": "18:00",
+        "diasSemana": []
+      },
+      "recordatorios": {
+        "anticipacion": 60,
+        "frecuencia": 24
+      }
+    },
+    "metricas": {
+      "prospectosAsignados": 0,
+      "cotizacionesRealizadas": 0,
+      "ventasCerradas": 0,
+      "montoVentas": 0,
+      "tasaConversion": 0,
+      "tiempoPromedioRespuesta": 0
+    },
+    "fechaIngreso": "2025-09-15T20:06:53.732Z",
+    "createdAt": "2025-09-15T20:06:53.733Z",
+    "updatedAt": "2025-09-15T20:06:53.733Z",
+    "__v": 0
+  },
+  {
+    "_id": "68c871dd0165792fe90422f4",
+    "nombre": "Ana",
+    "apellido": "García",
+    "email": "ana@sundeck.com",
+    "telefono": "555-0003",
+    "password": "$2a$10$4M8XnjghAE5BqSSuHSH5ZOXWOIJG5n5.QZapGfvTlJI/D8ZOuyVEu",
+    "rol": "vendedor",
+    "permisos": [
+      {
+        "modulo": "prospectos",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar"
+        ],
+        "_id": "68c871dd0165792fe90422f5"
+      },
+      {
+        "modulo": "cotizaciones",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar"
+        ],
+        "_id": "68c871dd0165792fe90422f6"
+      }
+    ],
+    "activo": true,
+    "configuracion": {
+      "notificaciones": {
+        "email": true,
+        "whatsapp": true,
+        "push": true
+      },
+      "horarioTrabajo": {
+        "inicio": "09:00",
+        "fin": "18:00",
+        "diasSemana": []
+      },
+      "recordatorios": {
+        "anticipacion": 60,
+        "frecuencia": 24
+      }
+    },
+    "metricas": {
+      "prospectosAsignados": 0,
+      "cotizacionesRealizadas": 0,
+      "ventasCerradas": 0,
+      "montoVentas": 0,
+      "tasaConversion": 0,
+      "tiempoPromedioRespuesta": 0
+    },
+    "fechaIngreso": "2025-09-15T20:06:53.790Z",
+    "createdAt": "2025-09-15T20:06:53.791Z",
+    "updatedAt": "2025-09-15T20:06:53.791Z",
+    "__v": 0
+  },
+  {
+    "_id": "68cc13722bf86c5ed8fd211a",
+    "nombre": "Admin",
+    "apellido": "Sundeck",
+    "email": "admin@sundeck.com",
+    "password": "$2a$10$Rwj43BmDLhSozbpBuGoLJ.Kfc8ZJYqt08oWmNvpMgwPPOKZrFgeU.",
+    "rol": "admin",
+    "permisos": [
+      {
+        "modulo": "prospectos",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar",
+          "eliminar",
+          "exportar"
+        ],
+        "_id": "68cc13722bf86c5ed8fd211b"
+      },
+      {
+        "modulo": "cotizaciones",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar",
+          "eliminar",
+          "exportar"
+        ],
+        "_id": "68cc13722bf86c5ed8fd211c"
+      },
+      {
+        "modulo": "pedidos",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar",
+          "eliminar",
+          "exportar"
+        ],
+        "_id": "68cc13722bf86c5ed8fd211d"
+      },
+      {
+        "modulo": "fabricacion",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar",
+          "eliminar",
+          "exportar"
+        ],
+        "_id": "68cc13722bf86c5ed8fd211e"
+      },
+      {
+        "modulo": "instalaciones",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar",
+          "eliminar",
+          "exportar"
+        ],
+        "_id": "68cc13722bf86c5ed8fd211f"
+      },
+      {
+        "modulo": "postventa",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar",
+          "eliminar",
+          "exportar"
+        ],
+        "_id": "68cc13722bf86c5ed8fd2120"
+      },
+      {
+        "modulo": "reportes",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar",
+          "eliminar",
+          "exportar"
+        ],
+        "_id": "68cc13722bf86c5ed8fd2121"
+      },
+      {
+        "modulo": "usuarios",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar",
+          "eliminar",
+          "exportar"
+        ],
+        "_id": "68cc13722bf86c5ed8fd2122"
+      },
+      {
+        "modulo": "configuracion",
+        "acciones": [
+          "crear",
+          "leer",
+          "actualizar",
+          "eliminar",
+          "exportar"
+        ],
+        "_id": "68cc13722bf86c5ed8fd2123"
+      }
+    ],
+    "activo": true,
+    "configuracion": {
+      "notificaciones": {
+        "email": true,
+        "whatsapp": true,
+        "push": true
+      },
+      "horarioTrabajo": {
+        "inicio": "09:00",
+        "fin": "18:00",
+        "diasSemana": []
+      },
+      "recordatorios": {
+        "anticipacion": 60,
+        "frecuencia": 24
+      }
+    },
+    "metricas": {
+      "prospectosAsignados": 0,
+      "cotizacionesRealizadas": 0,
+      "ventasCerradas": 0,
+      "montoVentas": 0,
+      "tasaConversion": 0,
+      "tiempoPromedioRespuesta": 0
+    },
+    "fechaIngreso": "2025-09-18T14:13:06.628Z",
+    "createdAt": "2025-09-18T14:13:06.633Z",
+    "updatedAt": "2025-11-05T15:43:16.383Z",
+    "__v": 0,
+    "fechaUltimoAcceso": "2025-11-05T15:43:16.382Z"
+  }
+]

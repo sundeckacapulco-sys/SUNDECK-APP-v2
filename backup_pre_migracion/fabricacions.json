@@ -1,0 +1,198 @@
+[
+  {
+    "_id": "68efec650c90993cdafd6139",
+    "pedido": "68efec650c90993cdafd6110",
+    "numero": "FAB-2025-0001",
+    "estado": "pendiente",
+    "productos": [
+      {
+        "nombre": "",
+        "cantidad": 2,
+        "medidas": {
+          "ancho": 2.5,
+          "alto": 3,
+          "area": 13.1
+        },
+        "requiereR24": false,
+        "estado": "pendiente",
+        "_id": "68efec650c90993cdafd6111"
+      },
+      {
+        "nombre": "",
+        "cantidad": 3,
+        "medidas": {
+          "ancho": 3,
+          "alto": 2.5,
+          "area": 22.5
+        },
+        "requiereR24": false,
+        "estado": "pendiente",
+        "_id": "68efec650c90993cdafd6112"
+      }
+    ],
+    "operarios": [],
+    "entregaInstalacion": {
+      "fotos": []
+    },
+    "fechaInicio": "2025-10-15T18:48:05.334Z",
+    "materiales": [],
+    "procesos": [],
+    "controlCalidad": [],
+    "notas": [],
+    "archivos": [],
+    "createdAt": "2025-10-15T18:48:05.335Z",
+    "updatedAt": "2025-10-15T18:48:05.335Z",
+    "__v": 0
+  },
+  {
+    "_id": "68efecbebcf6843733a05c4e",
+    "pedido": "68efecbebcf6843733a05c36",
+    "numero": "FAB-2025-0002",
+    "estado": "pendiente",
+    "productos": [
+      {
+        "nombre": "",
+        "cantidad": 1,
+        "medidas": {
+          "ancho": 2,
+          "alto": 2.5,
+          "area": 5
+        },
+        "requiereR24": false,
+        "estado": "pendiente",
+        "_id": "68efecbebcf6843733a05c37"
+      }
+    ],
+    "operarios": [],
+    "entregaInstalacion": {
+      "fotos": []
+    },
+    "fechaInicio": "2025-10-15T18:49:34.678Z",
+    "materiales": [],
+    "procesos": [],
+    "controlCalidad": [],
+    "notas": [],
+    "archivos": [],
+    "createdAt": "2025-10-15T18:49:34.679Z",
+    "updatedAt": "2025-10-15T18:49:34.679Z",
+    "__v": 0
+  },
+  {
+    "_id": "68efecd967ab69c8b25cbb15",
+    "pedido": "68efecd967ab69c8b25cbafd",
+    "prospecto": "68efecd967ab69c8b25cbaea",
+    "numero": "FAB-2025-0003",
+    "estado": "pendiente",
+    "productos": [
+      {
+        "nombre": "",
+        "cantidad": 1,
+        "medidas": {
+          "ancho": 2,
+          "alto": 2.5,
+          "area": 5
+        },
+        "requiereR24": false,
+        "estado": "pendiente",
+        "_id": "68efecd967ab69c8b25cbafe"
+      }
+    ],
+    "operarios": [],
+    "entregaInstalacion": {
+      "fotos": []
+    },
+    "fechaInicio": "2025-10-15T18:50:01.742Z",
+    "materiales": [],
+    "procesos": [],
+    "controlCalidad": [],
+    "notas": [],
+    "archivos": [],
+    "createdAt": "2025-10-15T18:50:01.743Z",
+    "updatedAt": "2025-10-15T18:50:01.743Z",
+    "__v": 0
+  },
+  {
+    "_id": "68efecfa1362a2914eba7914",
+    "pedido": "68efecfa1362a2914eba78fc",
+    "prospecto": "68efecfa1362a2914eba78e9",
+    "numero": "FAB-2025-0004",
+    "estado": "pendiente",
+    "asignadoA": null,
+    "prioridad": "media",
+    "productos": [
+      {
+        "nombre": "",
+        "cantidad": 1,
+        "medidas": {
+          "ancho": 2,
+          "alto": 2.5,
+          "area": 5
+        },
+        "requiereR24": false,
+        "estado": "pendiente",
+        "_id": "68efecfa1362a2914eba78fd"
+      }
+    ],
+    "operarios": [],
+    "entregaInstalacion": {
+      "fotos": []
+    },
+    "fechaInicio": "2025-10-15T18:50:34.894Z",
+    "materiales": [],
+    "procesos": [],
+    "controlCalidad": [],
+    "notas": [],
+    "archivos": [],
+    "createdAt": "2025-10-15T18:50:34.895Z",
+    "updatedAt": "2025-10-15T18:50:34.895Z",
+    "__v": 0
+  },
+  {
+    "_id": "68efed071362a2914eba79ad",
+    "pedido": "68efed071362a2914eba7984",
+    "prospecto": "68efed071362a2914eba7932",
+    "numero": "FAB-2025-0005",
+    "estado": "pendiente",
+    "asignadoA": null,
+    "prioridad": "alta",
+    "productos": [
+      {
+        "nombre": "",
+        "cantidad": 2,
+        "medidas": {
+          "ancho": 2.5,
+          "alto": 3,
+          "area": 13.1
+        },
+        "requiereR24": false,
+        "estado": "pendiente",
+        "_id": "68efed071362a2914eba7985"
+      },
+      {
+        "nombre": "",
+        "cantidad": 3,
+        "medidas": {
+          "ancho": 3,
+          "alto": 2.5,
+          "area": 22.5
+        },
+        "requiereR24": false,
+        "estado": "pendiente",
+        "_id": "68efed071362a2914eba7986"
+      }
+    ],
+    "operarios": [],
+    "entregaInstalacion": {
+      "fotos": []
+    },
+    "fechaInicio": "2025-10-15T18:50:47.965Z",
+    "materiales": [],
+    "procesos": [],
+    "controlCalidad": [],
+    "notas": [],
+    "archivos": [],
+    "createdAt": "2025-10-15T18:50:47.965Z",
+    "updatedAt": "2025-10-15T18:50:47.965Z",
+    "__v": 0
+  }
+]

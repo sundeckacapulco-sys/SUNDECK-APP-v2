@@ -1,0 +1,91 @@
+[
+  {
+    "_id": "68f8231337108dff7cb87bc4",
+    "nombre": "Sahid Campos",
+    "telefono": "744 199 6925",
+    "email": "sundeck.acapulco@gmail.com",
+    "direccion": {
+      "calle": "Cond. Porta do Sol Depto 402",
+      "colonia": "",
+      "ciudad": "Acapulco",
+      "codigoPostal": "39850",
+      "referencias": "atras de carls hamburguesas",
+      "linkMapa": ""
+    },
+    "producto": "blackout",
+    "tipoProducto": "toma_medidas",
+    "descripcionNecesidad": "el cliente pregunta , por persianas motorizadas",
+    "presupuestoEstimado": null,
+    "fechaCita": "2025-10-21T00:00:00.000Z",
+    "horaCita": "18:22",
+    "estadoCita": "completada",
+    "etapa": "cotizacion",
+    "vendedorAsignado": "68cc13722bf86c5ed8fd211a",
+    "fuente": "referido",
+    "referidoPor": "La Sra Amalia lo recomendó ",
+    "prioridad": "media",
+    "fechaProximoSeguimiento": "2025-10-23T00:19:31.334Z",
+    "comoSeEntero": "",
+    "competencia": [],
+    "motivoCompra": "",
+    "activo": true,
+    "archivado": false,
+    "fechaArchivado": null,
+    "enPapelera": false,
+    "fechaEliminacion": null,
+    "eliminadoPor": null,
+    "evidenciasReagendamiento": [],
+    "notas": [
+      {
+        "usuario": "68cc13722bf86c5ed8fd211a",
+        "contenido": "✅ Visita registrada automáticamente - Asesor llegó al domicilio",
+        "tipo": "nota",
+        "categoria": "Puntualidad",
+        "archivos": [],
+        "_id": "68f8268237108dff7cb87cab",
+        "fecha": "2025-10-22T00:34:10.512Z"
+      }
+    ],
+    "etapas": [
+      {
+        "nombre": "Visita Registrada",
+        "fechaHora": "2025-10-22T00:34:10.430Z",
+        "observaciones": "Asesor llegó al domicilio el 21 de octubre de 2025, 06:34 p.m.",
+        "archivos": [],
+        "usuario": "68cc13722bf86c5ed8fd211a",
+        "_id": "68f8268237108dff7cb87c8c"
+      }
+    ],
+    "archivos": [],
+    "createdAt": "2025-10-22T00:19:31.337Z",
+    "updatedAt": "2025-10-31T18:48:48.917Z",
+    "__v": 2,
+    "fechaUltimoContacto": "2025-10-31T18:48:48.916Z"
+  },
+  {
+    "_id": "68fa55b8beba9da3c0040762",
+    "nombre": "Cliente Fabricación Test",
+    "telefono": "5512345678",
+    "email": "test@fabricacion.com",
+    "producto": "Persianas",
+    "tipoProducto": "visita_servicio",
+    "estadoCita": "pendiente",
+    "etapa": "nuevo",
+    "fuente": "web",
+    "prioridad": "media",
+    "competencia": [],
+    "activo": true,
+    "archivado": false,
+    "fechaArchivado": null,
+    "enPapelera": false,
+    "fechaEliminacion": null,
+    "eliminadoPor": null,
+    "evidenciasReagendamiento": [],
+    "notas": [],
+    "etapas": [],
+    "archivos": [],
+    "createdAt": "2025-10-23T16:20:08.887Z",
+    "updatedAt": "2025-10-23T16:20:08.887Z",
+    "__v": 0
+  }
+]

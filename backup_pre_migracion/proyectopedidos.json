@@ -1,0 +1,188 @@
+[
+  {
+    "_id": "68fa55fb45b37aa6801ee504",
+    "prospecto": "68fa55fb45b37aa6801ee503",
+    "cotizacion": "68fa55fb45b37aa6801ee503",
+    "creado_por": "68fa55fb45b37aa6801ee503",
+    "numero": "PROY-FAB-001",
+    "cliente": {
+      "nombre": "Cliente Test Fabricación",
+      "telefono": "5512345678",
+      "email": "test@fabricacion.com"
+    },
+    "estado": "en_fabricacion",
+    "productos": [
+      {
+        "nombre": "Persiana Enrollable Test",
+        "ubicacion": "Sala Principal",
+        "medidas": {
+          "ancho": 1.5,
+          "alto": 2,
+          "area": 3
+        },
+        "cantidad": 1,
+        "precioUnitario": 2500,
+        "subtotal": 2500
+      }
+    ],
+    "cronograma": {
+      "fechaPedido": "2025-10-23T16:21:15.115Z",
+      "fechaInicioFabricacion": "2025-10-23T16:21:15.115Z",
+      "fechaFinFabricacionEstimada": "2025-11-02T16:21:15.115Z"
+    },
+    "pagos": {
+      "montoTotal": 2900,
+      "subtotal": 2500,
+      "iva": 400
+    },
+    "fabricacion": {
+      "estado": "en_proceso",
+      "prioridad": "alta",
+      "progreso": 60,
+      "materiales": [
+        {
+          "nombre": "Tela Screen 5%",
+          "cantidad": 3.5,
+          "unidad": "m2",
+          "disponible": true,
+          "costo": 150
+        },
+        {
+          "nombre": "Perfil Aluminio",
+          "cantidad": 7,
+          "unidad": "ml",
+          "disponible": true,
+          "costo": 80
+        }
+      ],
+      "procesos": [
+        {
+          "nombre": "Corte de tela",
+          "descripcion": "Cortar tela según medidas exactas",
+          "orden": 1,
+          "tiempoEstimado": 2,
+          "tiempoReal": 1.5,
+          "estado": "completado",
+          "fechaInicio": "2025-10-22T16:21:15.115Z",
+          "fechaFin": "2025-10-23T04:21:15.115Z"
+        },
+        {
+          "nombre": "Armado de mecanismo",
+          "descripcion": "Ensamblar mecanismo de cadena",
+          "orden": 2,
+          "tiempoEstimado": 3,
+          "estado": "en_proceso",
+          "fechaInicio": "2025-10-23T16:21:15.115Z"
+        },
+        {
+          "nombre": "Ensamble final",
+          "descripcion": "Ensamblar persiana completa",
+          "orden": 3,
+          "tiempoEstimado": 2,
+          "estado": "pendiente"
+        }
+      ],
+      "costos": {
+        "materiales": 230,
+        "manoObra": 200,
+        "overhead": 70,
+        "total": 500
+      }
+    },
+    "createdAt": "2025-10-23T16:21:15.115Z",
+    "updatedAt": "2025-10-23T16:21:15.115Z"
+  },
+  {
+    "_id": "68fa55fb45b37aa6801ee505",
+    "prospecto": "68fa55fb45b37aa6801ee506",
+    "cotizacion": "68fa55fb45b37aa6801ee507",
+    "creado_por": "68fa55fb45b37aa6801ee508",
+    "numero": "PROY-FAB-002",
+    "cliente": {
+      "nombre": "Cliente Test 2",
+      "telefono": "5512345679",
+      "email": "test2@fabricacion.com"
+    },
+    "estado": "confirmado",
+    "productos": [
+      {
+        "nombre": "Toldo Retráctil",
+        "ubicacion": "Terraza",
+        "medidas": {
+          "ancho": 3,
+          "alto": 2.5,
+          "area": 7.5
+        },
+        "cantidad": 1,
+        "precioUnitario": 4500,
+        "subtotal": 4500
+      }
+    ],
+    "cronograma": {
+      "fechaPedido": "2025-10-23T16:21:15.128Z"
+    },
+    "pagos": {
+      "montoTotal": 5220,
+      "subtotal": 4500,
+      "iva": 720
+    },
+    "createdAt": "2025-10-23T16:21:15.128Z",
+    "updatedAt": "2025-10-23T16:21:15.128Z"
+  },
+  {
+    "_id": "68fa55fb45b37aa6801ee509",
+    "prospecto": "68fa55fb45b37aa6801ee50a",
+    "cotizacion": "68fa55fb45b37aa6801ee50b",
+    "creado_por": "68fa55fb45b37aa6801ee50c",
+    "numero": "PROY-FAB-003",
+    "cliente": {
+      "nombre": "Cliente Test 3",
+      "telefono": "5512345680",
+      "email": "test3@fabricacion.com"
+    },
+    "estado": "fabricado",
+    "productos": [
+      {
+        "nombre": "Cortina Roller",
+        "ubicacion": "Recámara",
+        "medidas": {
+          "ancho": 1.8,
+          "alto": 1.5,
+          "area": 2.7
+        },
+        "cantidad": 2,
+        "precioUnitario": 1800,
+        "subtotal": 3600
+      }
+    ],
+    "cronograma": {
+      "fechaPedido": "2025-10-08T16:21:15.129Z",
+      "fechaInicioFabricacion": "2025-10-13T16:21:15.129Z",
+      "fechaFinFabricacionReal": "2025-10-23T16:21:15.129Z"
+    },
+    "pagos": {
+      "montoTotal": 4176,
+      "subtotal": 3600,
+      "iva": 576
+    },
+    "fabricacion": {
+      "estado": "terminado",
+      "prioridad": "media",
+      "progreso": 100,
+      "controlCalidad": {
+        "realizado": true,
+        "fechaRevision": "2025-10-23T16:21:15.129Z",
+        "resultado": "aprobado",
+        "observaciones": "Producto aprobado para entrega"
+      },
+      "costos": {
+        "materiales": 400,
+        "manoObra": 300,
+        "overhead": 100,
+        "total": 800
+      }
+    },
+    "createdAt": "2025-10-23T16:21:15.129Z",
+    "updatedAt": "2025-10-23T16:21:15.129Z"
+  }
+]

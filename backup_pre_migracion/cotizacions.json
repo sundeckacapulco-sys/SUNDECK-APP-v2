@@ -1,0 +1,384 @@
+[
+  {
+    "_id": "69038d411f0c66955d0aa890",
+    "proyecto": "69038d15b8188c55a56e3a4b",
+    "numero": "COT-0001",
+    "estado": "borrador",
+    "origen": "cotizacion_vivo",
+    "comentarios": "Prueba automatizada de levantamiento",
+    "precioGeneralM2": 750,
+    "unidadMedida": "m2",
+    "productos": [
+      {
+        "ubicacion": "Sala comedor TEST",
+        "cantidad": 2,
+        "area": 15,
+        "nombre": "Persianas Blackout",
+        "nombreProducto": "Persianas Blackout",
+        "productoLabel": "Persianas Blackout",
+        "color": "Ivory",
+        "precioM2": 750,
+        "precioUnitario": 5625,
+        "subtotal": 11250,
+        "observaciones": "",
+        "fotoUrls": [],
+        "medidas": {
+          "ancho": null,
+          "alto": null,
+          "area": 15
+        },
+        "requiereR24": false,
+        "esToldo": false,
+        "motorizado": true,
+        "motorModelo": "Somfy RTS",
+        "motorPrecio": 7000,
+        "controlModelo": "15 canales",
+        "controlPrecio": 1200,
+        "_id": "69038d411f0c66955d0aa891"
+      }
+    ],
+    "instalacion": {
+      "incluye": true,
+      "costo": 3500,
+      "tipo": "personalizado"
+    },
+    "descuento": {
+      "aplica": true,
+      "tipo": "porcentaje",
+      "valor": 10,
+      "monto": 2295
+    },
+    "facturacion": {
+      "requiere": true,
+      "iva": 3304.8
+    },
+    "entrega": {
+      "tipo": "normal"
+    },
+    "terminos": {
+      "incluir": true
+    },
+    "subtotal": 22950,
+    "total": 23959.8,
+    "iva": 3304.8,
+    "tiempoFabricacion": 15,
+    "tiempoInstalacion": 1,
+    "requiereInstalacion": true,
+    "costoInstalacion": 0,
+    "elaboradaPor": "68cc13722bf86c5ed8fd211a",
+    "archivada": false,
+    "fecha": "2025-10-30T16:07:29.089Z",
+    "validoHasta": "2025-11-29T16:07:29.089Z",
+    "notas": [],
+    "createdAt": "2025-10-30T16:07:29.090Z",
+    "updatedAt": "2025-10-30T16:07:29.090Z",
+    "__v": 0
+  },
+  {
+    "_id": "69038d5aad6ba2ffbafa4126",
+    "proyecto": "69038d15b8188c55a56e3a4b",
+    "numero": "COT-0002",
+    "estado": "borrador",
+    "origen": "cotizacion_vivo",
+    "comentarios": "Prueba automatizada de levantamiento",
+    "precioGeneralM2": 750,
+    "unidadMedida": "m2",
+    "productos": [
+      {
+        "ubicacion": "Sala comedor TEST",
+        "cantidad": 2,
+        "area": 15,
+        "nombre": "Persianas Blackout",
+        "nombreProducto": "Persianas Blackout",
+        "productoLabel": "Persianas Blackout",
+        "color": "Ivory",
+        "precioM2": 750,
+        "precioUnitario": 5625,
+        "subtotal": 11250,
+        "observaciones": "",
+        "fotoUrls": [],
+        "medidas": {
+          "ancho": null,
+          "alto": null,
+          "area": 15
+        },
+        "requiereR24": false,
+        "esToldo": false,
+        "motorizado": true,
+        "motorModelo": "Somfy RTS",
+        "motorPrecio": 7000,
+        "controlModelo": "15 canales",
+        "controlPrecio": 1200,
+        "_id": "69038d5aad6ba2ffbafa4127"
+      }
+    ],
+    "instalacion": {
+      "incluye": true,
+      "costo": 3500,
+      "tipo": "personalizado"
+    },
+    "descuento": {
+      "aplica": true,
+      "tipo": "porcentaje",
+      "valor": 10,
+      "monto": 2295
+    },
+    "facturacion": {
+      "requiere": true,
+      "iva": 3304.8
+    },
+    "entrega": {
+      "tipo": "normal"
+    },
+    "terminos": {
+      "incluir": true
+    },
+    "subtotal": 22950,
+    "total": 23959.8,
+    "iva": 3304.8,
+    "tiempoFabricacion": 15,
+    "tiempoInstalacion": 1,
+    "requiereInstalacion": true,
+    "costoInstalacion": 0,
+    "elaboradaPor": "68cc13722bf86c5ed8fd211a",
+    "archivada": false,
+    "fecha": "2025-10-30T16:07:54.202Z",
+    "validoHasta": "2025-11-29T16:07:54.202Z",
+    "notas": [],
+    "createdAt": "2025-10-30T16:07:54.203Z",
+    "updatedAt": "2025-10-30T16:07:54.203Z",
+    "__v": 0
+  },
+  {
+    "_id": "69038e05b81f808ac82e935a",
+    "proyecto": "69038d15b8188c55a56e3a4b",
+    "numero": "COT-0003",
+    "estado": "borrador",
+    "origen": "cotizacion_vivo",
+    "comentarios": "Prueba automatizada de levantamiento",
+    "precioGeneralM2": 750,
+    "unidadMedida": "m2",
+    "productos": [
+      {
+        "ubicacion": "Sala comedor TEST",
+        "cantidad": 2,
+        "area": 15,
+        "nombre": "Persianas Blackout",
+        "nombreProducto": "Persianas Blackout",
+        "productoLabel": "Persianas Blackout",
+        "color": "Ivory",
+        "precioM2": 750,
+        "precioUnitario": 5625,
+        "subtotal": 11250,
+        "observaciones": "",
+        "fotoUrls": [],
+        "medidas": {
+          "ancho": null,
+          "alto": null,
+          "area": 15
+        },
+        "requiereR24": false,
+        "esToldo": false,
+        "motorizado": true,
+        "motorModelo": "Somfy RTS",
+        "motorPrecio": 7000,
+        "controlModelo": "15 canales",
+        "controlPrecio": 1200,
+        "_id": "69038e05b81f808ac82e935b"
+      }
+    ],
+    "instalacion": {
+      "incluye": true,
+      "costo": 3500,
+      "tipo": "personalizado"
+    },
+    "descuento": {
+      "aplica": true,
+      "tipo": "porcentaje",
+      "valor": 10,
+      "monto": 2295
+    },
+    "facturacion": {
+      "requiere": true,
+      "iva": 3304.8
+    },
+    "entrega": {
+      "tipo": "normal"
+    },
+    "terminos": {
+      "incluir": true
+    },
+    "subtotal": 22950,
+    "total": 23959.8,
+    "iva": 3304.8,
+    "tiempoFabricacion": 15,
+    "tiempoInstalacion": 1,
+    "requiereInstalacion": true,
+    "costoInstalacion": 0,
+    "elaboradaPor": "68cc13722bf86c5ed8fd211a",
+    "archivada": false,
+    "fecha": "2025-10-30T16:10:45.570Z",
+    "validoHasta": "2025-11-29T16:10:45.570Z",
+    "notas": [],
+    "createdAt": "2025-10-30T16:10:45.572Z",
+    "updatedAt": "2025-10-30T16:10:45.572Z",
+    "__v": 0
+  },
+  {
+    "_id": "690504904f48a87d2c960944",
+    "prospecto": "68f8231337108dff7cb87bc4",
+    "numero": "COT-2025-0004",
+    "nombre": "Cotización para Sahid Campos",
+    "fecha": "2025-10-31T18:48:48.905Z",
+    "validoHasta": "2025-11-30T18:48:48.905Z",
+    "estado": "Activa",
+    "origen": "normal",
+    "productos": [
+      {
+        "ubicacion": "Sala Comedor",
+        "cantidad": 1,
+        "ancho": 1.5,
+        "alto": 2.3,
+        "area": 3.4499999999999997,
+        "nombre": "Persianas Blackout",
+        "descripcion": "Sala Comedor",
+        "categoria": "Persianas Blackout",
+        "material": "Roller",
+        "color": "Ivory ",
+        "precioM2": 750,
+        "precioUnitario": 750,
+        "subtotal": 2587.5,
+        "observaciones": "",
+        "fotoUrls": [],
+        "videoUrl": "",
+        "medidas": {
+          "ancho": 1.5,
+          "alto": 2.3,
+          "area": 3.4499999999999997
+        },
+        "requiereR24": false,
+        "tiempoFabricacion": null,
+        "esToldo": false,
+        "tipoToldo": "",
+        "kitModelo": "",
+        "kitModeloManual": "",
+        "kitPrecio": 0,
+        "motorizado": false,
+        "motorModelo": "",
+        "motorModeloManual": "",
+        "motorPrecio": 0,
+        "controlModelo": "",
+        "controlModeloManual": "",
+        "controlPrecio": 0,
+        "_id": "690504904f48a87d2c960945"
+      },
+      {
+        "ubicacion": "Sala Comedor",
+        "cantidad": 1,
+        "ancho": 3,
+        "alto": 2.3,
+        "area": 6.8999999999999995,
+        "nombre": "Persianas Blackout",
+        "descripcion": "Sal comedor",
+        "categoria": "Persianas Blackout",
+        "material": "Roller",
+        "color": "Ivory ",
+        "precioM2": 750,
+        "precioUnitario": 750,
+        "subtotal": 5175,
+        "observaciones": "",
+        "fotoUrls": [],
+        "videoUrl": "",
+        "medidas": {
+          "ancho": 3,
+          "alto": 2.3,
+          "area": 6.8999999999999995
+        },
+        "requiereR24": false,
+        "tiempoFabricacion": null,
+        "esToldo": false,
+        "tipoToldo": "",
+        "kitModelo": "",
+        "kitModeloManual": "",
+        "kitPrecio": 0,
+        "motorizado": false,
+        "motorModelo": "",
+        "motorModeloManual": "",
+        "motorPrecio": 0,
+        "controlModelo": "",
+        "controlModeloManual": "",
+        "controlPrecio": 0,
+        "_id": "690504904f48a87d2c960946"
+      },
+      {
+        "ubicacion": "Sala Comedor",
+        "cantidad": 1,
+        "ancho": 1.5,
+        "alto": 2.3,
+        "area": 3.4499999999999997,
+        "nombre": "Persianas Blackout",
+        "descripcion": "sala comedor",
+        "categoria": "Persianas Blackout",
+        "material": "Roller",
+        "color": "Ivory ",
+        "precioM2": 750,
+        "precioUnitario": 750,
+        "subtotal": 2587.5,
+        "observaciones": "",
+        "fotoUrls": [],
+        "videoUrl": "",
+        "medidas": {
+          "ancho": 1.5,
+          "alto": 2.3,
+          "area": 3.4499999999999997
+        },
+        "requiereR24": false,
+        "tiempoFabricacion": null,
+        "esToldo": false,
+        "tipoToldo": "",
+        "kitModelo": "",
+        "kitModeloManual": "",
+        "kitPrecio": 0,
+        "motorizado": false,
+        "motorModelo": "",
+        "motorModeloManual": "",
+        "motorPrecio": 0,
+        "controlModelo": "",
+        "controlModeloManual": "",
+        "controlPrecio": 0,
+        "_id": "690504904f48a87d2c960947"
+      }
+    ],
+    "instalacion": {
+      "incluye": false,
+      "costo": 0
+    },
+    "descuento": {
+      "monto": 0,
+      "aplica": false
+    },
+    "facturacion": {
+      "requiere": false,
+      "iva": 0
+    },
+    "entrega": {
+      "tipo": "normal"
+    },
+    "terminos": {
+      "incluir": true
+    },
+    "subtotal": 10350,
+    "total": 10350,
+    "iva": 0,
+    "tiempoFabricacion": 15,
+    "tiempoInstalacion": 1,
+    "requiereInstalacion": true,
+    "costoInstalacion": 0,
+    "elaboradaPor": "68cc13722bf86c5ed8fd211a",
+    "archivada": false,
+    "notas": [],
+    "createdAt": "2025-10-31T18:48:48.911Z",
+    "updatedAt": "2025-10-31T18:48:48.911Z",
+    "__v": 0
+  }
+]

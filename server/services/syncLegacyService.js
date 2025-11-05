@@ -10,6 +10,10 @@
 const mongoose = require('mongoose');
 const logger = require('../config/logger');
 
+// Importar modelos
+const Pedido = require('../models/Pedido');
+const ProyectoPedido = require('../models/ProyectoPedido.legacy');
+
 class SyncLegacyService {
   
   /**
