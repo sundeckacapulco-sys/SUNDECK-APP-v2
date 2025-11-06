@@ -303,7 +303,6 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
               📏 Medidas del Levantamiento
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {/* Botón Unificado Inteligente */}
               <Button
                 variant="contained"
                 startIcon={<StraightenIcon />}
@@ -320,13 +319,55 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
             </Box>
           </Box>
 
-          {!proyecto.medidas || proyecto.medidas.length === 0 ? (
-            <Alert severity="info">
-              No hay medidas registradas en este proyecto.
-            </Alert>
-          ) : (
-            <Box>
-              {proyecto.medidas.map((medida, index) => {
+          {(() => {
+            // Priorizar levantamiento.partidas sobre medidas legacy
+            const partidas = proyecto.levantamiento?.partidas || [];
+            const medidas = proyecto.medidas || [];
+            
+            console.log('🔍 DEBUG LEVANTAMIENTO:');
+            console.log('  Partidas encontradas:', partidas.length);
+            console.log('  Medidas legacy:', medidas.length);
+            console.log('  Primera partida:', partidas[0]);
+            console.log('  📸 Fotos generales:', proyecto.levantamiento?.fotosGenerales);
+            console.log('  🎥 Link video:', proyecto.levantamiento?.linkVideo);
+            console.log('  📋 Primera medida legacy:', medidas[0]);
+            console.log('  📸 Fotos en medida legacy:', medidas[0]?.fotosGenerales);
+            console.log('  🎥 Video en medida legacy:', medidas[0]?.linkVideo);
+            console.log('  Proyecto completo:', proyecto);
+            
+            // Convertir partidas a formato de medidas para compatibilidad
+            const medidasDesdePartidas = partidas.length > 0 ? [{
+              tipo: 'levantamiento',
+              personaVisita: proyecto.levantamiento.personaVisita || '',
+              quienRecibe: proyecto.levantamiento.quienRecibe || '',
+              fechaCotizacion: proyecto.levantamiento.actualizadoEn || new Date(),
+              observacionesGenerales: proyecto.levantamiento.observaciones || '',
+              linkVideo: proyecto.levantamiento.linkVideo || '',
+              fotosGenerales: proyecto.levantamiento.fotosGenerales || [],
+              piezas: partidas.map(partida => ({
+                ubicacion: partida.ubicacion,
+                producto: partida.producto,
+                productoLabel: partida.producto,
+                cantidad: partida.cantidad || partida.piezas?.length || 1,
+                areaTotal: partida.totales?.m2 || 0,
+                color: partida.color,
+                modeloCodigo: partida.modelo,
+                medidas: partida.piezas || [],
+                observaciones: ''
+              }))
+            }] : medidas;
+            
+            if (medidasDesdePartidas.length === 0) {
+              return (
+                <Alert severity="info">
+                  No hay levantamiento registrado en este proyecto.
+                </Alert>
+              );
+            }
+            
+            return (
+              <Box>
+                {medidasDesdePartidas.map((medida, index) => {
                 // Detectar si es un levantamiento nuevo con partidas o medida antigua
                 const esLevantamientoConPartidas = medida.tipo === 'levantamiento' && medida.piezas && medida.piezas.length > 0;
                 
@@ -340,15 +381,44 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
                           <Typography variant="h6">
                             📋 Levantamiento {index + 1}
                           </Typography>
-                          <Button
-                            variant="outlined"
-                            color="error"
-                            size="small"
-                            startIcon={<DeleteIcon />}
-                            onClick={() => eliminarMedida(index)}
-                          >
-                            Eliminar
-                          </Button>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<EditIcon />}
+                              onClick={() => {
+                                console.log('✏️ Editando medida:', medida);
+                                setMedidaEditando({
+                                  personaVisita: medida.personaVisita || '',
+                                  quienRecibe: medida.quienRecibe || '',
+                                  observaciones: medida.observacionesGenerales || '',
+                                  linkVideo: medida.linkVideo || '',
+                                  fotosGenerales: medida.fotosGenerales || [],
+                                  piezas: medida.piezas || []
+                                });
+                                setDialogoPartidas(true);
+                              }}
+                              sx={{
+                                borderColor: '#D4AF37',
+                                color: '#D4AF37',
+                                '&:hover': { 
+                                  borderColor: '#B8941F',
+                                  bgcolor: 'rgba(212, 175, 55, 0.1)'
+                                }
+                              }}
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              size="small"
+                              startIcon={<DeleteIcon />}
+                              onClick={() => eliminarMedida(index)}
+                            >
+                              Eliminar
+                            </Button>
+                          </Box>
                         </Box>
                         <Grid container spacing={2}>
                           {medida.personaVisita && (
@@ -378,7 +448,86 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
                             <strong>Observaciones:</strong> {medida.observacionesGenerales}
                           </Typography>
                         )}
+                        
+                        {/* Link de Video */}
+                        {medida.linkVideo && (
+                          <Box sx={{ mt: 2 }}>
+                            <Typography variant="body2" sx={{ mb: 1 }}>
+                              <strong>🎥 Video del Levantamiento:</strong>
+                            </Typography>
+                            <a 
+                              href={medida.linkVideo} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ color: '#1976d2', textDecoration: 'none' }}
+                            >
+                              {medida.linkVideo}
+                            </a>
+                          </Box>
+                        )}
                       </Paper>
+
+                      {/* Fotos Generales - Acordeón Desplegable */}
+                      {(() => {
+                        console.log('📸 Verificando fotos en medida:', medida.fotosGenerales);
+                        return medida.fotosGenerales && medida.fotosGenerales.length > 0;
+                      })() && (
+                        <Accordion sx={{ mb: 2, border: '1px solid #e0e0e0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+                          <AccordionSummary 
+                            expandIcon={<ExpandMoreIcon />}
+                            sx={{ 
+                              borderRadius: '8px',
+                              bgcolor: 'rgba(33, 150, 243, 0.05)',
+                              '&:hover': { bgcolor: 'rgba(33, 150, 243, 0.1)' }
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <PhotoIcon sx={{ color: '#2196f3' }} />
+                              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                📸 Fotos Generales ({medida.fotosGenerales.length})
+                              </Typography>
+                            </Box>
+                          </AccordionSummary>
+                          <AccordionDetails>
+                            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', p: 1 }}>
+                              {medida.fotosGenerales.map((foto, fotoIndex) => (
+                                <Box key={fotoIndex} sx={{ width: 180 }}>
+                                  <img
+                                    src={`http://localhost:5001${foto.url}`}
+                                    alt={foto.descripcion || `Foto ${fotoIndex + 1}`}
+                                    style={{
+                                      width: '100%',
+                                      height: 180,
+                                      objectFit: 'cover',
+                                      borderRadius: 8,
+                                      border: '2px solid #ddd',
+                                      cursor: 'pointer',
+                                      transition: 'transform 0.2s'
+                                    }}
+                                    onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+                                    onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+                                    onClick={() => window.open(`http://localhost:5001${foto.url}`, '_blank')}
+                                  />
+                                  {foto.descripcion && (
+                                    <Typography 
+                                      variant="caption" 
+                                      sx={{ 
+                                        display: 'block', 
+                                        mt: 1, 
+                                        textAlign: 'center',
+                                        fontWeight: 600,
+                                        color: 'rgba(30, 41, 59, 1)'
+                                      }}
+                                    >
+                                      {foto.descripcion}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              ))}
+                            </Box>
+                          </AccordionDetails>
+                        </Accordion>
+                      )}
 
                       {/* Partidas */}
                       {medida.piezas.map((pieza, piezaIndex) => (
@@ -749,7 +898,8 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
                 );
               })}
             </Box>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
 

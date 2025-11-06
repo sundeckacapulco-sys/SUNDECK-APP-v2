@@ -44,8 +44,14 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
   const [fechaCotizacion, setFechaCotizacion] = useState('');
   const [quienRecibe, setQuienRecibe] = useState('');
   const [observacionesGenerales, setObservacionesGenerales] = useState('');
+  const [linkVideo, setLinkVideo] = useState('');
+  const [fotosGenerales, setFotosGenerales] = useState([]);
+  const [subiendoFotos, setSubiendoFotos] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [errorLocal, setErrorLocal] = useState('');
+  const [grabando, setGrabando] = useState(false);
+  const [recognition, setRecognition] = useState(null);
+  const [lastTranscript, setLastTranscript] = useState('');
 
   // Usar el mismo manager de piezas que el AgregarEtapaModal
   const piezasManager = usePiezasManager({
@@ -61,14 +67,19 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
       
       // Si estamos editando, cargar los datos
       if (medidaEditando) {
+        console.log('🔍 Cargando datos para editar:', medidaEditando);
+        
         // Cargar datos de la medida editando
         if (medidaEditando.personaVisita) setPersonaVisita(medidaEditando.personaVisita);
         if (medidaEditando.fechaCotizacion) setFechaCotizacion(medidaEditando.fechaCotizacion);
         if (medidaEditando.quienRecibe) setQuienRecibe(medidaEditando.quienRecibe);
         if (medidaEditando.observaciones) setObservacionesGenerales(medidaEditando.observaciones);
+        if (medidaEditando.linkVideo) setLinkVideo(medidaEditando.linkVideo);
+        if (medidaEditando.fotosGenerales) setFotosGenerales(medidaEditando.fotosGenerales);
         
         // Cargar partidas si existen
         if (medidaEditando.piezas && medidaEditando.piezas.length > 0) {
+          console.log('📦 Cargando piezas:', medidaEditando.piezas);
           piezasManager.reemplazarPiezas(medidaEditando.piezas);
         }
       } else {
@@ -78,13 +89,113 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
     }
   }, [open, medidaEditando]); // Removido piezasManager de las dependencias
 
+  // Inicializar reconocimiento de voz
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognitionInstance = new SpeechRecognition();
+      recognitionInstance.continuous = true;
+      recognitionInstance.interimResults = true; // Activar para respuesta rápida
+      recognitionInstance.lang = 'es-MX';
+      
+      recognitionInstance.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        
+        // Procesar todos los resultados
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        
+        // Si hay resultado final, agregarlo (evitando duplicados)
+        if (finalTranscript && finalTranscript !== lastTranscript) {
+          setLastTranscript(finalTranscript);
+          setObservacionesGenerales(prev => {
+            // Agregar espacio solo si ya hay contenido
+            const newText = prev ? prev + ' ' + finalTranscript : finalTranscript;
+            return newText;
+          });
+        }
+      };
+      
+      recognitionInstance.onerror = (event) => {
+        console.error('Error de reconocimiento de voz:', event.error);
+        setGrabando(false);
+      };
+      
+      recognitionInstance.onend = () => {
+        setGrabando(false);
+      };
+      
+      setRecognition(recognitionInstance);
+    }
+  }, [lastTranscript]);
+
+  const toggleDictado = () => {
+    if (!recognition) {
+      setErrorLocal('Tu navegador no soporta reconocimiento de voz');
+      return;
+    }
+    
+    if (grabando) {
+      recognition.stop();
+      setGrabando(false);
+      setLastTranscript(''); // Reset para próxima sesión
+    } else {
+      setLastTranscript(''); // Reset al iniciar
+      recognition.start();
+      setGrabando(true);
+    }
+  };
+
+  const subirFotos = async (files) => {
+    try {
+      setSubiendoFotos(true);
+      const formData = new FormData();
+      
+      files.forEach(file => {
+        formData.append('fotos', file);
+      });
+      
+      const response = await axiosConfig.post('/proyectos/levantamiento/fotos', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      if (response.data.success) {
+        return response.data.data; // Array de {url, descripcion, fechaSubida}
+      } else {
+        throw new Error(response.data.message);
+      }
+    } catch (error) {
+      console.error('Error subiendo fotos:', error);
+      setErrorLocal('Error al subir las fotos: ' + (error.response?.data?.message || error.message));
+      return [];
+    } finally {
+      setSubiendoFotos(false);
+    }
+  };
+
   const resetFormulario = () => {
     setPersonaVisita('');
     setFechaCotizacion('');
     setQuienRecibe('');
     setObservacionesGenerales('');
+    setLinkVideo('');
+    setFotosGenerales([]);
     piezasManager.resetPiezas();
     setErrorLocal('');
+    if (grabando && recognition) {
+      recognition.stop();
+      setGrabando(false);
+    }
   };
 
   const calcularAreaPieza = (pieza) => {
@@ -134,6 +245,8 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
         fechaCotizacion,
         quienRecibe,
         observacionesGenerales,
+        linkVideo, // ✅ Agregar link de video
+        fotosGenerales, // ✅ Agregar fotos generales
         piezas: piezasManager.piezas.map(pieza => ({
           ...pieza,
           // Calcular totales por partida
@@ -153,6 +266,8 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
       console.log('📦 Piezas del manager:', piezasManager.piezas);
       console.log('📊 Detalle de primera pieza:', piezasManager.piezas[0]);
       console.log('📏 Detalle de primera medida de primera pieza:', piezasManager.piezas[0]?.medidas?.[0]);
+      console.log('📸 Fotos generales en payload:', payload.fotosGenerales);
+      console.log('🎥 Link video en payload:', payload.linkVideo);
 
       // Obtener el proyecto actual
       const proyectoActual = await axiosConfig.get(`/proyectos/${proyecto._id}`);
@@ -1098,18 +1213,151 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
           </Box>
         )}
 
+        {/* Link de Video */}
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              🎥 Video del Levantamiento
+            </Typography>
+            <TextField
+              fullWidth
+              label="Link de Video (YouTube, Google Drive, etc.)"
+              value={linkVideo}
+              onChange={(e) => setLinkVideo(e.target.value)}
+              placeholder="https://youtube.com/watch?v=... o https://drive.google.com/..."
+              helperText="Pega aquí el enlace del video del levantamiento para referencia futura"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Fotos Generales */}
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              📸 Fotos Generales del Levantamiento
+            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<PhotoIcon />}
+                size="small"
+                disabled={subiendoFotos}
+              >
+                {subiendoFotos ? 'Subiendo...' : 'Agregar Fotos'}
+                <input
+                  type="file"
+                  hidden
+                  multiple
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files);
+                    if (files.length === 0) return;
+                    
+                    // Subir fotos al servidor
+                    const fotosSubidas = await subirFotos(files);
+                    console.log('📸 Fotos subidas:', fotosSubidas);
+                    if (fotosSubidas.length > 0) {
+                      setFotosGenerales([...fotosGenerales, ...fotosSubidas]);
+                    }
+                  }}
+                />
+              </Button>
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
+                Fotos del lugar, fachada, accesos, etc.
+              </Typography>
+            </Box>
+            
+            {fotosGenerales.length > 0 && (
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                {fotosGenerales.map((foto, index) => (
+                  <Box key={index} sx={{ width: 150 }}>
+                    <Box sx={{ position: 'relative', width: 150, height: 150, mb: 1 }}>
+                      <img
+                        src={foto.url.startsWith('http') ? foto.url : `http://localhost:5001${foto.url}`}
+                        alt={foto.descripcion || `Foto ${index + 1}`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          borderRadius: 4,
+                          border: '1px solid #ddd'
+                        }}
+                      />
+                      <IconButton
+                        size="small"
+                        sx={{
+                          position: 'absolute',
+                          top: -8,
+                          right: -8,
+                          bgcolor: 'error.main',
+                          color: 'white',
+                          '&:hover': { bgcolor: 'error.dark' }
+                        }}
+                        onClick={() => {
+                          const newFotos = fotosGenerales.filter((_, i) => i !== index);
+                          setFotosGenerales(newFotos);
+                        }}
+                      >
+                        <Close fontSize="small" />
+                      </IconButton>
+                    </Box>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="Título de la foto"
+                      value={foto.descripcion || ''}
+                      onChange={(e) => {
+                        const newFotos = [...fotosGenerales];
+                        newFotos[index] = { ...newFotos[index], descripcion: e.target.value };
+                        setFotosGenerales(newFotos);
+                      }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Observaciones generales */}
         <Card>
           <CardContent>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Observaciones Generales del Levantamiento"
-              value={observacionesGenerales}
-              onChange={(e) => setObservacionesGenerales(e.target.value)}
-              placeholder="Notas generales sobre el levantamiento técnico"
-            />
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Observaciones Generales del Levantamiento"
+                value={observacionesGenerales}
+                onChange={(e) => setObservacionesGenerales(e.target.value)}
+                placeholder="Notas generales sobre el levantamiento técnico"
+              />
+              <IconButton
+                color={grabando ? 'error' : 'primary'}
+                onClick={toggleDictado}
+                sx={{ 
+                  mt: 1,
+                  animation: grabando ? 'pulse 1.5s infinite' : 'none',
+                  '@keyframes pulse': {
+                    '0%': { transform: 'scale(1)' },
+                    '50%': { transform: 'scale(1.1)' },
+                    '100%': { transform: 'scale(1)' }
+                  }
+                }}
+                title={grabando ? 'Detener dictado' : 'Iniciar dictado por voz'}
+              >
+                {grabando ? '🔴' : '🎤'}
+              </IconButton>
+            </Box>
+            {grabando && (
+              <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+                🔴 Grabando... Habla ahora
+              </Typography>
+            )}
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              💡 Click en el micrófono para dictar por voz
+            </Typography>
           </CardContent>
         </Card>
       </DialogContent>

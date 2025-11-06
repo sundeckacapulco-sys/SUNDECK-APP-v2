@@ -68,7 +68,7 @@ const PiezaCard = ({
               mb: 0.5
             }}
           >
-            🔹 Pieza {numero}: {ancho} × {alto} m ({area.toFixed(2)} m²)
+            🔹 Pieza {numero}: {ancho} × {alto} m ({(area || (ancho * alto) || 0).toFixed(2)} m²)
           </Typography>
           
           <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>

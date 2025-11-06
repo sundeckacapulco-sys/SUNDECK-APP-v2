@@ -146,8 +146,13 @@ app.use('/api/storage', require('./routes/storage'));
 app.use('/api/backup', require('./routes/backup'));
 app.use('/api/fix', require('./routes/fix')); // Ruta temporal para correcciones
 
-// Servir archivos estáticos desde uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Servir archivos estáticos desde uploads con CORS
+app.use('/uploads', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 logger.info('Archivos estáticos configurados', { directory: path.join(__dirname, 'uploads') });
 
 // Servir archivos estáticos públicos (imágenes, logos, etc.)

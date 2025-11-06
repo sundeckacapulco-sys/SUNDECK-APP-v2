@@ -74,9 +74,12 @@ class ProyectosAPI {
   }
 
   // Eliminar proyecto
-  async eliminarProyecto(id) {
+  async eliminarProyecto(id, permanente = false) {
     try {
-      const response = await axiosConfig.delete(`/proyectos/${id}`);
+      const url = permanente 
+        ? `/proyectos/${id}?permanente=true` 
+        : `/proyectos/${id}`;
+      const response = await axiosConfig.delete(url);
       return response.data;
     } catch (error) {
       console.error('Error eliminando proyecto:', error);

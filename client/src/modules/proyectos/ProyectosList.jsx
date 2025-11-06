@@ -205,7 +205,8 @@ const ProyectosList = () => {
 
   const handleEliminarProyecto = async () => {
     try {
-      const response = await proyectosApi.eliminarProyecto(proyectoSeleccionado._id);
+      // Usar eliminación permanente (true) para eliminar realmente el proyecto
+      const response = await proyectosApi.eliminarProyecto(proyectoSeleccionado._id, true);
       
       if (response.success) {
         await cargarProyectos();

@@ -196,7 +196,9 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
               onClick={() => {
                 // Pasar el ID del proyecto para importar levantamiento y URL de retorno
                 const returnUrl = `/proyectos/${proyecto._id}?tab=1`; // tab=1 es Cotización
-                const urlConProyecto = `${nuevaCotizacionUrl}&proyecto=${proyecto._id}&returnTo=${encodeURIComponent(returnUrl)}`;
+                const separator = nuevaCotizacionUrl.includes('?') ? '&' : '?';
+                const urlConProyecto = `${nuevaCotizacionUrl}${separator}proyecto=${proyecto._id}&returnTo=${encodeURIComponent(returnUrl)}`;
+                console.log('🔗 Navegando a:', urlConProyecto);
                 navigate(urlConProyecto);
               }}
             >

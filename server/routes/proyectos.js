@@ -5,6 +5,7 @@ const {
   registrarCambioEstado,
   obtenerTransicionesValidas
 } = require('../middleware/transicionesEstado');
+const upload = require('../middleware/uploadFotos');
 const {
   crearProyecto,
   obtenerProyectos,
@@ -22,7 +23,8 @@ const {
   guardarLevantamiento,
   crearCotizacionDesdeProyecto,
   generarPDFProyecto,
-  generarExcelLevantamiento
+  generarExcelLevantamiento,
+  subirFotosLevantamiento
 } = require('../controllers/proyectoController');
 
 const router = express.Router();
@@ -362,6 +364,14 @@ router.post('/:id/excel',
       });
     }
   }
+);
+
+// POST /api/proyectos/levantamiento/fotos - Subir fotos del levantamiento
+router.post('/levantamiento/fotos',
+  auth,
+  verificarPermiso('proyectos', 'crear'),
+  upload.array('fotos', 10), // Máximo 10 fotos a la vez
+  subirFotosLevantamiento
 );
 
 module.exports = router;

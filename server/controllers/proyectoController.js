@@ -795,6 +795,7 @@ const cambiarEstado = async (req, res) => {
 const eliminarProyecto = async (req, res) => {
   try {
     const { id } = req.params;
+    const { permanente } = req.query; // Permitir eliminación permanente con query param
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -803,27 +804,54 @@ const eliminarProyecto = async (req, res) => {
       });
     }
 
-    const proyecto = await Proyecto.findByIdAndUpdate(
-      id,
-      { 
-        activo: false,
-        actualizado_por: req.usuario.id,
-        fecha_actualizacion: new Date()
-      },
-      { new: true }
-    );
+    let proyecto;
+    
+    if (permanente === 'true') {
+      // Hard delete - Eliminación permanente
+      proyecto = await Proyecto.findByIdAndDelete(id);
+      
+      if (!proyecto) {
+        return res.status(404).json({
+          success: false,
+          message: 'Proyecto no encontrado'
+        });
+      }
+      
+      logger.info('Proyecto eliminado permanentemente', {
+        context: 'eliminarProyecto',
+        proyectoId: id,
+        numero: proyecto.numero,
+        userId: req.usuario?.id
+      });
+      
+      res.json({
+        success: true,
+        message: 'Proyecto eliminado permanentemente'
+      });
+    } else {
+      // Soft delete - Marcar como inactivo
+      proyecto = await Proyecto.findByIdAndUpdate(
+        id,
+        { 
+          activo: false,
+          actualizado_por: req.usuario.id,
+          fecha_actualizacion: new Date()
+        },
+        { new: true }
+      );
 
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado'
+      if (!proyecto) {
+        return res.status(404).json({
+          success: false,
+          message: 'Proyecto no encontrado'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Proyecto desactivado exitosamente'
       });
     }
-
-    res.json({
-      success: true,
-      message: 'Proyecto eliminado exitosamente'
-    });
 
   } catch (error) {
     logger.logError(error, {
@@ -1563,6 +1591,48 @@ const crearCotizacionDesdeProyecto = async (req, res) => {
   }
 };
 
+// Subir fotos del levantamiento
+const subirFotosLevantamiento = async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se recibieron archivos'
+      });
+    }
+
+    // Generar URLs de las fotos subidas
+    const fotosUrls = req.files.map(file => ({
+      url: `/uploads/levantamientos/${file.filename}`,
+      descripcion: '',
+      fechaSubida: new Date()
+    }));
+
+    logger.info('Fotos de levantamiento subidas', {
+      context: 'subirFotosLevantamiento',
+      cantidadFotos: fotosUrls.length,
+      userId: req.usuario?.id
+    });
+
+    res.json({
+      success: true,
+      message: `${fotosUrls.length} foto(s) subida(s) exitosamente`,
+      data: fotosUrls
+    });
+
+  } catch (error) {
+    logger.logError(error, {
+      context: 'subirFotosLevantamiento',
+      userId: req.usuario?.id
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error al subir las fotos',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   crearProyecto,
   obtenerProyectos,
@@ -1580,5 +1650,6 @@ module.exports = {
   guardarLevantamiento,
   crearCotizacionDesdeProyecto,
   generarPDFProyecto,
-  generarExcelLevantamiento
+  generarExcelLevantamiento,
+  subirFotosLevantamiento
 };

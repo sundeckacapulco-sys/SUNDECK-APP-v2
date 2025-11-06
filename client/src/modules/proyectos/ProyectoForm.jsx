@@ -59,7 +59,8 @@ const ProyectoForm = () => {
         colonia: '',
         ciudad: '',
         codigoPostal: '',
-        referencias: ''
+        referencias: '',
+        linkUbicacion: ''
       }
     },
     descripcion: '',
@@ -97,7 +98,8 @@ const ProyectoForm = () => {
             colonia: proyectoData.cliente?.direccion?.colonia || '',
             ciudad: proyectoData.cliente?.direccion?.ciudad || '',
             codigoPostal: proyectoData.cliente?.direccion?.codigoPostal || '',
-            referencias: proyectoData.cliente?.direccion?.referencias || ''
+            referencias: proyectoData.cliente?.direccion?.referencias || '',
+            linkUbicacion: proyectoData.cliente?.direccion?.linkUbicacion || ''
           }
         },
         descripcion: proyectoData.descripcion || '',
@@ -116,16 +118,8 @@ const ProyectoForm = () => {
   };
 
   const handleInputChange = (campo, valor) => {
-    if (campo.includes('.')) {
-      const [padre, hijo] = campo.split('.');
-      setProyecto(prev => ({
-        ...prev,
-        [padre]: {
-          ...prev[padre],
-          [hijo]: valor
-        }
-      }));
-    } else if (campo.includes('direccion.')) {
+    // Manejar campos de dirección (direccion.calle, direccion.colonia, etc.)
+    if (campo.startsWith('direccion.')) {
       const subcampo = campo.replace('direccion.', '');
       setProyecto(prev => ({
         ...prev,
@@ -137,7 +131,20 @@ const ProyectoForm = () => {
           }
         }
       }));
-    } else {
+    }
+    // Manejar otros campos anidados (cliente.nombre, cliente.telefono, etc.)
+    else if (campo.includes('.')) {
+      const [padre, hijo] = campo.split('.');
+      setProyecto(prev => ({
+        ...prev,
+        [padre]: {
+          ...prev[padre],
+          [hijo]: valor
+        }
+      }));
+    }
+    // Manejar campos simples
+    else {
       setProyecto(prev => ({
         ...prev,
         [campo]: valor
@@ -148,20 +155,40 @@ const ProyectoForm = () => {
   const validarPaso = (paso) => {
     switch (paso) {
       case 0: // Información del cliente
-        return proyecto.cliente.nombre.trim() && proyecto.cliente.telefono.trim();
+        return proyecto.cliente.nombre.trim().length > 0 && 
+               proyecto.cliente.telefono.trim().length > 0;
+        
       case 1: // Detalles del proyecto
-        return proyecto.descripcion.trim();
+        return proyecto.descripcion.trim().length > 0;
+        
       case 2: // Confirmación
         return true;
+        
       default:
         return false;
     }
   };
 
   const handleSiguientePaso = () => {
-    if (validarPaso(pasoActual)) {
-      setPasoActual(prev => prev + 1);
+    // Validar y mostrar error solo al hacer click
+    if (pasoActual === 0) {
+      if (!proyecto.cliente.nombre.trim()) {
+        setError('El nombre del cliente es requerido');
+        return;
+      }
+      if (!proyecto.cliente.telefono.trim()) {
+        setError('El teléfono del cliente es requerido');
+        return;
+      }
+    } else if (pasoActual === 1) {
+      if (!proyecto.descripcion.trim()) {
+        setError('La descripción del proyecto es requerida');
+        return;
+      }
     }
+    
+    setError(null);
+    setPasoActual(prev => prev + 1);
   };
 
   const handlePasoAnterior = () => {
@@ -284,6 +311,18 @@ const ProyectoForm = () => {
             rows={2}
             value={proyecto.cliente.direccion.referencias}
             onChange={(e) => handleInputChange('direccion.referencias', e.target.value)}
+            placeholder="Ej: Entre calle X y Y, portón azul"
+          />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Link de ubicación (Google Maps)"
+            value={proyecto.cliente.direccion.linkUbicacion}
+            onChange={(e) => handleInputChange('direccion.linkUbicacion', e.target.value)}
+            placeholder="https://maps.google.com/..."
+            helperText="Pega aquí el enlace de Google Maps para facilitar la ubicación"
           />
         </Grid>
       </Grid>

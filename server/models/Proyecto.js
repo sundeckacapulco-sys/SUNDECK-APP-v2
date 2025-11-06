@@ -21,8 +21,30 @@ const proyectoSchema = new mongoose.Schema({
       lowercase: true
     },
     direccion: {
-      type: String,
-      trim: true
+      calle: {
+        type: String,
+        trim: true
+      },
+      colonia: {
+        type: String,
+        trim: true
+      },
+      ciudad: {
+        type: String,
+        trim: true
+      },
+      codigoPostal: {
+        type: String,
+        trim: true
+      },
+      referencias: {
+        type: String,
+        trim: true
+      },
+      linkUbicacion: {
+        type: String,
+        trim: true
+      }
     },
     zona: {
       type: String,
@@ -129,7 +151,15 @@ const proyectoSchema = new mongoose.Schema({
         subtotal: Number,
         costoMotorizacion: Number,
         costoInstalacion: Number
-      }
+      },
+      fotos: [{
+        url: String,
+        descripcion: String,
+        fechaSubida: {
+          type: Date,
+          default: Date.now
+        }
+      }]
     }],
     totales: {
       m2: Number,
@@ -140,6 +170,16 @@ const proyectoSchema = new mongoose.Schema({
     },
     observaciones: String,
     personaVisita: String,
+    quienRecibe: String,
+    linkVideo: String,
+    fotosGenerales: [{
+      url: String,
+      descripcion: String,
+      fechaSubida: {
+        type: Date,
+        default: Date.now
+      }
+    }],
     actualizadoEn: {
       type: Date,
       default: Date.now
@@ -179,7 +219,9 @@ const proyectoSchema = new mongoose.Schema({
     }
   },
 
-  // Medidas estructuradas (Levantamientos con partidas)
+  // @deprecated - Usar 'levantamiento' en su lugar
+  // Este campo se mantiene por compatibilidad pero ya no se debe usar
+  // TODO: Migrar datos existentes y eliminar en versión futura
   medidas: [{
     // Información general del levantamiento
     tipo: String, // 'levantamiento'

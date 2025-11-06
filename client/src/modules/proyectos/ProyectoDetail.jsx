@@ -326,9 +326,38 @@ const ProyectoDetail = () => {
                   </Box>
                 )}
                 {proyecto.cliente.direccion && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <LocationIcon color="primary" />
-                    <Typography>{proyecto.cliente.direccion}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'start', gap: 1 }}>
+                    <LocationIcon color="primary" sx={{ mt: 0.5 }} />
+                    <Box>
+                      <Typography>
+                        {typeof proyecto.cliente.direccion === 'string' 
+                          ? proyecto.cliente.direccion 
+                          : [
+                              proyecto.cliente.direccion.calle,
+                              proyecto.cliente.direccion.colonia,
+                              proyecto.cliente.direccion.ciudad,
+                              proyecto.cliente.direccion.codigoPostal
+                            ].filter(Boolean).join(', ')
+                        }
+                      </Typography>
+                      {proyecto.cliente.direccion.referencias && (
+                        <Typography variant="caption" color="text.secondary">
+                          Ref: {proyecto.cliente.direccion.referencias}
+                        </Typography>
+                      )}
+                      {proyecto.cliente.direccion.linkUbicacion && (
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                          <a 
+                            href={proyecto.cliente.direccion.linkUbicacion} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{ color: '#1976d2', textDecoration: 'none' }}
+                          >
+                            📍 Ver en Google Maps
+                          </a>
+                        </Typography>
+                      )}
+                    </Box>
                   </Box>
                 )}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

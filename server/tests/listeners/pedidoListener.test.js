@@ -50,8 +50,17 @@ describe('PedidoListener', () => {
   });
 
   it('crea pedido y emite evento cuando anticipo está pagado', async () => {
+    const mockProspecto = {
+      _id: 'pros1',
+      nombre: 'Cliente',
+      telefono: '123',
+      etapa: 'cotizacion',
+      fechaUltimoContacto: new Date(),
+      save: jest.fn().mockResolvedValue(true)
+    };
+
     const cotizacionDoc = {
-      prospecto: { _id: 'pros1', nombre: 'Cliente', telefono: '123' },
+      prospecto: mockProspecto,
       total: 1500,
       productos: [{
         nombre: 'Producto',
@@ -77,11 +86,8 @@ describe('PedidoListener', () => {
         populate: jest.fn().mockResolvedValue(cotizacionDoc)
       })
     });
-
-    Prospecto.findById.mockResolvedValue({
-      _id: 'pros1',
-      save: jest.fn()
-    });
+    
+    Prospecto.findById.mockResolvedValue(mockProspecto);
 
     Pedido.findOne.mockResolvedValue(null);
 

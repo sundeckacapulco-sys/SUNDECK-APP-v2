@@ -207,64 +207,44 @@ const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fiel
 
   // Reset al abrir el modal
   useEffect(() => {
-    console.log('Modal abierto - reseteando selecciones');
     setPartidasSeleccionadas([]);
   }, [levantamientoData]);
 
   const handleTogglePartida = (pieza, index) => {
-    console.log('=== TOGGLE PARTIDA DEBUG ===');
-    console.log('Pieza clickeada:', pieza.ubicacion, 'Index:', index);
-    console.log('Partidas seleccionadas ANTES:', partidasSeleccionadas.map(p => `${p.ubicacion} (index: ${p.index})`));
-    
     const isSelected = partidasSeleccionadas.some(p => p.index === index);
-    console.log('¿Está seleccionada?', isSelected);
     
     if (isSelected) {
-      const nuevasPartidas = partidasSeleccionadas.filter(p => p.index !== index);
-      console.log('REMOVIENDO - Nuevas partidas:', nuevasPartidas.length);
-      console.log('Partidas después de remover:', nuevasPartidas.map(p => `${p.ubicacion} (index: ${p.index})`));
-      setPartidasSeleccionadas(nuevasPartidas);
+      setPartidasSeleccionadas(partidasSeleccionadas.filter(p => p.index !== index));
     } else {
-      // VERIFICAR SI YA EXISTE LA MISMA PARTIDA CON DIFERENTE ÍNDICE
+      // Verificar si ya existe la misma partida
       const yaExiste = partidasSeleccionadas.some(p => 
         p.ubicacion === pieza.ubicacion && 
         (p.producto === pieza.producto || p.productoLabel === pieza.productoLabel)
       );
       
-      if (yaExiste) {
-        console.log('⚠️ PARTIDA YA EXISTE CON DIFERENTE ÍNDICE - NO AGREGANDO');
-        return;
+      if (!yaExiste) {
+        setPartidasSeleccionadas([...partidasSeleccionadas, { ...pieza, index }]);
       }
-      
-      const nuevasPartidas = [...partidasSeleccionadas, { ...pieza, index }];
-      console.log('AGREGANDO - Nuevas partidas:', nuevasPartidas.length);
-      console.log('Partidas después de agregar:', nuevasPartidas.map(p => `${p.ubicacion} (index: ${p.index})`));
-      setPartidasSeleccionadas(nuevasPartidas);
     }
-    console.log('=== FIN TOGGLE DEBUG ===');
   };
 
   const handleSelectAll = () => {
-    console.log('Select all - partidas disponibles:', levantamientoData.piezas.length);
-    console.log('Select all - partidas seleccionadas:', partidasSeleccionadas.length);
-    
     if (partidasSeleccionadas.length === levantamientoData.piezas.length) {
-      console.log('Deseleccionando todas');
       setPartidasSeleccionadas([]);
     } else {
-      const todasLasPartidas = levantamientoData.piezas.map((pieza, index) => ({ ...pieza, index }));
-      console.log('Seleccionando todas:', todasLasPartidas.length);
-      setPartidasSeleccionadas(todasLasPartidas);
+      setPartidasSeleccionadas(levantamientoData.piezas.map((pieza, index) => ({ ...pieza, index })));
     }
   };
 
   const calcularAreaPieza = (pieza) => {
-    if (pieza.medidas && Array.isArray(pieza.medidas) && pieza.medidas.length > 0) {
-      return pieza.medidas.reduce((sum, medida) => {
-        const anchoMedida = parseNumber(medida.ancho, 0);
-        const altoMedida = parseNumber(medida.alto, 0);
-        const cantidadMedida = parseNumber(medida.cantidad, 1) || 1;
-        return sum + anchoMedida * altoMedida * cantidadMedida;
+    // Buscar en piezas (levantamiento) o medidas (antiguo)
+    const piezasIndividuales = pieza.piezas || pieza.medidas || [];
+    
+    if (piezasIndividuales.length > 0) {
+      return piezasIndividuales.reduce((sum, medida) => {
+        // Priorizar m2 si existe, sino calcular
+        const m2 = medida.m2 || (parseNumber(medida.ancho, 0) * parseNumber(medida.alto, 0));
+        return sum + m2;
       }, 0);
     }
 
@@ -273,13 +253,6 @@ const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fiel
     const cantidad = parseNumber(pieza.cantidad, 1) || 1;
     return ancho * alto * cantidad;
   };
-
-  // Debug del render
-  console.log('=== RENDER MODAL DEBUG ===');
-  console.log('Partidas disponibles:', levantamientoData.piezas?.length);
-  console.log('Partidas seleccionadas:', partidasSeleccionadas.length);
-  console.log('Lista de seleccionadas:', partidasSeleccionadas.map(p => `${p.ubicacion} (index: ${p.index})`));
-  console.log('=== FIN RENDER DEBUG ===');
 
   return (
     <Box>
@@ -356,24 +329,27 @@ const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fiel
                     </Box>
                     
                     {/* Mostrar medidas */}
-                    {pieza.medidas && Array.isArray(pieza.medidas) && pieza.medidas.length > 0 ? (
-                      <Box sx={{ mt: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          Medidas individuales:
-                        </Typography>
-                        <Box display="flex" gap={1} flexWrap="wrap">
-                          {pieza.medidas.map((medida, medidaIndex) => (
-                            <Typography key={medidaIndex} variant="caption">
-                              {medida.ancho} × {medida.alto} m
-                            </Typography>
-                          ))}
+                    {(() => {
+                      const piezasIndividuales = pieza.piezas || pieza.medidas || [];
+                      return piezasIndividuales.length > 0 ? (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            × m × {piezasIndividuales.length} {piezasIndividuales.length === 1 ? 'pieza' : 'piezas'}
+                          </Typography>
+                          <Box display="flex" gap={1} flexWrap="wrap">
+                            {piezasIndividuales.map((medida, medidaIndex) => (
+                              <Typography key={medidaIndex} variant="caption">
+                                {medida.ancho} × {medida.alto} m ({(medida.m2 || (medida.ancho * medida.alto) || 0).toFixed(2)} m²)
+                              </Typography>
+                            ))}
+                          </Box>
                         </Box>
-                      </Box>
-                    ) : (
-                      <Typography variant="caption" color="text.secondary">
-                        {pieza.ancho} × {pieza.alto} m × {pieza.cantidad || 1} piezas
-                      </Typography>
-                    )}
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          {pieza.ancho} × {pieza.alto} m × {pieza.cantidad || 1} piezas
+                        </Typography>
+                      );
+                    })()}
 
                     {pieza.observaciones && (
                       <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
@@ -853,6 +829,20 @@ const CotizacionForm = () => {
         const { data } = await axiosConfig.get(`/proyectos/${proyectoId}`);
         const proyecto = data.data;
         
+        // Pre-seleccionar el cliente del proyecto
+        console.log('📋 Datos del proyecto:', proyecto);
+        console.log('👤 Cliente del proyecto:', proyecto.cliente);
+        
+        if (proyecto.cliente?.nombre) {
+          const nombreCliente = `${proyecto.cliente.nombre} - ${proyecto.cliente.telefono}`;
+          console.log('✅ Pre-seleccionando cliente:', nombreCliente);
+          setValue('cliente', nombreCliente);
+          // Trigger para que el Autocomplete lo reconozca
+          setTimeout(() => {
+            setValue('cliente', nombreCliente);
+          }, 100);
+        }
+        
         if (proyecto.levantamiento && proyecto.levantamiento.partidas) {
           console.log('✅ Partidas encontradas:', proyecto.levantamiento.partidas);
           importarDesdeProyectoUnificado(proyecto);
@@ -863,107 +853,66 @@ const CotizacionForm = () => {
         }
       }
       
-      // Si no, buscar en el prospecto (formato viejo)
+      // Si no hay proyecto, buscar por prospecto
       const selectedProspecto = prospectoId || watchedProspecto;
       if (!selectedProspecto) {
         setError('No hay prospecto o proyecto seleccionado');
         return;
       }
 
-      // Obtener etapas del prospecto usando el mismo endpoint que funciona en ProspectoDetalle
-      const { data } = await axiosConfig.get(`/etapas?prospectoId=${selectedProspecto}`);
-      const etapas = data.etapas || [];
-      
-      console.log('Etapas encontradas:', etapas);
-      
-      // Inspeccionar cada etapa en detalle
-      etapas.forEach((etapa, index) => {
-        console.log(`Etapa ${index}:`, {
-          nombreEtapa: etapa.nombreEtapa,
-          piezas: etapa.piezas,
-          tienePiezas: etapa.piezas && etapa.piezas.length > 0,
-          estructura: etapa
-        });
-      });
-      
-      // Buscar etapa de levantamiento - búsqueda más amplia
-      const levantamiento = etapas.find(etapa => {
-        // Verificar si tiene piezas
-        const tienePiezas = etapa.piezas && etapa.piezas.length > 0;
-        
-        // Buscar por nombres comunes de etapas de levantamiento
-        const esLevantamiento = etapa.nombreEtapa && (
-          etapa.nombreEtapa.toLowerCase().includes('visita') ||
-          etapa.nombreEtapa.toLowerCase().includes('medición') ||
-          etapa.nombreEtapa.toLowerCase().includes('levantamiento') ||
-          etapa.nombreEtapa.toLowerCase().includes('técnico') ||
-          etapa.nombreEtapa === 'Visita Inicial / Medición' ||
-          etapa.nombreEtapa === 'Levantamiento Técnico'
-        );
-        
-        console.log(`Etapa "${etapa.nombreEtapa}":`, { tienePiezas, esLevantamiento, piezasData: etapa.piezas });
-        
-        return tienePiezas && esLevantamiento;
-      });
+      console.log('🔍 Buscando proyecto para prospecto:', selectedProspecto);
 
-      // Si no encuentra por nombre, buscar cualquier etapa que tenga piezas en cualquier propiedad
-      const etapaConPiezas = !levantamiento ? etapas.find(etapa => {
-        // Buscar piezas en diferentes propiedades posibles
-        const tienePiezasNormal = etapa.piezas && etapa.piezas.length > 0;
-        const tienePiezasData = etapa.data && etapa.data.piezas && etapa.data.piezas.length > 0;
-        const tienePartidas = etapa.partidas && etapa.partidas.length > 0;
-        const tieneMedidas = etapa.medidas && etapa.medidas.length > 0;
-        
-        console.log(`Buscando piezas en "${etapa.nombreEtapa}":`, {
-          tienePiezasNormal,
-          tienePiezasData, 
-          tienePartidas,
-          tieneMedidas,
-          propiedades: Object.keys(etapa)
-        });
-        
-        return tienePiezasNormal || tienePiezasData || tienePartidas || tieneMedidas;
-      }) : null;
-
-      const etapaFinal = levantamiento || etapaConPiezas;
-
-      if (etapaFinal) {
-        console.log('Etapa seleccionada para importar:', etapaFinal);
-        
-        // Normalizar la estructura de datos si es necesario
-        if (!etapaFinal.piezas && etapaFinal.data && etapaFinal.data.piezas) {
-          etapaFinal.piezas = etapaFinal.data.piezas;
-        } else if (!etapaFinal.piezas && etapaFinal.partidas) {
-          etapaFinal.piezas = etapaFinal.partidas;
-        } else if (!etapaFinal.piezas && etapaFinal.medidas) {
-          etapaFinal.piezas = etapaFinal.medidas;
-        }
-        
-        // ELIMINAR DUPLICADOS EN LOS DATOS ORIGINALES
-        const piezasUnicasOriginales = etapaFinal.piezas.filter((pieza, index, array) => {
-          const esPrimera = array.findIndex(p => 
-            p.ubicacion === pieza.ubicacion && 
-            (p.producto === pieza.producto || p.productoLabel === pieza.productoLabel)
-          ) === index;
-          
-          if (!esPrimera) {
-            console.log(`Eliminando pieza duplicada en origen: ${pieza.ubicacion} - ${pieza.producto || pieza.productoLabel}`);
-          }
-          
-          return esPrimera;
-        });
-        
-        console.log(`Piezas originales: ${etapaFinal.piezas.length}, Piezas únicas: ${piezasUnicasOriginales.length}`);
-        
-        // Actualizar con piezas únicas
-        etapaFinal.piezas = piezasUnicasOriginales;
-        
-        setLevantamientoData(etapaFinal);
-        setShowImportModal(true);
-      } else {
-        console.log('No se encontraron etapas con piezas');
-        setError(`No se encontró levantamiento técnico para este prospecto. Etapas disponibles: ${etapas.map(e => `${e.nombreEtapa} (propiedades: ${Object.keys(e).join(', ')})`).join(' | ')}`);
+      // Buscar proyecto asociado al prospecto
+      const { data: proyectosData } = await axiosConfig.get(`/proyectos?prospecto_original=${selectedProspecto}`);
+      const proyectos = proyectosData?.data?.docs || [];
+      
+      if (proyectos.length === 0) {
+        setError('No se encontró proyecto asociado a este prospecto');
+        return;
       }
+
+      const proyecto = proyectos[0];
+      
+      console.log('✅ Proyecto encontrado:', {
+        id: proyecto._id,
+        numero: proyecto.numero,
+        tienePartidas: !!proyecto.levantamiento?.partidas?.length,
+        tieneMedidas: !!proyecto.medidas?.length
+      });
+
+      // Verificar que el proyecto tenga levantamiento (nuevo o legacy)
+      const tienePartidas = proyecto.levantamiento?.partidas?.length > 0;
+      const tieneMedidas = proyecto.medidas?.length > 0;
+      
+      if (!tienePartidas && !tieneMedidas) {
+        setError('Este proyecto no tiene levantamiento técnico. Crea un levantamiento primero.');
+        return;
+      }
+
+      // Priorizar partidas nuevas, si no hay usar medidas legacy
+      let piezasParaImportar;
+      if (tienePartidas) {
+        console.log('✅ Usando partidas del levantamiento nuevo:', proyecto.levantamiento.partidas);
+        piezasParaImportar = proyecto.levantamiento.partidas;
+      } else {
+        console.log('✅ Usando medidas legacy:', proyecto.medidas);
+        // Convertir medidas legacy a formato de partidas
+        piezasParaImportar = proyecto.medidas[0]?.piezas || [];
+      }
+      
+      // Eliminar duplicados
+      const piezasUnicas = piezasParaImportar.filter((pieza, index, array) => {
+        const esPrimera = array.findIndex(p => 
+          p.ubicacion === pieza.ubicacion && 
+          (p.producto === pieza.producto || p.productoLabel === pieza.productoLabel)
+        ) === index;
+        return esPrimera;
+      });
+      
+      console.log(`✅ Levantamiento: ${piezasUnicas.length} partidas encontradas`);
+      
+      setLevantamientoData({ piezas: piezasUnicas });
+      setShowImportModal(true);
     } catch (err) {
       setError('Error al obtener datos del levantamiento: ' + (err.response?.data?.message || err.message));
     } finally {
@@ -975,40 +924,33 @@ const CotizacionForm = () => {
   const importarPartidas = (partidasSeleccionadas) => {
     if (!levantamientoData || !partidasSeleccionadas.length) return;
 
-    console.log('Partidas seleccionadas para importar:', partidasSeleccionadas);
-    console.log('Cantidad de partidas:', partidasSeleccionadas.length);
-
-    // ELIMINAR DUPLICADOS por ubicación y producto
+    // Eliminar duplicados por ubicación y producto
     const partidasUnicas = partidasSeleccionadas.filter((partida, index, array) => {
-      const esPrimera = array.findIndex(p => 
+      return array.findIndex(p => 
         p.ubicacion === partida.ubicacion && 
         (p.producto === partida.producto || p.productoLabel === partida.productoLabel)
       ) === index;
-      
-      if (!esPrimera) {
-        console.log(`Eliminando duplicado: ${partida.ubicacion} - ${partida.producto || partida.productoLabel}`);
-      }
-      
-      return esPrimera;
     });
 
-    console.log('Partidas después de eliminar duplicados:', partidasUnicas.length);
-
-    partidasUnicas.forEach((pieza, idx) => {
-      console.log(`Importando partida ${idx + 1}:`, pieza);
+    partidasUnicas.forEach((pieza) => {
       // Calcular área total de la pieza
       let areaTotal = 0;
       let medidaRepresentativa = { ancho: 0, alto: 0 };
 
-      if (pieza.medidas && Array.isArray(pieza.medidas) && pieza.medidas.length > 0) {
-        // Formato nuevo: sumar áreas individuales
-        areaTotal = pieza.medidas.reduce((sum, medida) => {
-          return sum + ((medida.ancho || 0) * (medida.alto || 0));
+      // Detectar si tiene piezas (formato levantamiento) o medidas (formato antiguo)
+      const piezasIndividuales = pieza.piezas || pieza.medidas || [];
+      
+      if (piezasIndividuales.length > 0) {
+        // Formato nuevo: sumar m² o calcular de ancho × alto
+        areaTotal = piezasIndividuales.reduce((sum, medida) => {
+          // Priorizar m2 si existe, sino calcular
+          const m2 = medida.m2 || ((medida.ancho || 0) * (medida.alto || 0));
+          return sum + m2;
         }, 0);
         // Usar primera medida como representativa
         medidaRepresentativa = {
-          ancho: pieza.medidas[0].ancho || 0,
-          alto: pieza.medidas[0].alto || 0
+          ancho: piezasIndividuales[0].ancho || 0,
+          alto: piezasIndividuales[0].alto || 0
         };
       } else {
         // Formato anterior
@@ -1042,14 +984,6 @@ const CotizacionForm = () => {
         subtotal: areaTotal * (pieza.precioM2 || 0) // Solo área × precio, sin multiplicar por cantidad
       };
 
-      console.log(`=== PRODUCTO IMPORTADO ${idx + 1} ===`);
-      console.log('Área total calculada:', areaTotal);
-      console.log('Precio por m²:', pieza.precioM2);
-      console.log('Cantidad fija:', 1);
-      console.log('Subtotal calculado:', areaTotal * (pieza.precioM2 || 0));
-      console.log('Producto final:', productoImportado);
-      console.log('=== FIN PRODUCTO ===');
-      
       append(productoImportado);
     });
 

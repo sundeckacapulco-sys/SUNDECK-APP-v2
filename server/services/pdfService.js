@@ -66,6 +66,11 @@ if (!handlebars.helpers.multiply) {
 }
 
 async function ensurePartialsLoaded() {
+  // En desarrollo, recargar partials cada vez para ver cambios
+  if (process.env.NODE_ENV !== 'production') {
+    partialsLoadingPromise = null;
+  }
+  
   if (partialsLoadingPromise) {
     return partialsLoadingPromise;
   }
@@ -99,14 +104,21 @@ async function ensurePartialsLoaded() {
 async function getCompiledTemplate(templateName) {
   await ensurePartialsLoaded();
 
-  if (templatesCache.has(templateName)) {
+  // En desarrollo, no usar cache para ver cambios inmediatamente
+  const usarCache = process.env.NODE_ENV === 'production';
+  
+  if (usarCache && templatesCache.has(templateName)) {
     return templatesCache.get(templateName);
   }
 
   const templatePath = path.join(templatesDir, `${templateName}.hbs`);
   const content = await fs.readFile(templatePath, 'utf8');
   const compiled = handlebars.compile(content);
-  templatesCache.set(templateName, compiled);
+  
+  if (usarCache) {
+    templatesCache.set(templateName, compiled);
+  }
+  
   return compiled;
 }
 
