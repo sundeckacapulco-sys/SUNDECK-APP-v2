@@ -1,8 +1,10 @@
 const Cotizacion = require('../models/Cotizacion');
 const Pedido = require('../models/Pedido');
 const Prospecto = require('../models/Prospecto');
+const Proyecto = require('../models/Proyecto');
 const logger = require('../config/logger');
 const eventBus = require('../services/eventBusService');
+const { construirProductosDesdePartidas, normalizarProductoParaPedido } = require('../utils/cotizacionMapper');
 
 exports.aplicarAnticipo = async (req, res) => {
   try {
@@ -39,6 +41,51 @@ exports.aplicarAnticipo = async (req, res) => {
     const anticipoConfigurado = cotizacion.formaPago?.anticipo || {};
     const saldoConfigurado = cotizacion.formaPago?.saldo || {};
 
+    // ⭐ USAR MAPPER UNIFICADO PARA CONSTRUIR PRODUCTOS CON ESPECIFICACIONES TÉCNICAS
+    let productosPedido = [];
+    
+    // Intentar obtener productos desde el levantamiento del proyecto (fuente de verdad)
+    try {
+      const proyecto = await Proyecto.findOne({ 
+        'cotizacionActual.cotizacion': cotizacionId 
+      }).lean();
+      
+      if (proyecto?.levantamiento?.partidas && proyecto.levantamiento.partidas.length > 0) {
+        // Construir productos desde levantamiento (incluye 13 campos técnicos)
+        productosPedido = construirProductosDesdePartidas(proyecto.levantamiento.partidas, cotizacion);
+        
+        logger.info('Productos construidos desde levantamiento con especificaciones técnicas', {
+          controlador: 'PedidoController',
+          accion: 'aplicarAnticipo',
+          cotizacionId,
+          proyectoId: proyecto._id,
+          totalProductos: productosPedido.length,
+          conEspecificacionesTecnicas: true
+        });
+      } else {
+        // Fallback: normalizar productos desde cotización
+        productosPedido = cotizacion.productos.map(producto => normalizarProductoParaPedido(producto));
+        
+        logger.warn('Productos construidos desde cotización (sin levantamiento)', {
+          controlador: 'PedidoController',
+          accion: 'aplicarAnticipo',
+          cotizacionId,
+          totalProductos: productosPedido.length,
+          conEspecificacionesTecnicas: false
+        });
+      }
+    } catch (errorMapper) {
+      // Si falla el mapper, usar productos de cotización directamente
+      productosPedido = cotizacion.productos.map(producto => normalizarProductoParaPedido(producto));
+      
+      logger.error('Error usando mapper, fallback a productos de cotización', {
+        controlador: 'PedidoController',
+        accion: 'aplicarAnticipo',
+        cotizacionId,
+        error: errorMapper.message
+      });
+    }
+
     const nuevoPedido = new Pedido({
       cotizacion: cotizacionId,
       prospecto: cotizacion.prospecto?._id,
@@ -58,52 +105,7 @@ exports.aplicarAnticipo = async (req, res) => {
         fechaVencimiento: fechaInstalacion,
         pagado: false
       },
-      productos: cotizacion.productos.map(producto => ({
-        nombre: producto.nombre,
-        descripcion: producto.descripcion,
-        categoria: producto.categoria,
-        material: producto.material,
-        color: producto.color,
-        cristal: producto.cristal,
-        herrajes: producto.herrajes,
-        medidas: producto.medidas,
-        cantidad: producto.cantidad,
-        precioUnitario: producto.precioUnitario,
-        subtotal: producto.subtotal,
-        requiereR24: producto.requiereR24,
-        tiempoFabricacion: producto.tiempoFabricacion,
-        motorizado: producto.motorizado,
-        motorModelo: producto.motorModelo,
-        motorModeloManual: producto.motorModeloManual,
-        motorPrecio: producto.motorPrecio,
-        controlModelo: producto.controlModelo,
-        controlModeloManual: producto.controlModeloManual,
-        controlPrecio: producto.controlPrecio,
-        esControlMulticanal: producto.esControlMulticanal,
-        numMotores: producto.numMotores,
-        esToldo: producto.esToldo,
-        tipoToldo: producto.tipoToldo,
-        kitModelo: producto.kitModelo,
-        kitModeloManual: producto.kitModeloManual,
-        kitPrecio: producto.kitPrecio,
-        requiereAndamios: producto.requiereAndamios,
-        requiereObraElectrica: producto.requiereObraElectrica,
-        nivelAndamio: producto.nivelAndamio,
-        costoAndamios: producto.costoAndamios,
-        costoObraElectrica: producto.costoObraElectrica,
-        medidasIndividuales: producto.medidasIndividuales,
-        observaciones: producto.observaciones,
-        fotoUrls: producto.fotoUrls,
-        videoUrl: producto.videoUrl,
-        garantiaMotor: producto.garantiaMotor,
-        garantiaTela: producto.garantiaTela,
-        accionamiento: producto.accionamiento,
-        montaje: producto.montaje,
-        tipoTela: producto.tipoTela,
-        forroBlackout: producto.forroBlackout,
-        rielDecorativo: producto.rielDecorativo,
-        estadoFabricacion: 'pendiente'
-      })),
+      productos: productosPedido,
       direccionEntrega: direccionEntrega || cotizacion.prospecto?.direccion || {},
       contactoEntrega: contactoEntrega || {
         nombre: cotizacion.prospecto?.nombre,

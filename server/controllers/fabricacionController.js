@@ -296,17 +296,28 @@ function normalizarProductoParaOrden(producto) {
   const base = producto?.toObject ? producto.toObject() : producto;
   if (!base) return {};
 
-  const especificacionesTecnicas = {
-    tipoInstalacion: base.tipoInstalacion,
-    tipoSoporte: base.tipoSoporte,
-    orientacion: base.orientacion,
-    exposicionSolar: base.exposicionSolar,
-    tipoViento: base.tipoViento,
-    requiereR24: base.requiereR24 || base?.medidas?.ancho > 2.5 || base?.medidas?.alto > 2.5,
-    tiempoFabricacionEstimado: base.tiempoFabricacion || calcularTiempoProducto(base),
-    motorizado: base.motorizado,
-    esToldo: base.esToldo
+  // ⭐ USAR ESPECIFICACIONES TÉCNICAS DEL PEDIDO (13 campos desde levantamiento)
+  const especificacionesTecnicas = base.especificacionesTecnicas || {
+    sistema: base.sistema || [],
+    control: base.control || '',
+    tipoInstalacion: base.tipoInstalacion || '',
+    tipoFijacion: base.tipoFijacion || '',
+    caida: base.caida || '',
+    galeria: base.galeria || '',
+    telaMarca: base.telaMarca || base.material || '',
+    baseTabla: base.baseTabla || '',
+    modoOperacion: base.modoOperacion || '',
+    detalleTecnico: base.detalleTecnico || '',
+    traslape: base.traslape || '',
+    modeloCodigo: base.modeloCodigo || '',
+    observacionesTecnicas: base.observacionesTecnicas || base.observaciones || ''
   };
+
+  // Agregar información adicional de fabricación
+  especificacionesTecnicas.requiereR24 = base.requiereR24 || base?.medidas?.ancho > 2.5 || base?.medidas?.alto > 2.5;
+  especificacionesTecnicas.tiempoFabricacionEstimado = base.tiempoFabricacion || calcularTiempoProducto(base);
+  especificacionesTecnicas.motorizado = base.motorizado || false;
+  especificacionesTecnicas.esToldo = base.esToldo || false;
 
   return {
     nombre: base.nombre,
@@ -322,7 +333,11 @@ function normalizarProductoParaOrden(producto) {
     especificacionesTecnicas,
     materiales: base.materiales || [],
     instrucciones: base.instrucciones || [],
-    estadoFabricacion: base.estadoFabricacion || 'pendiente'
+    estadoFabricacion: base.estadoFabricacion || 'pendiente',
+    
+    // Metadata de trazabilidad
+    partidaOriginal: base.partidaOriginal || null,
+    piezaOriginal: base.piezaOriginal || null
   };
 }
 

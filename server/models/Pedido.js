@@ -86,6 +86,90 @@ const pedidoSchema = new mongoose.Schema({
     subtotal: Number,
     requiereR24: Boolean,
     tiempoFabricacion: Number,
+    
+    // ⭐ ESPECIFICACIONES TÉCNICAS COMPLETAS (13 campos)
+    // Flujo: Proyecto.levantamiento → Cotización → Pedido → Fabricación
+    especificacionesTecnicas: {
+      sistema: [String],              // Campo 1: Tipo de sistema (Roller, Zebra, Panel, etc.)
+      control: String,                // Campo 2: Tipo de control (Manual, Motorizado, Micro)
+      tipoInstalacion: String,        // Campo 3: Tipo de instalación (Muro, Techo, Empotrado, Exterior)
+      tipoFijacion: String,           // Campo 4: Tipo de fijación (Concreto, Tablaroca, Aluminio, Madera)
+      caida: String,                  // Campo 5: Orientación de caída (Frontal, Lateral, etc.)
+      galeria: String,                // Campo 6: Galería (Sí/No)
+      telaMarca: String,              // Campo 7: Marca de tela (Screen 3%, Blackout, etc.)
+      baseTabla: String,              // Campo 8: Medida de base/tabla (7cm, 15cm, 18cm)
+      modoOperacion: String,          // Campo 9: Modo de operación (Cadena, Motor, etc.)
+      detalleTecnico: String,         // Campo 10: Detalle técnico adicional
+      traslape: String,               // Campo 11: Traslape (Sí/No)
+      modeloCodigo: String,           // Campo 12: Modelo/código del producto
+      observacionesTecnicas: String   // Campo 13: Observaciones técnicas específicas
+    },
+    
+    // Motorización (si aplica)
+    motorizado: Boolean,
+    motorModelo: String,
+    motorModeloManual: String,
+    motorPrecio: Number,
+    controlModelo: String,
+    controlModeloManual: String,
+    controlPrecio: Number,
+    esControlMulticanal: Boolean,
+    numMotores: Number,
+    
+    // Toldos (si aplica)
+    esToldo: Boolean,
+    tipoToldo: String,
+    kitModelo: String,
+    kitModeloManual: String,
+    kitPrecio: Number,
+    
+    // Instalación especial
+    requiereAndamios: Boolean,
+    requiereObraElectrica: Boolean,
+    nivelAndamio: String,
+    costoAndamios: Number,
+    costoObraElectrica: Number,
+    requiereInstalacionEspecial: Boolean,
+    tipoCobroInstalacion: String,
+    costoInstalacionBase: Number,
+    costoInstalacionPorPieza: Number,
+    
+    // Medidas individuales (para productos con múltiples piezas)
+    medidasIndividuales: [{
+      ancho: Number,
+      alto: Number,
+      area: Number
+    }],
+    
+    // Multimedia
+    fotoUrls: [String],
+    videoUrl: String,
+    
+    // Garantías
+    garantiaMotor: String,
+    garantiaTela: String,
+    
+    // Detalles adicionales
+    accionamiento: String,
+    montaje: String,
+    tipoTela: String,
+    forroBlackout: Boolean,
+    rielDecorativo: Boolean,
+    
+    // Observaciones generales
+    observaciones: String,
+    
+    // Metadata para trazabilidad
+    partidaOriginal: {
+      index: Number,
+      ubicacion: String,
+      producto: String
+    },
+    piezaOriginal: {
+      index: Number,
+      total: Number
+    },
+    
     // Estado específico del producto
     estadoFabricacion: {
       type: String,
