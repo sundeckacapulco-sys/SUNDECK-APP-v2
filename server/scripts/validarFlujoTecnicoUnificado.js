@@ -11,6 +11,7 @@
 const mongoose = require('mongoose');
 const Proyecto = require('../models/Proyecto');
 const Pedido = require('../models/Pedido');
+const Prospecto = require('../models/Prospecto');
 const OrdenFabricacion = require('../models/OrdenFabricacion');
 const { construirProductosDesdePartidas, validarEspecificacionesTecnicas } = require('../utils/cotizacionMapper');
 const logger = require('../config/logger');
