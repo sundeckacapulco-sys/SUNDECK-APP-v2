@@ -829,18 +829,17 @@ const CotizacionForm = () => {
         const { data } = await axiosConfig.get(`/proyectos/${proyectoId}`);
         const proyecto = data.data;
         
-        // Pre-seleccionar el cliente del proyecto
+        // Pre-seleccionar el prospecto del proyecto
         console.log('📋 Datos del proyecto:', proyecto);
-        console.log('👤 Cliente del proyecto:', proyecto.cliente);
+        console.log('👤 Prospecto del proyecto:', proyecto.prospecto);
         
-        if (proyecto.cliente?.nombre) {
-          const nombreCliente = `${proyecto.cliente.nombre} - ${proyecto.cliente.telefono}`;
-          console.log('✅ Pre-seleccionando cliente:', nombreCliente);
-          setValue('cliente', nombreCliente);
-          // Trigger para que el Autocomplete lo reconozca
-          setTimeout(() => {
-            setValue('cliente', nombreCliente);
-          }, 100);
+        if (proyecto.prospecto?._id) {
+          console.log('✅ Pre-seleccionando prospecto:', proyecto.prospecto._id);
+          setValue('prospecto', proyecto.prospecto._id);
+        } else if (proyecto.prospecto) {
+          // Si prospecto es solo un ID (string)
+          console.log('✅ Pre-seleccionando prospecto (ID):', proyecto.prospecto);
+          setValue('prospecto', proyecto.prospecto);
         }
         
         if (proyecto.levantamiento && proyecto.levantamiento.partidas) {
