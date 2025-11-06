@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Prospecto = require('../models/Prospecto');
 const Proyecto = require('../models/Proyecto');
 const Etapa = require('../models/Etapa');
-const ProyectoSyncMiddleware = require('../middleware/proyectoSync');
+// const ProyectoSyncMiddleware = require('../middleware/proyectoSync'); // ❌ LEGACY - Desactivado 6 Nov 2025
 const logger = require('../config/logger');
 
 /**

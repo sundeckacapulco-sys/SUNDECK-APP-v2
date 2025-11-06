@@ -6,7 +6,7 @@ const Prospecto = require('../models/Prospecto');
 const Usuario = require('../models/Usuario');
 const { auth, verificarPermiso } = require('../middleware/auth');
 // const cloudinary = require('../config/cloudinary'); // Comentado temporalmente
-const ProyectoSyncMiddleware = require('../middleware/proyectoSync');
+// const ProyectoSyncMiddleware = require('../middleware/proyectoSync'); // ❌ LEGACY - Desactivado 6 Nov 2025
 const logger = require('../config/logger');
 
 const router = express.Router();
@@ -381,7 +381,9 @@ router.post('/', auth, verificarPermiso('prospectos', 'crear'), async (req, res)
     await nuevoProspecto.save();
     await nuevoProspecto.populate('vendedorAsignado', 'nombre apellido');
 
+    // ❌ LEGACY - SINCRONIZACIÓN DESACTIVADA (6 Nov 2025)
     // SINCRONIZACIÓN AUTOMÁTICA: Crear Proyecto desde Prospecto
+    /*
     try {
       await ProyectoSyncMiddleware.sincronizarProspecto(nuevoProspecto, 'create');
       logger.info('Proyecto sincronizado automáticamente tras crear prospecto', {
@@ -401,6 +403,7 @@ router.post('/', auth, verificarPermiso('prospectos', 'crear'), async (req, res)
       });
       // No interrumpir el flujo principal
     }
+    */
 
     res.status(201).json({
       message: 'Prospecto creado exitosamente',
@@ -483,7 +486,9 @@ router.put('/:id', auth, verificarPermiso('prospectos', 'actualizar'), upload.ar
     await prospecto.save();
     await prospecto.populate('vendedorAsignado', 'nombre apellido');
 
+    // ❌ LEGACY - SINCRONIZACIÓN DESACTIVADA (6 Nov 2025)
     // 🔄 SINCRONIZACIÓN AUTOMÁTICA: Actualizar Proyecto desde Prospecto
+    /*
     try {
       await ProyectoSyncMiddleware.sincronizarProspecto(prospecto, 'update');
       logger.info('Proyecto sincronizado automáticamente tras actualizar prospecto', {
@@ -503,6 +508,7 @@ router.put('/:id', auth, verificarPermiso('prospectos', 'actualizar'), upload.ar
       });
       // No interrumpir el flujo principal
     }
+    */
 
     res.json({
       message: 'Prospecto actualizado exitosamente',

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const Etapa = require('../models/Etapa');
 const Prospecto = require('../models/Prospecto');
-const ProyectoSyncMiddleware = require('../middleware/proyectoSync');
+// const ProyectoSyncMiddleware = require('../middleware/proyectoSync'); // ❌ LEGACY - Desactivado 6 Nov 2025
 const pdfService = require('../services/pdfService');
 const excelService = require('../services/excelService');
 const logger = require('../config/logger');
@@ -146,7 +146,9 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
     prospecto.fechaUltimoContacto = new Date();
     await prospecto.save();
 
+    // ❌ LEGACY - SINCRONIZACIÓN DESACTIVADA (6 Nov 2025)
     // 🔄 SINCRONIZACIÓN AUTOMÁTICA: Sincronizar medidas al Proyecto
+    /*
     try {
       const Proyecto = require('../models/Proyecto');
       const proyecto = await Proyecto.findOne({ prospecto_original: prospectoId });
@@ -165,8 +167,8 @@ router.post('/', auth, verificarPermiso('prospectos', 'actualizar'), async (req,
         prospectoId,
         proyectoId: proyecto?._id
       });
-      // No interrumpir el flujo principal
     }
+    */
 
     res.status(201).json({
       message: 'Etapa agregada exitosamente',

@@ -121,7 +121,7 @@ app.use('/api', metricsMiddleware);
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/metrics', require('./routes/metrics'));
-app.use('/api/prospectos', require('./routes/prospectos'));
+// app.use('/api/prospectos', require('./routes/prospectos')); // ❌ LEGACY - Desactivado 6 Nov 2025
 app.use('/api/cotizaciones', require('./routes/cotizaciones'));
 app.use('/api/pedidos', require('./routes/pedidos'));
 app.use('/api/pedidos/dashboard', require('./routes/dashboardPedidos'));
