@@ -122,6 +122,7 @@ app.use('/api', metricsMiddleware);
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/metrics', require('./routes/metrics'));
 // app.use('/api/prospectos', require('./routes/prospectos')); // ❌ LEGACY - Desactivado 6 Nov 2025
+app.use('/api/prospectos', require('./routes/prospectosRoutes')); // ✅ NUEVO - Prospectos Unificados 6 Nov 2025
 app.use('/api/cotizaciones', require('./routes/cotizaciones'));
 app.use('/api/pedidos', require('./routes/pedidos'));
 app.use('/api/pedidos/dashboard', require('./routes/dashboardPedidos'));
@@ -217,5 +218,14 @@ app.listen(PORT, () => {
   
   logger.info('Configuración CORS', { 
     allowedOrigins: getAllowedOrigins() 
+  });
+
+  // Iniciar scheduler de automatización inteligente
+  const scheduler = require('./jobs/scheduler');
+  scheduler.start();
+  
+  logger.info('Scheduler de automatización iniciado', {
+    service: 'scheduler',
+    status: scheduler.getStatus()
   });
 });

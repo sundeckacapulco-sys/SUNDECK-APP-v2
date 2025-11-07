@@ -24,7 +24,9 @@ const {
   crearCotizacionDesdeProyecto,
   generarPDFProyecto,
   generarExcelLevantamiento,
-  subirFotosLevantamiento
+  subirFotosLevantamiento,
+  convertirProspectoAProyecto,
+  obtenerKPIsComerciales
 } = require('../controllers/proyectoController');
 
 const router = express.Router();
@@ -36,6 +38,13 @@ router.get('/',
   auth,
   verificarPermiso('proyectos', 'leer'),
   obtenerProyectos
+);
+
+// GET /api/proyectos/kpis/comerciales - Obtener KPIs comerciales
+router.get('/kpis/comerciales',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
+  obtenerKPIsComerciales
 );
 
 router.get('/ruta-diaria/:fecha',
@@ -68,6 +77,13 @@ router.post('/:id/calcular-tiempo-instalacion',
   auth,
   verificarPermiso('proyectos', 'leer'),
   calcularTiempoInstalacion
+);
+
+// POST /api/proyectos/:id/convertir - Convertir prospecto a proyecto
+router.post('/:id/convertir',
+  auth,
+  verificarPermiso('proyectos', 'editar'),
+  convertirProspectoAProyecto
 );
 
 // PUT /api/proyectos/:id - Actualizar proyecto existente

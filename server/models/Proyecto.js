@@ -67,6 +67,103 @@ const proyectoSchema = new mongoose.Schema({
     default: 'simple'
   },
 
+  // ===== MÓDULO DE PROSPECTOS UNIFICADOS =====
+  // Tipo de registro: prospecto (etapa comercial) o proyecto (etapa operativa)
+  tipo: {
+    type: String,
+    enum: ['prospecto', 'proyecto'],
+    default: 'prospecto'
+  },
+
+  // Estado comercial (prospectos y proyectos)
+  estadoComercial: {
+    type: String,
+    enum: [
+      // Estados de prospecto
+      'nuevo',
+      'contactado',
+      'en seguimiento',
+      'cita_agendada',
+      'cotizado',
+      'sin respuesta',
+      'en_pausa',
+      'perdido',
+      // Estados de proyecto
+      'convertido',
+      'activo',
+      'fabricacion',
+      'instalacion',
+      'completado',
+      'pausado'
+    ],
+    default: 'nuevo'
+  },
+
+  // Origen comercial y trazabilidad
+  origenComercial: {
+    fuente: {
+      type: String,
+      enum: ['web', 'referido', 'facebook', 'instagram', 'llamada', 'visita', 'whatsapp', 'otro']
+    },
+    referidoPor: String,
+    campana: String,
+    fechaPrimerContacto: {
+      type: Date,
+      default: Date.now
+    }
+  },
+
+  // Asesor comercial asignado (puede ser nombre o ID)
+  asesorComercial: {
+    type: String  // Cambiado de ObjectId a String para mayor flexibilidad
+  },
+
+  // Seguimiento comercial (notas, llamadas, visitas)
+  seguimiento: [{
+    fecha: {
+      type: Date,
+      default: Date.now
+    },
+    autor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Usuario'
+    },
+    mensaje: String,
+    tipo: {
+      type: String,
+      enum: ['nota', 'llamada', 'whatsapp', 'email', 'visita'],
+      default: 'nota'
+    }
+  }],
+
+  // Probabilidad de cierre (0-100)
+  probabilidadCierre: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 0
+  },
+
+  // Fecha de última nota/seguimiento
+  ultimaNota: {
+    type: Date,
+    default: null
+  },
+
+  // Historial de cambios de estado comercial (auditoría)
+  historialEstados: [{
+    estado: String,
+    fecha: {
+      type: Date,
+      default: Date.now
+    },
+    usuario: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Usuario'
+    },
+    observaciones: String
+  }],
+
   // Estado del proyecto en el flujo
   estado: {
     type: String,
@@ -218,88 +315,6 @@ const proyectoSchema = new mongoose.Schema({
       default: Date.now
     }
   },
-
-  // @deprecated - Usar 'levantamiento' en su lugar
-  // Este campo se mantiene por compatibilidad pero ya no se debe usar
-  // TODO: Migrar datos existentes y eliminar en versión futura
-  medidas: [{
-    // Información general del levantamiento
-    tipo: String, // 'levantamiento'
-    personaVisita: String,
-    fechaCotizacion: Date,
-    quienRecibe: String,
-    observacionesGenerales: String,
-    fechaHora: Date,
-    esPartidasV2: {
-      type: Boolean,
-      default: false
-    },
-
-    // Partidas (piezas)
-    piezas: [{
-      ubicacion: String,
-      cantidad: Number,
-      producto: String,
-      productoLabel: String,
-      modeloCodigo: String,
-      color: String,
-      observaciones: String,
-      areaTotal: Number,
-      precioTotal: Number,
-      totalPiezas: Number,
-      motorizado: Boolean,
-      motorModelo: String,
-      motorPrecio: Number,
-      controlModelo: String,
-      controlPrecio: Number,
-
-      // Medidas individuales por pieza
-      medidas: [{
-        ancho: Number,
-        alto: Number,
-        producto: String,
-        productoLabel: String,
-        modeloCodigo: String,
-        color: String,
-        
-        // Especificaciones técnicas
-        galeria: String, // 'galeria', 'cassette', 'cabezal', 'sin_galeria'
-        tipoControl: String, // 'izquierda', 'derecha', 'centro', 'motorizado'
-        caida: String, // 'normal', 'frente'
-        tipoInstalacion: String, // 'techo', 'muro', 'piso_techo', 'empotrado'
-        tipoFijacion: String, // 'concreto', 'tablaroca', 'aluminio', 'madera', 'otro'
-        modoOperacion: String, // 'manual', 'motorizado'
-        detalleTecnico: String, // 'traslape', 'corte', 'sin_traslape'
-        sistema: String,
-        telaMarca: String,
-        baseTabla: String,
-        observacionesTecnicas: String,
-        traslape: String,
-        precioM2: Number,
-      }]
-    }],
-
-    // Totales del levantamiento
-    totales: {
-      totalPartidas: Number,
-      totalPiezas: Number,
-      areaTotal: Number,
-      precioTotal: Number
-    },
-    // Información de toldos
-    esToldo: Boolean,
-    tipoToldo: String,
-    kitModelo: String,
-    kitPrecio: Number,
-    // Información de motorización
-    motorizado: Boolean,
-    motorModelo: String,
-    motorPrecio: Number,
-    controlModelo: String,
-    controlPrecio: Number,
-    // Fotos por medida
-    fotoUrls: [String]
-  }],
 
   // Materiales y productos
   materiales: [{
@@ -814,9 +829,37 @@ proyectoSchema.index({ fecha_creacion: -1 });
 proyectoSchema.index({ asesor_asignado: 1 });
 proyectoSchema.index({ tipo_fuente: 1 });
 
-// Middleware para actualizar fecha_actualizacion y generar número de proyecto
+// Middleware para actualizar fecha_actualizacion, generar número y registrar cambios de estado
 proyectoSchema.pre('save', async function(next) {
   this.fecha_actualizacion = new Date();
+  
+  // Registrar cambio de estado comercial en historial
+  if (this.isModified('estadoComercial') && !this.isNew) {
+    this.historialEstados.push({
+      estado: this.estadoComercial,
+      fecha: new Date(),
+      usuario: this.actualizado_por || this.creado_por,
+      observaciones: `Estado cambiado a: ${this.estadoComercial}`
+    });
+    
+    logger.info('Estado comercial actualizado', {
+      modelo: 'Proyecto',
+      metodo: 'preSaveEstadoComercial',
+      proyectoId: this._id,
+      estadoAnterior: this.get('estadoComercial', null, { getters: false }),
+      estadoNuevo: this.estadoComercial
+    });
+  }
+  
+  // Registrar estado inicial en nuevo prospecto
+  if (this.isNew && this.tipo === 'prospecto') {
+    this.historialEstados.push({
+      estado: this.estadoComercial || 'en seguimiento',
+      fecha: new Date(),
+      usuario: this.creado_por,
+      observaciones: 'Prospecto creado'
+    });
+  }
   
   // Generar número de proyecto si no existe
   if (this.isNew && !this.numero) {
@@ -876,10 +919,20 @@ proyectoSchema.pre('save', async function(next) {
   next();
 });
 
-// Virtual para calcular el área total
+// Virtual para calcular el área total desde levantamiento
 proyectoSchema.virtual('area_total').get(function() {
-  return this.medidas.reduce((total, medida) => {
-    return total + ((medida.ancho || 0) * (medida.alto || 0) * (medida.cantidad || 1));
+  if (!this.levantamiento || !this.levantamiento.partidas) {
+    return 0;
+  }
+  
+  return this.levantamiento.partidas.reduce((total, partida) => {
+    if (!partida.piezas) return total;
+    
+    const areaPartida = partida.piezas.reduce((sum, pieza) => {
+      return sum + (pieza.m2 || 0);
+    }, 0);
+    
+    return total + areaPartida;
   }, 0);
 });
 
@@ -906,7 +959,7 @@ proyectoSchema.methods.toExportData = function() {
     estado: this.estado,
     productos: this.productos,
     materiales: this.materiales,
-    medidas: this.medidas,
+    levantamiento: this.levantamiento,
     observaciones: this.observaciones,
     fotos: this.fotos,
     fecha: this.fecha_creacion,

@@ -418,4 +418,105 @@ router.put('/recuperacion/:id', auth, verificarPermiso('ventas', 'editar'), asyn
   }
 });
 
+// GET /api/kpis/prospectos - KPIs del módulo de prospectos unificados
+router.get('/prospectos', auth, async (req, res) => {
+  try {
+    const Proyecto = require('../models/Proyecto');
+    
+    const { asesor } = req.query;
+    const filtroBase = { tipo: 'prospecto' };
+    if (asesor) filtroBase.asesorComercial = asesor;
+    
+    // Conteos por estado
+    const [
+      total,
+      enSeguimiento,
+      cotizados,
+      sinRespuesta,
+      convertidos,
+      perdidos
+    ] = await Promise.all([
+      Proyecto.countDocuments(filtroBase),
+      Proyecto.countDocuments({ ...filtroBase, estadoComercial: 'en seguimiento' }),
+      Proyecto.countDocuments({ ...filtroBase, estadoComercial: 'cotizado' }),
+      Proyecto.countDocuments({ ...filtroBase, estadoComercial: 'sin respuesta' }),
+      Proyecto.countDocuments({ ...filtroBase, estadoComercial: 'convertido' }),
+      Proyecto.countDocuments({ ...filtroBase, estadoComercial: 'perdido' })
+    ]);
+    
+    // Tasa de conversión
+    const conversionRate = total > 0 ? ((convertidos / total) * 100).toFixed(2) : 0;
+    
+    // Prospectos inactivos (más de 5 días sin nota)
+    const limite = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+    const inactivos = await Proyecto.countDocuments({
+      ...filtroBase,
+      estadoComercial: { $in: ['en seguimiento', 'cotizado'] },
+      $or: [
+        { ultimaNota: { $lt: limite } },
+        { ultimaNota: null }
+      ]
+    });
+    
+    // Prospectos por fuente
+    const porFuente = await Proyecto.aggregate([
+      { $match: filtroBase },
+      { $group: { 
+        _id: '$origenComercial.fuente', 
+        count: { $sum: 1 } 
+      }},
+      { $sort: { count: -1 } }
+    ]);
+    
+    // Prospectos por asesor (top 5)
+    const porAsesor = await Proyecto.aggregate([
+      { $match: filtroBase },
+      { $group: { 
+        _id: '$asesorComercial', 
+        count: { $sum: 1 },
+        convertidos: {
+          $sum: { $cond: [{ $eq: ['$estadoComercial', 'convertido'] }, 1, 0] }
+        }
+      }},
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: 'usuarios',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'asesor'
+        }
+      },
+      { $unwind: { path: '$asesor', preserveNullAndEmptyArrays: true } }
+    ]);
+    
+    res.json({
+      total,
+      porEstado: {
+        enSeguimiento,
+        cotizados,
+        sinRespuesta,
+        convertidos,
+        perdidos
+      },
+      conversionRate: parseFloat(conversionRate),
+      inactivos,
+      porFuente,
+      porAsesor: porAsesor.map(a => ({
+        asesor: a.asesor?.nombre || 'Sin asignar',
+        total: a.count,
+        convertidos: a.convertidos,
+        conversionRate: a.count > 0 ? ((a.convertidos / a.count) * 100).toFixed(2) : 0
+      }))
+    });
+  } catch (error) {
+    console.error('Error obteniendo KPIs de prospectos:', error);
+    res.status(500).json({ 
+      message: 'Error obteniendo KPIs de prospectos', 
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router;

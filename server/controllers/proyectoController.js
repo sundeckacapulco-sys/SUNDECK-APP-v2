@@ -484,6 +484,9 @@ const obtenerProyectos = async (req, res) => {
     const {
       page = 1,
       limit = 20,
+      tipo,
+      asesorComercial,
+      estadoComercial,
       estado,
       tipo_fuente,
       asesor_asignado,
@@ -492,17 +495,24 @@ const obtenerProyectos = async (req, res) => {
       fechaHasta
     } = req.query;
 
-    // Construir filtros
+    // Construir filtros (soportar ambos formatos: nuevo y legacy)
     const filtros = {};
     
+    // Filtros nuevos (Dashboard Comercial)
+    if (tipo && tipo !== 'todos') filtros.tipo = tipo;
+    if (asesorComercial) filtros.asesorComercial = asesorComercial;
+    if (estadoComercial) filtros.estadoComercial = estadoComercial;
+    
+    // Filtros legacy (compatibilidad)
     if (estado) filtros.estado = estado;
     if (tipo_fuente) filtros.tipo_fuente = tipo_fuente;
     if (asesor_asignado) filtros.asesor_asignado = asesor_asignado;
     
+    // Filtros de fecha
     if (fechaDesde || fechaHasta) {
-      filtros.fecha_creacion = {};
-      if (fechaDesde) filtros.fecha_creacion.$gte = new Date(fechaDesde);
-      if (fechaHasta) filtros.fecha_creacion.$lte = new Date(fechaHasta);
+      filtros.createdAt = {};
+      if (fechaDesde) filtros.createdAt.$gte = new Date(fechaDesde);
+      if (fechaHasta) filtros.createdAt.$lte = new Date(fechaHasta);
     }
 
     // Búsqueda por texto
@@ -510,69 +520,101 @@ const obtenerProyectos = async (req, res) => {
       filtros.$or = [
         { 'cliente.nombre': { $regex: busqueda, $options: 'i' } },
         { 'cliente.telefono': { $regex: busqueda, $options: 'i' } },
-        { 'cliente.correo': { $regex: busqueda, $options: 'i' } },
+        { 'cliente.email': { $regex: busqueda, $options: 'i' } },
         { observaciones: { $regex: busqueda, $options: 'i' } }
       ];
     }
 
     // Si no es admin, solo ver sus proyectos asignados
-    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente') {
-      filtros.$or = [
-        { creado_por: req.usuario.id },
-        { asesor_asignado: req.usuario.id },
-        { tecnico_asignado: req.usuario.id }
-      ];
+    if (req.usuario && req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente') {
+      const userFilter = {
+        $or: [
+          { creado_por: req.usuario.id },
+          { asesor_asignado: req.usuario.id },
+          { tecnico_asignado: req.usuario.id },
+          { asesorComercial: req.usuario.nombre }
+        ]
+      };
+      
+      // Combinar con filtros existentes
+      if (filtros.$or) {
+        filtros.$and = [userFilter, { $or: filtros.$or }];
+        delete filtros.$or;
+      } else {
+        Object.assign(filtros, userFilter);
+      }
     }
 
-    const opciones = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { fecha_creacion: -1 },
-      populate: [
-        { path: 'creado_por', select: 'nombre email' },
-        { path: 'asesor_asignado', select: 'nombre email telefono' },
-        { path: 'tecnico_asignado', select: 'nombre email telefono' },
-        { path: 'prospecto_original', select: 'nombre telefono email etapa' }
-      ]
-    };
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
 
-    const proyectos = await Proyecto.paginate(filtros, opciones);
+    // Contar total de documentos
+    const total = await Proyecto.countDocuments(filtros);
+
+    // Obtener proyectos con paginación
+    const proyectos = await Proyecto.find(filtros)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .populate('creado_por', 'nombre email')
+      .populate('asesor_asignado', 'nombre email telefono')
+      .populate('tecnico_asignado', 'nombre email telefono')
+      .lean();
 
     // Calcular estadísticas adicionales para cada proyecto
-    const proyectosConEstadisticas = proyectos.docs.map(proyecto => {
-      const proyectoObj = proyecto.toObject();
-      
+    const proyectosConEstadisticas = proyectos.map(proyecto => {
       // Calcular progreso
       const estados = ['levantamiento', 'cotizacion', 'aprobado', 'fabricacion', 'instalacion', 'completado'];
       const indiceEstado = estados.indexOf(proyecto.estado);
       const progreso = indiceEstado >= 0 ? Math.round((indiceEstado / (estados.length - 1)) * 100) : 0;
       
       // Calcular totales
-      const totalArea = proyecto.medidas.reduce((sum, medida) => sum + ((medida.ancho || 0) * (medida.alto || 0) * (medida.cantidad || 1)), 0);
-      const totalMedidas = proyecto.medidas.length;
+      const totalArea = (proyecto.medidas || []).reduce((sum, medida) => {
+        return sum + ((medida.ancho || 0) * (medida.alto || 0) * (medida.cantidad || 1));
+      }, 0);
+      const totalMedidas = (proyecto.medidas || []).length;
       
       return {
-        ...proyectoObj,
+        ...proyecto,
         estadisticas: {
           progreso,
           totalArea: parseFloat(totalArea.toFixed(2)),
           totalMedidas,
-          diasTranscurridos: Math.ceil((new Date() - new Date(proyecto.fecha_creacion)) / (1000 * 60 * 60 * 24))
+          diasTranscurridos: Math.ceil((new Date() - new Date(proyecto.createdAt || proyecto.fecha_creacion)) / (1000 * 60 * 60 * 24))
         }
       };
+    });
+
+    const totalPages = Math.ceil(total / limitNum);
+
+    logger.info('Proyectos obtenidos', {
+      total,
+      page: pageNum,
+      limit: limitNum,
+      filtros,
+      userId: req.usuario?.id
     });
 
     res.json({
       success: true,
       data: {
-        ...proyectos,
-        docs: proyectosConEstadisticas
+        proyectos: proyectosConEstadisticas,
+        registros: proyectosConEstadisticas, // Alias para compatibilidad
+        docs: proyectosConEstadisticas, // Alias para compatibilidad
+        total,
+        page: pageNum,
+        pages: totalPages,
+        limit: limitNum,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1
       }
     });
 
   } catch (error) {
-    logger.logError(error, {
-      context: 'obtenerProyectos',
+    logger.error('Error obteniendo proyectos', {
+      error: error.message,
+      stack: error.stack,
       query: req.query,
       userId: req.usuario?.id
     });
@@ -664,13 +706,15 @@ const actualizarProyecto = async (req, res) => {
     }
 
     // Agregar información de auditoría
-    actualizaciones.actualizado_por = req.usuario.id;
+    if (req.usuario && req.usuario.id) {
+      actualizaciones.actualizado_por = req.usuario.id;
+    }
     actualizaciones.fecha_actualizacion = new Date();
 
     const proyecto = await Proyecto.findByIdAndUpdate(
       id,
       actualizaciones,
-      { new: true, runValidators: true }
+      { new: true, runValidators: false } // Desactivar validadores para actualizaciones parciales
     ).populate([
       { path: 'creado_por', select: 'nombre email' },
       { path: 'actualizado_por', select: 'nombre email' },
@@ -1633,6 +1677,204 @@ const subirFotosLevantamiento = async (req, res) => {
   }
 };
 
+// Convertir prospecto a proyecto
+const convertirProspectoAProyecto = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const proyecto = await Proyecto.findById(id);
+
+    if (!proyecto) {
+      return res.status(404).json({
+        success: false,
+        message: 'Prospecto no encontrado'
+      });
+    }
+
+    if (proyecto.tipo !== 'prospecto') {
+      return res.status(400).json({
+        success: false,
+        message: 'Este registro no es un prospecto'
+      });
+    }
+
+    // Convertir a proyecto
+    proyecto.tipo = 'proyecto';
+    proyecto.estadoComercial = 'activo';
+    
+    // Agregar al historial
+    if (!proyecto.historialEstados) {
+      proyecto.historialEstados = [];
+    }
+    
+    proyecto.historialEstados.push({
+      estado: 'activo',
+      fecha: new Date(),
+      usuario: req.usuario?.id,
+      observaciones: 'Convertido de prospecto a proyecto'
+    });
+
+    await proyecto.save();
+
+    logger.info('Prospecto convertido a proyecto', {
+      proyectoId: id,
+      clienteNombre: proyecto.cliente?.nombre,
+      userId: req.usuario?.id
+    });
+
+    res.json({
+      success: true,
+      message: 'Prospecto convertido a proyecto exitosamente',
+      data: proyecto
+    });
+  } catch (error) {
+    logger.logError(error, {
+      context: 'convertirProspectoAProyecto',
+      proyectoId: req.params.id,
+      userId: req.usuario?.id
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error al convertir prospecto',
+      error: error.message
+    });
+  }
+};
+
+// Obtener KPIs comerciales
+const obtenerKPIsComerciales = async (req, res) => {
+  try {
+    const {
+      tipo,
+      asesorComercial,
+      estadoComercial,
+      fechaDesde,
+      fechaHasta
+    } = req.query;
+
+    // Construir filtros
+    const filtros = {};
+    
+    if (tipo && tipo !== 'todos') {
+      filtros.tipo = tipo;
+    }
+    
+    if (asesorComercial) {
+      filtros.asesorComercial = asesorComercial;
+    }
+    
+    if (estadoComercial) {
+      filtros.estadoComercial = estadoComercial;
+    }
+    
+    if (fechaDesde || fechaHasta) {
+      filtros.createdAt = {};
+      if (fechaDesde) filtros.createdAt.$gte = new Date(fechaDesde);
+      if (fechaHasta) filtros.createdAt.$lte = new Date(fechaHasta);
+    }
+
+    // Obtener todos los registros que coincidan con los filtros
+    const registros = await Proyecto.find(filtros);
+
+    // Calcular KPIs
+    const total = registros.length;
+    const prospectos = registros.filter(r => r.tipo === 'prospecto').length;
+    const proyectos = registros.filter(r => r.tipo === 'proyecto').length;
+    
+    const tasaConversion = (prospectos + proyectos) > 0
+      ? Math.round((proyectos / (prospectos + proyectos)) * 100)
+      : 0;
+
+    const valorTotal = registros.reduce((sum, r) => {
+      return sum + (r.monto_estimado || r.total || 0);
+    }, 0);
+
+    const promedioTicket = total > 0 ? Math.round(valorTotal / total) : 0;
+
+    // KPIs por asesor
+    const porAsesor = {};
+    registros.forEach(r => {
+      const asesor = r.asesorComercial || 'Sin asignar';
+      if (!porAsesor[asesor]) {
+        porAsesor[asesor] = { prospectos: 0, proyectos: 0, total: 0 };
+      }
+      if (r.tipo === 'prospecto') {
+        porAsesor[asesor].prospectos++;
+      } else {
+        porAsesor[asesor].proyectos++;
+      }
+      porAsesor[asesor].total++;
+    });
+
+    // KPIs por estado
+    const porEstado = {};
+    registros.forEach(r => {
+      const estado = r.estadoComercial || 'sin_estado';
+      porEstado[estado] = (porEstado[estado] || 0) + 1;
+    });
+
+    // KPIs por mes (últimos 6 meses)
+    const porMes = {};
+    const hoy = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      const mes = fecha.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' });
+      porMes[mes] = { prospectos: 0, proyectos: 0 };
+    }
+
+    registros.forEach(r => {
+      const fecha = new Date(r.createdAt);
+      const mes = fecha.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' });
+      if (porMes[mes]) {
+        if (r.tipo === 'prospecto') {
+          porMes[mes].prospectos++;
+        } else {
+          porMes[mes].proyectos++;
+        }
+      }
+    });
+
+    logger.info('KPIs comerciales calculados', {
+      total,
+      prospectos,
+      proyectos,
+      filtros,
+      userId: req.usuario?.id
+    });
+
+    res.json({
+      success: true,
+      data: {
+        resumen: {
+          total,
+          prospectos,
+          proyectos,
+          tasaConversion,
+          valorTotal,
+          promedioTicket
+        },
+        porAsesor: Object.entries(porAsesor).map(([asesor, datos]) => ({
+          asesor,
+          ...datos
+        })),
+        porEstado,
+        porMes
+      }
+    });
+  } catch (error) {
+    logger.logError(error, {
+      context: 'obtenerKPIsComerciales',
+      filtros: req.query,
+      userId: req.usuario?.id
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener KPIs comerciales',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   crearProyecto,
   obtenerProyectos,
@@ -1651,5 +1893,7 @@ module.exports = {
   crearCotizacionDesdeProyecto,
   generarPDFProyecto,
   generarExcelLevantamiento,
-  subirFotosLevantamiento
+  subirFotosLevantamiento,
+  convertirProspectoAProyecto,
+  obtenerKPIsComerciales
 };

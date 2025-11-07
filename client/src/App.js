@@ -12,6 +12,7 @@ import DashboardFabricacion from './components/Fabricacion/DashboardFabricacion.
 import DashboardInstalaciones from './components/Dashboards/DashboardInstalaciones';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 // Sistema Unificado - Único flujo de trabajo
+import DashboardComercial from './modules/proyectos/DashboardComercial';
 import ProyectosList from './modules/proyectos/ProyectosList';
 import ProyectoDetail from './modules/proyectos/ProyectoDetail';
 import ProyectoForm from './modules/proyectos/ProyectoForm';
@@ -44,7 +45,8 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           
           {/* SISTEMA UNIFICADO - Flujo único de proyectos */}
-          <Route path="/proyectos" element={<ProyectosList />} />
+          <Route path="/proyectos" element={<DashboardComercial />} />
+          <Route path="/proyectos/lista" element={<ProyectosList />} />
           <Route path="/proyectos/nuevo" element={<ProyectoForm />} />
           <Route path="/proyectos/:id" element={<ProyectoDetail />} />
           <Route path="/proyectos/:id/editar" element={<ProyectoForm />} />
