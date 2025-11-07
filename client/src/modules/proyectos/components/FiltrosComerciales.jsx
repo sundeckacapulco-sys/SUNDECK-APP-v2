@@ -87,7 +87,7 @@ const FiltrosComerciales = ({ filtros, onFiltrosChange, loading }) => {
       return [
         { value: 'nuevo', label: '🆕 Nuevo' },
         { value: 'contactado', label: '📞 Contactado' },
-        { value: 'en seguimiento', label: '👀 En Seguimiento' },
+        { value: 'en_seguimiento', label: '👀 En Seguimiento' },
         { value: 'cita_agendada', label: '📅 Cita Agendada' },
         { value: 'cotizado', label: '💰 Cotizado' },
         { value: 'en_pausa', label: '⏸️ En Pausa' },
@@ -96,16 +96,17 @@ const FiltrosComerciales = ({ filtros, onFiltrosChange, loading }) => {
     } else if (filtrosLocales.tipo === 'proyecto') {
       return [
         { value: 'activo', label: '✅ Activo' },
-        { value: 'fabricacion', label: '🏗️ En Fabricación' },
-        { value: 'instalacion', label: '🚚 En Instalación' },
+        { value: 'en_fabricacion', label: '🏗️ En Fabricación' },
+        { value: 'en_instalacion', label: '🚚 En Instalación' },
         { value: 'completado', label: '✔️ Completado' },
-        { value: 'pausado', label: '⏸️ Pausado' }
+        { value: 'pausado', label: '⏸️ Pausado' },
+        { value: 'critico', label: '🚨 Crítico' }
       ];
     } else {
       return [
         { value: 'nuevo', label: '🆕 Nuevo' },
         { value: 'contactado', label: '📞 Contactado' },
-        { value: 'en seguimiento', label: '👀 En Seguimiento' },
+        { value: 'en_seguimiento', label: '👀 En Seguimiento' },
         { value: 'activo', label: '✅ Activo' },
         { value: 'completado', label: '✔️ Completado' }
       ];

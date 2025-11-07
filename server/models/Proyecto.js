@@ -82,19 +82,21 @@ const proyectoSchema = new mongoose.Schema({
       // Estados de prospecto
       'nuevo',
       'contactado',
-      'en seguimiento',
+      'en_seguimiento',
       'cita_agendada',
       'cotizado',
-      'sin respuesta',
+      'sin_respuesta',
       'en_pausa',
       'perdido',
       // Estados de proyecto
       'convertido',
       'activo',
-      'fabricacion',
-      'instalacion',
+      'en_fabricacion',
+      'en_instalacion',
       'completado',
-      'pausado'
+      'pausado',
+      // Estados críticos
+      'critico'  // Problemas que impiden entrega: tela defectuosa, medida incorrecta, etc.
     ],
     default: 'nuevo'
   },

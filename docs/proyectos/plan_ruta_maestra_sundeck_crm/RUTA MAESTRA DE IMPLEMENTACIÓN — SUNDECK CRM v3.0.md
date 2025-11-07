@@ -12,13 +12,16 @@ con automatización, supervisión, auditoría e inteligencia comercial integrada
 
 ---
 
-## 📍 ESTADO ACTUAL
+## 📍 ESTADO ACTUAL (Actualizado: 8 Nov 2025)
 ✅ Modelo `Proyecto.js` finalizado con trazabilidad completa  
 ✅ Prospectos unificados e integrados  
 ✅ Back-end estable y modularizado  
 ✅ Flujo técnico de fabricación e instalación operativo  
-✅ KPIs comerciales activos  
-🔜 Próximas fases: interfaz, automatización y dashboards
+✅ KPIs comerciales activos (5 KPIs)  
+✅ Dashboard Comercial Unificado implementado (Fase 1)  
+✅ Estado "Crítico" agregado para proyectos con problemas  
+⏳ **PENDIENTE:** KPI "En Riesgo" (30 min) - Ver `docs/MEJORA_KPI_EN_RIESGO.md`  
+🔜 Próximas fases: automatización, panel de supervisión y auditoría
 
 ---
 
@@ -46,6 +49,15 @@ con automatización, supervisión, auditoría e inteligencia comercial integrada
 
 🕒 **Duración estimada:** 5 días  
 🎯 **Resultado:** Interfaz sincronizada con la base de datos y nuevos campos visibles.
+
+### ⏳ **PENDIENTE DE FASE 1:**
+4. **Agregar KPI "En Riesgo"** (30 minutos)
+   - Mostrar cantidad de proyectos en estado "crítico"
+   - Color rojo intenso (#d32f2f)
+   - Icono: 🚨 Alerta
+   - Cálculo: `countDocuments({ estadoComercial: 'critico' })`
+   - **Documentación:** `docs/MEJORA_KPI_EN_RIESGO.md`
+   - **Estado:** ⏳ Pendiente de implementación
 
 ---
 
@@ -189,20 +201,28 @@ Etiqueta de versión v3.0.0
 🎯 Resultado: sistema estable, documentado y versionado.
 
 📊 RESUMEN GENERAL
-Fase	Objetivo	Entregable
-1	Sincronizar formularios y dashboard	Formularios + filtros por tipo y asesor
-2	Automatización inteligente	Jobs + middleware + alertas
-3	Supervisión comercial y KPIs	Dashboard gerencial
-4	Auditoría interna	Panel de auditoría + logs
-5	Inteligencia comercial	Algoritmo predictivo + semáforo
-6	Entrega formal	Actas + backup + versión final
+Fase	Objetivo	Entregable	Estado
+1	Sincronizar formularios y dashboard	Formularios + filtros por tipo y asesor	✅ 95% (Falta KPI "En Riesgo")
+2	Automatización inteligente	Jobs + middleware + alertas	⏳ Pendiente
+3	Supervisión comercial y KPIs	Dashboard gerencial	⏳ Pendiente
+4	Auditoría interna	Panel de auditoría + logs	⏳ Pendiente
+5	Inteligencia comercial	Algoritmo predictivo + semáforo	⏳ Pendiente
+6	Entrega formal	Actas + backup + versión final	⏳ Pendiente
 
-🧱 PRIORIDAD ACTUAL (INICIO DE EJECUCIÓN)
-🚀 Iniciar con Fase 1: Sincronización de Formularios y Dashboard Comercial.
-Esto permitirá que el equipo de ventas cree, siga y convierta prospectos desde el CRM.
+🧱 ESTADO ACTUAL (8 Nov 2025)
+✅ **Fase 1: 95% COMPLETADA** 
+   - Dashboard Comercial Unificado ✅
+   - Filtros dinámicos (6 tipos) ✅
+   - KPIs comerciales (5 activos) ✅
+   - Estado "Crítico" agregado ✅
+   - ⏳ **PENDIENTE:** KPI "En Riesgo" (30 min)
+
+🚀 **PRÓXIMO PASO INMEDIATO:**
+Completar Fase 1 implementando KPI "En Riesgo" (30 minutos)
+O continuar con Fase 2: Automatización Inteligente (3 días)
 
 Versión: 3.0.0
 Revisión Técnica: Dirección Sundeck
 Ejecución: Agente Codex
-Estado: ✅ Plan aprobado – pendiente de ejecución inicial
+Estado: ✅ Fase 1 casi completa – ⏳ KPI "En Riesgo" pendiente
 

@@ -236,15 +236,16 @@ const TablaComercial = ({
     const estados = {
       nuevo: { label: '🆕 Nuevo', color: '#2196f3' },
       contactado: { label: '📞 Contactado', color: '#00bcd4' },
-      'en seguimiento': { label: '👀 En Seguimiento', color: '#673ab7' },
+      en_seguimiento: { label: '👀 En Seguimiento', color: '#673ab7' },
       cita_agendada: { label: '📅 Cita', color: '#9c27b0' },
       cotizado: { label: '💰 Cotizado', color: '#ff9800' },
       activo: { label: '✅ Activo', color: '#4caf50' },
-      fabricacion: { label: '🏗️ Fabricación', color: '#ff5722' },
-      instalacion: { label: '🚚 Instalación', color: '#3f51b5' },
+      en_fabricacion: { label: '🏗️ Fabricación', color: '#ff5722' },
+      en_instalacion: { label: '🚚 Instalación', color: '#3f51b5' },
       completado: { label: '✔️ Completado', color: '#8bc34a' },
       pausado: { label: '⏸️ Pausado', color: '#9e9e9e' },
-      perdido: { label: '❌ Perdido', color: '#f44336' }
+      perdido: { label: '❌ Perdido', color: '#f44336' },
+      critico: { label: '🚨 Crítico', color: '#d32f2f' }
     };
 
     const estadoInfo = estados[estado] || { label: estado, color: '#757575' };
@@ -482,14 +483,15 @@ const TablaComercial = ({
             >
               <MenuItem value="nuevo">🆕 Nuevo</MenuItem>
               <MenuItem value="contactado">📞 Contactado</MenuItem>
-              <MenuItem value="en seguimiento">👀 En Seguimiento</MenuItem>
+              <MenuItem value="en_seguimiento">👀 En Seguimiento</MenuItem>
               <MenuItem value="cita_agendada">📅 Cita Agendada</MenuItem>
               <MenuItem value="cotizado">💰 Cotizado</MenuItem>
               <MenuItem value="activo">✅ Activo</MenuItem>
-              <MenuItem value="fabricacion">🏗️ En Fabricación</MenuItem>
-              <MenuItem value="instalacion">🚚 En Instalación</MenuItem>
+              <MenuItem value="en_fabricacion">🏗️ En Fabricación</MenuItem>
+              <MenuItem value="en_instalacion">🚚 En Instalación</MenuItem>
               <MenuItem value="completado">✔️ Completado</MenuItem>
               <MenuItem value="pausado">⏸️ Pausado</MenuItem>
+              <MenuItem value="critico">🚨 Crítico</MenuItem>
               <MenuItem value="perdido">❌ Perdido</MenuItem>
             </Select>
           </FormControl>
