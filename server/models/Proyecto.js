@@ -830,6 +830,9 @@ proyectoSchema.index({ estado: 1 });
 proyectoSchema.index({ fecha_creacion: -1 });
 proyectoSchema.index({ asesor_asignado: 1 });
 proyectoSchema.index({ tipo_fuente: 1 });
+proyectoSchema.index({ tipo: 1 });
+proyectoSchema.index({ estadoComercial: 1 });
+proyectoSchema.index({ createdAt: -1 });
 
 // Middleware para actualizar fecha_actualizacion, generar número y registrar cambios de estado
 proyectoSchema.pre('save', async function(next) {

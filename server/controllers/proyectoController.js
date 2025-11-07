@@ -5,6 +5,22 @@ const mongoose = require('mongoose');
 const pdfService = require('../services/pdfService');
 const excelService = require('../services/excelService');
 const logger = require('../config/logger');
+let NodeCache;
+
+try {
+  NodeCache = require('node-cache');
+} catch (error) {
+  logger.warn('node-cache no disponible, utilizando caché en memoria simple', {
+    error: error.message
+  });
+  NodeCache = require('../utils/inMemoryCache');
+}
+
+const CACHE_TTL_SECONDS = 30;
+const dashboardCache = new NodeCache({
+  stdTTL: CACHE_TTL_SECONDS,
+  checkperiod: CACHE_TTL_SECONDS * 2
+});
 const qrCodeGenerator = require('../utils/qrcodeGenerator');
 const notificacionService = require('../services/notificacionService');
 
@@ -20,6 +36,33 @@ const toNumber = (value, defaultValue = 0) => {
 const roundNumber = (value, decimals = 2) => {
   const factor = 10 ** decimals;
   return Math.round(toNumber(value) * factor) / factor;
+};
+
+const buildCacheKey = (query = {}, userId = 'anon') => {
+  const orderedValues = [
+    query.tipo || 'todos',
+    query.asesorComercial || 'todos',
+    query.estadoComercial || 'todos',
+    query.fechaDesde || 'sin-fecha-desde',
+    query.fechaHasta || 'sin-fecha-hasta'
+  ];
+
+  return `dashboard:${userId}:${orderedValues.join('|')}`;
+};
+
+const parseDateFilter = (value, endOfDay = false) => {
+  if (!value) return null;
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  if (endOfDay) {
+    parsed.setHours(23, 59, 59, 999);
+  }
+
+  return parsed;
 };
 
 // FASE 5: Generación de PDF
@@ -1743,6 +1786,22 @@ const convertirProspectoAProyecto = async (req, res) => {
 
 // Obtener KPIs comerciales
 const obtenerKPIsComerciales = async (req, res) => {
+  const startTime = Date.now();
+  const cacheKey = buildCacheKey(req.query, req.usuario?._id?.toString() || req.usuario?.id);
+  const cached = dashboardCache.get(cacheKey);
+
+  if (cached) {
+    logger.debug('KPIs comerciales servidos desde caché', { cacheKey });
+    return res.json({
+      success: true,
+      data: cached,
+      meta: {
+        cached: true,
+        generadoEnMs: 0
+      }
+    });
+  }
+
   try {
     const {
       tipo,
@@ -1752,113 +1811,275 @@ const obtenerKPIsComerciales = async (req, res) => {
       fechaHasta
     } = req.query;
 
-    // Construir filtros
     const filtros = {};
-    
+
     if (tipo && tipo !== 'todos') {
       filtros.tipo = tipo;
     }
-    
+
     if (asesorComercial) {
       filtros.asesorComercial = asesorComercial;
     }
-    
+
     if (estadoComercial) {
       filtros.estadoComercial = estadoComercial;
     }
-    
-    if (fechaDesde || fechaHasta) {
+
+    const fechaInicio = parseDateFilter(fechaDesde);
+    const fechaFin = parseDateFilter(fechaHasta, true);
+
+    if (fechaInicio || fechaFin) {
       filtros.createdAt = {};
-      if (fechaDesde) filtros.createdAt.$gte = new Date(fechaDesde);
-      if (fechaHasta) filtros.createdAt.$lte = new Date(fechaHasta);
+      if (fechaInicio) filtros.createdAt.$gte = fechaInicio;
+      if (fechaFin) filtros.createdAt.$lte = fechaFin;
     }
 
-    // Obtener todos los registros que coincidan con los filtros
-    const registros = await Proyecto.find(filtros);
-
-    // Calcular KPIs
-    const total = registros.length;
-    const prospectos = registros.filter(r => r.tipo === 'prospecto').length;
-    const proyectos = registros.filter(r => r.tipo === 'proyecto').length;
-    
-    const tasaConversion = (prospectos + proyectos) > 0
-      ? Math.round((proyectos / (prospectos + proyectos)) * 100)
-      : 0;
-
-    const valorTotal = registros.reduce((sum, r) => {
-      return sum + (r.monto_estimado || r.total || 0);
-    }, 0);
-
-    const promedioTicket = total > 0 ? Math.round(valorTotal / total) : 0;
-
-    // KPIs por asesor
-    const porAsesor = {};
-    registros.forEach(r => {
-      const asesor = r.asesorComercial || 'Sin asignar';
-      if (!porAsesor[asesor]) {
-        porAsesor[asesor] = { prospectos: 0, proyectos: 0, total: 0 };
-      }
-      if (r.tipo === 'prospecto') {
-        porAsesor[asesor].prospectos++;
-      } else {
-        porAsesor[asesor].proyectos++;
-      }
-      porAsesor[asesor].total++;
-    });
-
-    // KPIs por estado
-    const porEstado = {};
-    registros.forEach(r => {
-      const estado = r.estadoComercial || 'sin_estado';
-      porEstado[estado] = (porEstado[estado] || 0) + 1;
-    });
-
-    // KPIs por mes (últimos 6 meses)
-    const porMes = {};
-    const hoy = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-      const mes = fecha.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' });
-      porMes[mes] = { prospectos: 0, proyectos: 0 };
-    }
-
-    registros.forEach(r => {
-      const fecha = new Date(r.createdAt);
-      const mes = fecha.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' });
-      if (porMes[mes]) {
-        if (r.tipo === 'prospecto') {
-          porMes[mes].prospectos++;
-        } else {
-          porMes[mes].proyectos++;
+    const pipeline = [
+      { $match: filtros },
+      {
+        $facet: {
+          resumen: [
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                prospectos: {
+                  $sum: {
+                    $cond: [{ $eq: ['$tipo', 'prospecto'] }, 1, 0]
+                  }
+                },
+                proyectos: {
+                  $sum: {
+                    $cond: [{ $eq: ['$tipo', 'proyecto'] }, 1, 0]
+                  }
+                },
+                valorTotal: {
+                  $sum: {
+                    $cond: [
+                      { $gt: [{ $ifNull: ['$total', 0] }, 0] },
+                      { $ifNull: ['$total', 0] },
+                      { $ifNull: ['$monto_estimado', 0] }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          porAsesor: [
+            {
+              $group: {
+                _id: { $ifNull: ['$asesorComercial', 'Sin asignar'] },
+                prospectos: {
+                  $sum: {
+                    $cond: [{ $eq: ['$tipo', 'prospecto'] }, 1, 0]
+                  }
+                },
+                proyectos: {
+                  $sum: {
+                    $cond: [{ $eq: ['$tipo', 'proyecto'] }, 1, 0]
+                  }
+                },
+                total: { $sum: 1 }
+              }
+            },
+            { $sort: { total: -1 } }
+          ],
+          porEstado: [
+            {
+              $group: {
+                _id: { $ifNull: ['$estadoComercial', 'sin_estado'] },
+                total: { $sum: 1 }
+              }
+            }
+          ],
+          porMes: [
+            {
+              $group: {
+                _id: {
+                  year: { $year: '$createdAt' },
+                  month: { $month: '$createdAt' }
+                },
+                prospectos: {
+                  $sum: {
+                    $cond: [{ $eq: ['$tipo', 'prospecto'] }, 1, 0]
+                  }
+                },
+                proyectos: {
+                  $sum: {
+                    $cond: [{ $eq: ['$tipo', 'proyecto'] }, 1, 0]
+                  }
+                }
+              }
+            },
+            { $sort: { '_id.year': -1, '_id.month': -1 } },
+            { $limit: 6 }
+          ],
+          tiemposCierre: [
+            { $match: { tipo: 'proyecto' } },
+            {
+              $project: {
+                createdAt: 1,
+                conversion: {
+                  $first: {
+                    $filter: {
+                      input: { $ifNull: ['$historialEstados', []] },
+                      as: 'estado',
+                      cond: {
+                        $in: [
+                          '$$estado.estado',
+                          ['convertido', 'activo', 'en_fabricacion', 'en_instalacion', 'completado']
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              $project: {
+                dias: {
+                  $cond: [
+                    {
+                      $and: [
+                        '$conversion',
+                        { $ifNull: ['$conversion.fecha', false] }
+                      ]
+                    },
+                    {
+                      $divide: [
+                        { $subtract: ['$conversion.fecha', '$createdAt'] },
+                        86400000
+                      ]
+                    },
+                    null
+                  ]
+                }
+              }
+            },
+            { $match: { dias: { $ne: null, $gte: 0 } } },
+            { $group: { _id: null, promedio: { $avg: '$dias' } } }
+          ],
+          respuestas: [
+            { $match: { tipo: 'prospecto' } },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                conNota: {
+                  $sum: {
+                    $cond: [
+                      { $gt: [{ $size: { $ifNull: ['$seguimiento', []] } }, 0] },
+                      1,
+                      0
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          referidos: [
+            {
+              $match: {
+                'origenComercial.referidoPor': { $exists: true, $ne: '' }
+              }
+            },
+            { $count: 'total' }
+          ]
         }
       }
+    ];
+
+    const [resultado] = await Proyecto.aggregate(pipeline);
+    const resumenAgg = resultado?.resumen?.[0] || {};
+
+    const total = resumenAgg.total || 0;
+    const prospectos = resumenAgg.prospectos || 0;
+    const proyectos = resumenAgg.proyectos || 0;
+    const baseConversion = prospectos + proyectos;
+    const valorTotal = roundNumber(resumenAgg.valorTotal || 0, 2);
+
+    const resumen = {
+      total,
+      prospectos,
+      proyectos,
+      tasaConversion: baseConversion > 0 ? roundNumber((proyectos / baseConversion) * 100, 1) : 0,
+      valorTotal,
+      promedioTicket: total > 0 ? Math.round((valorTotal || 0) / total) : 0
+    };
+
+    const porAsesor = (resultado?.porAsesor || []).map(item => ({
+      asesor: item._id,
+      prospectos: item.prospectos || 0,
+      proyectos: item.proyectos || 0,
+      total: item.total || 0
+    }));
+
+    const porEstado = {};
+    (resultado?.porEstado || []).forEach(item => {
+      if (!item) return;
+      porEstado[item._id] = item.total;
     });
+
+    const hoy = new Date();
+    const porMes = {};
+    for (let i = 5; i >= 0; i--) {
+      const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      const etiqueta = fecha.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' });
+      porMes[etiqueta] = { prospectos: 0, proyectos: 0 };
+    }
+
+    (resultado?.porMes || []).forEach(item => {
+      if (!item?._id) return;
+      const fecha = new Date(item._id.year, item._id.month - 1, 1);
+      const etiqueta = fecha.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' });
+      if (porMes[etiqueta]) {
+        porMes[etiqueta].prospectos = item.prospectos || 0;
+        porMes[etiqueta].proyectos = item.proyectos || 0;
+      }
+    });
+
+    const tiempoPromedioCierre = resultado?.tiemposCierre?.[0]?.promedio
+      ? roundNumber(resultado.tiemposCierre[0].promedio, 1)
+      : 0;
+
+    const respuestasAgg = resultado?.respuestas?.[0] || { total: 0, conNota: 0 };
+    const tasaRespuesta = respuestasAgg.total > 0
+      ? roundNumber((respuestasAgg.conNota / respuestasAgg.total) * 100, 1)
+      : 0;
+
+    const referidosActivos = resultado?.referidos?.[0]?.total || 0;
+
+    const data = {
+      resumen,
+      humanos: {
+        tiempoPromedioCierre,
+        tasaRespuesta,
+        referidosActivos
+      },
+      porAsesor,
+      porEstado,
+      porMes
+    };
+
+    dashboardCache.set(cacheKey, data);
+
+    const duration = Date.now() - startTime;
 
     logger.info('KPIs comerciales calculados', {
       total,
       prospectos,
       proyectos,
       filtros,
-      userId: req.usuario?.id
+      cacheKey,
+      duration
     });
 
     res.json({
       success: true,
-      data: {
-        resumen: {
-          total,
-          prospectos,
-          proyectos,
-          tasaConversion,
-          valorTotal,
-          promedioTicket
-        },
-        porAsesor: Object.entries(porAsesor).map(([asesor, datos]) => ({
-          asesor,
-          ...datos
-        })),
-        porEstado,
-        porMes
+      data,
+      meta: {
+        cached: false,
+        generadoEnMs: duration
       }
     });
   } catch (error) {
