@@ -285,6 +285,12 @@ const proyectoSchema = new mongoose.Schema({
     }
   },
 
+  // Array de medidas/levantamientos para visualización (CRÍTICO)
+  medidas: {
+    type: [mongoose.Schema.Types.Mixed],
+    default: []
+  },
+
   // Resumen de la última cotización generada desde proyectos
   cotizacionActual: {
     cotizacion: {
@@ -657,6 +663,56 @@ const proyectoSchema = new mongoose.Schema({
       fechaInicioReal: Date,
       fechaFinReal: Date,
       horasReales: Number,
+      
+      // ===== SISTEMA DE CHECK-IN/CHECK-OUT CON GEOLOCALIZACIÓN =====
+      checkIn: {
+        fecha: Date,
+        hora: String,
+        usuario: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Usuario'
+        },
+        nombreUsuario: String,
+        ubicacion: {
+          lat: Number,
+          lng: Number,
+          precision: Number, // metros
+          direccion: String
+        },
+        distanciaAlSitio: Number, // metros desde ubicación del cliente
+        enSitio: Boolean, // true si está a menos de 100m del cliente
+        foto: String, // Selfie de confirmación
+        observaciones: String
+      },
+      
+      checkOut: {
+        fecha: Date,
+        hora: String,
+        usuario: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Usuario'
+        },
+        nombreUsuario: String,
+        ubicacion: {
+          lat: Number,
+          lng: Number,
+          precision: Number,
+          direccion: String
+        },
+        tiempoTotal: Number, // minutos desde check-in
+        trabajoCompletado: Boolean,
+        observaciones: String,
+        foto: String
+      },
+      
+      // Métricas de rendimiento calculadas automáticamente
+      metricas: {
+        puntualidad: Number, // minutos de diferencia con hora programada
+        eficiencia: Number, // porcentaje: tiempo real vs estimado
+        tiempoEnSitio: Number, // minutos totales
+        fueronPuntuales: Boolean,
+        fueronEficientes: Boolean
+      },
       
       // Materiales adicionales usados
       materialesAdicionalesUsados: [{

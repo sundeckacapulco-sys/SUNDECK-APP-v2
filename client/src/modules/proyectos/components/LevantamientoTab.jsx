@@ -126,16 +126,43 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
     }
 
     try {
+      console.log('🗑️ Eliminando levantamiento en índice:', index);
+      console.log('📋 Proyecto completo:', proyecto);
+      console.log('📋 Medidas actuales:', proyecto.medidas);
+      
+      // Validar que exista el array de medidas
+      if (!proyecto.medidas || !Array.isArray(proyecto.medidas)) {
+        alert('No hay medidas para eliminar');
+        return;
+      }
+      
+      // Filtrar las medidas excluyendo la que queremos eliminar
       const nuevasMedidas = proyecto.medidas.filter((_, i) => i !== index);
       
-      await axiosConfig.put(`/proyectos/${proyecto._id}`, {
+      console.log('📋 Nuevas medidas después de filtrar:', nuevasMedidas);
+      
+      // Actualizar el proyecto con las medidas filtradas
+      const respuesta = await axiosConfig.put(`/proyectos/${proyecto._id}`, {
         medidas: nuevasMedidas
       });
 
-      onActualizar();
+      console.log('✅ Levantamiento eliminado:', respuesta.data);
+      
+      // Mostrar mensaje de éxito
+      alert('Levantamiento eliminado correctamente');
+      
+      // Actualizar la vista - forzar recarga
+      if (onActualizar) {
+        await onActualizar();
+      }
+      
+      // Recargar la página si es necesario
+      window.location.reload();
+      
     } catch (error) {
-      console.error('Error eliminando medida:', error);
-      alert('Error al eliminar el levantamiento');
+      console.error('❌ Error eliminando medida:', error);
+      console.error('Detalles del error:', error.response?.data);
+      alert('Error al eliminar el levantamiento: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -320,44 +347,21 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
           </Box>
 
           {(() => {
-            // Priorizar levantamiento.partidas sobre medidas legacy
-            const partidas = proyecto.levantamiento?.partidas || [];
+            // Leer directamente de proyecto.medidas donde el backend guarda todo
             const medidas = proyecto.medidas || [];
             
-            console.log('🔍 DEBUG LEVANTAMIENTO:');
-            console.log('  Partidas encontradas:', partidas.length);
-            console.log('  Medidas legacy:', medidas.length);
-            console.log('  Primera partida:', partidas[0]);
-            console.log('  📸 Fotos generales:', proyecto.levantamiento?.fotosGenerales);
-            console.log('  🎥 Link video:', proyecto.levantamiento?.linkVideo);
-            console.log('  📋 Primera medida legacy:', medidas[0]);
-            console.log('  📸 Fotos en medida legacy:', medidas[0]?.fotosGenerales);
-            console.log('  🎥 Video en medida legacy:', medidas[0]?.linkVideo);
-            console.log('  Proyecto completo:', proyecto);
+            console.log('🔍 Levantamientos encontrados:', medidas.length);
+            if (medidas.length > 0) {
+              console.log('  Primera medida completa:', JSON.stringify(medidas[0], null, 2));
+              console.log('  Piezas de la primera medida:', medidas[0].piezas);
+              if (medidas[0].piezas && medidas[0].piezas.length > 0) {
+                console.log('  Primera pieza:', medidas[0].piezas[0]);
+                console.log('  areaTotal de primera pieza:', medidas[0].piezas[0].areaTotal);
+                console.log('  medidas de primera pieza:', medidas[0].piezas[0].medidas);
+              }
+            }
             
-            // Convertir partidas a formato de medidas para compatibilidad
-            const medidasDesdePartidas = partidas.length > 0 ? [{
-              tipo: 'levantamiento',
-              personaVisita: proyecto.levantamiento.personaVisita || '',
-              quienRecibe: proyecto.levantamiento.quienRecibe || '',
-              fechaCotizacion: proyecto.levantamiento.actualizadoEn || new Date(),
-              observacionesGenerales: proyecto.levantamiento.observaciones || '',
-              linkVideo: proyecto.levantamiento.linkVideo || '',
-              fotosGenerales: proyecto.levantamiento.fotosGenerales || [],
-              piezas: partidas.map(partida => ({
-                ubicacion: partida.ubicacion,
-                producto: partida.producto,
-                productoLabel: partida.producto,
-                cantidad: partida.cantidad || partida.piezas?.length || 1,
-                areaTotal: partida.totales?.m2 || 0,
-                color: partida.color,
-                modeloCodigo: partida.modelo,
-                medidas: partida.piezas || [],
-                observaciones: ''
-              }))
-            }] : medidas;
-            
-            if (medidasDesdePartidas.length === 0) {
+            if (medidas.length === 0) {
               return (
                 <Alert severity="info">
                   No hay levantamiento registrado en este proyecto.
@@ -367,7 +371,7 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
             
             return (
               <Box>
-                {medidasDesdePartidas.map((medida, index) => {
+                {medidas.map((medida, index) => {
                 // Detectar si es un levantamiento nuevo con partidas o medida antigua
                 const esLevantamientoConPartidas = medida.tipo === 'levantamiento' && medida.piezas && medida.piezas.length > 0;
                 
@@ -379,7 +383,7 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
                       <Paper sx={{ p: 2, mb: 2, bgcolor: '#f5f5f5' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                           <Typography variant="h6">
-                            📋 Levantamiento {index + 1}
+                            📋 {medida.nombreLevantamiento || `Levantamiento ${index + 1}`}
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button

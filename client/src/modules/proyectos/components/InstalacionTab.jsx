@@ -161,7 +161,10 @@ const InstalacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                   {proyecto.cliente.direccion && (
                     <Typography variant="body2">
                       <LocationIcon sx={{ fontSize: 16, mr: 1, verticalAlign: 'middle' }} />
-                      {proyecto.cliente.direccion}
+                      {typeof proyecto.cliente.direccion === 'string' 
+                        ? proyecto.cliente.direccion 
+                        : `${proyecto.cliente.direccion.calle || ''} ${proyecto.cliente.direccion.colonia || ''}, ${proyecto.cliente.direccion.ciudad || ''}`.trim()
+                      }
                     </Typography>
                   )}
                 </Box>

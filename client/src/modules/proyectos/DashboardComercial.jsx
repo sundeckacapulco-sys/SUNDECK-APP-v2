@@ -167,13 +167,13 @@ const DashboardComercial = () => {
   const mostrandoTabla = !loading || registros.length > 0;
 
   return (
-    <Box sx={{ bgcolor: '#F8FAFC', minHeight: '100vh', py: 4 }}>
+    <Box sx={{ bgcolor: '#F8FAFC', minHeight: '100vh', py: 2 }}>
       <Container
         maxWidth="xl"
         sx={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px'
+          gap: '12px'
         }}
       >
         <Box
@@ -182,70 +182,82 @@ const DashboardComercial = () => {
             flexDirection: { xs: 'column', md: 'row' },
             alignItems: { xs: 'flex-start', md: 'center' },
             justifyContent: 'space-between',
-            gap: 3,
-            p: { xs: 2.5, md: 3 },
-            borderRadius: 3,
+            gap: 1.5,
+            p: { xs: 1, md: 1.5 },
+            borderRadius: 2,
             bgcolor: '#FFFFFF',
-            boxShadow: '0 12px 32px rgba(15, 23, 42, 0.08)'
+            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)'
           }}
         >
           <Box>
             <Typography
-              variant="h3"
+              variant="h5"
               sx={{
                 fontFamily: 'Playfair Display, serif',
                 fontWeight: 600,
                 color: '#0F172A',
-                mb: 1
+                fontSize: { xs: '1.25rem', md: '1.5rem' },
+                mb: 0.25
               }}
             >
               📊 Dashboard Comercial
             </Typography>
             <Typography
-              variant="body1"
+              variant="caption"
               sx={{
-                color: '#334155',
-                fontFamily: 'Inter, sans-serif'
+                color: '#64748B',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '0.75rem'
               }}
             >
               Rendimiento comercial, evolución de prospectos y seguimiento humano en un solo lugar.
             </Typography>
           </Box>
 
-          <Stack direction="row" spacing={2} sx={{ width: { xs: '100%', md: 'auto' } }}>
+          <Stack direction="row" spacing={0.75} sx={{ width: { xs: '100%', md: 'auto' } }}>
             <Button
-              fullWidth
+              size="small"
               variant="outlined"
-              startIcon={<RefreshIcon />}
+              startIcon={<RefreshIcon sx={{ fontSize: 16 }} />}
               onClick={handleRecargar}
               disabled={loading || kpiLoading}
               sx={{
-                borderColor: '#0F172A',
-                color: '#0F172A',
+                borderColor: '#CBD5E1',
+                color: '#475569',
                 fontFamily: 'Inter, sans-serif',
-                fontWeight: 600,
+                fontWeight: 400,
+                fontSize: '0.75rem',
+                py: 0.5,
+                px: 1.25,
+                textTransform: 'none',
+                minWidth: 'auto',
                 '&:hover': {
-                  borderColor: '#0F172A',
-                  backgroundColor: '#E2E8F0'
+                  borderColor: '#94A3B8',
+                  backgroundColor: '#F8FAFC'
                 }
               }}
             >
               Recargar
             </Button>
             <Button
-              fullWidth
+              size="small"
               variant="contained"
-              startIcon={<AddIcon />}
+              startIcon={<AddIcon sx={{ fontSize: 16 }} />}
               onClick={handleNuevo}
               sx={{
                 bgcolor: '#0F172A',
                 color: '#FFFFFF',
                 fontFamily: 'Inter, sans-serif',
-                fontWeight: 600,
-                boxShadow: '0 12px 24px rgba(15, 23, 42, 0.25)',
+                fontWeight: 400,
+                fontSize: '0.75rem',
+                py: 0.5,
+                px: 1.25,
+                textTransform: 'none',
+                minWidth: 'auto',
+                boxShadow: 'none',
                 '&:hover': {
-                  bgcolor: '#0B1221',
-                  boxShadow: '0 16px 30px rgba(15, 23, 42, 0.3)'
+                  bgcolor: '#1E293B',
+                  boxShadow: 'none'
                 }
               }}
             >
@@ -259,9 +271,9 @@ const DashboardComercial = () => {
         <Box
           sx={{
             bgcolor: '#FFFFFF',
-            borderRadius: 3,
-            boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)',
-            p: { xs: 2, md: 3 }
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+            p: { xs: 1.5, md: 2 }
           }}
         >
           <FiltrosComerciales
@@ -291,9 +303,9 @@ const DashboardComercial = () => {
           <Box
             sx={{
               bgcolor: '#FFFFFF',
-              borderRadius: 3,
-              boxShadow: '0 12px 30px rgba(15, 23, 42, 0.06)',
-              p: { xs: 1, md: 2 }
+              borderRadius: 2,
+              boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+              p: { xs: 0.5, md: 1.5 }
             }}
           >
             <TablaComercial

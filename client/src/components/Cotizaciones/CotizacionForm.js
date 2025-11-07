@@ -512,7 +512,11 @@ const CotizacionForm = () => {
     if (isEdit) {
       fetchCotizacion();
     }
-  }, [id]);
+    // Si viene desde un proyecto, cargar automáticamente el levantamiento
+    if (proyectoId) {
+      fetchLevantamientoData();
+    }
+  }, [id, proyectoId]);
 
   const fetchProductos = async () => {
     try {

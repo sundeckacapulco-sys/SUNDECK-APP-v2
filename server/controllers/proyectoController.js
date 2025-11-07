@@ -190,7 +190,9 @@ const generarExcelLevantamiento = async (req, res) => {
 
 const normalizarPartidas = (partidas = [], { incluirPrecios = false } = {}) => {
   return partidas.map(partida => {
-    const piezas = (partida.piezas || []).map(pieza => {
+    // Aceptar tanto 'piezas' como 'medidas' para compatibilidad
+    const piezasArray = partida.piezas || partida.medidas || [];
+    const piezas = piezasArray.map(pieza => {
       const ancho = roundNumber(pieza.ancho, 4);
       const alto = roundNumber(pieza.alto, 4);
       const m2 = roundNumber(ancho * alto, 4);
@@ -314,7 +316,7 @@ const construirTotalesProyecto = (partidasNormalizadas, totalesPayload = {}) => 
 
 const construirRegistroMedidas = (
   partidasNormalizadas,
-  { personaVisita = '', observaciones = '', incluirPrecios = false }
+  { nombreLevantamiento = '', personaVisita = '', quienRecibe = '', observaciones = '', linkVideo = '', fotosGenerales = [], incluirPrecios = false }
 ) => {
   const totalPartidas = partidasNormalizadas.length;
   const totalPiezas = partidasNormalizadas.reduce(
@@ -332,8 +334,12 @@ const construirRegistroMedidas = (
 
   return {
     tipo: 'levantamiento',
+    nombreLevantamiento,
     personaVisita,
+    quienRecibe,
     observacionesGenerales: observaciones,
+    linkVideo,
+    fotosGenerales,
     fechaHora: new Date(),
     esPartidasV2: true,
     piezas: partidasNormalizadas.map(partida => ({
@@ -352,9 +358,10 @@ const construirRegistroMedidas = (
       motorPrecio: incluirPrecios ? partida.motorizacion?.precioMotor : undefined,
       controlModelo: partida.motorizacion?.modeloControl,
       controlPrecio: incluirPrecios ? partida.motorizacion?.precioControl : undefined,
-      medidas: partida.piezas.map(medida => ({
+      medidas: (partida.piezas || []).map(medida => ({
         ancho: medida.ancho,
         alto: medida.alto,
+        area: roundNumber((medida.ancho || 0) * (medida.alto || 0)),  // ✅ CALCULAR ÁREA
         producto: partida.producto,
         productoLabel: partida.producto,
         modeloCodigo: medida.modeloCodigo,
@@ -1340,78 +1347,86 @@ const obtenerEstadisticasProyecto = async (req, res) => {
       });
     }
 
-    // Calcular estadísticas
+    // Calcular estadísticas con validaciones
     const estadisticas = {
       resumen: {
         estado_actual: proyecto.estado,
-        progreso_porcentaje: proyecto.progreso_porcentaje,
-        area_total: proyecto.area_total,
-        total_medidas: proyecto.medidas.length,
-        fecha_creacion: proyecto.fecha_creacion,
-        dias_transcurridos: Math.floor((new Date() - proyecto.fecha_creacion) / (1000 * 60 * 60 * 24))
+        progreso_porcentaje: proyecto.progreso_porcentaje || 0,
+        area_total: proyecto.area_total || 0,
+        total_medidas: Array.isArray(proyecto.medidas) ? proyecto.medidas.length : 0,
+        fecha_creacion: proyecto.fecha_creacion || proyecto.createdAt,
+        dias_transcurridos: Math.floor((new Date() - (proyecto.fecha_creacion || proyecto.createdAt)) / (1000 * 60 * 60 * 24))
       },
       financiero: {
-        subtotal: proyecto.subtotal,
-        iva: proyecto.iva,
-        total: proyecto.total,
-        anticipo: proyecto.anticipo,
-        saldo_pendiente: proyecto.saldo_pendiente
+        subtotal: proyecto.subtotal || 0,
+        iva: proyecto.iva || 0,
+        total: proyecto.total || 0,
+        anticipo: proyecto.anticipo || 0,
+        saldo_pendiente: proyecto.saldo_pendiente || 0
       },
       flujo: {
         cotizaciones: {
-          total: proyecto.cotizaciones.length,
-          estados: proyecto.cotizaciones.reduce((acc, cot) => {
-            acc[cot.estado] = (acc[cot.estado] || 0) + 1;
+          total: Array.isArray(proyecto.cotizaciones) ? proyecto.cotizaciones.length : 0,
+          estados: Array.isArray(proyecto.cotizaciones) ? proyecto.cotizaciones.reduce((acc, cot) => {
+            if (cot && cot.estado) {
+              acc[cot.estado] = (acc[cot.estado] || 0) + 1;
+            }
             return acc;
-          }, {})
+          }, {}) : {}
         },
         pedidos: {
-          total: proyecto.pedidos.length,
-          estados: proyecto.pedidos.reduce((acc, ped) => {
-            acc[ped.estado] = (acc[ped.estado] || 0) + 1;
+          total: Array.isArray(proyecto.pedidos) ? proyecto.pedidos.length : 0,
+          estados: Array.isArray(proyecto.pedidos) ? proyecto.pedidos.reduce((acc, ped) => {
+            if (ped && ped.estado) {
+              acc[ped.estado] = (acc[ped.estado] || 0) + 1;
+            }
             return acc;
-          }, {})
+          }, {}) : {}
         },
         fabricacion: {
-          total: proyecto.ordenes_fabricacion.length,
-          estados: proyecto.ordenes_fabricacion.reduce((acc, ord) => {
-            acc[ord.estado] = (acc[ord.estado] || 0) + 1;
+          total: Array.isArray(proyecto.ordenes_fabricacion) ? proyecto.ordenes_fabricacion.length : 0,
+          estados: Array.isArray(proyecto.ordenes_fabricacion) ? proyecto.ordenes_fabricacion.reduce((acc, ord) => {
+            if (ord && ord.estado) {
+              acc[ord.estado] = (acc[ord.estado] || 0) + 1;
+            }
             return acc;
-          }, {})
+          }, {}) : {}
         },
         instalaciones: {
-          total: proyecto.instalaciones.length,
-          estados: proyecto.instalaciones.reduce((acc, ins) => {
-            acc[ins.estado] = (acc[ins.estado] || 0) + 1;
+          total: Array.isArray(proyecto.instalaciones) ? proyecto.instalaciones.length : 0,
+          estados: Array.isArray(proyecto.instalaciones) ? proyecto.instalaciones.reduce((acc, ins) => {
+            if (ins && ins.estado) {
+              acc[ins.estado] = (acc[ins.estado] || 0) + 1;
+            }
             return acc;
-          }, {})
+          }, {}) : {}
         }
       },
       timeline: [
-        ...proyecto.cotizaciones.map(c => ({
+        ...(Array.isArray(proyecto.cotizaciones) ? proyecto.cotizaciones.filter(c => c && c.numero).map(c => ({
           tipo: 'cotizacion',
           numero: c.numero,
           estado: c.estado,
           fecha: c.fechaCreacion
-        })),
-        ...proyecto.pedidos.map(p => ({
+        })) : []),
+        ...(Array.isArray(proyecto.pedidos) ? proyecto.pedidos.filter(p => p && p.numero).map(p => ({
           tipo: 'pedido',
           numero: p.numero,
           estado: p.estado,
           fecha: p.fechaCreacion
-        })),
-        ...proyecto.ordenes_fabricacion.map(o => ({
+        })) : []),
+        ...(Array.isArray(proyecto.ordenes_fabricacion) ? proyecto.ordenes_fabricacion.filter(o => o && o.numero).map(o => ({
           tipo: 'fabricacion',
           numero: o.numero,
           estado: o.estado,
           fecha: o.fechaCreacion
-        })),
-        ...proyecto.instalaciones.map(i => ({
+        })) : []),
+        ...(Array.isArray(proyecto.instalaciones) ? proyecto.instalaciones.filter(i => i && i.numero).map(i => ({
           tipo: 'instalacion',
           numero: i.numero,
           estado: i.estado,
           fecha: i.fechaProgramada
-        }))
+        })) : [])
       ].sort((a, b) => new Date(a.fecha) - new Date(b.fecha))
     };
 
@@ -1438,10 +1453,21 @@ const obtenerEstadisticasProyecto = async (req, res) => {
 const guardarLevantamiento = async (req, res) => {
   try {
     const { id } = req.params;
-    const { partidas = [], totales = {}, observaciones = '', personaVisita = '' } = req.body;
+    const { 
+      nombreLevantamiento = '',
+      partidas = [], 
+      totales = {}, 
+      observaciones = '', 
+      personaVisita = '',
+      quienRecibe = '',
+      fechaCotizacion = '',
+      linkVideo = '',
+      fotosGenerales = []
+    } = req.body;
 
     logger.info('Guardando levantamiento', {
       proyectoId: id,
+      nombreLevantamiento,
       partidasCount: partidas.length,
       userId: req.usuario?.id
     });
@@ -1461,11 +1487,28 @@ const guardarLevantamiento = async (req, res) => {
       });
     }
 
+    logger.info('Partidas recibidas del frontend', {
+      proyectoId: id,
+      partidasCount: partidas.length,
+      primeraPartida: JSON.stringify(partidas[0])
+    });
+
     const partidasNormalizadas = normalizarPartidas(partidas, { incluirPrecios: false });
+    
+    logger.info('Partidas después de normalizar', {
+      proyectoId: id,
+      partidasNormalizadasCount: partidasNormalizadas.length,
+      primeraPartidaNormalizada: JSON.stringify(partidasNormalizadas[0])
+    });
+    
     const totalesProyecto = construirTotalesProyecto(partidasNormalizadas, totales);
     const registroMedidas = construirRegistroMedidas(partidasNormalizadas, {
+      nombreLevantamiento,
       personaVisita,
+      quienRecibe,
       observaciones,
+      linkVideo,
+      fotosGenerales,
       incluirPrecios: false
     });
 
@@ -1477,10 +1520,23 @@ const guardarLevantamiento = async (req, res) => {
       actualizadoEn: new Date()
     };
 
+    // Inicializar medidas si no existe
+    if (!proyecto.medidas) {
+      proyecto.medidas = [];
+    }
+
     const medidasExistentes = Array.isArray(proyecto.medidas)
       ? proyecto.medidas.filter(medida => !medida.esPartidasV2)
       : [];
+    
     proyecto.medidas = [...medidasExistentes, registroMedidas];
+    
+    logger.info('Registro de medidas construido', {
+      proyectoId: id,
+      registroMedidas: JSON.stringify(registroMedidas),
+      medidasExistentes: medidasExistentes.length,
+      totalMedidas: proyecto.medidas.length
+    });
 
     if (observaciones) {
       proyecto.observaciones = observaciones;

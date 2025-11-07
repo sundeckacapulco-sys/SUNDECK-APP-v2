@@ -53,6 +53,7 @@ import LevantamientoTab from './components/LevantamientoTab';
 import CotizacionTab from './components/CotizacionTab';
 import FabricacionTab from './components/FabricacionTab';
 import InstalacionTab from './components/InstalacionTab';
+import CheckInOut from '../../components/Asistencia/CheckInOut';
 
 const ESTADOS_CONFIG = {
   'levantamiento': { color: '#ffc107', label: 'Levantamiento', icon: '📏' },
@@ -440,6 +441,7 @@ const ProyectoDetail = () => {
           <Tab label="💰 Cotización" />
           <Tab label="🏭 Fabricación" />
           <Tab label="🔧 Instalación" />
+          <Tab label="📍 Asistencia" />
           <Tab label="📊 Estadísticas" />
         </Tabs>
 
@@ -473,6 +475,14 @@ const ProyectoDetail = () => {
             />
           )}
           {tabActual === 4 && (
+            <Box>
+              <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
+                📍 Control de Asistencia
+              </Typography>
+              <CheckInOut proyectoId={id} />
+            </Box>
+          )}
+          {tabActual === 5 && (
             <Box>
               <Typography variant="h6" gutterBottom>
                 📊 Estadísticas Detalladas

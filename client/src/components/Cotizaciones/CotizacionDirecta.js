@@ -67,7 +67,7 @@ const CotizacionDirecta = () => {
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const proyectoId = searchParams.get('proyectoId');
+  const proyectoId = searchParams.get('proyecto') || searchParams.get('proyectoId');
 
   const steps = ['Datos del Cliente', 'Productos y Medidas', 'Totales y Condiciones'];
 
@@ -141,7 +141,7 @@ const CotizacionDirecta = () => {
       const response = await axiosConfig.get(`/proyectos/${proyectoId}`);
       console.log('📋 Respuesta del proyecto:', response.data);
       
-      const proyecto = response.data.proyecto || response.data;
+      const proyecto = response.data.proyecto || response.data.data || response.data;
       setProyectoOrigen(proyecto);
       
       console.log('👤 Datos del cliente en proyecto:', proyecto.cliente);
@@ -168,6 +168,62 @@ const CotizacionDirecta = () => {
       setError(`Error cargando datos del proyecto: ${error.response?.data?.message || error.message}`);
     } finally {
       setCargandoProyecto(false);
+    }
+  };
+
+  const importarLevantamiento = () => {
+    if (!proyectoOrigen || !proyectoOrigen.medidas || proyectoOrigen.medidas.length === 0) {
+      setError('No hay levantamiento disponible para importar');
+      return;
+    }
+
+    try {
+      console.log('📥 Importando levantamiento:', proyectoOrigen.medidas[0]);
+      const levantamiento = proyectoOrigen.medidas[0];
+      
+      // Limpiar productos actuales
+      while (fields.length > 0) {
+        remove(0);
+      }
+
+      // Convertir piezas del levantamiento a productos de cotización
+      if (levantamiento.piezas && levantamiento.piezas.length > 0) {
+        levantamiento.piezas.forEach((pieza) => {
+          // Calcular área total de la pieza
+          const areaTotal = pieza.medidas && pieza.medidas.length > 0
+            ? pieza.medidas.reduce((sum, m) => sum + (m.area || 0), 0)
+            : pieza.areaTotal || 0;
+
+          append({
+            nombre: pieza.productoLabel || pieza.producto || 'Producto',
+            descripcion: `${pieza.ubicacion} - ${pieza.modeloCodigo || ''} ${pieza.color || ''}`.trim(),
+            categoria: 'ventana',
+            material: pieza.modeloCodigo || '',
+            color: pieza.color || '',
+            medidas: {
+              ancho: pieza.medidas && pieza.medidas[0] ? pieza.medidas[0].ancho : 0,
+              alto: pieza.medidas && pieza.medidas[0] ? pieza.medidas[0].alto : 0,
+              area: areaTotal
+            },
+            cantidad: pieza.cantidad || 1,
+            precioUnitario: 0, // El usuario debe agregar el precio
+            subtotal: 0,
+            ubicacion: pieza.ubicacion,
+            especificaciones: pieza.medidas || []
+          });
+        });
+
+        setSuccess(`✅ Levantamiento importado: ${levantamiento.piezas.length} partidas agregadas`);
+        console.log('✅ Levantamiento importado exitosamente');
+        
+        // Avanzar al paso de productos
+        setActiveStep(1);
+      } else {
+        setError('El levantamiento no tiene partidas para importar');
+      }
+    } catch (error) {
+      console.error('❌ Error importando levantamiento:', error);
+      setError(`Error al importar levantamiento: ${error.message}`);
     }
   };
 
@@ -1243,8 +1299,37 @@ const CotizacionDirecta = () => {
           )}
 
           {proyectoOrigen && (
-            <Alert severity="success" sx={{ mb: 2 }}>
+            <Alert 
+              severity="success" 
+              sx={{ mb: 2 }}
+              action={
+                proyectoOrigen.medidas && proyectoOrigen.medidas.length > 0 && (
+                  <Button 
+                    color="inherit" 
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      console.log('📋 Importando levantamiento del proyecto');
+                      importarLevantamiento();
+                    }}
+                  >
+                    📥 Importar Levantamiento
+                  </Button>
+                )
+              }
+            >
               ✅ Datos cargados del proyecto: <strong>{proyectoOrigen.cliente?.nombre}</strong>
+              {proyectoOrigen.medidas && proyectoOrigen.medidas.length > 0 && (
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="body2">
+                    📏 Levantamiento disponible: {proyectoOrigen.medidas[0]?.nombreLevantamiento || 'Sin nombre'}
+                  </Typography>
+                  <Typography variant="caption">
+                    {proyectoOrigen.medidas[0]?.piezas?.length || 0} partidas • 
+                    {proyectoOrigen.medidas[0]?.totales?.areaTotal?.toFixed(2) || 0} m²
+                  </Typography>
+                </Box>
+              )}
             </Alert>
           )}
 

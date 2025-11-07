@@ -1,4 +1,4 @@
-# 📊 ESTRUCTURA ACTUAL DEL DASHBOARD – SUNDECK CRM
+http://localhost:3000/dashboard# 📊 ESTRUCTURA ACTUAL DEL DASHBOARD – SUNDECK CRM
 
 **Fecha de auditoría:** 8 Noviembre 2025  
 **Versión del sistema:** 2.x (Pre-v3.0)  

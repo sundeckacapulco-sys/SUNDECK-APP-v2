@@ -32,7 +32,8 @@ import {
   ContentCopy,
   ExpandMore as ExpandMoreIcon,
   Straighten as StraightenIcon,
-  Photo as PhotoIcon
+  Photo as PhotoIcon,
+  CheckCircle
 } from '@mui/icons-material';
 import usePiezasManager from '../../../components/Prospectos/hooks/usePiezasManager';
 import { productosOptions, createEmptyPieza } from '../../../components/Prospectos/AgregarEtapaModal.constants';
@@ -40,6 +41,7 @@ import axiosConfig from '../../../config/axios';
 import PiezaCard from './PiezaCard';
 
 const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, medidaEditando }) => {
+  const [nombreLevantamiento, setNombreLevantamiento] = useState('');
   const [personaVisita, setPersonaVisita] = useState('');
   const [fechaCotizacion, setFechaCotizacion] = useState('');
   const [quienRecibe, setQuienRecibe] = useState('');
@@ -52,6 +54,8 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
   const [grabando, setGrabando] = useState(false);
   const [recognition, setRecognition] = useState(null);
   const [lastTranscript, setLastTranscript] = useState('');
+  const [haciendoCheckIn, setHaciendoCheckIn] = useState(false);
+  const [checkInRealizado, setCheckInRealizado] = useState(false);
 
   // Usar el mismo manager de piezas que el AgregarEtapaModal
   const piezasManager = usePiezasManager({
@@ -183,7 +187,70 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
     }
   };
 
+  const handleCheckIn = async () => {
+    try {
+      setHaciendoCheckIn(true);
+      setErrorLocal('');
+
+      // Obtener geolocalización
+      if (!navigator.geolocation) {
+        setErrorLocal('Tu navegador no soporta geolocalización');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const checkInData = {
+              proyectoId: proyecto._id,
+              ubicacion: {
+                type: 'Point',
+                coordinates: [position.coords.longitude, position.coords.latitude]
+              },
+              direccion: proyecto.cliente?.direccion || 'Dirección del proyecto',
+              notas: `Check-in desde levantamiento: ${nombreLevantamiento || 'Sin nombre'}`
+            };
+
+            console.log('📍 Haciendo check-in:', checkInData);
+            
+            const respuesta = await axiosConfig.post('/asistencia/check-in', checkInData);
+            
+            console.log('✅ Check-in exitoso:', respuesta.data);
+            setCheckInRealizado(true);
+            
+            // Mostrar mensaje de éxito
+            setTimeout(() => {
+              setCheckInRealizado(false);
+            }, 3000);
+
+          } catch (error) {
+            console.error('Error en check-in:', error);
+            setErrorLocal(error.response?.data?.message || 'Error al hacer check-in');
+          } finally {
+            setHaciendoCheckIn(false);
+          }
+        },
+        (error) => {
+          console.error('Error obteniendo ubicación:', error);
+          setErrorLocal('No se pudo obtener tu ubicación. Verifica los permisos.');
+          setHaciendoCheckIn(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+
+    } catch (error) {
+      console.error('Error en check-in:', error);
+      setErrorLocal('Error al hacer check-in');
+      setHaciendoCheckIn(false);
+    }
+  };
+
   const resetFormulario = () => {
+    setNombreLevantamiento('');
     setPersonaVisita('');
     setFechaCotizacion('');
     setQuienRecibe('');
@@ -192,6 +259,7 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
     setFotosGenerales([]);
     piezasManager.resetPiezas();
     setErrorLocal('');
+    setCheckInRealizado(false);
     if (grabando && recognition) {
       recognition.stop();
       setGrabando(false);
@@ -237,59 +305,72 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
         }
       }
 
-      // Preparar payload
+      // Preparar partidas en el formato que espera el backend
+      const partidas = piezasManager.piezas.map(pieza => {
+        // Asegurar que cada medida tenga su área calculada
+        const medidasConArea = (pieza.medidas || []).map(medida => ({
+          ...medida,
+          area: (parseFloat(medida.ancho) || 0) * (parseFloat(medida.alto) || 0)
+        }));
+        
+        const areaTotal = calcularAreaPieza({ ...pieza, medidas: medidasConArea });
+        
+        console.log('📏 Calculando área para pieza:', {
+          ubicacion: pieza.ubicacion,
+          medidas: medidasConArea,
+          areaTotal
+        });
+        
+        return {
+          ubicacion: pieza.ubicacion,
+          producto: pieza.producto,
+          productoLabel: pieza.productoLabel,
+          color: pieza.color,
+          modeloCodigo: pieza.modeloCodigo,
+          cantidad: pieza.cantidad || 1,
+          medidas: medidasConArea,
+          observaciones: pieza.observaciones,
+          areaTotal,
+          // Incluir especificaciones técnicas si existen
+          galeria: pieza.galeria,
+          tipoControl: pieza.tipoControl,
+          caida: pieza.caida,
+          tipoInstalacion: pieza.tipoInstalacion,
+          tipoFijacion: pieza.tipoFijacion,
+          modoOperacion: pieza.modoOperacion,
+          detalleTecnico: pieza.detalleTecnico,
+          sistema: pieza.sistema,
+          telaMarca: pieza.telaMarca,
+          baseTabla: pieza.baseTabla
+        };
+      });
+
+      // Calcular totales
+      const totales = {
+        totalPartidas: piezasManager.piezas.length,
+        totalPiezas: piezasManager.piezas.reduce((total, pieza) => total + (pieza.cantidad || 1), 0),
+        areaTotal: piezasManager.piezas.reduce((total, pieza) => total + calcularAreaPieza(pieza), 0)
+      };
+
+      // Preparar payload para el endpoint de levantamiento
       const payload = {
-        proyectoId: proyecto._id,
-        tipo: 'levantamiento',
+        nombreLevantamiento: nombreLevantamiento || `Levantamiento ${new Date().toLocaleDateString('es-MX')}`,
+        partidas,
+        totales,
+        observaciones: observacionesGenerales,
         personaVisita,
         fechaCotizacion,
         quienRecibe,
-        observacionesGenerales,
-        linkVideo, // ✅ Agregar link de video
-        fotosGenerales, // ✅ Agregar fotos generales
-        piezas: piezasManager.piezas.map(pieza => ({
-          ...pieza,
-          // Calcular totales por partida
-          areaTotal: calcularAreaPieza(pieza),
-          totalPiezas: pieza.cantidad || 1
-        })),
-        // Calcular totales generales
-        totales: {
-          totalPartidas: piezasManager.piezas.length,
-          totalPiezas: piezasManager.piezas.reduce((total, pieza) => total + (pieza.cantidad || 1), 0),
-          areaTotal: piezasManager.piezas.reduce((total, pieza) => total + calcularAreaPieza(pieza), 0)
-        },
-        fechaHora: new Date().toISOString()
+        linkVideo,
+        fotosGenerales
       };
 
-      console.log('🔍 Guardando levantamiento con partidas:', payload);
-      console.log('📦 Piezas del manager:', piezasManager.piezas);
-      console.log('📊 Detalle de primera pieza:', piezasManager.piezas[0]);
-      console.log('📏 Detalle de primera medida de primera pieza:', piezasManager.piezas[0]?.medidas?.[0]);
-      console.log('📸 Fotos generales en payload:', payload.fotosGenerales);
-      console.log('🎥 Link video en payload:', payload.linkVideo);
+      console.log('🔍 Guardando levantamiento con endpoint correcto:', payload);
+      console.log('📦 Total de partidas:', partidas.length);
+      console.log('📊 Totales calculados:', totales);
 
-      // Obtener el proyecto actual
-      const proyectoActual = await axiosConfig.get(`/proyectos/${proyecto._id}`);
-      const medidasActuales = proyectoActual.data.medidas || [];
-      console.log('📋 Medidas actuales del proyecto:', medidasActuales);
-
-      let nuevasMedidas;
-      if (medidaEditando && medidaEditando._id) {
-        // Actualizar medida existente
-        nuevasMedidas = medidasActuales.map(m => 
-          m._id === medidaEditando._id ? { ...m, ...payload } : m
-        );
-      } else {
-        // Agregar nueva medida
-        nuevasMedidas = [...medidasActuales, payload];
-      }
-
-      // Actualizar el proyecto completo con las nuevas medidas
-      console.log('💾 Enviando al servidor:', { medidas: nuevasMedidas });
-      const respuesta = await axiosConfig.put(`/proyectos/${proyecto._id}`, {
-        medidas: nuevasMedidas
-      });
+      // Usar el endpoint específico para levantamientos
+      const respuesta = await axiosConfig.patch(`/proyectos/${proyecto._id}/levantamiento`, payload);
       console.log('✅ Respuesta del servidor:', respuesta.data);
 
       onActualizar();
@@ -343,7 +424,18 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
               🔧 Información Técnica General
             </Typography>
             <Grid container spacing={1}>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Nombre del Levantamiento"
+                  value={nombreLevantamiento}
+                  onChange={(e) => setNombreLevantamiento(e.target.value)}
+                  placeholder="Ej: Depto 2000 Porto Bello"
+                  helperText="Identificador único para este levantamiento"
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   size="small"
@@ -356,7 +448,17 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                   placeholder="Asesor/técnico"
                 />
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Quien recibe"
+                  value={quienRecibe}
+                  onChange={(e) => setQuienRecibe(e.target.value)}
+                  placeholder="Nombre del cliente"
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
                   size="small"
@@ -367,15 +469,36 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                   InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-              <Grid item xs={12} sm={3}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Quien recibe"
-                  value={quienRecibe}
-                  onChange={(e) => setQuienRecibe(e.target.value)}
-                  placeholder="Cliente"
-                />
+              
+              {/* Botón de Check-in */}
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
+                  <Button
+                    variant="contained"
+                    color={checkInRealizado ? "success" : "primary"}
+                    onClick={handleCheckIn}
+                    disabled={haciendoCheckIn || checkInRealizado}
+                    startIcon={checkInRealizado ? <CheckCircle /> : <StraightenIcon />}
+                    sx={{
+                      bgcolor: checkInRealizado ? '#10B981' : '#14B8A6',
+                      '&:hover': {
+                        bgcolor: checkInRealizado ? '#059669' : '#0D9488'
+                      }
+                    }}
+                  >
+                    {haciendoCheckIn ? 'Obteniendo ubicación...' : checkInRealizado ? '✓ Check-in Realizado' : '📍 Hacer Check-in'}
+                  </Button>
+                  {checkInRealizado && (
+                    <Typography variant="body2" color="success.main" sx={{ fontWeight: 600 }}>
+                      ¡Ubicación registrada correctamente!
+                    </Typography>
+                  )}
+                  {!checkInRealizado && (
+                    <Typography variant="caption" color="text.secondary">
+                      Registra tu llegada al sitio con geolocalización
+                    </Typography>
+                  )}
+                </Box>
               </Grid>
             </Grid>
           </CardContent>

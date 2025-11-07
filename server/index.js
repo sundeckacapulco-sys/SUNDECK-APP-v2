@@ -130,7 +130,9 @@ app.use('/api/fabricacion', require('./routes/fabricacion'));
 app.use('/api/instalaciones', require('./routes/instalaciones'));
 app.use('/api/kpis-instalaciones', require('./routes/kpisInstalaciones'));
 app.use('/api/postventa', require('./routes/postventa'));
-app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/dashboard', require('./routes/dashboard')); // ⚠️ LEGACY - Usar /api/dashboard/unificado
+app.use('/api/dashboard/unificado', require('./routes/dashboardUnificado')); // ✅ NUEVO - Sin legacy
+app.use('/api/asistencia', require('./routes/asistencia')); // ✅ NUEVO - Check-in/out con geolocalización
 app.use('/api/usuarios', require('./routes/usuarios'));
 app.use('/api/recordatorios', require('./routes/recordatorios'));
 app.use('/api/productos', require('./routes/productos'));

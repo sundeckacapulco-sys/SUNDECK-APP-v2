@@ -113,26 +113,26 @@ const KPIsComerciales = ({ kpis, loading }) => {
   ]), [resumen, humanos]);
 
   return (
-    <Grid container spacing={2.5} sx={{ mb: 3 }}>
+    <Grid container spacing={1.5} sx={{ mb: 2 }}>
       {cards.map(card => (
-        <Grid item xs={12} sm={6} md={4} lg={3} key={card.key}>
+        <Grid item xs={12} sm={6} md={3} lg={2.4} key={card.key}>
           <Card
             elevation={0}
             sx={{
               bgcolor: card.bgColor,
-              borderRadius: 3,
+              borderRadius: 2,
               border: '1px solid rgba(15, 23, 42, 0.04)',
               height: '100%',
-              transition: 'transform 0.25s ease, box-shadow 0.25s ease',
-              boxShadow: '0 14px 32px rgba(15, 23, 42, 0.08)',
+              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)',
               '&:hover': {
-                transform: 'translateY(-6px)',
-                boxShadow: '0 20px 40px rgba(15, 23, 42, 0.12)'
+                transform: 'translateY(-2px)',
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.1)'
               }
             }}
           >
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                 <Box
                   sx={{
                     color: card.color,
@@ -141,9 +141,9 @@ const KPIsComerciales = ({ kpis, loading }) => {
                     justifyContent: 'center',
                     bgcolor: 'rgba(15, 23, 42, 0.05)',
                     borderRadius: '999px',
-                    width: 36,
-                    height: 36,
-                    mr: 1.5
+                    width: 28,
+                    height: 28,
+                    mr: 1
                   }}
                 >
                   {card.icon}
@@ -152,9 +152,10 @@ const KPIsComerciales = ({ kpis, loading }) => {
                   variant="overline"
                   sx={{
                     color: '#475569',
-                    fontWeight: 700,
-                    fontSize: '0.7rem',
-                    letterSpacing: '0.08em'
+                    fontWeight: 600,
+                    fontSize: '0.65rem',
+                    letterSpacing: '0.05em',
+                    lineHeight: 1.2
                   }}
                 >
                   {card.title}
@@ -162,16 +163,17 @@ const KPIsComerciales = ({ kpis, loading }) => {
               </Box>
 
               {loading ? (
-                <Skeleton variant="text" width="70%" height={42} />
+                <Skeleton variant="text" width="60%" height={32} />
               ) : (
                 <Typography
-                  variant="h4"
+                  variant="h5"
                   sx={{
                     color: card.color,
                     fontWeight: 700,
                     fontFamily: 'Playfair Display, serif',
-                    fontSize: { xs: '1.6rem', md: '1.9rem' },
-                    mb: 1
+                    fontSize: { xs: '1.25rem', md: '1.4rem' },
+                    mb: 0.25,
+                    lineHeight: 1.2
                   }}
                 >
                   {card.value}
@@ -184,7 +186,8 @@ const KPIsComerciales = ({ kpis, loading }) => {
                   sx={{
                     color: '#64748B',
                     fontFamily: 'Inter, sans-serif',
-                    fontSize: '0.7rem'
+                    fontSize: '0.65rem',
+                    lineHeight: 1.3
                   }}
                 >
                   {card.subtitle}
