@@ -201,6 +201,112 @@ const normalizarDescuento = (descuento = {}) => {
   };
 };
 
+const construirProductoDesdePartida = (partida = {}, pieza = {}, partidaIndex = 0, piezaIndex = 0) => {
+  const ancho = parseNumber(pieza.ancho ?? partida.ancho, 0);
+  const alto = parseNumber(pieza.alto ?? partida.alto, 0);
+  const cantidad = parseNumber(pieza.cantidad ?? partida.cantidad, 1) || 1;
+  const areaBase = parseNumber(
+    pieza.area ?? pieza.m2 ?? pieza.superficie ?? (ancho * alto),
+    ancho * alto
+  );
+
+  const operacionBase = pieza.tipoOperacion || partida.tipoOperacion || pieza.operacion || '';
+  const esMotorizada =
+    pieza.motorizado === true ||
+    partida.motorizado === true ||
+    (typeof operacionBase === 'string' && operacionBase.toLowerCase().includes('motoriz'));
+
+  const sistema = Array.isArray(pieza.sistema)
+    ? pieza.sistema.join(', ')
+    : (pieza.sistema || partida.sistema || '');
+  const tipoControl =
+    pieza.tipoControl ||
+    pieza.control ||
+    partida.motorizacion?.modeloControl ||
+    partida.control ||
+    '';
+  const tipoInstalacion =
+    pieza.tipoInstalacion ||
+    pieza.instalacion ||
+    partida.tipoInstalacion ||
+    partida.instalacion ||
+    '';
+  const caida = pieza.caida || pieza.orientacion || partida.caida || '';
+  const galeria = pieza.galeria || pieza.cabezal || partida.galeria || partida.cabezal || '';
+  const base = pieza.base || pieza.tabla || pieza.baseInstalacion || partida.base || '';
+  const modelo = pieza.modeloCodigo || pieza.modelo || partida.modelo || '';
+  const color = pieza.color || partida.color || 'Sin especificar';
+  const observaciones = [partida.observaciones, pieza.observaciones]
+    .filter(Boolean)
+    .join(' | ');
+
+  const operacion = esMotorizada
+    ? `Motorizado${partida.motorizacion?.modeloMotor ? ` (${partida.motorizacion.modeloMotor})` : ''}`
+    : (operacionBase || 'Manual');
+
+  const nombreProducto =
+    partida.producto ||
+    pieza.productoLabel ||
+    pieza.producto ||
+    `Producto ${partidaIndex + 1}-${piezaIndex + 1}`;
+  const ubicacion = pieza.ubicacion || partida.ubicacion || 'Sin ubicación';
+
+  const unidadMedida = obtenerUnidadMedidaNormalizada(
+    { unidadMedida: pieza.unidadMedida || partida.unidadMedida || pieza.medida, medida: pieza.medida },
+    areaBase
+  );
+
+  const areaTexto = Number.isFinite(areaBase) ? areaBase.toFixed(2) : '0.00';
+
+  const descripcionDetallada = [
+    `Ubicación: ${ubicacion}`,
+    `Producto: ${nombreProducto}${modelo ? ` (${modelo})` : ''}`,
+    `Medidas: ${ancho}m x ${alto}m (${areaTexto} m²)`,
+    `Cantidad: ${cantidad} ${cantidad === 1 ? 'pieza' : 'piezas'}`,
+    color && `Color: ${color}`,
+    sistema && `Sistema: ${sistema}`,
+    tipoControl && `Control: ${tipoControl}`,
+    caida && `Caída: ${caida}`,
+    tipoInstalacion && `Instalación: ${tipoInstalacion}`,
+    galeria && `Galería/Cabezal: ${galeria}`,
+    base && `Base/Tabla: ${base}`,
+    operacion && `Operación: ${operacion}`,
+    observaciones && `Observaciones: ${observaciones}`
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const material = pieza.telaMarca || pieza.material || partida.material || sistema || '';
+
+  return normalizarProductoCotizacion({
+    nombre: nombreProducto,
+    descripcion: ubicacion,
+    categoria: partida.producto || 'General',
+    material,
+    color,
+    medidas: {
+      ancho,
+      alto,
+      area: areaBase
+    },
+    cantidad,
+    precioUnitario: 0,
+    unidadMedida,
+    subtotal: 0,
+    descripcionProducto: descripcionDetallada,
+    modelo,
+    sistema,
+    tipoControl,
+    tipoInstalacion,
+    caida,
+    galeria,
+    base,
+    operacion,
+    observaciones,
+    esMotorizada
+  });
+};
+
 // Componente para importar partidas del levantamiento
 const ImportarPartidasModal = ({ levantamientoData, onImportar, onCancelar, fields, remove }) => {
   const [partidasSeleccionadas, setPartidasSeleccionadas] = useState([]);
@@ -418,6 +524,7 @@ const CotizacionForm = () => {
   const [showCalculadoraMotores, setShowCalculadoraMotores] = useState(false);
   const [showCalcularYAgregar, setShowCalcularYAgregar] = useState(false);
   const [tipoDescuento, setTipoDescuento] = useState('porcentaje'); // 'porcentaje' o 'monto'
+  const [proyectoOrigen, setProyectoOrigen] = useState(null);
 
   // Función para actualizar la fecha de validez
   const actualizarFechaValidez = (dias) => {
@@ -530,9 +637,12 @@ const CotizacionForm = () => {
   const fetchProspectos = async () => {
     try {
       const response = await axiosConfig.get('/prospectos?limit=100');
-      setProspectos(response.data.docs || []);
+      const listaProspectos = response.data.docs || [];
+      setProspectos(listaProspectos);
+      return listaProspectos;
     } catch (error) {
       console.error('Error fetching prospectos:', error);
+      return [];
     }
   };
 
@@ -750,102 +860,60 @@ const CotizacionForm = () => {
 
   // Función para importar desde proyecto unificado
   const importarDesdeProyectoUnificado = (proyecto) => {
-    const partidas = proyecto.levantamiento.partidas || [];
-    const productos = [];
-    
-    partidas.forEach((partida, partidaIndex) => {
-      const piezas = partida.piezas || [];
-      
-      piezas.forEach((pieza, piezaIndex) => {
-        // Calcular área
-        const ancho = parseFloat(pieza.ancho) || 0;
-        const alto = parseFloat(pieza.alto) || 0;
-        const area = ancho * alto;
-        
-        // Detectar si es motorizada
-        const esMotorizada = pieza.tipoOperacion === 'motorizado' || 
-                           pieza.tipoOperacion === 'Motorizado' ||
-                           partida.motorizado === true;
-        
-        // Construir descripción detallada
-        const detalles = [];
-        detalles.push(`${ancho}m x ${alto}m (${area.toFixed(2)}m²)`);
-        
-        if (pieza.sistema) {
-          const sistema = Array.isArray(pieza.sistema) ? pieza.sistema.join(', ') : pieza.sistema;
-          detalles.push(`Sistema: ${sistema}`);
-        }
-        if (pieza.tipoControl) detalles.push(`Control: ${pieza.tipoControl}`);
-        if (pieza.tipoInstalacion) detalles.push(`Instalación: ${pieza.tipoInstalacion}`);
-        if (pieza.tipoFijacion) detalles.push(`Fijación: ${pieza.tipoFijacion}`);
-        if (pieza.caida || pieza.orientacion) detalles.push(`Orientación: ${pieza.caida || pieza.orientacion}`);
-        if (pieza.galeria) detalles.push(`Galería: ${pieza.galeria}`);
-        if (esMotorizada) {
-          detalles.push(`⚡ MOTORIZADA`);
-          if (partida.motorizacion?.modeloMotor) {
-            detalles.push(`Motor: ${partida.motorizacion.modeloMotor}`);
-          }
-          if (partida.motorizacion?.modeloControl) {
-            detalles.push(`Control: ${partida.motorizacion.modeloControl}`);
-          }
-        } else {
-          detalles.push(`Operación: ${pieza.tipoOperacion || 'Manual'}`);
-        }
-        
-        const descripcion = `${partida.ubicacion || 'Sin ubicación'}\n${detalles.join(' • ')}`;
-        
-        productos.push({
-          nombreProducto: partida.producto || 'Persianas',
-          descripcionProducto: descripcion,
-          categoria: partida.producto || 'General',
-          material: pieza.sistema ? (Array.isArray(pieza.sistema) ? pieza.sistema.join(', ') : pieza.sistema) : 'Roller',
-          color: pieza.color || partida.color || 'Sin especificar',
-          ubicacion: partida.ubicacion || 'Sin ubicación',
-          medidas: {
-            ancho: ancho,
-            alto: alto,
-            area: area
-          },
-          cantidad: pieza.cantidad || 1,
-          precioUnitario: 0,
-          unidadMedida: 'm2',
-          subtotal: 0,
-          // Agregar campos adicionales que el formulario pueda necesitar
-          modelo: pieza.modeloCodigo || '',
-          marca: pieza.telaMarca || ''
-        });
-      });
+    const partidas = proyecto.levantamiento?.partidas || [];
+
+    const productosNormalizados = partidas.flatMap((partida, partidaIndex) => {
+      const piezas = Array.isArray(partida.piezas) && partida.piezas.length > 0
+        ? partida.piezas
+        : [partida];
+
+      return piezas.map((pieza, piezaIndex) =>
+        construirProductoDesdePartida(partida, pieza, partidaIndex, piezaIndex)
+      );
     });
-    
-    console.log('📦 Productos importados:', productos);
-    setValue('productos', productos);
-    setSuccess(`✅ Se importaron ${productos.length} productos desde el levantamiento con todas sus características técnicas`);
+
+    console.log('📦 Productos importados:', productosNormalizados);
+    setValue('productos', productosNormalizados);
+    setSuccess(`✅ Se importaron ${productosNormalizados.length} productos con todas sus especificaciones técnicas`);
   };
 
   // Función para obtener datos del levantamiento
   const fetchLevantamientoData = async () => {
     try {
       setLoading(true);
-      
+      if (!proyectoId) {
+        setProyectoOrigen(null);
+      }
+
       // Si viene desde un proyecto unificado, buscar ahí
       if (proyectoId) {
         console.log('🔍 Buscando levantamiento en proyecto:', proyectoId);
         const { data } = await axiosConfig.get(`/proyectos/${proyectoId}`);
-        const proyecto = data.data;
-        
+        const proyecto = data.data || data;
+        setProyectoOrigen(proyecto);
+
         // Pre-seleccionar el prospecto del proyecto
         console.log('📋 Datos del proyecto:', proyecto);
         console.log('👤 Prospecto del proyecto:', proyecto.prospecto);
-        
-        if (proyecto.prospecto?._id) {
-          console.log('✅ Pre-seleccionando prospecto:', proyecto.prospecto._id);
-          setValue('prospecto', proyecto.prospecto._id);
-        } else if (proyecto.prospecto) {
-          // Si prospecto es solo un ID (string)
-          console.log('✅ Pre-seleccionando prospecto (ID):', proyecto.prospecto);
-          setValue('prospecto', proyecto.prospecto);
+
+        if (!prospectos || prospectos.length === 0) {
+          await fetchProspectos();
         }
-        
+
+        const prospectoProyectoRaw = proyecto.prospecto?._id || proyecto.prospecto?.id || proyecto.prospecto;
+        const prospectoProyectoId =
+          typeof prospectoProyectoRaw === 'object'
+            ? (prospectoProyectoRaw?._id || prospectoProyectoRaw?.id || '')
+            : prospectoProyectoRaw;
+
+        if (prospectoProyectoId) {
+          console.log('✅ Pre-seleccionando prospecto:', prospectoProyectoId);
+          setTimeout(() => {
+            setValue('prospecto', prospectoProyectoId);
+            console.log('✅ Prospecto seteado:', prospectoProyectoId);
+          }, 100);
+        }
+
         if (proyecto.levantamiento && proyecto.levantamiento.partidas) {
           console.log('✅ Partidas encontradas:', proyecto.levantamiento.partidas);
           importarDesdeProyectoUnificado(proyecto);
@@ -929,69 +997,37 @@ const CotizacionForm = () => {
 
     // Eliminar duplicados por ubicación y producto
     const partidasUnicas = partidasSeleccionadas.filter((partida, index, array) => {
-      return array.findIndex(p => 
-        p.ubicacion === partida.ubicacion && 
+      return array.findIndex(p =>
+        p.ubicacion === partida.ubicacion &&
         (p.producto === partida.producto || p.productoLabel === partida.productoLabel)
       ) === index;
     });
 
-    partidasUnicas.forEach((pieza) => {
-      // Calcular área total de la pieza
-      let areaTotal = 0;
-      let medidaRepresentativa = { ancho: 0, alto: 0 };
+    const productosConstruidos = [];
 
-      // Detectar si tiene piezas (formato levantamiento) o medidas (formato antiguo)
-      const piezasIndividuales = pieza.piezas || pieza.medidas || [];
-      
-      if (piezasIndividuales.length > 0) {
-        // Formato nuevo: sumar m² o calcular de ancho × alto
-        areaTotal = piezasIndividuales.reduce((sum, medida) => {
-          // Priorizar m2 si existe, sino calcular
-          const m2 = medida.m2 || ((medida.ancho || 0) * (medida.alto || 0));
-          return sum + m2;
-        }, 0);
-        // Usar primera medida como representativa
-        medidaRepresentativa = {
-          ancho: piezasIndividuales[0].ancho || 0,
-          alto: piezasIndividuales[0].alto || 0
-        };
-      } else {
-        // Formato anterior
-        const ancho = pieza.ancho || 0;
-        const alto = pieza.alto || 0;
-        const cantidad = pieza.cantidad || 1;
-        areaTotal = ancho * alto * cantidad;
-        medidaRepresentativa = { ancho, alto };
-      }
+    partidasUnicas.forEach((partida, partidaIndex) => {
+      const piezas = Array.isArray(partida.piezas) && partida.piezas.length > 0
+        ? partida.piezas
+        : [partida];
 
-      // Agregar producto a la cotización
-      const productoImportado = {
-        nombre: pieza.productoLabel || pieza.producto || 'Producto importado',
-        descripcion: pieza.ubicacion || 'Sin ubicación especificada',
-        descripcionProducto: '', // Se puede generar después con IA
-        categoria: 'ventana', // Por defecto
-        material: pieza.producto || '',
-        color: pieza.color || '',
-        cristal: '',
-        medidas: {
-          ancho: medidaRepresentativa.ancho,
-          alto: medidaRepresentativa.alto,
-          area: areaTotal
-        },
-        cantidad: 1, // SIEMPRE 1 para levantamientos importados
-        precioUnitario: pieza.precioM2 || 0,
-        unidadMedida: obtenerUnidadMedidaNormalizada(
-          { unidadMedida: pieza.unidadMedida || pieza.medida },
-          areaTotal
-        ),
-        subtotal: areaTotal * (pieza.precioM2 || 0) // Solo área × precio, sin multiplicar por cantidad
-      };
-
-      append(productoImportado);
+      piezas.forEach((pieza, piezaIndex) => {
+        const productoImportado = construirProductoDesdePartida(
+          partida,
+          pieza,
+          partida.index ?? partidaIndex,
+          piezaIndex
+        );
+        productosConstruidos.push(productoImportado);
+        append(productoImportado);
+      });
     });
 
     setShowImportModal(false);
-    setSuccess(`Se importaron ${partidasUnicas.length} partidas del levantamiento técnico (${partidasSeleccionadas.length - partidasUnicas.length} duplicados eliminados)`);
+    const duplicadosEliminados = partidasSeleccionadas.length - partidasUnicas.length;
+    const detalleDuplicados = duplicadosEliminados > 0
+      ? ` (${duplicadosEliminados} partidas duplicadas omitidas)`
+      : '';
+    setSuccess(`✅ Se importaron ${productosConstruidos.length} productos del levantamiento${detalleDuplicados}`);
   };
 
   const calcularPrecioProducto = async (index, producto) => {
@@ -1180,6 +1216,23 @@ const CotizacionForm = () => {
 
   const totales = calcularTotales();
 
+  const numeroProyectoOrigen =
+    proyectoOrigen?.numero ||
+    proyectoOrigen?.folio ||
+    proyectoOrigen?.codigo ||
+    proyectoOrigen?._id ||
+    proyectoId;
+
+  const nombreClienteProyecto =
+    proyectoOrigen?.cliente?.nombre ||
+    proyectoOrigen?.cliente?.razonSocial ||
+    proyectoOrigen?.prospecto?.nombre ||
+    proyectoOrigen?.prospecto?.datosGenerales?.nombreCompleto ||
+    proyectoOrigen?.prospecto?.datosGenerales?.nombre ||
+    proyectoOrigen?.prospecto?.datosGenerales?.cliente ||
+    (typeof proyectoOrigen?.prospecto === 'string' ? proyectoOrigen.prospecto : '') ||
+    'Sin cliente asignado';
+
   return (
     <Box sx={{ bgcolor: '#f8f9fa', minHeight: '100vh', p: 2 }}>
       {/* Header con colores Sundeck */}
@@ -1226,6 +1279,14 @@ const CotizacionForm = () => {
           {success && (
             <Alert severity="success" sx={{ mb: 2 }}>
               {success}
+            </Alert>
+          )}
+
+          {proyectoId && proyectoOrigen && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              📋 Cotización para proyecto: <strong>{numeroProyectoOrigen}</strong>
+              <br />
+              👤 Cliente: <strong>{nombreClienteProyecto}</strong>
             </Alert>
           )}
 
@@ -1520,6 +1581,19 @@ const CotizacionForm = () => {
                             />
                           )}
                         />
+                        {watchedProductos[index]?.descripcionProducto && (
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              mt: 1,
+                              whiteSpace: 'pre-line',
+                              fontSize: '0.85rem'
+                            }}
+                          >
+                            {watchedProductos[index].descripcionProducto}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Controller
