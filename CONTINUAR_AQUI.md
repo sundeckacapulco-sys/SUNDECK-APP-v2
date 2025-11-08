@@ -1,12 +1,119 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
 **Fecha de última sesión:** 7 Noviembre 2025  
-**Hora de cierre:** 6:48 PM  
-**Estado del proyecto:** ✅ FASE 3 COMPLETADA AL 100%
+**Hora de cierre:** 7:16 PM  
+**Estado del proyecto:** ✅ COTIZACIONES - Cliente Auto-Select FUNCIONANDO
 
 ---
 
-## 📋 RESUMEN DE LA SESIÓN ANTERIOR
+## 🎯 PENDIENTE PARA MAÑANA (URGENTE)
+
+### ⚠️ MODAL DE SELECCIÓN DE LEVANTAMIENTO
+
+**Problema:** El levantamiento se importa automáticamente, pero debería mostrar un modal para seleccionar cuál levantamiento importar (un cliente puede tener múltiples levantamientos).
+
+**Archivo a revisar:** `client/src/components/Cotizaciones/CotizacionForm.js`
+
+**Líneas críticas:** 1008-1015 (importación automática)
+
+**Comportamiento actual:**
+```javascript
+if (proyecto.levantamiento && proyecto.levantamiento.partidas) {
+  console.log('✅ Partidas encontradas:', proyecto.levantamiento.partidas);
+  importarDesdeProyectoUnificado(proyecto);  // ❌ IMPORTA AUTOMÁTICAMENTE
+  return;
+}
+```
+
+**Comportamiento esperado:**
+- Mostrar modal con lista de levantamientos del proyecto
+- Usuario selecciona cuál levantamiento importar
+- Solo entonces se importan las partidas
+
+**Componente del modal:** Ya existe `showImportModal` y `setShowImportModal` en el código
+
+**Acción requerida:** Cambiar la lógica para que NO importe automáticamente, sino que muestre el modal de selección primero.
+
+---
+
+## 📋 RESUMEN DE LA SESIÓN DE HOY (7 Nov 7:16 PM)
+
+### ✅ LOGROS COMPLETADOS
+
+1. **Fix Crítico: Cliente Auto-Select en Cotizaciones** ✅
+   - **Problema:** Al crear cotización desde proyecto, el cliente no aparecía en el dropdown
+   - **Causa:** `fetchProspectos()` buscaba en tabla legacy `/prospectos` (vacía)
+   - **Solución:** Cambiar a buscar en `/proyectos` y extraer clientes únicos
+   
+2. **Cambios Implementados:**
+   - ✅ `fetchProspectos()` ahora busca en `/proyectos?limit=500`
+   - ✅ Extrae clientes únicos usando `Map()`
+   - ✅ Búsqueda flexible por nombre (sin títulos: Arq., Ing., etc.)
+   - ✅ Autocomplete mejorado con `filterOptions`
+   - ✅ Helper text muestra cantidad de clientes disponibles
+
+3. **Archivos Modificados:**
+   - `client/src/components/Cotizaciones/CotizacionForm.js` (líneas 638-676)
+   - Función `fetchProspectos()` completamente reescrita
+
+### 📊 CÓDIGO CLAVE
+
+**Antes (❌ No funcionaba):**
+```javascript
+const fetchProspectos = async () => {
+  const response = await axiosConfig.get('/prospectos?limit=100');
+  const listaProspectos = response.data.docs || [];
+  setProspectos(listaProspectos);
+  return listaProspectos;
+};
+```
+
+**Después (✅ Funciona):**
+```javascript
+const fetchProspectos = async () => {
+  console.log('📋 Cargando clientes desde proyectos...');
+  const response = await axiosConfig.get('/proyectos?limit=500');
+  const proyectos = response.data?.data?.docs || response.data?.docs || [];
+  
+  // Extraer clientes únicos
+  const clientesMap = new Map();
+  proyectos.forEach(proyecto => {
+    if (proyecto.cliente && proyecto.cliente.nombre) {
+      const clienteId = proyecto.cliente._id || proyecto.cliente.nombre;
+      if (!clientesMap.has(clienteId)) {
+        clientesMap.set(clienteId, {
+          _id: clienteId,
+          nombre: proyecto.cliente.nombre,
+          telefono: proyecto.cliente.telefono || proyecto.cliente.celular || '',
+          email: proyecto.cliente.email || '',
+          proyectoId: proyecto._id
+        });
+      }
+    }
+  });
+  
+  const listaClientes = Array.from(clientesMap.values());
+  console.log('👥 Total de clientes únicos:', listaClientes.length);
+  setProspectos(listaClientes);
+  return listaClientes;
+};
+```
+
+### 🔍 BÚSQUEDA INTELIGENTE DE CLIENTES
+
+**Implementada búsqueda flexible por nombre:**
+- Quita títulos profesionales (Arq., Ing., Dr., Lic., etc.)
+- Coincidencia exacta
+- Coincidencia parcial (contiene/está contenido)
+- Case-insensitive
+
+**Ejemplo:**
+- Proyecto tiene: `"Arq. Hector Huerta"`
+- Sistema encuentra: `"Hector Huerta"` o `"HECTOR HUERTA"` o `"hector huerta"`
+
+---
+
+## 📋 RESUMEN DE LA SESIÓN ANTERIOR (Dashboard Comercial)
 
 ### ✅ LOGROS COMPLETADOS
 
@@ -356,8 +463,69 @@ tail -f logs/combined.log
 
 ---
 
-## 🎉 FELICITACIONES
+---
 
-Has completado exitosamente la **Fase 3 - Dashboard Comercial Unificado**. El sistema está 100% funcional y listo para producción. Mañana nos enfocaremos en mejorar la experiencia de usuario y agregar funcionalidades de visualización.
+## 📝 CHECKLIST PARA MAÑANA (8 NOV 2025)
+
+### 🔴 PRIORIDAD ALTA - Modal de Selección de Levantamiento
+
+- [ ] **Revisar comportamiento actual** (5 min)
+  - Navegar a proyecto → "Nueva Cotización"
+  - Verificar que cliente aparece correctamente ✅
+  - Confirmar que levantamiento se importa automáticamente ❌
+  
+- [ ] **Implementar modal de selección** (30-45 min)
+  - Cambiar línea 1010: NO llamar `importarDesdeProyectoUnificado()` automáticamente
+  - En su lugar: `setShowImportModal(true)` y `setLevantamientoData({ piezas: partidas })`
+  - Verificar que el modal muestra las partidas correctamente
+  - Usuario selecciona qué partidas importar
+  - Solo entonces se llama a `importarPartidas(partidasSeleccionadas)`
+
+- [ ] **Probar con cliente que tiene múltiples levantamientos** (10 min)
+  - Crear 2-3 levantamientos para un mismo proyecto
+  - Verificar que el modal muestra todos
+  - Verificar que se pueden seleccionar individualmente
+
+### 📋 CÓDIGO A MODIFICAR
+
+**Archivo:** `client/src/components/Cotizaciones/CotizacionForm.js`
+
+**Líneas 1008-1015 (CAMBIAR):**
+
+```javascript
+// ❌ ACTUAL (importa automáticamente)
+if (proyecto.levantamiento && proyecto.levantamiento.partidas) {
+  console.log('✅ Partidas encontradas:', proyecto.levantamiento.partidas);
+  importarDesdeProyectoUnificado(proyecto);
+  return;
+}
+
+// ✅ CORRECTO (muestra modal primero)
+if (proyecto.levantamiento && proyecto.levantamiento.partidas) {
+  console.log('✅ Partidas encontradas:', proyecto.levantamiento.partidas);
+  setLevantamientoData({ piezas: proyecto.levantamiento.partidas });
+  setShowImportModal(true);
+  return;
+}
+```
+
+**Verificar que el componente `ModalImportarLevantamiento` funciona correctamente** (ya existe en el código, líneas 300-507)
+
+---
+
+## 🎉 RESUMEN GENERAL
+
+### Sesión de Hoy (7 Nov)
+- ✅ Cliente auto-select en cotizaciones FUNCIONANDO
+- ✅ Búsqueda inteligente de clientes implementada
+- ⚠️ Pendiente: Modal de selección de levantamiento
+
+### Sesión Anterior (Dashboard Comercial)
+- ✅ Dashboard Comercial Unificado 100% funcional
+- ✅ 6 KPIs en tiempo real
+- ✅ 14 estados comerciales
+- ✅ Filtros dinámicos completos
+
+**Estado general:** Sistema funcionando correctamente, solo falta ajuste menor en modal de levantamiento.
 
 **¡Excelente trabajo! 🚀**

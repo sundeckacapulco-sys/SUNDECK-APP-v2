@@ -204,7 +204,8 @@ const normalizarDescuento = (descuento = {}) => {
 const construirProductoDesdePartida = (partida = {}, pieza = {}, partidaIndex = 0, piezaIndex = 0) => {
   const ancho = parseNumber(pieza.ancho ?? partida.ancho, 0);
   const alto = parseNumber(pieza.alto ?? partida.alto, 0);
-  const cantidad = parseNumber(pieza.cantidad ?? partida.cantidad, 1) || 1;
+  // SIEMPRE cantidad = 1 para productos individuales de cotización
+  const cantidad = 1;
   const areaBase = parseNumber(
     pieza.area ?? pieza.m2 ?? pieza.superficie ?? (ancho * alto),
     ancho * alto
@@ -636,12 +637,40 @@ const CotizacionForm = () => {
 
   const fetchProspectos = async () => {
     try {
-      const response = await axiosConfig.get('/prospectos?limit=100');
-      const listaProspectos = response.data.docs || [];
-      setProspectos(listaProspectos);
-      return listaProspectos;
+      console.log('📋 Cargando clientes desde proyectos...');
+      const response = await axiosConfig.get('/proyectos?limit=500');
+      const proyectos = response.data?.data?.docs || response.data?.docs || [];
+      
+      console.log('📊 Total de proyectos encontrados:', proyectos.length);
+      
+      // Extraer clientes únicos de los proyectos
+      const clientesMap = new Map();
+      
+      proyectos.forEach(proyecto => {
+        if (proyecto.cliente && proyecto.cliente.nombre) {
+          const clienteId = proyecto.cliente._id || proyecto.cliente.nombre; // Usar nombre como fallback
+          
+          if (!clientesMap.has(clienteId)) {
+            clientesMap.set(clienteId, {
+              _id: clienteId,
+              nombre: proyecto.cliente.nombre,
+              telefono: proyecto.cliente.telefono || proyecto.cliente.celular || '',
+              email: proyecto.cliente.email || '',
+              // Guardar referencia al proyecto para debugging
+              proyectoId: proyecto._id
+            });
+          }
+        }
+      });
+      
+      const listaClientes = Array.from(clientesMap.values());
+      console.log('👥 Total de clientes únicos:', listaClientes.length);
+      console.log('👥 Primeros 5 clientes:', listaClientes.slice(0, 5).map(c => c.nombre));
+      
+      setProspectos(listaClientes);
+      return listaClientes;
     } catch (error) {
-      console.error('Error fetching prospectos:', error);
+      console.error('Error fetching clientes:', error);
       return [];
     }
   };
@@ -895,23 +924,113 @@ const CotizacionForm = () => {
         // Pre-seleccionar el prospecto del proyecto
         console.log('📋 Datos del proyecto:', proyecto);
         console.log('👤 Prospecto del proyecto:', proyecto.prospecto);
+        console.log('👤 Cliente del proyecto:', proyecto.cliente);
 
-        if (!prospectos || prospectos.length === 0) {
-          await fetchProspectos();
+        // Asegurar que los prospectos estén cargados
+        let listaProspectos = prospectos;
+        if (!listaProspectos || listaProspectos.length === 0) {
+          console.log('📋 Cargando lista de prospectos...');
+          listaProspectos = await fetchProspectos();
         }
 
-        const prospectoProyectoRaw = proyecto.prospecto?._id || proyecto.prospecto?.id || proyecto.prospecto;
+        // El proyecto puede tener 'prospecto' O 'cliente.prospectoId'
+        const prospectoProyectoRaw = 
+          proyecto.prospecto?._id || 
+          proyecto.prospecto?.id || 
+          proyecto.prospecto ||
+          proyecto.cliente?.prospectoId ||
+          proyecto.cliente?.prospecto?._id ||
+          proyecto.cliente?.prospecto;
+          
         const prospectoProyectoId =
           typeof prospectoProyectoRaw === 'object'
             ? (prospectoProyectoRaw?._id || prospectoProyectoRaw?.id || '')
             : prospectoProyectoRaw;
+        
+        console.log('🔍 ID del prospecto extraído:', prospectoProyectoId);
 
         if (prospectoProyectoId) {
           console.log('✅ Pre-seleccionando prospecto:', prospectoProyectoId);
+          console.log('📋 Prospectos disponibles:', listaProspectos.length);
+          
+          // Verificar si el prospecto está en la lista
+          const prospectoEncontrado = listaProspectos.find(p => p._id === prospectoProyectoId);
+          console.log('🔍 Prospecto encontrado en lista:', prospectoEncontrado ? 'SÍ' : 'NO');
+          
+          if (prospectoEncontrado) {
+            console.log('👤 Datos del prospecto:', prospectoEncontrado.nombre, prospectoEncontrado.telefono);
+          } else {
+            console.warn('⚠️ El prospecto del proyecto NO está en la lista de prospectos');
+            console.warn('⚠️ Intentando cargar el prospecto directamente...');
+            
+            // Si el prospecto no está en la lista, cargarlo directamente
+            try {
+              const { data: prospectoData } = await axiosConfig.get(`/prospectos/${prospectoProyectoId}`);
+              const prospectoDirecto = prospectoData.prospecto || prospectoData;
+              
+              console.log('✅ Prospecto cargado directamente:', prospectoDirecto.nombre);
+              
+              // Agregarlo a la lista de prospectos
+              const nuevaLista = [...listaProspectos, prospectoDirecto];
+              setProspectos(nuevaLista);
+              console.log('✅ Prospecto agregado a la lista');
+            } catch (error) {
+              console.error('❌ Error cargando prospecto:', error);
+              setError('No se pudo cargar el cliente del proyecto. Selecciona uno manualmente.');
+            }
+          }
+          
           setTimeout(() => {
             setValue('prospecto', prospectoProyectoId);
-            console.log('✅ Prospecto seteado:', prospectoProyectoId);
-          }, 100);
+            console.log('✅ Prospecto seteado en el formulario');
+          }, 200);
+        } else if (proyecto.cliente && proyecto.cliente.nombre) {
+          // Si no hay prospectoId, buscar por nombre del cliente
+          console.warn('⚠️ El proyecto NO tiene prospecto asociado');
+          console.log('👤 Datos del cliente:', proyecto.cliente);
+          console.log('🔍 Buscando prospecto por nombre:', proyecto.cliente.nombre);
+          
+          // Buscar en la lista por nombre (coincidencia exacta o parcial)
+          const nombreCliente = proyecto.cliente.nombre.toLowerCase().trim();
+          
+          // Extraer palabras clave (quitar títulos como Arq., Ing., Dr., etc.)
+          const nombreLimpio = nombreCliente
+            .replace(/^(arq\.|ing\.|dr\.|dra\.|lic\.|c\.|sr\.|sra\.|srta\.)\s*/i, '')
+            .trim();
+          
+          console.log('🔍 Nombre original:', nombreCliente);
+          console.log('🔍 Nombre limpio:', nombreLimpio);
+          console.log('🔍 Prospectos disponibles:', listaProspectos.map(p => p.nombre));
+          
+          const prospectoEncontradoPorNombre = listaProspectos.find(p => {
+            const nombreProspecto = p.nombre.toLowerCase().trim();
+            const nombreProspectoLimpio = nombreProspecto
+              .replace(/^(arq\.|ing\.|dr\.|dra\.|lic\.|c\.|sr\.|sra\.|srta\.)\s*/i, '')
+              .trim();
+            
+            // Intentar varias formas de coincidencia
+            return nombreProspecto === nombreCliente ||  // Exacta
+                   nombreProspectoLimpio === nombreLimpio ||  // Sin títulos
+                   nombreProspecto.includes(nombreLimpio) ||  // Contiene
+                   nombreLimpio.includes(nombreProspectoLimpio) ||  // Está contenido
+                   nombreCliente.includes(nombreProspecto);  // Cliente contiene prospecto
+          });
+          
+          if (prospectoEncontradoPorNombre) {
+            console.log('✅ Prospecto encontrado por nombre:', prospectoEncontradoPorNombre.nombre);
+            console.log('✅ ID del prospecto:', prospectoEncontradoPorNombre._id);
+            
+            // Setear inmediatamente
+            setValue('prospecto', prospectoEncontradoPorNombre._id);
+            console.log('✅ Prospecto seteado en el formulario');
+            setSuccess(`✅ Cliente "${prospectoEncontradoPorNombre.nombre}" seleccionado automáticamente`);
+          } else {
+            console.warn('⚠️ No se encontró prospecto con nombre:', proyecto.cliente.nombre);
+            setError(`⚠️ No se encontró el prospecto "${proyecto.cliente.nombre}". Por favor, selecciónalo manualmente del dropdown.`);
+          }
+        } else {
+          console.error('❌ El proyecto NO tiene datos de cliente');
+          setError('El proyecto no tiene información de cliente. Selecciona un prospecto manualmente.');
         }
 
         if (proyecto.levantamiento && proyecto.levantamiento.partidas) {
@@ -1302,25 +1421,40 @@ const CotizacionForm = () => {
                   name="prospecto"
                   control={control}
                   rules={{ required: 'Debe seleccionar un cliente' }}
-                  render={({ field }) => (
-                    <FormControl fullWidth>
-                      <InputLabel>Cliente *</InputLabel>
-                      <Select {...field} label="Cliente *" error={!!errors.prospecto}>
-                        <MenuItem value="">
-                          <em>Seleccionar cliente...</em>
-                        </MenuItem>
-                        {prospectos.map(prospecto => (
-                          <MenuItem key={prospecto._id} value={prospecto._id}>
-                            {prospecto.nombre} - {prospecto.telefono}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {errors.prospecto && (
-                        <Typography variant="caption" color="error" sx={{ mt: 1 }}>
-                          {errors.prospecto.message}
-                        </Typography>
+                  render={({ field: { onChange, value } }) => (
+                    <Autocomplete
+                      value={prospectos.find(p => p._id === value) || null}
+                      onChange={(event, newValue) => {
+                        onChange(newValue ? newValue._id : '');
+                      }}
+                      options={prospectos}
+                      getOptionLabel={(option) => {
+                        // Mostrar nombre y teléfono si existe
+                        const nombre = option.nombre || option.datosGenerales?.nombreCompleto || 'Sin nombre';
+                        const telefono = option.telefono || option.datosGenerales?.telefono || '';
+                        return telefono ? `${nombre} - ${telefono}` : nombre;
+                      }}
+                      isOptionEqualToValue={(option, value) => option._id === value._id}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Cliente *"
+                          error={!!errors.prospecto}
+                          helperText={errors.prospecto?.message || `${prospectos.length} clientes disponibles`}
+                        />
                       )}
-                    </FormControl>
+                      noOptionsText="No hay clientes disponibles"
+                      loadingText="Cargando clientes..."
+                      filterOptions={(options, { inputValue }) => {
+                        // Búsqueda más flexible
+                        const searchTerm = inputValue.toLowerCase();
+                        return options.filter(option => {
+                          const nombre = (option.nombre || option.datosGenerales?.nombreCompleto || '').toLowerCase();
+                          const telefono = (option.telefono || option.datosGenerales?.telefono || '').toLowerCase();
+                          return nombre.includes(searchTerm) || telefono.includes(searchTerm);
+                        });
+                      }}
+                    />
                   )}
                 />
                 {/* Mensaje informativo */}
