@@ -1,7 +1,7 @@
 # 📋 MEJORAS PENDIENTES - SUNDECK CRM
 
-**Fecha:** 8 Noviembre 2025  
-**Última actualización:** 10:40 AM  
+**Fecha:** 7 Noviembre 2025  
+**Última actualización:** 7:19 PM  
 **Estado:** Documento vivo (se actualiza continuamente)
 
 ---
@@ -14,7 +14,49 @@ Este documento lista todas las mejoras, funcionalidades y tareas pendientes del 
 
 ## 🚨 PRIORIDAD ALTA (Implementar pronto)
 
-### 1. KPI "En Riesgo" ⭐
+### 1. Modal de Selección de Levantamiento ⭐⭐⭐
+
+**Descripción:** Mostrar modal para seleccionar levantamiento antes de importar a cotización
+
+**Problema actual:**
+- El levantamiento se importa automáticamente
+- Un cliente puede tener múltiples levantamientos
+- No hay forma de elegir cuál importar
+
+**Solución:**
+- Mostrar modal con lista de partidas del levantamiento
+- Usuario selecciona qué partidas importar
+- Solo entonces se importan a la cotización
+
+**Archivos a modificar:**
+- `client/src/components/Cotizaciones/CotizacionForm.js` (líneas 1008-1015)
+
+**Código a cambiar:**
+```javascript
+// ❌ ACTUAL (importa automáticamente)
+if (proyecto.levantamiento && proyecto.levantamiento.partidas) {
+  importarDesdeProyectoUnificado(proyecto);
+  return;
+}
+
+// ✅ CORRECTO (muestra modal primero)
+if (proyecto.levantamiento && proyecto.levantamiento.partidas) {
+  setLevantamientoData({ piezas: proyecto.levantamiento.partidas });
+  setShowImportModal(true);
+  return;
+}
+```
+
+**Tiempo estimado:** 30-45 minutos  
+**Complejidad:** Baja  
+**Impacto:** Alto  
+**Urgencia:** ⚠️ PARA HOY
+
+**Estado:** ⏳ PENDIENTE (PRÓXIMA TAREA)
+
+---
+
+### 2. KPI "En Riesgo" ⭐
 
 **Descripción:** Agregar KPI que muestre proyectos en estado crítico
 
@@ -387,7 +429,7 @@ probabilidadCierre =
 
 | Prioridad | Cantidad | Tiempo Total |
 |-----------|----------|--------------|
-| 🚨 Alta | 2 | 1.5 días |
+| 🚨 Alta | 3 | 2 días |
 | 🟡 Media | 4 | 2.5 horas |
 | 🟢 Baja | 4 | 6 horas |
 | 🔵 Fase 2 | 2 | 1.5 días |
@@ -395,11 +437,24 @@ probabilidadCierre =
 | 🟤 Fase 4 | 1 | 4 días |
 | 🟠 Fase 5 | 1 | 5 días |
 
-**Total:** 16 mejoras pendientes
+**Total:** 17 mejoras pendientes  
+**Completadas hoy:** 1 (Cliente Auto-Select) ✅
 
 ---
 
 ## 🎯 RECOMENDACIÓN DE IMPLEMENTACIÓN
+
+### Mañana (8 Nov) - URGENTE ⚠️
+
+1. ⭐⭐⭐ **Modal de Selección de Levantamiento** (30-45 min) - CRÍTICO
+   - Cambiar 3 líneas de código en `CotizacionForm.js`
+   - Permitir seleccionar qué levantamiento importar
+   - Impacto: Sistema de cotizaciones 100% funcional
+
+**Total:** 30-45 minutos  
+**Resultado:** Cotizaciones completamente funcionales
+
+---
 
 ### Esta semana (8-15 Nov)
 
@@ -462,7 +517,24 @@ probabilidadCierre =
 
 ---
 
-### 2. Estado "Crítico" ✅
+### 2. Cliente Auto-Select en Cotizaciones ✅
+
+**Fecha:** 7 Nov 2025 - 7:16 PM  
+**Tiempo:** 45 minutos  
+**Problema:** Cliente no aparecía en dropdown al crear cotización desde proyecto  
+**Solución:** Cambiar `fetchProspectos()` para buscar en `/proyectos` en lugar de `/prospectos` legacy  
+**Archivos:** `client/src/components/Cotizaciones/CotizacionForm.js` (líneas 638-676)  
+**Funcionalidades agregadas:**
+- Extracción de clientes únicos desde proyectos
+- Búsqueda inteligente por nombre (quita títulos profesionales)
+- Autocomplete mejorado con filtros flexibles
+- Helper text con cantidad de clientes disponibles
+
+**Impacto:** ⭐⭐⭐ CRÍTICO - Sistema de cotizaciones ahora funcional
+
+---
+
+### 3. Estado "Crítico" ✅
 
 **Fecha:** 8 Nov 2025  
 **Tiempo:** 10 minutos  
@@ -471,6 +543,12 @@ probabilidadCierre =
 ---
 
 ## 🔄 HISTORIAL DE CAMBIOS
+
+### 7 Nov 2025 - 7:19 PM
+- ✅ Completado fix crítico: Cliente Auto-Select en Cotizaciones
+- ✅ Agregado "Modal de Selección de Levantamiento" como prioridad #1
+- ✅ Actualizado resumen de mejoras completadas
+- ⏳ Pendiente para mañana: Modal de selección de levantamiento
 
 ### 8 Nov 2025 - 10:40 AM
 - ✅ Creado documento de mejoras pendientes
