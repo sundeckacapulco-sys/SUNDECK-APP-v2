@@ -10,6 +10,7 @@ import PlantillasWhatsAppAdmin from './components/Admin/PlantillasWhatsAppAdmin'
 import DashboardKPIs from './components/KPIs/DashboardKPIs';
 import DashboardFabricacion from './components/Fabricacion/DashboardFabricacion.jsx';
 import DashboardInstalaciones from './components/Dashboards/DashboardInstalaciones';
+import CalculadoraMateriales from './modules/calculadora/CalculadoraMateriales';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 // Sistema Unificado - Único flujo de trabajo
 import DashboardComercial from './modules/proyectos/DashboardComercial';
@@ -71,6 +72,7 @@ function App() {
           <Route path="/productos" element={<CatalogoProductos />} />
           <Route path="/kpis" element={<DashboardKPIs />} />
           <Route path="/fabricacion" element={<DashboardFabricacion />} />
+          <Route path="/calculadora" element={<CalculadoraMateriales />} />
           <Route path="/admin/plantillas-whatsapp" element={<PlantillasWhatsAppAdmin />} />
           
           {/* Redirecciones del sistema anterior */}
