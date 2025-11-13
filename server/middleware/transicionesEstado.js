@@ -24,7 +24,7 @@ const VALIDACIONES_ESPECIALES = {
   },
   'fabricacion': {
     requiere: ['pedido_existente'],
-    mensaje: 'Debe existir al menos un pedido confirmado para iniciar fabricación'
+    mensaje: 'Debe registrar el anticipo (60%) o tener un pedido confirmado para iniciar fabricación'
   },
   'instalacion': {
     requiere: ['orden_fabricacion_completada'],
@@ -131,14 +131,12 @@ async function validarRequisitosEspeciales(proyecto, requisitos) {
         break;
 
       case 'pedido_existente':
-        if (!proyecto.pedidos || proyecto.pedidos.length === 0) {
-          return false;
-        }
-        // Verificar que al menos un pedido esté confirmado
-        const pedidoConfirmado = proyecto.pedidos.some(p => 
-          p.estado === 'confirmado' || p.estado === 'pagado'
-        );
-        if (!pedidoConfirmado) {
+        // Permitir fabricación si hay anticipo pagado O pedido confirmado
+        const tieneAnticipoPagado = proyecto.pagos?.anticipo?.pagado === true;
+        const tienePedidoConfirmado = proyecto.pedidos && proyecto.pedidos.length > 0 && 
+          proyecto.pedidos.some(p => p.estado === 'confirmado' || p.estado === 'pagado');
+        
+        if (!tieneAnticipoPagado && !tienePedidoConfirmado) {
           return false;
         }
         break;

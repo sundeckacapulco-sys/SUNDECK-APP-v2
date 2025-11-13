@@ -918,7 +918,15 @@ const cambiarEstado = async (req, res) => {
     const { id } = req.params;
     const { nuevo_estado, observaciones } = req.body;
 
+    logger.info('Solicitud de cambio de estado', {
+      proyectoId: id,
+      nuevoEstado: nuevo_estado,
+      observaciones: observaciones ? 'Sí' : 'No',
+      usuario: req.usuario?.id || 'No autenticado'
+    });
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      logger.warn('ID de proyecto inválido', { proyectoId: id });
       return res.status(400).json({
         success: false,
         message: 'ID de proyecto inválido'
@@ -928,9 +936,10 @@ const cambiarEstado = async (req, res) => {
     const estadosValidos = ['levantamiento', 'cotizacion', 'aprobado', 'fabricacion', 'instalacion', 'completado', 'cancelado'];
     
     if (!estadosValidos.includes(nuevo_estado)) {
+      logger.warn('Estado inválido', { nuevoEstado: nuevo_estado, estadosValidos });
       return res.status(400).json({
         success: false,
-        message: 'Estado inválido'
+        message: `Estado inválido. Estados válidos: ${estadosValidos.join(', ')}`
       });
     }
 
@@ -945,7 +954,11 @@ const cambiarEstado = async (req, res) => {
 
     const estadoAnterior = proyecto.estado;
     proyecto.estado = nuevo_estado;
-    proyecto.actualizado_por = req.usuario.id;
+    
+    // Actualizar usuario si está disponible
+    if (req.usuario && req.usuario.id) {
+      proyecto.actualizado_por = req.usuario.id;
+    }
 
     if (observaciones) {
       proyecto.observaciones = proyecto.observaciones 
@@ -956,7 +969,8 @@ const cambiarEstado = async (req, res) => {
     await proyecto.save();
 
     // Aquí se pueden agregar triggers automáticos según el nuevo estado
-    await ejecutarTriggersEstado(proyecto, estadoAnterior, nuevo_estado, req.usuario.id);
+    const usuarioId = req.usuario?.id || null;
+    await ejecutarTriggersEstado(proyecto, estadoAnterior, nuevo_estado, usuarioId);
 
     res.json({
       success: true,
