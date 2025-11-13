@@ -154,6 +154,14 @@ app.use('/uploads', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // Para PDFs, forzar visualización en navegador (inline) en lugar de descarga
+  if (req.path.endsWith('.pdf')) {
+    const filename = path.basename(req.path);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+  }
+  
   next();
 }, express.static(path.join(__dirname, 'uploads')));
 logger.info('Archivos estáticos configurados', { directory: path.join(__dirname, 'uploads') });

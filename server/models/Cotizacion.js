@@ -145,6 +145,15 @@ const cotizacionSchema = new mongoose.Schema({
   archivadaPor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Usuario'
+  },
+  // PDF guardado
+  pdfPath: {
+    type: String,
+    default: null
+  },
+  pdfGeneradoEn: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

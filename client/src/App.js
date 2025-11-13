@@ -25,6 +25,7 @@ import KPIsInstalaciones from './modules/instalaciones/KPIsInstalaciones';
 // Componentes de cotización
 import CotizacionDirecta from './components/Cotizaciones/CotizacionDirecta';
 import CotizacionForm from './components/Cotizaciones/CotizacionForm';
+import CotizacionViewer from './components/Cotizaciones/CotizacionViewer';
 
 function App() {
   const { user, loading } = useAuth();
@@ -53,6 +54,8 @@ function App() {
           
           {/* COTIZACIONES */}
           <Route path="/cotizaciones/nueva" element={<CotizacionForm />} />
+          <Route path="/cotizaciones/:id" element={<CotizacionViewer />} />
+          <Route path="/cotizaciones/:id/editar" element={<CotizacionForm />} />
           <Route path="/cotizacion-directa" element={<CotizacionDirecta />} />
           
           {/* MÓDULO INSTALACIONES - Área específica */}
@@ -71,8 +74,8 @@ function App() {
           {/* Redirecciones del sistema anterior */}
           <Route path="/prospectos" element={<Navigate to="/proyectos" replace />} />
           <Route path="/prospectos/*" element={<Navigate to="/proyectos" replace />} />
+          {/* Nota: /cotizaciones/:id ahora funciona correctamente, solo redirigimos el listado */}
           <Route path="/cotizaciones" element={<Navigate to="/proyectos" replace />} />
-          <Route path="/cotizaciones/*" element={<Navigate to="/proyectos" replace />} />
           <Route path="/pedidos" element={<Navigate to="/proyectos" replace />} />
           <Route path="/pedidos/*" element={<Navigate to="/proyectos" replace />} />
           <Route path="/kanban" element={<Navigate to="/proyectos" replace />} />

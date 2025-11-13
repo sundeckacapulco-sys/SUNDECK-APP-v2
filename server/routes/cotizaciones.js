@@ -629,7 +629,8 @@ router.put('/:id', auth, verificarPermiso('cotizaciones', 'actualizar'), async (
     const camposPermitidos = [
       'validoHasta', 'mediciones', 'productos', 'descuento', 'formaPago',
       'tiempoFabricacion', 'tiempoInstalacion', 'requiereInstalacion',
-      'costoInstalacion', 'garantia', 'estado', 'subtotal', 'iva', 'total', 'incluirIVA'
+      'costoInstalacion', 'garantia', 'estado', 'subtotal', 'iva', 'total', 'incluirIVA',
+      'pdfPath', 'pdfGeneradoEn' // Preservar ruta del PDF guardado
     ];
 
     camposPermitidos.forEach(campo => {
@@ -891,6 +892,15 @@ router.put('/:id/aprobar', auth, verificarPermiso('cotizaciones', 'actualizar'),
 // Generar PDF de cotización
 router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res) => {
   try {
+    // Headers CORS y anti-interceptación
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    
     const cotizacion = await Cotizacion.findById(req.params.id)
       .populate('prospecto')
       .populate('elaboradaPor', 'nombre apellido');
@@ -905,22 +915,88 @@ router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (re
       return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
     }
 
+    // Log para debug
+    logger.info('Verificando PDF guardado', {
+      cotizacionId: req.params.id,
+      tienePdfPath: !!cotizacion.pdfPath,
+      pdfPath: cotizacion.pdfPath
+    });
+
+    // Si existe un PDF guardado, servirlo directamente
+    if (cotizacion.pdfPath) {
+      const fs = require('fs').promises;
+      const path = require('path');
+      const pdfPath = path.join(__dirname, '../..', cotizacion.pdfPath);
+      
+      try {
+        const pdfBuffer = await fs.readFile(pdfPath);
+        logger.info('Sirviendo PDF guardado', {
+          cotizacionId: req.params.id,
+          pdfPath: cotizacion.pdfPath,
+          pdfGeneradoEn: cotizacion.pdfGeneradoEn
+        });
+        
+        // Headers simples - dejar que el navegador maneje el PDF
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Length', pdfBuffer.length);
+        
+        return res.send(pdfBuffer);
+      } catch (readError) {
+        logger.warn('No se pudo leer PDF guardado, generando uno nuevo', {
+          cotizacionId: req.params.id,
+          pdfPath: cotizacion.pdfPath,
+          error: readError.message
+        });
+        // Si no se puede leer, continuar con la generación
+      }
+    }
+
+    // Si no hay PDF guardado o no se pudo leer, generar uno nuevo Y GUARDARLO
+    logger.info('Generando PDF nuevo (no hay guardado)', {
+      cotizacionId: req.params.id
+    });
+    
     const pdf = await pdfService.generarCotizacionPDF(cotizacion);
 
-    // Crear nombre de archivo único pero más corto para cotización
-    const nombreCliente = (cotizacion.prospecto?.nombre || 'Cliente').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '-') || 'Cliente';
-    const numeroCorto = cotizacion.numero || 'SIN-NUM';
+    // Guardar el PDF generado para no tener que regenerarlo
+    // SOLO si no existe un pdfPath previo (para no sobrescribir)
+    const fs = require('fs').promises;
+    const path = require('path');
+    const uploadsDir = path.join(__dirname, '../uploads/cotizaciones');
     
-    // Generar ID único más corto
-    const ahora = new Date();
-    const fechaFormateada = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
-    const horaCorta = ahora.toTimeString().substr(0, 5).replace(':', ''); // HHMM
-    const idCorto = Date.now().toString().slice(-6); // Últimos 6 dígitos del timestamp
+    // Crear directorio si no existe
+    await fs.mkdir(uploadsDir, { recursive: true });
     
-    const nombreArchivo = `Cotizacion-${numeroCorto}-${nombreCliente}-${fechaFormateada}-${horaCorta}-${idCorto}.pdf`;
+    // Nombre de archivo simple
+    const nombreArchivo = `${cotizacion.numero}-${Date.now()}.pdf`;
+    const rutaCompleta = path.join(uploadsDir, nombreArchivo);
+    
+    // Guardar PDF en disco
+    await fs.writeFile(rutaCompleta, pdf);
+    
+    // Actualizar cotización con la ruta del PDF SOLO si no tenía una antes
+    // Esto evita sobrescribir el PDF original si se regenera por error
+    if (!cotizacion.pdfPath) {
+      cotizacion.pdfPath = `/uploads/cotizaciones/${nombreArchivo}`;
+      cotizacion.pdfGeneradoEn = new Date();
+      await cotizacion.save();
+      
+      logger.info('PDF generado y guardado (primera vez)', {
+        cotizacionId: req.params.id,
+        pdfPath: cotizacion.pdfPath
+      });
+    } else {
+      logger.warn('PDF regenerado pero NO se actualizó pdfPath (ya existía)', {
+        cotizacionId: req.params.id,
+        pdfPathExistente: cotizacion.pdfPath,
+        pdfNuevoGenerado: nombreArchivo
+      });
+    }
 
+    // Headers simples - dejar que el navegador maneje el PDF
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+    res.setHeader('Content-Length', pdf.length);
+    
     res.send(pdf);
 
   } catch (error) {

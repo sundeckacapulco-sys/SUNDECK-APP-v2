@@ -1,8 +1,191 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
-**Fecha de última sesión:** 12 Noviembre 2025  
-**Hora de cierre:** 7:00 PM  
-**Estado del proyecto:** ✅ SISTEMA DE COTIZACIONES COMPLETADO - LISTO PARA PRODUCCIÓN
+**Fecha de última sesión:** 13 Noviembre 2025  
+**Hora de finalización:** 1:03 PM  
+**Estado del proyecto:** ✅ VISOR DE PDF FUNCIONAL | ⚠️ REGENERACIÓN DE PDFs PENDIENTE
+
+---
+
+## 📄 SESIÓN 13 NOV 2025 - VISOR DE PDF COTIZACIONES (COMPLETADA)
+
+**Tiempo total:** ~5 horas (9:30 AM - 1:03 PM)  
+**Funcionalidades:** 2 completadas, 1 pendiente  
+**Archivos modificados:** 8
+
+---
+
+### ✅ PARTE 1: FIX DASHBOARD COMERCIAL (9:30 AM - 9:50 AM)
+
+**Problema:** Columna "Total" mostraba "-" en lugar del monto real  
+**Causa:** Endpoint no calculaba totales desde cotizaciones  
+**Solución:** Agregada consulta a cotizaciones y cálculo de totales
+
+### ✅ Solución Implementada
+
+**Backend - `proyectoController.js`:**
+1. ✅ Agregada consulta a tabla `Cotizacion` para obtener totales vinculados
+2. ✅ Creado mapa de totales por proyecto (`totalesPorProyecto`)
+3. ✅ Agregados campos al nivel raíz de cada proyecto:
+   - `total`: Suma de totales de cotizaciones
+   - `monto_estimado`: Alias de total
+   - `subtotal`: Suma de subtotales
+   - `iva`: Suma de IVA
+4. ✅ Agregado contador `numCotizaciones` en estadísticas
+
+**Frontend - `DashboardComercial.jsx`:**
+1. ✅ Agregados console.log para debugging
+2. ✅ Verificación de datos recibidos desde backend
+
+### ✅ Resultado Final (9:50 AM)
+
+**PROBLEMA RESUELTO EXITOSAMENTE** 🎉
+
+**Datos recibidos correctamente:**
+```javascript
+{
+  cliente: 'Arq. Hector Huerta',
+  total: 65422.81,          ✅
+  monto_estimado: 65422.81, ✅
+  subtotal: 56398.97,       ✅
+  iva: 9023.84             ✅
+}
+```
+
+**Tabla del Dashboard:** Ahora muestra **$65,422.81** en lugar de "-"
+
+**Archivos modificados:**
+1. `server/controllers/proyectoController.js` (líneas 615-678)
+2. `client/src/modules/proyectos/DashboardComercial.jsx` (líneas 74-85)
+3. `server/scripts/testCotizacionesVinculadas.js` (nuevo - script de prueba)
+
+**Tiempo total:** 20 minutos
+
+---
+
+### ✅ PARTE 2: VISOR DE PDF COTIZACIONES (10:00 AM - 1:03 PM)
+
+**Objetivo:** Crear visor de PDF que muestre cotizaciones sin descargar automáticamente
+
+#### 🎯 LO QUE SÍ FUNCIONA (COMPLETADO)
+
+1. **Visor de PDF con iframe nativo** ✅
+   - Muestra PDF correctamente en el navegador
+   - Usa Blob URL con tipo MIME `application/pdf`
+   - Sin problemas de descarga automática
+   - Controles nativos del navegador (zoom, navegación, impresión)
+
+2. **Generación y guardado de PDFs** ✅
+   - Genera PDF con Puppeteer
+   - Guarda en `server/uploads/cotizaciones/`
+   - Actualiza campos `pdfPath` y `pdfGeneradoEn` en BD
+
+3. **Lectura de PDFs guardados** ✅
+   - Lee archivo del disco si `pdfPath` existe
+   - Envía buffer al frontend
+   - Frontend crea Blob URL y muestra en iframe
+
+#### ⚠️ PROBLEMA PENDIENTE: Regeneración de PDFs
+
+**Síntoma:** Cada vez que abres el visor, genera un PDF nuevo (60+ duplicados)
+
+**Investigación realizada:**
+- ✅ Archivo existe en disco
+- ✅ `pdfPath` está en la base de datos
+- ✅ Código verifica `if (cotizacion.pdfPath)`
+- ❌ Pero siempre genera uno nuevo
+
+**Hipótesis:**
+1. Algo borra el `pdfPath` antes de consultar
+2. Error en lectura del archivo (sin logs del catch)
+3. Condición `if` falla por tipo de dato
+4. Populate borra el campo
+
+**Documentación:** Ver `docs/PROBLEMA_PDF_REGENERACION.md` para análisis completo
+
+#### 📁 Archivos Modificados
+
+**Backend:**
+1. `server/routes/cotizaciones.js` (líneas 892-1000)
+   - Endpoint GET `/api/cotizaciones/:id/pdf`
+   - Lógica de lectura/generación de PDF
+   - Headers simples (sin anti-IDM que corrompían)
+
+2. `server/models/Cotizacion.js`
+   - Campos: `pdfPath`, `pdfGeneradoEn`
+
+**Frontend:**
+3. `client/src/components/Cotizaciones/CotizacionViewer.jsx`
+   - Visor con iframe nativo (sin react-pdf)
+   - Blob URL con tipo MIME correcto
+   - Botones: Volver, Descargar, Imprimir, Modificar
+
+4. `client/src/App.js`
+   - Rutas: `/cotizaciones/:id` (ver) y `/cotizaciones/:id/editar` (modificar)
+
+**Scripts:**
+5. `server/scripts/generarYGuardarPDFCotizacion.js`
+6. `server/scripts/actualizarPdfPathCotizacion.js`
+7. `server/scripts/fijarPdfPathPermanente.js`
+8. `server/scripts/verificarPdfPath.js`
+
+#### 🎓 Lecciones Aprendidas
+
+1. **KISS (Keep It Simple):** Iframe nativo > react-pdf complejo
+2. **IDM no era el problema:** Blob URL resuelve sin cabeceras especiales
+3. **Tipo MIME es crítico:** `new Blob([data], { type: 'application/pdf' })`
+4. **Debugging profundo necesario:** Logs detallados para entender flujo
+
+#### 📊 Métricas
+
+- **Tiempo invertido:** ~5 horas
+- **Intentos de solución:** 10+
+- **PDFs generados (testing):** 60+
+- **Líneas de código:** ~500
+- **Documentos creados:** 3
+
+---
+
+### 🎯 PRÓXIMOS PASOS (PARA SIGUIENTE SESIÓN)
+
+#### **Prioridad ALTA: Resolver regeneración de PDFs**
+
+**Acción recomendada:**
+1. Agregar logs detallados en endpoint `/api/cotizaciones/:id/pdf`
+2. Verificar middleware de Mongoose (pre/post save)
+3. Probar sin `.populate()` para descartar conflictos
+4. Crear endpoint `/api/cotizaciones/:id/debug-pdf` para diagnóstico
+
+**Código sugerido:**
+```javascript
+// En server/routes/cotizaciones.js línea 918
+logger.info('=== DEBUG PDF ===', {
+  cotizacionId: req.params.id,
+  tienePdfPath: !!cotizacion.pdfPath,
+  pdfPath: cotizacion.pdfPath,
+  tipoPdfPath: typeof cotizacion.pdfPath,
+  longitudPdfPath: cotizacion.pdfPath?.length
+});
+```
+
+#### **Prioridad MEDIA: Flujo Cotización → Proyecto**
+
+Ver análisis completo en: `docs/ANALISIS_FLUJO_COTIZACION_PROYECTO.md`
+
+**Problema:** Cuando apruebas cotización, no pide anticipo y tienes que ir al inicio para convertir a proyecto
+
+**Solución propuesta:**
+1. Agregar modal de anticipo al aprobar cotización
+2. Crear proyecto automáticamente después de registrar anticipo
+3. Botón "Convertir a Proyecto" visible en vista de cotizaciones
+
+---
+
+### 📚 DOCUMENTACIÓN GENERADA
+
+1. **`docs/SOLUCION_FINAL_VISOR_PDF.md`** - Solución completa del visor
+2. **`docs/PROBLEMA_PDF_REGENERACION.md`** - Análisis del problema pendiente
+3. **`docs/ANALISIS_FLUJO_COTIZACION_PROYECTO.md`** - Análisis de flujo comercial
+4. **`docs/RESUMEN_VISOR_PDF_COTIZACIONES.md`** - Guía de uso
 
 ---
 

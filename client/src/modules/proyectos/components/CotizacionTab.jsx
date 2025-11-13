@@ -34,8 +34,10 @@ import {
   Visibility as ViewIcon,
   GetApp as DownloadIcon,
   Add as AddIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
+import axiosConfig from '../../../config/axios';
 
 const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
   const navigate = useNavigate();
@@ -326,7 +328,7 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                       }
                     />
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <Tooltip title="Ver cotización">
+                      <Tooltip title="Ver cotización (PDF)">
                         <IconButton
                           size="small"
                           onClick={() => {
@@ -336,12 +338,22 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                           <ViewIcon />
                         </IconButton>
                       </Tooltip>
+                      <Tooltip title="Modificar cotización">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => {
+                            navigate(`/cotizaciones/${cotizacion._id}/editar`);
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Descargar PDF">
                         <IconButton
                           size="small"
                           onClick={() => {
-                            // Descargar PDF de la cotización
-                            console.log('Descargar PDF cotización:', cotizacion._id);
+                            window.open(`${axiosConfig.defaults.baseURL}/cotizaciones/${cotizacion._id}/pdf`, '_blank');
                           }}
                         >
                           <DownloadIcon />

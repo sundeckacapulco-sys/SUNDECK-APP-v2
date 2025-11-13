@@ -596,7 +596,8 @@ const CotizacionForm = () => {
   const prospectoIdRaw = searchParams.get('prospecto');
   const proyectoId = searchParams.get('proyecto');
   const returnTo = searchParams.get('returnTo');
-  const isEdit = Boolean(id);
+  // Detectar si estamos en modo edición: /cotizaciones/:id/editar
+  const isEdit = Boolean(id) && window.location.pathname.includes('/editar');
 
   // Validar que prospectoId sea un ObjectId válido antes de usarlo
   const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);

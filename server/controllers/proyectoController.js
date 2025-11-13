@@ -612,6 +612,52 @@ const obtenerProyectos = async (req, res) => {
       .populate('tecnico_asignado', 'nombre email telefono')
       .lean();
 
+    // Obtener IDs de proyectos para buscar cotizaciones
+    const proyectoIds = proyectos.map(p => p._id);
+    
+    logger.info('🔍 Buscando cotizaciones para proyectos', {
+      numProyectos: proyectoIds.length,
+      proyectoIds: proyectoIds.map(id => id.toString())
+    });
+    
+    // Buscar todas las cotizaciones vinculadas
+    // Nota: El modelo Cotizacion usa el campo 'proyecto', no 'proyectoId'
+    const cotizaciones = await Cotizacion.find({
+      $or: [
+        { proyectoId: { $in: proyectoIds } },
+        { proyecto: { $in: proyectoIds } }
+      ]
+    }).select('proyectoId proyecto total subtotal iva').lean();
+    
+    logger.info('📊 Cotizaciones encontradas', {
+      numCotizaciones: cotizaciones.length,
+      cotizaciones: cotizaciones.map(c => ({
+        proyectoId: c.proyectoId?.toString() || c.proyecto?.toString(),
+        total: c.total,
+        subtotal: c.subtotal,
+        iva: c.iva
+      }))
+    });
+    
+    // Crear mapa de totales por proyecto
+    const totalesPorProyecto = {};
+    cotizaciones.forEach(cot => {
+      // Soportar ambos campos: proyectoId y proyecto
+      const proyectoId = (cot.proyectoId || cot.proyecto)?.toString();
+      if (!totalesPorProyecto[proyectoId]) {
+        totalesPorProyecto[proyectoId] = {
+          total: 0,
+          subtotal: 0,
+          iva: 0,
+          numCotizaciones: 0
+        };
+      }
+      totalesPorProyecto[proyectoId].total += toNumber(cot.total);
+      totalesPorProyecto[proyectoId].subtotal += toNumber(cot.subtotal);
+      totalesPorProyecto[proyectoId].iva += toNumber(cot.iva);
+      totalesPorProyecto[proyectoId].numCotizaciones += 1;
+    });
+
     // Calcular estadísticas adicionales para cada proyecto
     const proyectosConEstadisticas = proyectos.map(proyecto => {
       // Calcular progreso
@@ -619,19 +665,34 @@ const obtenerProyectos = async (req, res) => {
       const indiceEstado = estados.indexOf(proyecto.estado);
       const progreso = indiceEstado >= 0 ? Math.round((indiceEstado / (estados.length - 1)) * 100) : 0;
       
-      // Calcular totales
+      // Calcular totales de medidas
       const totalArea = (proyecto.medidas || []).reduce((sum, medida) => {
         return sum + ((medida.ancho || 0) * (medida.alto || 0) * (medida.cantidad || 1));
       }, 0);
       const totalMedidas = (proyecto.medidas || []).length;
       
+      // Obtener totales financieros desde cotizaciones
+      const proyectoId = proyecto._id.toString();
+      const totalesFinancieros = totalesPorProyecto[proyectoId] || {
+        total: 0,
+        subtotal: 0,
+        iva: 0,
+        numCotizaciones: 0
+      };
+      
       return {
         ...proyecto,
+        // Agregar campos de totales al nivel raíz para compatibilidad con frontend
+        total: roundNumber(totalesFinancieros.total, 2),
+        monto_estimado: roundNumber(totalesFinancieros.total, 2),
+        subtotal: roundNumber(totalesFinancieros.subtotal, 2),
+        iva: roundNumber(totalesFinancieros.iva, 2),
         estadisticas: {
           progreso,
           totalArea: parseFloat(totalArea.toFixed(2)),
           totalMedidas,
-          diasTranscurridos: Math.ceil((new Date() - new Date(proyecto.createdAt || proyecto.fecha_creacion)) / (1000 * 60 * 60 * 24))
+          diasTranscurridos: Math.ceil((new Date() - new Date(proyecto.createdAt || proyecto.fecha_creacion)) / (1000 * 60 * 60 * 24)),
+          numCotizaciones: totalesFinancieros.numCotizaciones
         }
       };
     });

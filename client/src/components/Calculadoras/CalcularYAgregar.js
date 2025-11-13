@@ -145,8 +145,9 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
   };
 
   // Recalcular automáticamente cuando cambien los productos o el tipo de cálculo
+  // SOLO si el modal está abierto
   useEffect(() => {
-    if (productos && productos.length > 0) {
+    if (open && productos && productos.length > 0) {
       const calculo = calcularMedidas();
       if (calculo && calculo.total > 0) {
         setResultado(calculo);
@@ -156,7 +157,7 @@ const CalcularYAgregar = ({ open, onClose, productos = [], onAgregarProducto }) 
         console.log('🔄 Recálculo automático: sin resultados');
       }
     }
-  }, [productos, tipoCalculo]);
+  }, [open, productos, tipoCalculo]);
 
   const handleCalcular = () => {
     const calculo = calcularMedidas();
