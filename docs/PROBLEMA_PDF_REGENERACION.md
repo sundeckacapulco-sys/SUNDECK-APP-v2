@@ -203,6 +203,14 @@ router.get('/:id/debug-pdf', async (req, res) => {
 
 ---
 
+## 🧭 RESUMEN DE ACCIONES SIGUIENTES
+
+1. **Instrumentar logs estructurados en `cotizaciones.js`:** Registrar cada rama del flujo (lectura vs. regeneración) y cualquier excepción de `fs.readFile` o `fs.access`.
+2. **Preparar dashboard de depuración temporal:** Exponer `/api/cotizaciones/:id/debug-pdf` y revisar resultados desde la consola del navegador al abrir el visor.
+3. **Pasar al flujo Cotización → Proyecto una vez estabilizado:** Con el endpoint estable, conectar el botón de conversión desde la pestaña de cotizaciones para eliminar saltos de contexto.
+
+---
+
 ## 📝 CONCLUSIÓN
 
 El visor funciona perfectamente. El problema es que **el backend siempre genera un PDF nuevo** en lugar de usar el guardado.
