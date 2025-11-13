@@ -193,3 +193,15 @@ Usuario aprueba cotización → Estado cambia a 'aprobada'
 ---
 
 **Estado:** ⚠️ FLUJO INCOMPLETO - Requiere integración
+
+---
+
+## 🧭 SIGUIENTES PASOS ACCIONABLES
+
+1. **Diseñar modal de anticipo conectado al endpoint de aprobación:**
+   - Archivo objetivo: `client/src/modules/proyectos/components/CotizacionTab.jsx`.
+   - Mostrar formulario con monto, método, fecha y referencia apenas se apruebe la cotización.
+2. **Encadenar creación de proyecto sin salir de la vista:**
+   - Reutilizar `convertirProspectoAProyecto` desde el mismo flujo, actualizando `cotizacionController.aprobarCotizacion` para devolver IDs necesarios.
+3. **Registrar logs de auditoría en cada paso:**
+   - Usar `logger.info` para dejar rastro de la conversión y validar que no se duplique el proyecto ni se pierda el `pdfPath` recién instrumentado.

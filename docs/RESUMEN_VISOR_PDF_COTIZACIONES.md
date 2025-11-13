@@ -227,6 +227,17 @@ dir public\pdf.worker.min.mjs
 
 ---
 
+## 🧭 PRÓXIMOS PASOS PRIORITARIOS
+
+1. **Instrumentar logs en el endpoint `/api/cotizaciones/:id/pdf`:**
+   - Registrar `pdfPath`, existencia del archivo y errores de lectura con el logger estructurado para aislar la causa de la regeneración.
+   - Crear un endpoint temporal `/api/cotizaciones/:id/debug-pdf` para inspeccionar valores desde el navegador.
+2. **Implementar el flujo Cotización → Proyecto:**
+   - Desde `CotizacionTab.jsx`, mostrar botón "Convertir a Proyecto" al aprobar y encadenar registro de anticipo.
+   - Reutilizar `POST /api/proyectos/:id/convertir` y actualizar la UI para mantener al usuario en contexto.
+
+---
+
 ## 🎯 PRÓXIMOS PASOS (OPCIONAL)
 
 ### **Mejoras Futuras:**

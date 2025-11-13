@@ -233,6 +233,17 @@ dir server\uploads\cotizaciones\
 
 ---
 
+## 🧭 PRÓXIMOS PASOS PRIORITARIOS
+
+1. **Agregar logs detallados en `server/routes/cotizaciones.js`:**
+   - Loggear el valor de `pdfPath`, resultado de `fs.existsSync`, y cualquier error al leer el archivo.
+   - Persistir trazas con el logger estructurado (`logger.info`/`logger.error`) para detectar por qué el flujo cae en la regeneración.
+2. **Integrar el flujo Cotización → Proyecto:**
+   - Al aprobar la cotización, lanzar modal para registrar anticipo y confirmar conversión.
+   - Consumir `POST /api/proyectos/:id/convertir` desde la misma vista de cotizaciones.
+
+---
+
 ## 🎯 PRÓXIMOS PASOS (OPCIONAL)
 
 ### **Mejoras futuras:**
