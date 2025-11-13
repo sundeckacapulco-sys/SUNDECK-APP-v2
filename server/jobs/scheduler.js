@@ -179,8 +179,62 @@ class Scheduler {
    * Calcular próxima ejecución de un cron
    */
   getNextExecution(cronExpression) {
-    // Implementación simplificada
-    return 'Calculando...';
+    try {
+      const [minuto, hora] = cronExpression.trim().split(' ');
+      const ahora = new Date();
+      const proxima = new Date(ahora);
+      proxima.setSeconds(0, 0);
+
+      const minutoNumero = Number.parseInt(minuto, 10);
+      if (!Number.isFinite(minutoNumero)) {
+        throw new Error('Expresión de minuto no soportada');
+      }
+
+      proxima.setMinutes(minutoNumero);
+
+      if (hora?.startsWith('*/')) {
+        const intervalo = Number.parseInt(hora.replace('*/', ''), 10);
+        if (!Number.isFinite(intervalo) || intervalo <= 0) {
+          throw new Error('Intervalo de horas inválido');
+        }
+
+        let proximaHora = Math.ceil((ahora.getHours() + (ahora.getMinutes() >= minutoNumero ? 0.01 : 0)) / intervalo) * intervalo;
+        if (proximaHora === ahora.getHours() && ahora.getMinutes() < minutoNumero) {
+          proximaHora = ahora.getHours();
+        }
+
+        while (proximaHora <= ahora.getHours() && proxima <= ahora) {
+          proximaHora += intervalo;
+        }
+
+        while (proximaHora >= 24) {
+          proximaHora -= 24;
+          proxima.setDate(proxima.getDate() + 1);
+        }
+
+        proxima.setHours(proximaHora);
+      } else {
+        const horaNumero = Number.parseInt(hora, 10);
+        if (!Number.isFinite(horaNumero)) {
+          throw new Error('Expresión de hora no soportada');
+        }
+
+        proxima.setHours(horaNumero);
+
+        if (proxima <= ahora) {
+          proxima.setDate(proxima.getDate() + 1);
+        }
+      }
+
+      return proxima.toISOString();
+    } catch (error) {
+      logger.warn('No se pudo calcular la siguiente ejecución del cron', {
+        service: 'scheduler',
+        cronExpression,
+        error: error.message
+      });
+      return null;
+    }
   }
 
   /**

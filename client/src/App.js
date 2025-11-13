@@ -16,6 +16,7 @@ import DashboardComercial from './modules/proyectos/DashboardComercial';
 import ProyectosList from './modules/proyectos/ProyectosList';
 import ProyectoDetail from './modules/proyectos/ProyectoDetail';
 import ProyectoForm from './modules/proyectos/ProyectoForm';
+import AlertasView from './modules/alertas/AlertasView';
 // Módulo de Instalaciones - Área específica
 import InstalacionesList from './modules/instalaciones/InstalacionesList';
 import InstalacionDetail from './modules/instalaciones/InstalacionDetail';
@@ -51,6 +52,7 @@ function App() {
           <Route path="/proyectos/nuevo" element={<ProyectoForm />} />
           <Route path="/proyectos/:id" element={<ProyectoDetail />} />
           <Route path="/proyectos/:id/editar" element={<ProyectoForm />} />
+          <Route path="/alertas" element={<AlertasView />} />
           
           {/* COTIZACIONES */}
           <Route path="/cotizaciones/nueva" element={<CotizacionForm />} />

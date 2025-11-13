@@ -1,5 +1,6 @@
 const Proyecto = require('../models/Proyecto');
 const logger = require('../config/logger');
+const alertasInteligentesService = require('../services/alertasInteligentesService');
 
 /**
  * JOB: ALERTAS AUTOMÁTICAS DE PROSPECTOS
@@ -14,20 +15,7 @@ async function alertasProspectos(notificar) {
       fecha: new Date()
     });
 
-    // Fecha límite: 5 días sin actividad
-    const limite = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
-
-    // Buscar prospectos inactivos
-    const inactivos = await Proyecto.find({
-      tipo: 'prospecto',
-      estadoComercial: { $in: ['en seguimiento', 'cotizado'] },
-      $or: [
-        { ultimaNota: { $lt: limite } },
-        { ultimaNota: null }
-      ]
-    })
-    .populate('asesorComercial', 'nombre email')
-    .populate('cliente');
+    const inactivos = await alertasInteligentesService.obtenerProspectosInactivos();
 
     logger.info('Prospectos inactivos encontrados', {
       job: 'alertasProspectos',
@@ -37,10 +25,10 @@ async function alertasProspectos(notificar) {
     // Agrupar por asesor
     const porAsesor = {};
     inactivos.forEach(prospecto => {
-      const asesorId = prospecto.asesorComercial?._id?.toString() || 'sin_asignar';
+      const asesorId = prospecto.responsable?.id || 'sin_asignar';
       if (!porAsesor[asesorId]) {
         porAsesor[asesorId] = {
-          asesor: prospecto.asesorComercial,
+          asesor: prospecto.responsable,
           prospectos: []
         };
       }
@@ -53,19 +41,14 @@ async function alertasProspectos(notificar) {
       if (asesorId === 'sin_asignar') continue;
 
       const { asesor, prospectos } = data;
-      
-      // Calcular días de inactividad
-      const prospectosConDias = prospectos.map(p => {
-        const dias = p.ultimaNota 
-          ? Math.floor((Date.now() - p.ultimaNota.getTime()) / (24 * 60 * 60 * 1000))
-          : 999;
-        return {
-          cliente: p.cliente?.nombre || 'Sin nombre',
-          telefono: p.cliente?.telefono || 'Sin teléfono',
-          estado: p.estadoComercial,
-          diasInactivo: dias
-        };
-      });
+
+      const prospectosConDias = prospectos.map(p => ({
+        cliente: p.cliente?.nombre || 'Sin nombre',
+        telefono: p.cliente?.telefono || 'Sin teléfono',
+        estado: p.estadoComercial,
+        diasInactivo: p.diasInactividad,
+        numero: p.numero
+      }));
 
       // Generar mensaje de alerta
       const mensaje = `
@@ -75,10 +58,10 @@ Hola ${asesor?.nombre || 'Asesor'},
 
 Tienes ${prospectos.length} prospecto(s) sin seguimiento por más de 5 días:
 
-${prospectosConDias.map((p, i) => 
+${prospectosConDias.map((p, i) =>
   `${i + 1}. ${p.cliente} (${p.telefono})
    Estado: ${p.estado}
-   Días sin contacto: ${p.diasInactivo === 999 ? 'Sin registro' : p.diasInactivo}`
+   Días sin contacto: ${p.diasInactivo ?? 'Sin registro'}`
 ).join('\n\n')}
 
 Por favor, realiza seguimiento lo antes posible para no perder estas oportunidades.
@@ -92,7 +75,7 @@ Sundeck CRM
       if (typeof notificar === 'function') {
         try {
           await notificar({
-            to: [asesor?.email, 'coordinacion@sundeck.com'],
+            to: [asesor?.email, 'coordinacion@sundeck.com'].filter(Boolean),
             asunto: `⚠️ ${prospectos.length} prospecto(s) requieren seguimiento`,
             cuerpo: mensaje,
             tipo: 'alerta_prospectos'
@@ -101,11 +84,11 @@ Sundeck CRM
           
           logger.info('Alerta enviada a asesor', {
             job: 'alertasProspectos',
-            asesor: asesor?.nombre,
-            email: asesor?.email,
-            prospectos: prospectos.length
-          });
-        } catch (error) {
+          asesor: asesor?.nombre,
+          email: asesor?.email,
+          prospectos: prospectos.length
+        });
+      } catch (error) {
           logger.error('Error enviando alerta', {
             job: 'alertasProspectos',
             asesor: asesor?.nombre,
@@ -130,11 +113,14 @@ Sundeck CRM
       alertasEnviadas
     });
 
+    await alertasInteligentesService.actualizarEstadosAutomaticos({ prospectosInactivos: inactivos });
+
     return {
       ok: true,
       prospectosInactivos: inactivos.length,
       alertasEnviadas,
-      fecha: new Date()
+      fecha: new Date(),
+      detalle: inactivos
     };
 
   } catch (error) {

@@ -1,5 +1,5 @@
-const Proyecto = require('../models/Proyecto');
 const logger = require('../config/logger');
+const alertasInteligentesService = require('../services/alertasInteligentesService');
 
 /**
  * JOB: ALERTAS DE PROYECTOS SIN MOVIMIENTO
@@ -13,18 +13,7 @@ async function alertasProyectos(notificar) {
       fecha: new Date()
     });
 
-    // Fecha límite: 10 días sin movimiento
-    const limite = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
-
-    // Buscar proyectos sin movimiento
-    const sinMovimiento = await Proyecto.find({
-      tipo: 'proyecto',
-      estado: { $nin: ['completado', 'cancelado'] },
-      fecha_actualizacion: { $lt: limite }
-    })
-    .populate('asesor_asignado', 'nombre email')
-    .populate('tecnico_asignado', 'nombre email')
-    .populate('cliente');
+    const sinMovimiento = await alertasInteligentesService.obtenerProyectosSinMovimiento();
 
     logger.info('Proyectos sin movimiento encontrados', {
       job: 'alertasProyectos',
@@ -34,10 +23,10 @@ async function alertasProyectos(notificar) {
     // Agrupar por coordinador/asesor
     const porResponsable = {};
     sinMovimiento.forEach(proyecto => {
-      const responsableId = proyecto.asesor_asignado?._id?.toString() || 'sin_asignar';
+      const responsableId = proyecto.responsable?.id || 'sin_asignar';
       if (!porResponsable[responsableId]) {
         porResponsable[responsableId] = {
-          responsable: proyecto.asesor_asignado,
+          responsable: proyecto.responsable,
           proyectos: []
         };
       }
@@ -51,15 +40,12 @@ async function alertasProyectos(notificar) {
 
       const { responsable, proyectos } = data;
       
-      const proyectosConDias = proyectos.map(p => {
-        const dias = Math.floor((Date.now() - p.fecha_actualizacion.getTime()) / (24 * 60 * 60 * 1000));
-        return {
-          numero: p.numero,
-          cliente: p.cliente?.nombre || 'Sin nombre',
-          estado: p.estado,
-          diasSinMovimiento: dias
-        };
-      });
+      const proyectosConDias = proyectos.map(p => ({
+        numero: p.numero,
+        cliente: p.cliente?.nombre || 'Sin nombre',
+        estado: p.estado,
+        diasSinMovimiento: p.diasInactividad
+      }));
 
       const mensaje = `
 🔔 ALERTA DE PROYECTOS SIN MOVIMIENTO
@@ -84,7 +70,7 @@ Sundeck CRM
       if (typeof notificar === 'function') {
         try {
           await notificar({
-            to: [responsable?.email, 'coordinacion@sundeck.com'],
+            to: [responsable?.email, 'coordinacion@sundeck.com'].filter(Boolean),
             asunto: `⚠️ ${proyectos.length} proyecto(s) requieren actualización`,
             cuerpo: mensaje,
             tipo: 'alerta_proyectos'
@@ -119,11 +105,14 @@ Sundeck CRM
       alertasEnviadas
     });
 
+    await alertasInteligentesService.actualizarEstadosAutomaticos({ proyectosSinMovimiento: sinMovimiento });
+
     return {
       ok: true,
       proyectosSinMovimiento: sinMovimiento.length,
       alertasEnviadas,
-      fecha: new Date()
+      fecha: new Date(),
+      detalle: sinMovimiento
     };
 
   } catch (error) {

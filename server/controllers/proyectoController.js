@@ -822,6 +822,17 @@ const actualizarProyecto = async (req, res) => {
     }
     actualizaciones.fecha_actualizacion = new Date();
 
+    const proyectoAnterior = await Proyecto.findById(id);
+
+    if (!proyectoAnterior) {
+      return res.status(404).json({
+        success: false,
+        message: 'Proyecto no encontrado'
+      });
+    }
+
+    const estadoComercialAnterior = proyectoAnterior.estadoComercial;
+
     const proyecto = await Proyecto.findByIdAndUpdate(
       id,
       actualizaciones,
@@ -833,19 +844,46 @@ const actualizarProyecto = async (req, res) => {
       { path: 'prospecto_original', select: 'nombre telefono' }
     ]);
 
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado'
-      });
-    }
-
     // Recalcular totales si se actualizaron productos o materiales
     if (actualizaciones.productos || actualizaciones.materiales || actualizaciones.medidas) {
       proyecto.subtotal = calcularSubtotal(proyecto);
       proyecto.iva = proyecto.subtotal * 0.16;
       proyecto.total = proyecto.subtotal + proyecto.iva;
       await proyecto.save();
+    }
+
+    const actualizacionManualEstado = Object.prototype.hasOwnProperty.call(actualizaciones, 'estadoComercial');
+    const camposActividad = [
+      'seguimiento',
+      'fabricacion',
+      'instalacion',
+      'estado',
+      'notas',
+      'observaciones',
+      'tiempo_entrega',
+      'pagos',
+      'levantamiento',
+      'medidas',
+      'productos',
+      'cotizaciones'
+    ];
+
+    const hayActividadRelevante = camposActividad.some(campo => Object.prototype.hasOwnProperty.call(actualizaciones, campo));
+
+    if (
+      !actualizacionManualEstado &&
+      hayActividadRelevante &&
+      estadoComercialAnterior === 'pausado' &&
+      proyecto.estadoComercial === 'pausado'
+    ) {
+      proyecto.estadoComercial = 'activo';
+      await proyecto.save();
+
+      logger.info('Estado comercial reactivado automáticamente por actividad reciente', {
+        proyectoId: id,
+        estadoAnterior: estadoComercialAnterior,
+        estadoNuevo: 'activo'
+      });
     }
 
     logger.info('Proyecto actualizado exitosamente', {
