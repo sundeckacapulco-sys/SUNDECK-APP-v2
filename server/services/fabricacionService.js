@@ -266,12 +266,11 @@ class FabricacionService {
       });
       
       const proyectos = await Proyecto.find(query)
-        .populate('fabricacion.asignadoA', 'nombre email')
-        .populate('responsables.vendedor', 'nombre')
         .sort({ 
           'fabricacion.prioridad': -1, // urgente primero
           'cronograma.fechaFinFabricacionEstimada': 1 // fecha más próxima primero
-        });
+        })
+        .lean();
 
       logger.info('Proyectos recuperados para cola de fabricación', {
         servicio: 'fabricacionService',
