@@ -58,6 +58,7 @@ const menuItems = [
   { text: 'Alertas', icon: <Notifications />, path: '/alertas', badge: 'NUEVO' },
   { text: 'Cotización Directa', icon: <Calculate />, path: '/cotizacion-directa', badge: 'RÁPIDO' },
   { text: 'Fabricación', icon: <Construction />, path: '/fabricacion' },
+  { text: 'Calculadora Materiales', icon: <Calculate />, path: '/calculadora', badge: 'NUEVO' },
   { 
     text: 'Instalaciones', 
     icon: <Home />, 
