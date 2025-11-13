@@ -8,6 +8,7 @@ const logger = require('../config/logger');
 const alertasProspectos = require('./alertasProspectos');
 const alertasProyectos = require('./alertasProyectos');
 const alertasInstalaciones = require('./alertasInstalaciones');
+const alertasFabricacion = require('./alertasFabricacion');
 const actualizacionEstadosAutomatica = require('./actualizacionEstadosAutomatica');
 
 class Scheduler {
@@ -99,7 +100,30 @@ class Scheduler {
       }
     });
 
-    // JOB 4: Actualización automática de estados (cada 6 horas)
+    // JOB 4: Alertas de fabricación (cada 4 horas)
+    const jobFabricacion = cron.schedule('0 */4 * * *', async () => {
+      logger.info('Ejecutando job: Alertas de fabricación', {
+        service: 'scheduler',
+        job: 'alertasFabricacion'
+      });
+
+      try {
+        const resultado = await alertasFabricacion();
+        logger.info('Job completado: Alertas de fabricación', {
+          service: 'scheduler',
+          job: 'alertasFabricacion',
+          resultado
+        });
+      } catch (error) {
+        logger.error('Error en job de alertas de fabricación', {
+          service: 'scheduler',
+          job: 'alertasFabricacion',
+          error: error.message
+        });
+      }
+    });
+
+    // JOB 5: Actualización automática de estados (cada 6 horas)
     const jobEstados = cron.schedule('0 */6 * * *', async () => {
       logger.info('Ejecutando job: Actualización automática de estados', {
         service: 'scheduler',
@@ -126,6 +150,7 @@ class Scheduler {
       { name: 'alertasProspectos', cron: jobProspectos, schedule: '0 9 * * *' },
       { name: 'alertasProyectos', cron: jobProyectos, schedule: '0 10 * * *' },
       { name: 'alertasInstalaciones', cron: jobInstalaciones, schedule: '0 8 * * *' },
+      { name: 'alertasFabricacion', cron: jobFabricacion, schedule: '0 */4 * * *' },
       { name: 'actualizacionEstados', cron: jobEstados, schedule: '0 */6 * * *' }
     ];
 
