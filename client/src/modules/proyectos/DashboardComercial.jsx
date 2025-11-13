@@ -15,6 +15,7 @@ import FiltrosComerciales from './components/FiltrosComerciales';
 import KPIsComerciales from './components/KPIsComerciales';
 import TablaComercial from './components/TablaComercial';
 import PanelAlertas from './components/PanelAlertas';
+import PanelAlertasFabricacion from '../fabricacion/components/PanelAlertasFabricacion';
 
 const createDefaultKpiState = () => ({
   resumen: {
@@ -158,6 +159,10 @@ const DashboardComercial = () => {
     navigate('/proyectos/nuevo');
   }, [navigate]);
 
+  const handleVerFabricacion = useCallback(() => {
+    navigate('/fabricacion');
+  }, [navigate]);
+
   useEffect(() => {
     cargarRegistros();
   }, [cargarRegistros]);
@@ -269,10 +274,16 @@ const DashboardComercial = () => {
           </Stack>
         </Box>
 
-        <PanelAlertas
-          refreshToken={alertasRefreshToken}
-          onVerAlertas={() => navigate('/alertas')}
-        />
+        <Stack spacing={2}>
+          <PanelAlertas
+            refreshToken={alertasRefreshToken}
+            onVerAlertas={() => navigate('/alertas')}
+          />
+          <PanelAlertasFabricacion
+            refreshToken={alertasRefreshToken}
+            onVerFabricacion={handleVerFabricacion}
+          />
+        </Stack>
 
         <KPIsComerciales kpis={kpis} loading={kpiLoading} />
 
