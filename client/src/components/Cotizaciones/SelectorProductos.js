@@ -164,198 +164,227 @@ const SelectorProductos = ({ onProductoSeleccionado, onCalcularPrecio }) => {
     }
   };
 
-  const renderCamposMedidas = () => {
+  const getCamposMedidas = () => {
     if (!productoSeleccionado) return null;
 
-    const { unidadMedida, configuracionUnidad } = productoSeleccionado;
+    const { unidadMedida } = productoSeleccionado;
 
+    // Retornar campos según tipo de unidad
+    if (unidadMedida === 'm2') {
+      return (
+        <>
+          <TextField
+            label="Ancho (m)"
+            type="number"
+            size="small"
+            value={medidas.ancho}
+            onChange={(e) => handleMedidasChange('ancho', e.target.value)}
+            inputProps={{ step: 0.01, min: 0 }}
+            sx={{ width: 100 }}
+          />
+          <TextField
+            label="Alto (m)"
+            type="number"
+            size="small"
+            value={medidas.alto}
+            onChange={(e) => handleMedidasChange('alto', e.target.value)}
+            inputProps={{ step: 0.01, min: 0 }}
+            sx={{ width: 100 }}
+          />
+        </>
+      );
+    }
+
+    if (['ml', 'metro'].includes(unidadMedida)) {
+      return (
+        <>
+          <TextField
+            label="Metros"
+            type="number"
+            size="small"
+            value={medidas.metrosLineales}
+            onChange={(e) => handleMedidasChange('metrosLineales', e.target.value)}
+            inputProps={{ step: 0.1, min: 0 }}
+            sx={{ width: 100 }}
+          />
+          <TextField
+            label="Cantidad"
+            type="number"
+            size="small"
+            value={medidas.cantidad}
+            onChange={(e) => handleMedidasChange('cantidad', e.target.value)}
+            inputProps={{ step: 1, min: 1 }}
+            sx={{ width: 90 }}
+          />
+        </>
+      );
+    }
+
+    // pieza, par, juego, kit
     return (
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="subtitle2" gutterBottom>
-          Medidas para {productoSeleccionado.nombre}
-        </Typography>
-        
-        <Grid container spacing={2}>
-          {/* Campos según unidad de medida */}
-          {unidadMedida === 'm2' && (
-            <>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Ancho (m)"
-                  type="number"
-                  value={medidas.ancho}
-                  onChange={(e) => handleMedidasChange('ancho', e.target.value)}
-                  inputProps={{ step: 0.01, min: 0 }}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Alto (m)"
-                  type="number"
-                  value={medidas.alto}
-                  onChange={(e) => handleMedidasChange('alto', e.target.value)}
-                  inputProps={{ step: 0.01, min: 0 }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="caption" color="text.secondary">
-                  Área calculada: {(medidas.ancho * medidas.alto).toFixed(2)} m²
-                </Typography>
-              </Grid>
-            </>
-          )}
-
-          {['ml', 'metro'].includes(unidadMedida) && (
-            <>
-              <Grid item xs={8}>
-                <TextField
-                  fullWidth
-                  label="Metros Lineales"
-                  type="number"
-                  value={medidas.metrosLineales}
-                  onChange={(e) => handleMedidasChange('metrosLineales', e.target.value)}
-                  inputProps={{ step: 0.1, min: 0 }}
-                />
-              </Grid>
-              <Grid item xs={4}>
-                <TextField
-                  fullWidth
-                  label="Cantidad"
-                  type="number"
-                  value={medidas.cantidad}
-                  onChange={(e) => handleMedidasChange('cantidad', e.target.value)}
-                  inputProps={{ step: 1, min: 1 }}
-                />
-              </Grid>
-            </>
-          )}
-
-          {['pieza', 'par', 'juego', 'kit'].includes(unidadMedida) && (
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Cantidad"
-                type="number"
-                value={medidas.cantidad}
-                onChange={(e) => handleMedidasChange('cantidad', e.target.value)}
-                inputProps={{ step: 1, min: 1 }}
-              />
-            </Grid>
-          )}
-
-          <Grid item xs={12}>
-            <Button
-              variant="contained"
-              startIcon={<Calculate />}
-              onClick={calcularPrecio}
-              disabled={loading}
-              sx={{ mt: 1 }}
-            >
-              {loading ? 'Calculando...' : 'Calcular y Agregar'}
-            </Button>
-          </Grid>
-        </Grid>
-      </Box>
+      <TextField
+        label="Cantidad"
+        type="number"
+        size="small"
+        value={medidas.cantidad}
+        onChange={(e) => handleMedidasChange('cantidad', e.target.value)}
+        inputProps={{ step: 1, min: 1 }}
+        sx={{ width: 90 }}
+      />
     );
   };
 
   return (
-    <Box sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 2, mb: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        🛍️ Agregar Producto del Catálogo
-      </Typography>
-
+    <Box sx={{ mb: 2 }}>
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 1, py: 0.5 }}>
           {error}
         </Alert>
       )}
 
-      <Autocomplete
-        options={productos}
-        getOptionLabel={(option) => `${option.codigo} - ${option.nombre}`}
-        value={productoSeleccionado}
-        onChange={handleProductoChange}
-        onInputChange={(event, newInputValue) => {
-          if (newInputValue.length > 2) {
-            fetchProductos(newInputValue);
-          } else if (newInputValue.length === 0) {
-            // Recargar todos los productos cuando se borra el texto
-            fetchProductos('');
-          }
+      {/* LÍNEA SUPERIOR: Buscador + Medidas + Botón */}
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1, 
+          mb: 0.75,
+          flexWrap: 'wrap'
         }}
-        loading={loading}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Buscar producto por código o nombre"
-            placeholder="Ej: MOTOR-001, Persiana Screen..."
-          />
-        )}
-        renderOption={(props, option) => (
-          <Box component="li" {...props}>
-            <Box>
-              <Typography variant="subtitle2">
-                {option.codigo} - {option.nombre}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                <Chip 
-                  label={option.categoria} 
-                  size="small" 
-                  color="primary"
-                />
-                <Chip 
-                  label={`${option.precioBase?.toLocaleString()} / ${option.unidadMedida}`}
-                  size="small" 
-                  color="secondary"
-                />
-                {option.material && (
+      >
+        {/* Buscador de productos */}
+        <Autocomplete
+          options={productos}
+          getOptionLabel={(option) => `${option.codigo} - ${option.nombre}`}
+          value={productoSeleccionado}
+          onChange={handleProductoChange}
+          onInputChange={(event, newInputValue) => {
+            if (newInputValue.length > 2) {
+              fetchProductos(newInputValue);
+            } else if (newInputValue.length === 0) {
+              fetchProductos('');
+            }
+          }}
+          loading={loading}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              placeholder="🔍 Buscar producto..."
+              size="small"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: '#FFFFFF'
+                }
+              }}
+            />
+          )}
+          renderOption={(props, option) => (
+            <Box component="li" {...props}>
+              <Box sx={{ width: '100%' }}>
+                <Typography variant="body2" fontWeight={600}>
+                  {option.codigo} - {option.nombre}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, flexWrap: 'wrap' }}>
                   <Chip 
-                    label={option.material} 
+                    label={option.categoria} 
                     size="small" 
-                    variant="outlined"
+                    sx={{ height: 20, fontSize: '0.7rem' }}
                   />
-                )}
+                  <Chip 
+                    label={`$${option.precioBase?.toLocaleString()} / ${option.unidadMedida}`}
+                    size="small" 
+                    sx={{ height: 20, fontSize: '0.7rem', bgcolor: '#D4AF37', color: '#FFF' }}
+                  />
+                </Box>
               </Box>
             </Box>
-          </Box>
-        )}
-        sx={{ mb: 2 }}
-      />
+          )}
+          sx={{ 
+            flex: 1,
+            minWidth: 250
+          }}
+        />
 
+        {/* Campos de medidas (solo si hay producto seleccionado) */}
+        {getCamposMedidas()}
+
+        {/* Botón Agregar */}
+        <Button
+          variant="contained"
+          onClick={calcularPrecio}
+          disabled={loading || !productoSeleccionado}
+          sx={{
+            backgroundColor: "#0F172A",
+            "&:hover": { backgroundColor: "#1E293B" },
+            textTransform: "none",
+            fontWeight: 600,
+            px: 2,
+            py: 1,
+            fontSize: '0.875rem',
+            minWidth: 150
+          }}
+        >
+          {loading ? 'Agregando...' : 'Agregar Producto'}
+        </Button>
+      </Box>
+
+      {/* TARJETA DESCRIPCIÓN (solo si hay producto seleccionado) */}
       {productoSeleccionado && (
-        <Box sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 1, mb: 2 }}>
-          <Typography variant="subtitle1" fontWeight="bold">
+        <Box 
+          sx={{ 
+            backgroundColor: '#F8FAFC',
+            p: 1.5,
+            borderRadius: 2,
+            border: '1px solid #E2E8F0'
+          }}
+        >
+          <Typography 
+            sx={{ 
+              fontWeight: 600, 
+              color: '#0F172A',
+              fontSize: '0.9rem',
+              mb: 0.5
+            }}
+          >
             {productoSeleccionado.nombre}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {productoSeleccionado.descripcion}
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: '#475569',
+              fontSize: '0.85rem',
+              mb: 0.75
+            }}
+          >
+            {productoSeleccionado.descripcion || 'Sin descripción disponible'}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Chip 
-              label={`Precio base: $${productoSeleccionado.precioBase?.toLocaleString()}`}
-              color="success"
+              label={`💲 $${productoSeleccionado.precioBase?.toLocaleString()}`}
               size="small"
+              sx={{ 
+                height: 24,
+                fontSize: '0.75rem',
+                bgcolor: '#10B981',
+                color: '#FFF',
+                fontWeight: 600
+              }}
             />
             <Chip 
               label={`Unidad: ${productoSeleccionado.unidadMedida}`}
-              color="info"
               size="small"
+              sx={{ height: 24, fontSize: '0.75rem' }}
             />
             {productoSeleccionado.coloresDisponibles?.length > 0 && (
               <Chip 
                 label={`Colores: ${productoSeleccionado.coloresDisponibles.join(', ')}`}
-                variant="outlined"
                 size="small"
+                sx={{ height: 24, fontSize: '0.75rem' }}
               />
             )}
           </Box>
         </Box>
       )}
-
-      {renderCamposMedidas()}
     </Box>
   );
 };

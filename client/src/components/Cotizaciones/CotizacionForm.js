@@ -25,7 +25,10 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import {
   ArrowBack,
@@ -36,7 +39,9 @@ import {
   Settings,
   CalendarToday,
   Functions,
-  ContentCopy
+  ContentCopy,
+  ExpandMore,
+  AutoAwesome
 } from '@mui/icons-material';
 import SelectorProductos from './SelectorProductos';
 import AgregarProductoRapido from './AgregarProductoRapido';
@@ -526,6 +531,7 @@ const CotizacionForm = () => {
   const [showCalcularYAgregar, setShowCalcularYAgregar] = useState(false);
   const [tipoDescuento, setTipoDescuento] = useState('porcentaje'); // 'porcentaje' o 'monto'
   const [proyectoOrigen, setProyectoOrigen] = useState(null);
+  const [descripcionGeneral, setDescripcionGeneral] = useState('');
 
   // Función para actualizar la fecha de validez
   const actualizarFechaValidez = (dias) => {
@@ -534,50 +540,71 @@ const CotizacionForm = () => {
     setDiasValidez(dias);
   };
 
-  // Función para generar descripción con IA
-  const generarDescripcionIA = (index) => {
-    const producto = watchedProductos[index];
-    if (!producto?.nombre) {
-      setError('Primero ingresa el nombre del producto');
+  // Función auxiliar para detectar tipo principal de productos
+  const detectarTipoPrincipal = (productos) => {
+    const nombres = productos.map(p => (p.nombre || '').toLowerCase());
+    if (nombres.some(n => n.includes('toldo'))) return 'toldo';
+    if (nombres.some(n => n.includes('cortina'))) return 'cortina';
+    if (nombres.some(n => n.includes('panel'))) return 'panel';
+    if (nombres.some(n => n.includes('persiana') || n.includes('screen') || n.includes('roller') || n.includes('blackout'))) return 'persiana';
+    return 'default';
+  };
+
+  // Función para generar descripción general IA
+  const generarDescripcionGeneralIA = () => {
+    const productos = watchedProductos || [];
+    
+    if (productos.length === 0) {
+      setError('No hay productos agregados para generar la descripción');
       return;
     }
 
-    // Generar descripción basada en el tipo de producto
-    let descripcion = '';
-    const nombreProducto = producto.nombre.toLowerCase();
+    // Extraer información única de todos los productos
+    const sistemas = [...new Set(productos.map(p => p.sistema || p.tipoControl || '').filter(Boolean))];
+    const materiales = [...new Set(productos.map(p => p.material || p.nombre || '').filter(Boolean))];
+    const colores = [...new Set(productos.map(p => p.color || '').filter(Boolean))];
+    const ubicaciones = [...new Set(productos.map(p => p.descripcion || p.ubicacion || '').filter(Boolean))];
+    const tipo = detectarTipoPrincipal(productos);
 
-    if (nombreProducto.includes('blackout')) {
-      descripcion = `Cortina Blackout de alta calidad que bloquea 100% la luz exterior. Ideal para recámaras y espacios que requieren oscuridad total. Fabricada con materiales resistentes y duraderos. Incluye sistema de instalación y accesorios necesarios. Perfecta para control de luz y privacidad.`;
-    } else if (nombreProducto.includes('screen')) {
-      descripcion = `Persiana Screen que permite el paso de luz natural mientras mantiene la privacidad. Excelente para espacios de trabajo y áreas sociales. Material resistente a rayos UV y fácil mantenimiento. Sistema de operación suave y silencioso. Ideal para control de luminosidad sin perder la vista exterior.`;
-    } else if (nombreProducto.includes('persiana')) {
-      descripcion = `Persiana de alta calidad fabricada con materiales premium. Diseño elegante que se adapta a cualquier decoración. Sistema de control preciso para ajuste de luz y privacidad. Instalación profesional incluida. Garantía de fabricación y funcionamiento.`;
-    } else if (nombreProducto.includes('cortina')) {
-      descripcion = `Cortina decorativa y funcional que combina estilo y practicidad. Materiales de primera calidad con acabados elegantes. Fácil operación y mantenimiento. Perfecta para complementar la decoración de cualquier espacio. Incluye todos los accesorios de instalación.`;
-    } else {
-      descripcion = `Producto de alta calidad diseñado para brindar funcionalidad y estilo a su espacio. Fabricado con materiales premium y tecnología avanzada. Instalación profesional y garantía incluida. Ideal para mejorar el confort y la estética de su hogar u oficina.`;
-    }
+    // Construir texto de sistemas
+    const textoSistemas = sistemas.length > 0 ? sistemas.join(' y ') : 'personalizado';
+    const textoMateriales = materiales.length > 0 ? materiales.join(', ') : 'premium';
+    const textoColores = colores.length > 0 ? `en tonos ${colores.join(', ')}` : '';
+    const textoUbicaciones = ubicaciones.length > 0 ? ubicaciones.join(', ') : 'diversos espacios';
 
-    setValue(`productos.${index}.descripcionProducto`, descripcion);
-    setSuccess('Descripción generada con IA exitosamente');
-  };
+    // Plantillas según tipo de producto
+    const plantillas = {
+      persiana: `Persianas enrollables en sistema ${textoSistemas}, fabricadas a medida con telas ${textoMateriales}${textoColores ? ', ' + textoColores : ''}. Diseñadas para espacios como ${textoUbicaciones}, ofrecen control solar, privacidad y estética contemporánea. Disponibles en versiones manual y motorizada según las necesidades del proyecto.`,
+      
+      toldo: `Toldos ${textoSistemas} fabricados a medida con lonas ${textoMateriales}${textoColores ? ', ' + textoColores : ''}. Ideales para terrazas, patios o áreas exteriores como ${textoUbicaciones}. Proporcionan protección solar, resistencia a la intemperie y diseño funcional.`,
+      
+      cortina: `Cortinas confeccionadas a medida en telas ${textoMateriales}${textoColores ? ', ' + textoColores : ''}, diseñadas para espacios como ${textoUbicaciones}. Aportan elegancia, suavidad y control de luz con estilo clásico y funcional.`,
+      
+      panel: `Paneles japoneses ${textoSistemas} con telas ${textoMateriales}${textoColores ? ', ' + textoColores : ''}. Diseñados para ventanales amplios o divisiones en ${textoUbicaciones}. Ofrecen estética minimalista y control solar eficiente.`,
+      
+      default: `Productos personalizados en sistema ${textoSistemas}, con materiales ${textoMateriales}${textoColores ? ', ' + textoColores : ''}. Diseñados para ${textoUbicaciones}, combinan funcionalidad, diseño y calidad superior.`
+    };
 
-  // Función para limpiar descripción
-  const limpiarDescripcion = (index) => {
-    setValue(`productos.${index}.descripcionProducto`, '');
+    const descripcion = plantillas[tipo] || plantillas.default;
+    setDescripcionGeneral(descripcion);
+    setSuccess('Descripción general generada exitosamente');
   };
 
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const prospectoId = searchParams.get('prospecto');
+  const prospectoIdRaw = searchParams.get('prospecto');
   const proyectoId = searchParams.get('proyecto');
   const returnTo = searchParams.get('returnTo');
   const isEdit = Boolean(id);
 
+  // Validar que prospectoId sea un ObjectId válido antes de usarlo
+  const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
+  const prospectoId = (prospectoIdRaw && isValidObjectId(prospectoIdRaw)) ? prospectoIdRaw : '';
+
   const { control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm({
     defaultValues: {
-      prospecto: prospectoId || '',
+      prospecto: prospectoId,
       validoHasta: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // 15 días desde hoy
       productos: [],
       descuento: {
@@ -613,6 +640,7 @@ const CotizacionForm = () => {
   const watchedProductos = watch('productos');
   const watchedDescuento = watch('descuento');
   const watchedProspecto = watch('prospecto');
+  const watchedFormaPago = watch('formaPago');
 
   useEffect(() => {
     fetchProductos();
@@ -637,40 +665,17 @@ const CotizacionForm = () => {
 
   const fetchProspectos = async () => {
     try {
-      console.log('📋 Cargando clientes desde proyectos...');
-      const response = await axiosConfig.get('/proyectos?limit=500');
-      const proyectos = response.data?.data?.docs || response.data?.docs || [];
+      console.log('📋 Cargando prospectos...');
+      const response = await axiosConfig.get('/prospectos');
+      const prospectos = response.data?.prospectos || response.data || [];
       
-      console.log('📊 Total de proyectos encontrados:', proyectos.length);
+      console.log('👥 Total de prospectos encontrados:', prospectos.length);
+      console.log('👥 Primeros 5 prospectos:', prospectos.slice(0, 5).map(p => p.nombre));
       
-      // Extraer clientes únicos de los proyectos
-      const clientesMap = new Map();
-      
-      proyectos.forEach(proyecto => {
-        if (proyecto.cliente && proyecto.cliente.nombre) {
-          const clienteId = proyecto.cliente._id || proyecto.cliente.nombre; // Usar nombre como fallback
-          
-          if (!clientesMap.has(clienteId)) {
-            clientesMap.set(clienteId, {
-              _id: clienteId,
-              nombre: proyecto.cliente.nombre,
-              telefono: proyecto.cliente.telefono || proyecto.cliente.celular || '',
-              email: proyecto.cliente.email || '',
-              // Guardar referencia al proyecto para debugging
-              proyectoId: proyecto._id
-            });
-          }
-        }
-      });
-      
-      const listaClientes = Array.from(clientesMap.values());
-      console.log('👥 Total de clientes únicos:', listaClientes.length);
-      console.log('👥 Primeros 5 clientes:', listaClientes.slice(0, 5).map(c => c.nombre));
-      
-      setProspectos(listaClientes);
-      return listaClientes;
+      setProspectos(prospectos);
+      return prospectos;
     } catch (error) {
-      console.error('Error fetching clientes:', error);
+      console.error('Error fetching prospectos:', error);
       return [];
     }
   };
@@ -765,6 +770,11 @@ const CotizacionForm = () => {
       }
 
       setIncluirIVA(incluirIVAFlag);
+      
+      // Cargar descripción general si existe
+      if (cotizacion.descripcionGeneral) {
+        setDescripcionGeneral(cotizacion.descripcionGeneral);
+      }
 
       setSuccess('Cotización cargada exitosamente');
 
@@ -933,109 +943,47 @@ const CotizacionForm = () => {
           listaProspectos = await fetchProspectos();
         }
 
-        // El proyecto puede tener 'prospecto' O 'cliente.prospectoId'
-        const prospectoProyectoRaw = 
-          proyecto.prospecto?._id || 
-          proyecto.prospecto?.id || 
-          proyecto.prospecto ||
-          proyecto.cliente?.prospectoId ||
-          proyecto.cliente?.prospecto?._id ||
-          proyecto.cliente?.prospecto;
-          
-        const prospectoProyectoId =
-          typeof prospectoProyectoRaw === 'object'
-            ? (prospectoProyectoRaw?._id || prospectoProyectoRaw?.id || '')
-            : prospectoProyectoRaw;
+        // Buscar el prospecto del proyecto
+        const prospectoId = proyecto.prospecto?._id || proyecto.prospecto;
         
-        console.log('🔍 ID del prospecto extraído:', prospectoProyectoId);
+        console.log('🔍 Prospecto del proyecto:', prospectoId);
 
-        if (prospectoProyectoId) {
-          console.log('✅ Pre-seleccionando prospecto:', prospectoProyectoId);
-          console.log('📋 Prospectos disponibles:', listaProspectos.length);
+        if (prospectoId && isValidObjectId(prospectoId)) {
+          console.log('✅ Pre-seleccionando prospecto:', prospectoId);
           
           // Verificar si el prospecto está en la lista
-          const prospectoEncontrado = listaProspectos.find(p => p._id === prospectoProyectoId);
-          console.log('🔍 Prospecto encontrado en lista:', prospectoEncontrado ? 'SÍ' : 'NO');
+          const prospectoEncontrado = listaProspectos.find(p => p._id === prospectoId);
           
           if (prospectoEncontrado) {
-            console.log('👤 Datos del prospecto:', prospectoEncontrado.nombre, prospectoEncontrado.telefono);
+            console.log('✅ Prospecto encontrado:', prospectoEncontrado.nombre);
+            setValue('prospecto', prospectoId);
+            setSuccess(`✅ Cliente "${prospectoEncontrado.nombre}" seleccionado automáticamente`);
           } else {
-            console.warn('⚠️ El prospecto del proyecto NO está en la lista de prospectos');
-            console.warn('⚠️ Intentando cargar el prospecto directamente...');
-            
-            // Si el prospecto no está en la lista, cargarlo directamente
+            console.warn('⚠️ El prospecto no está en la lista, cargándolo...');
             try {
-              const { data: prospectoData } = await axiosConfig.get(`/prospectos/${prospectoProyectoId}`);
-              const prospectoDirecto = prospectoData.prospecto || prospectoData;
-              
-              console.log('✅ Prospecto cargado directamente:', prospectoDirecto.nombre);
-              
-              // Agregarlo a la lista de prospectos
-              const nuevaLista = [...listaProspectos, prospectoDirecto];
-              setProspectos(nuevaLista);
-              console.log('✅ Prospecto agregado a la lista');
+              const { data } = await axiosConfig.get(`/prospectos/${prospectoId}`);
+              const prospecto = data.prospecto || data;
+              setProspectos([...listaProspectos, prospecto]);
+              setValue('prospecto', prospectoId);
+              setSuccess(`✅ Cliente "${prospecto.nombre}" cargado y seleccionado`);
             } catch (error) {
               console.error('❌ Error cargando prospecto:', error);
-              setError('No se pudo cargar el cliente del proyecto. Selecciona uno manualmente.');
+              setError('No se pudo cargar el cliente. Selecciona uno manualmente.');
             }
           }
-          
-          setTimeout(() => {
-            setValue('prospecto', prospectoProyectoId);
-            console.log('✅ Prospecto seteado en el formulario');
-          }, 200);
-        } else if (proyecto.cliente && proyecto.cliente.nombre) {
-          // Si no hay prospectoId, buscar por nombre del cliente
-          console.warn('⚠️ El proyecto NO tiene prospecto asociado');
-          console.log('👤 Datos del cliente:', proyecto.cliente);
-          console.log('🔍 Buscando prospecto por nombre:', proyecto.cliente.nombre);
-          
-          // Buscar en la lista por nombre (coincidencia exacta o parcial)
-          const nombreCliente = proyecto.cliente.nombre.toLowerCase().trim();
-          
-          // Extraer palabras clave (quitar títulos como Arq., Ing., Dr., etc.)
-          const nombreLimpio = nombreCliente
-            .replace(/^(arq\.|ing\.|dr\.|dra\.|lic\.|c\.|sr\.|sra\.|srta\.)\s*/i, '')
-            .trim();
-          
-          console.log('🔍 Nombre original:', nombreCliente);
-          console.log('🔍 Nombre limpio:', nombreLimpio);
-          console.log('🔍 Prospectos disponibles:', listaProspectos.map(p => p.nombre));
-          
-          const prospectoEncontradoPorNombre = listaProspectos.find(p => {
-            const nombreProspecto = p.nombre.toLowerCase().trim();
-            const nombreProspectoLimpio = nombreProspecto
-              .replace(/^(arq\.|ing\.|dr\.|dra\.|lic\.|c\.|sr\.|sra\.|srta\.)\s*/i, '')
-              .trim();
-            
-            // Intentar varias formas de coincidencia
-            return nombreProspecto === nombreCliente ||  // Exacta
-                   nombreProspectoLimpio === nombreLimpio ||  // Sin títulos
-                   nombreProspecto.includes(nombreLimpio) ||  // Contiene
-                   nombreLimpio.includes(nombreProspectoLimpio) ||  // Está contenido
-                   nombreCliente.includes(nombreProspecto);  // Cliente contiene prospecto
-          });
-          
-          if (prospectoEncontradoPorNombre) {
-            console.log('✅ Prospecto encontrado por nombre:', prospectoEncontradoPorNombre.nombre);
-            console.log('✅ ID del prospecto:', prospectoEncontradoPorNombre._id);
-            
-            // Setear inmediatamente
-            setValue('prospecto', prospectoEncontradoPorNombre._id);
-            console.log('✅ Prospecto seteado en el formulario');
-            setSuccess(`✅ Cliente "${prospectoEncontradoPorNombre.nombre}" seleccionado automáticamente`);
-          } else {
-            console.warn('⚠️ No se encontró prospecto con nombre:', proyecto.cliente.nombre);
-            setError(`⚠️ No se encontró el prospecto "${proyecto.cliente.nombre}". Por favor, selecciónalo manualmente del dropdown.`);
-          }
         } else {
-          console.error('❌ El proyecto NO tiene datos de cliente');
-          setError('El proyecto no tiene información de cliente. Selecciona un prospecto manualmente.');
+          console.warn('⚠️ El proyecto no tiene prospecto válido');
+          setSuccess('📋 Proyecto cargado. Selecciona un cliente del dropdown (opcional).');
         }
 
         if (proyecto.levantamiento && proyecto.levantamiento.partidas) {
           console.log('✅ Partidas encontradas:', proyecto.levantamiento.partidas);
-          importarDesdeProyectoUnificado(proyecto);
+          // ✅ CAMBIO: Mostrar modal de selección en lugar de importar automáticamente
+          setLevantamientoData({ 
+            piezas: proyecto.levantamiento.partidas,
+            proyecto: proyecto 
+          });
+          setShowImportModal(true);
           return;
         } else {
           setError('Este proyecto no tiene levantamiento técnico');
@@ -1198,21 +1146,58 @@ const CotizacionForm = () => {
         return;
       }
 
-      // Validar que hay un prospecto seleccionado
-      if (!data.prospecto) {
-        setError('Debe seleccionar un prospecto. Para cotizaciones sin prospecto existente, use "Nueva Cotización Directa"');
-        return;
+      // Tomar prospecto del proyecto cargado o buscar por datos del cliente
+      let prospectoIdFinal = null;
+      
+      if (proyectoOrigen?.prospecto) {
+        // Si el proyecto tiene prospecto, usarlo
+        prospectoIdFinal = proyectoOrigen.prospecto._id || proyectoOrigen.prospecto;
+        console.log('✅ Prospecto tomado del proyecto:', prospectoIdFinal);
+      } else if (proyectoOrigen?.cliente) {
+        // Si no tiene prospecto pero tiene cliente, buscar o crear prospecto
+        console.log('🔍 Buscando prospecto por datos del cliente:', proyectoOrigen.cliente.nombre);
+        
+        try {
+          // Buscar prospecto por nombre y teléfono
+          const { data } = await axiosConfig.get('/prospectos', {
+            params: {
+              nombre: proyectoOrigen.cliente.nombre,
+              telefono: proyectoOrigen.cliente.telefono
+            }
+          });
+          
+          const prospectos = data?.prospectos || data || [];
+          const prospectoEncontrado = prospectos.find(p => 
+            p.nombre === proyectoOrigen.cliente.nombre || 
+            p.telefono === proyectoOrigen.cliente.telefono
+          );
+          
+          if (prospectoEncontrado) {
+            prospectoIdFinal = prospectoEncontrado._id;
+            console.log('✅ Prospecto encontrado:', prospectoIdFinal);
+          } else {
+            console.log('⚠️ Prospecto no encontrado. La cotización se creará sin prospecto (solo con proyecto).');
+            console.log('ℹ️ Los datos del cliente se tomarán del proyecto para fabricación/instalación.');
+          }
+        } catch (error) {
+          console.error('❌ Error buscando prospecto:', error);
+          console.log('ℹ️ Continuando sin prospecto. Los datos se tomarán del proyecto.');
+        }
+      } else {
+        console.warn('⚠️ El proyecto no tiene prospecto ni cliente asociado');
       }
       
-      const prospectoIdFinal = data.prospecto;
+      // Validar que sea un ObjectId válido
+      if (prospectoIdFinal && !isValidObjectId(prospectoIdFinal)) {
+        console.warn('⚠️ El prospecto no es un ObjectId válido, se omitirá:', prospectoIdFinal);
+        prospectoIdFinal = null;
+      }
 
-      // Debug del prospecto seleccionado
-      console.log('=== DEBUG PROSPECTO ===');
-      console.log('data.prospecto:', data.prospecto);
+      console.log('=== DEBUG FINAL ===');
+      console.log('proyectoId:', proyectoId);
       console.log('prospectoIdFinal:', prospectoIdFinal);
-      console.log('Tipo de prospectoIdFinal:', typeof prospectoIdFinal);
-      console.log('¿Es válido?:', !!prospectoIdFinal);
-      console.log('=== FIN DEBUG PROSPECTO ===');
+      console.log('cliente del proyecto:', proyectoOrigen?.cliente?.nombre);
+      console.log('=== FIN DEBUG ===');
 
       const totales = calcularTotales();
       
@@ -1241,13 +1226,8 @@ const CotizacionForm = () => {
         };
       });
 
-      // Validar que tenemos un prospectoId válido
-      if (!prospectoIdFinal) {
-        setError('No se pudo obtener un ID de prospecto válido');
-        return;
-      }
-
-      console.log('ProspectoId final a usar:', prospectoIdFinal);
+      // El prospecto es opcional, lo importante es el proyectoId
+      console.log('ProspectoId final a usar:', prospectoIdFinal || 'null (se usa proyecto)');
       console.log('Tipo de prospectoId:', typeof prospectoIdFinal);
       
       // Debug de totales para verificar consistencia
@@ -1270,7 +1250,8 @@ const CotizacionForm = () => {
       console.log('=== FIN DEBUG ===');
 
       const cotizacionData = {
-        prospecto: prospectoIdFinal, // Usar el ID final (existente o creado) - campo correcto para backend
+        prospecto: prospectoIdFinal || null, // Opcional para proyectos legacy
+        proyecto: proyectoId || null, // IMPORTANTE: Asociar cotización al proyecto para fabricación e instalación
         validoHasta: data.validoHasta,
         productos: productosConSubtotal,
         descuento: data.descuento,
@@ -1280,6 +1261,7 @@ const CotizacionForm = () => {
         requiereInstalacion: data.requiereInstalacion !== false,
         costoInstalacion: data.costoInstalacion || 0,
         garantia: data.garantia,
+        descripcionGeneral: descripcionGeneral || '', // Agregar descripción general
         // Incluir totales calculados
         subtotal: totales.subtotal,
         iva: totales.iva,
@@ -1289,6 +1271,8 @@ const CotizacionForm = () => {
       };
 
       console.log(isEdit ? 'Actualizando cotización:' : 'Creando cotización:', cotizacionData);
+      console.log('📋 Proyecto asociado:', proyectoId || 'Sin proyecto');
+      console.log('👤 Prospecto asociado:', prospectoIdFinal);
       
       let response;
       if (isEdit) {
@@ -1306,11 +1290,21 @@ const CotizacionForm = () => {
         response = await axiosConfig.post('/cotizaciones', cotizacionData);
         console.log('Respuesta del servidor:', response.data);
         setSuccess('Cotización creada exitosamente');
-        console.log('Navegando a /cotizaciones en 2 segundos...');
-        setTimeout(() => {
-          console.log('Ejecutando navegación...');
-          navigate('/cotizaciones');
-        }, 2000);
+        
+        // Si viene de un proyecto, regresar al proyecto
+        if (proyectoId) {
+          console.log('Navegando de vuelta al proyecto en 2 segundos...');
+          setTimeout(() => {
+            console.log('Ejecutando navegación al proyecto...');
+            navigate(`/proyectos/${proyectoId}?tab=1`); // tab=1 es la pestaña de cotizaciones
+          }, 2000);
+        } else {
+          console.log('Navegando a /cotizaciones en 2 segundos...');
+          setTimeout(() => {
+            console.log('Ejecutando navegación...');
+            navigate('/cotizaciones');
+          }, 2000);
+        }
       }
     } catch (error) {
       console.error('Error guardando cotización:', error);
@@ -1410,61 +1404,12 @@ const CotizacionForm = () => {
           )}
 
           <Box component="form" onSubmit={handleSubmit(onSubmit)}>
-            {/* Información básica */}
-            <Typography variant="h6" gutterBottom>
-              Información Básica
+            {/* Validez de la Cotización */}
+            <Typography variant="h6" gutterBottom sx={{ color: '#1a1a1a', fontWeight: 'bold' }}>
+              ⏰ Validez de la Cotización
             </Typography>
             
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="prospecto"
-                  control={control}
-                  rules={{ required: 'Debe seleccionar un cliente' }}
-                  render={({ field: { onChange, value } }) => (
-                    <Autocomplete
-                      value={prospectos.find(p => p._id === value) || null}
-                      onChange={(event, newValue) => {
-                        onChange(newValue ? newValue._id : '');
-                      }}
-                      options={prospectos}
-                      getOptionLabel={(option) => {
-                        // Mostrar nombre y teléfono si existe
-                        const nombre = option.nombre || option.datosGenerales?.nombreCompleto || 'Sin nombre';
-                        const telefono = option.telefono || option.datosGenerales?.telefono || '';
-                        return telefono ? `${nombre} - ${telefono}` : nombre;
-                      }}
-                      isOptionEqualToValue={(option, value) => option._id === value._id}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Cliente *"
-                          error={!!errors.prospecto}
-                          helperText={errors.prospecto?.message || `${prospectos.length} clientes disponibles`}
-                        />
-                      )}
-                      noOptionsText="No hay clientes disponibles"
-                      loadingText="Cargando clientes..."
-                      filterOptions={(options, { inputValue }) => {
-                        // Búsqueda más flexible
-                        const searchTerm = inputValue.toLowerCase();
-                        return options.filter(option => {
-                          const nombre = (option.nombre || option.datosGenerales?.nombreCompleto || '').toLowerCase();
-                          const telefono = (option.telefono || option.datosGenerales?.telefono || '').toLowerCase();
-                          return nombre.includes(searchTerm) || telefono.includes(searchTerm);
-                        });
-                      }}
-                    />
-                  )}
-                />
-                {/* Mensaje informativo */}
-                <Box sx={{ mt: 1 }}>
-                  <Typography variant="caption" sx={{ color: '#2563eb', fontStyle: 'italic' }}>
-                    💡 Para crear cotizaciones sin cliente existente, use "Nueva Cotización Directa" desde el menú principal.
-                  </Typography>
-                </Box>
-              </Grid>
-              
               <Grid item xs={12} md={6}>
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
                   {/* Campo para días de validez */}
@@ -1565,6 +1510,49 @@ const CotizacionForm = () => {
               }}
               userRole={user?.rol || 'vendedor'}
             />
+
+            {/* Descripción General */}
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: "#0F172A" }}>
+                  📝 Descripción General
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AutoAwesome />}
+                  onClick={generarDescripcionGeneralIA}
+                  sx={{
+                    textTransform: "none",
+                    borderColor: "#D4AF37",
+                    color: "#0F172A",
+                    "&:hover": { 
+                      backgroundColor: "#F1F5F9",
+                      borderColor: "#D4AF37"
+                    },
+                    fontWeight: 600
+                  }}
+                >
+                  Generar IA
+                </Button>
+              </Box>
+
+              <TextField
+                fullWidth
+                multiline
+                minRows={2}
+                value={descripcionGeneral || ""}
+                onChange={(e) => setDescripcionGeneral(e.target.value)}
+                placeholder="Ej. Persianas enrollables en sistema manual y motorizado, fabricadas a medida con telas Screen 3% y Blackout..."
+                sx={{
+                  "& .MuiInputBase-root": {
+                    backgroundColor: "#F8FAFC",
+                    borderRadius: 2,
+                    fontSize: "0.9rem",
+                  },
+                }}
+              />
+            </Box>
 
             {/* Productos */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -1716,17 +1704,42 @@ const CotizacionForm = () => {
                           )}
                         />
                         {watchedProductos[index]?.descripcionProducto && (
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{
+                          <Accordion 
+                            sx={{ 
+                              backgroundColor: "transparent", 
+                              boxShadow: "none", 
                               mt: 1,
-                              whiteSpace: 'pre-line',
-                              fontSize: '0.85rem'
+                              '&:before': { display: 'none' }
                             }}
                           >
-                            {watchedProductos[index].descripcionProducto}
-                          </Typography>
+                            <AccordionSummary
+                              expandIcon={<ExpandMore />}
+                              aria-controls={`panel-${index}-content`}
+                              id={`panel-${index}-header`}
+                              sx={{
+                                p: 0,
+                                minHeight: '32px',
+                                '& .MuiAccordionSummary-content': { m: 0, my: 0.5 }
+                              }}
+                            >
+                              <Typography variant="caption" sx={{ fontWeight: 500, color: "#0F172A" }}>
+                                📋 Ver detalles técnicos
+                              </Typography>
+                            </AccordionSummary>
+
+                            <AccordionDetails sx={{ pl: 2, pb: 1, pt: 0 }}>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{
+                                  whiteSpace: 'pre-line',
+                                  fontSize: '0.85rem'
+                                }}
+                              >
+                                {watchedProductos[index].descripcionProducto}
+                              </Typography>
+                            </AccordionDetails>
+                          </Accordion>
                         )}
                       </TableCell>
                       <TableCell>
@@ -1941,131 +1954,6 @@ const CotizacionForm = () => {
               </Table>
             </TableContainer>
 
-            {/* Sección de Descripciones de Productos - A todo lo ancho */}
-            {fields.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" gutterBottom sx={{ 
-                  color: '#1a1a1a', 
-                  fontWeight: 'bold',
-                  mb: 3,
-                  borderBottom: '2px solid #2563eb',
-                  pb: 1
-                }}>
-                  📝 Descripciones de Productos
-                </Typography>
-                
-                {/* Una sola columna a todo lo ancho */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {fields.map((field, index) => (
-                    <Card key={field.id} sx={{ 
-                      borderRadius: 3,
-                      border: '2px solid #e0e0e0',
-                      boxShadow: 2,
-                      '&:hover': {
-                        borderColor: '#2563eb',
-                        boxShadow: 4
-                      }
-                    }}>
-                      <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                          <Typography variant="h6" fontWeight="bold" sx={{ color: '#1a1a1a' }}>
-                            🏷️ Producto {index + 1}
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                            <Chip 
-                              label={watchedProductos[index]?.nombre || 'Sin nombre'}
-                              color="primary"
-                              size="medium"
-                            />
-                            <Chip 
-                              label={watchedProductos[index]?.descripcion || 'Sin ubicación'}
-                              color="secondary"
-                              size="medium"
-                              variant="outlined"
-                            />
-                          </Box>
-                        </Box>
-                        
-                        <Controller
-                          name={`productos.${index}.descripcionProducto`}
-                          control={control}
-                          render={({ field }) => (
-                            <TextField
-                              {...field}
-                              fullWidth
-                              multiline
-                              rows={4}
-                              label="Descripción técnica del producto"
-                              placeholder="Describe las características, beneficios y especificaciones técnicas del producto..."
-                              sx={{ 
-                                mb: 3,
-                                '& .MuiOutlinedInput-root': {
-                                  bgcolor: '#f8f9fa',
-                                  borderRadius: 2,
-                                  minHeight: '120px'
-                                },
-                                '& .MuiOutlinedInput-input': {
-                                  fontSize: '14px',
-                                  lineHeight: '1.6',
-                                  padding: '16px 14px',
-                                  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                                  letterSpacing: '0.01em'
-                                },
-                                '& .MuiInputLabel-root': {
-                                  fontSize: '16px',
-                                  lineHeight: '1.4375em'
-                                },
-                                '& textarea': {
-                                  fontSize: '14px !important',
-                                  lineHeight: '1.6 !important',
-                                  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif !important',
-                                  letterSpacing: '0.01em !important',
-                                  resize: 'vertical'
-                                }
-                              }}
-                            />
-                          )}
-                        />
-                        
-                        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                          <Button
-                            variant="contained"
-                            onClick={() => generarDescripcionIA(index)}
-                            sx={{
-                              bgcolor: '#28a745',
-                              '&:hover': { bgcolor: '#218838' },
-                              borderRadius: 2,
-                              px: 3,
-                              py: 1
-                            }}
-                          >
-                            🤖 Generar con IA
-                          </Button>
-                          <Button
-                            variant="outlined"
-                            onClick={() => limpiarDescripcion(index)}
-                            sx={{
-                              borderColor: '#6c757d',
-                              color: '#6c757d',
-                              '&:hover': { 
-                                borderColor: '#1a1a1a',
-                                color: '#1a1a1a'
-                              },
-                              borderRadius: 2,
-                              px: 3,
-                              py: 1
-                            }}
-                          >
-                            🗑️ Limpiar
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </Box>
-              </Box>
-            )}
-
             {/* Totales */}
             <Card sx={{ 
               mb: 3, 
@@ -2208,38 +2096,112 @@ const CotizacionForm = () => {
             </Card>
 
             {/* Condiciones de pago */}
-            <Typography variant="h6" gutterBottom>
-              Condiciones de Pago
-            </Typography>
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="formaPago.anticipo.porcentaje"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Anticipo (%)"
-                      type="number"
+            <Card sx={{ 
+              mb: 3, 
+              bgcolor: '#f8f9fa',
+              border: '2px solid #28a745',
+              borderRadius: 3,
+              boxShadow: 3
+            }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ 
+                  color: '#1a1a1a', 
+                  fontWeight: 'bold',
+                  borderBottom: '2px solid #28a745',
+                  pb: 1,
+                  mb: 2
+                }}>
+                  💳 Condiciones de Pago
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Controller
+                      name="formaPago.anticipo.porcentaje"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Anticipo (%)"
+                          type="number"
+                          inputProps={{ min: 0, max: 100, step: 1 }}
+                          helperText="Porcentaje del total a pagar como anticipo"
+                        />
+                      )}
                     />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Controller
-                  name="formaPago.saldo.condiciones"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Condiciones del saldo"
+                    
+                    {/* Cálculo del Anticipo */}
+                    <Box sx={{ 
+                      mt: 2, 
+                      p: 2, 
+                      bgcolor: '#e8f5e9', 
+                      borderRadius: 2,
+                      border: '1px solid #28a745'
+                    }}>
+                      <Typography variant="body2" sx={{ color: '#6c757d', mb: 0.5 }}>
+                        💰 Monto del Anticipo:
+                      </Typography>
+                      <Typography variant="h5" sx={{ 
+                        fontWeight: 'bold',
+                        color: '#28a745'
+                      }}>
+                        ${(() => {
+                          const porcentajeAnticipo = watchedFormaPago?.anticipo?.porcentaje || 60;
+                          const montoAnticipo = (totales.total * porcentajeAnticipo) / 100;
+                          return montoAnticipo.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        })()}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#6c757d', fontStyle: 'italic' }}>
+                        {watchedFormaPago?.anticipo?.porcentaje || 60}% del total
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6}>
+                    <Controller
+                      name="formaPago.saldo.condiciones"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Condiciones del saldo"
+                          placeholder="Ej. contra entrega, a 30 días, etc."
+                          helperText="Especifica cuándo se pagará el saldo restante"
+                        />
+                      )}
                     />
-                  )}
-                />
-              </Grid>
-            </Grid>
+                    
+                    {/* Cálculo del Saldo */}
+                    <Box sx={{ 
+                      mt: 2, 
+                      p: 2, 
+                      bgcolor: '#fff3e0', 
+                      borderRadius: 2,
+                      border: '1px solid #ff9800'
+                    }}>
+                      <Typography variant="body2" sx={{ color: '#6c757d', mb: 0.5 }}>
+                        💵 Monto del Saldo:
+                      </Typography>
+                      <Typography variant="h5" sx={{ 
+                        fontWeight: 'bold',
+                        color: '#ff9800'
+                      }}>
+                        ${(() => {
+                          const porcentajeAnticipo = watchedFormaPago?.anticipo?.porcentaje || 60;
+                          const porcentajeSaldo = 100 - porcentajeAnticipo;
+                          const montoSaldo = (totales.total * porcentajeSaldo) / 100;
+                          return montoSaldo.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        })()}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#6c757d', fontStyle: 'italic' }}>
+                        {100 - (watchedFormaPago?.anticipo?.porcentaje || 60)}% del total
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
 
             {/* Botones */}
             <Box sx={{ 

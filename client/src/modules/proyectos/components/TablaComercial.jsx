@@ -24,7 +24,10 @@ import {
   Button,
   FormControl,
   InputLabel,
-  Select
+  Select,
+  Snackbar,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
@@ -59,6 +62,29 @@ const TablaComercial = ({
   const [selectedAsesor, setSelectedAsesor] = useState('');
   const [selectedEstado, setSelectedEstado] = useState('');
   const [dialogRegistroId, setDialogRegistroId] = useState(null); // Guardar ID para diálogos
+  
+  // Snackbar para notificaciones
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' // 'success', 'error', 'warning', 'info'
+  });
+
+  // Loading states para acciones
+  const [actionLoading, setActionLoading] = useState({
+    convertir: false,
+    asignar: false,
+    cambiarEstado: false,
+    marcarPerdido: false
+  });
+
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
   
   // Lista de asesores (mock - deberías obtenerla de un endpoint)
   const asesores = [
@@ -96,13 +122,13 @@ const TablaComercial = ({
       const response = await axiosConfig.post(`/proyectos/${id}/convertir`);
       
       console.log('✅ Prospecto convertido:', response.data);
-      alert('Prospecto convertido a proyecto exitosamente');
+      showSnackbar('Prospecto convertido a proyecto exitosamente', 'success');
       
       handleMenuClose();
       onRecargar();
     } catch (error) {
       console.error('❌ Error al convertir prospecto:', error);
-      alert(error.response?.data?.message || 'Error al convertir prospecto');
+      showSnackbar(error.response?.data?.message || 'Error al convertir prospecto', 'error');
     }
   };
 
@@ -124,43 +150,49 @@ const TablaComercial = ({
 
   const handleAsignarAsesor = async () => {
     if (!dialogRegistroId) {
-      alert('Error: No hay registro seleccionado');
+      showSnackbar('Error: No hay registro seleccionado', 'error');
       return;
     }
     
+    setActionLoading(prev => ({ ...prev, asignar: true }));
     try {
       await axiosConfig.put(`/proyectos/${dialogRegistroId}`, {
         asesorComercial: selectedAsesor
       });
       
-      alert('Asesor asignado exitosamente');
+      showSnackbar('Asesor asignado exitosamente', 'success');
       setAssignDialogOpen(false);
       setDialogRegistroId(null);
       onRecargar();
     } catch (error) {
       console.error('❌ Error al asignar asesor:', error);
-      alert(error.response?.data?.message || 'Error al asignar asesor');
+      showSnackbar(error.response?.data?.message || 'Error al asignar asesor', 'error');
+    } finally {
+      setActionLoading(prev => ({ ...prev, asignar: false }));
     }
   };
 
   const handleCambiarEstado = async () => {
     if (!dialogRegistroId) {
-      alert('Error: No hay registro seleccionado');
+      showSnackbar('Error: No hay registro seleccionado', 'error');
       return;
     }
     
+    setActionLoading(prev => ({ ...prev, cambiarEstado: true }));
     try {
       await axiosConfig.put(`/proyectos/${dialogRegistroId}`, {
         estadoComercial: selectedEstado
       });
       
-      alert('Estado actualizado exitosamente');
+      showSnackbar('Estado actualizado exitosamente', 'success');
       setStateDialogOpen(false);
       setDialogRegistroId(null);
       onRecargar();
     } catch (error) {
       console.error('❌ Error al cambiar estado:', error);
-      alert(error.response?.data?.message || 'Error al cambiar estado');
+      showSnackbar(error.response?.data?.message || 'Error al cambiar estado', 'error');
+    } finally {
+      setActionLoading(prev => ({ ...prev, cambiarEstado: false }));
     }
   };
 
@@ -174,12 +206,12 @@ const TablaComercial = ({
         estadoComercial: 'perdido'
       });
       
-      alert('Registro marcado como perdido');
+      showSnackbar('Registro marcado como perdido', 'warning');
       handleMenuClose();
       onRecargar();
     } catch (error) {
       console.error('❌ Error al marcar como perdido:', error);
-      alert(error.response?.data?.message || 'Error al marcar como perdido');
+      showSnackbar(error.response?.data?.message || 'Error al marcar como perdido', 'error');
     }
   };
 
@@ -463,9 +495,14 @@ const TablaComercial = ({
           </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAssignDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={handleAsignarAsesor} variant="contained">
-            Asignar
+          <Button onClick={() => setAssignDialogOpen(false)} disabled={actionLoading.asignar}>Cancelar</Button>
+          <Button 
+            onClick={handleAsignarAsesor} 
+            variant="contained"
+            disabled={actionLoading.asignar}
+            startIcon={actionLoading.asignar ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {actionLoading.asignar ? 'Asignando...' : 'Asignar'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -497,9 +534,14 @@ const TablaComercial = ({
           </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setStateDialogOpen(false)}>Cancelar</Button>
-          <Button onClick={handleCambiarEstado} variant="contained">
-            Actualizar
+          <Button onClick={() => setStateDialogOpen(false)} disabled={actionLoading.cambiarEstado}>Cancelar</Button>
+          <Button 
+            onClick={handleCambiarEstado} 
+            variant="contained"
+            disabled={actionLoading.cambiarEstado}
+            startIcon={actionLoading.cambiarEstado ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {actionLoading.cambiarEstado ? 'Actualizando...' : 'Actualizar'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -519,6 +561,23 @@ const TablaComercial = ({
           />
         </Box>
       )}
+
+      {/* Snackbar para notificaciones */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

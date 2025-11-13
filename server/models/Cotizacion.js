@@ -40,6 +40,7 @@ const cotizacionSchema = new mongoose.Schema({
     default: 'normal'
   },
   comentarios: String,
+  descripcionGeneral: String, // Descripción general de la cotización generada por IA
   precioGeneralM2: Number,
   unidadMedida: String,
 

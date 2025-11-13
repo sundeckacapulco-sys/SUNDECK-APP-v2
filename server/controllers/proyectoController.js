@@ -1347,6 +1347,18 @@ const obtenerEstadisticasProyecto = async (req, res) => {
       });
     }
 
+    // Calcular totales financieros desde las cotizaciones
+    const totalesFinancieros = Array.isArray(proyecto.cotizaciones) 
+      ? proyecto.cotizaciones.reduce((acc, cot) => {
+          if (cot && cot.total) {
+            acc.total += cot.total || 0;
+            acc.subtotal += cot.subtotal || 0;
+            acc.iva += cot.iva || 0;
+          }
+          return acc;
+        }, { total: 0, subtotal: 0, iva: 0 })
+      : { total: 0, subtotal: 0, iva: 0 };
+
     // Calcular estadísticas con validaciones
     const estadisticas = {
       resumen: {
@@ -1358,11 +1370,11 @@ const obtenerEstadisticasProyecto = async (req, res) => {
         dias_transcurridos: Math.floor((new Date() - (proyecto.fecha_creacion || proyecto.createdAt)) / (1000 * 60 * 60 * 24))
       },
       financiero: {
-        subtotal: proyecto.subtotal || 0,
-        iva: proyecto.iva || 0,
-        total: proyecto.total || 0,
+        subtotal: totalesFinancieros.subtotal,
+        iva: totalesFinancieros.iva,
+        total: totalesFinancieros.total,
         anticipo: proyecto.anticipo || 0,
-        saldo_pendiente: proyecto.saldo_pendiente || 0
+        saldo_pendiente: totalesFinancieros.total - (proyecto.anticipo || 0)
       },
       flujo: {
         cotizaciones: {
@@ -1915,6 +1927,25 @@ const obtenerKPIsComerciales = async (req, res) => {
                       { $gt: [{ $ifNull: ['$total', 0] }, 0] },
                       { $ifNull: ['$total', 0] },
                       { $ifNull: ['$monto_estimado', 0] }
+                    ]
+                  }
+                },
+                enRiesgo: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $and: [
+                          { $ne: ['$tipo', 'proyecto'] }, // Solo prospectos
+                          {
+                            $lt: [
+                              '$updatedAt',
+                              new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // 7 días sin actividad
+                            ]
+                          }
+                        ]
+                      },
+                      1,
+                      0
                     ]
                   }
                 }

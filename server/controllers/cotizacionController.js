@@ -36,23 +36,39 @@ exports.crearCotizacion = async (req, res) => {
       tipoInstalacion,
       descuento,
       requiereFactura,
+      incluirIVA, // Flag para incluir IVA en el cálculo
       metodoPagoAnticipo,
       tiempoEntrega,
       diasEntregaExpres,
       incluirTerminos,
       origen
     } = req.body;
+    
+    // Si viene incluirIVA del frontend, usarlo como requiereFactura
+    const requiereFacturaFinal = incluirIVA !== undefined ? incluirIVA : requiereFactura;
 
-    if (!prospectoId) {
-      logger.warn('Solicitud sin prospectoId', {
+    // Validar que tenga prospecto O proyecto
+    if (!prospectoId && !req.body.proyecto) {
+      logger.warn('Solicitud sin prospectoId ni proyecto', {
         controlador: 'CotizacionController',
         accion: 'crearCotizacion',
         metodo: req.method,
         endpoint: req.originalUrl,
         usuarioId: req.usuario?._id || null
       });
-      return res.status(400).json({ message: 'Debes proporcionar el prospecto asociado a la cotización.' });
+      return res.status(400).json({ message: 'Debes proporcionar el prospecto o el proyecto asociado a la cotización.' });
     }
+    
+    // Si no hay prospecto pero hay proyecto, es válido
+    if (!prospectoId && req.body.proyecto) {
+      logger.info('Cotización creada desde proyecto sin prospecto', {
+        controlador: 'CotizacionController',
+        accion: 'crearCotizacion',
+        proyectoId: req.body.proyecto,
+        usuarioId: req.usuario?._id || null
+      });
+    }
+    
     if (!Array.isArray(productos) || productos.length === 0) {
       logger.warn('Solicitud sin productos válidos', {
         controlador: 'CotizacionController',
@@ -84,17 +100,21 @@ exports.crearCotizacion = async (req, res) => {
       });
     }
 
-    const prospecto = await Prospecto.findById(prospectoId);
-    if (!prospecto) {
-      logger.warn('Prospecto no encontrado para crear cotización', {
-        controlador: 'CotizacionController',
-        accion: 'crearCotizacion',
-        metodo: req.method,
-        endpoint: req.originalUrl,
-        usuarioId: req.usuario?._id || null,
-        prospectoId
-      });
-      return res.status(404).json({ message: 'Prospecto no encontrado' });
+    // Buscar prospecto solo si se proporcionó
+    let prospecto = null;
+    if (prospectoId) {
+      prospecto = await Prospecto.findById(prospectoId);
+      if (!prospecto) {
+        logger.warn('Prospecto no encontrado para crear cotización', {
+          controlador: 'CotizacionController',
+          accion: 'crearCotizacion',
+          metodo: req.method,
+          endpoint: req.originalUrl,
+          usuarioId: req.usuario?._id || null,
+          prospectoId
+        });
+        return res.status(404).json({ message: 'Prospecto no encontrado' });
+      }
     }
 
     // Usar servicio unificado para cálculos consistentes
@@ -103,7 +123,7 @@ exports.crearCotizacion = async (req, res) => {
       incluyeInstalacion,
       costoInstalacion,
       descuento,
-      requiereFactura
+      requiereFactura: requiereFacturaFinal
     });
     
     const { 
@@ -120,8 +140,9 @@ exports.crearCotizacion = async (req, res) => {
 
     const nuevaCotizacion = new Cotizacion({
       numero: numeroCotizacion,
-      prospecto: prospecto._id,
-      nombre: nombre || `Cotización para ${prospecto.nombre}`,
+      prospecto: prospecto?._id || null,
+      proyecto: req.body.proyecto || null,
+      nombre: nombre || (prospecto ? `Cotización para ${prospecto.nombre}` : `Cotización ${numeroCotizacion}`),
       fecha: fechaCreacion ? new Date(fechaCreacion) : new Date(),
       estado: 'Activa',
       origen: origen || 'normal', // Usar el origen enviado o 'normal' por defecto
@@ -140,7 +161,7 @@ exports.crearCotizacion = async (req, res) => {
         monto: montoDescuento,
       } : undefined,
       facturacion: {
-        requiere: requiereFactura,
+        requiere: requiereFacturaFinal,
         iva: ivaCalculado,
       },
       pago: {
@@ -168,20 +189,51 @@ exports.crearCotizacion = async (req, res) => {
       endpoint: req.originalUrl,
       usuarioId: req.usuario?._id || null,
       cotizacionId: cotizacionGuardada._id,
-      prospectoId: prospecto._id
+      prospectoId: prospecto?._id || null,
+      proyectoId: req.body.proyecto || null
     });
 
-    prospecto.etapa = 'cotizacion';
-    prospecto.fechaUltimoContacto = new Date();
-    await prospecto.save();
-    logger.info('Prospecto actualizado a etapa cotizacion', {
-      controlador: 'CotizacionController',
-      accion: 'crearCotizacion',
-      metodo: req.method,
-      endpoint: req.originalUrl,
-      usuarioId: req.usuario?._id || null,
-      prospectoId
-    });
+    // Actualizar prospecto solo si existe
+    if (prospecto) {
+      prospecto.etapa = 'cotizacion';
+      prospecto.fechaUltimoContacto = new Date();
+      await prospecto.save();
+      logger.info('Prospecto actualizado a etapa cotizacion', {
+        controlador: 'CotizacionController',
+        accion: 'crearCotizacion',
+        metodo: req.method,
+        endpoint: req.originalUrl,
+        usuarioId: req.usuario?._id || null,
+        prospectoId
+      });
+    }
+    
+    // Actualizar proyecto si existe - agregar cotización al array
+    if (req.body.proyecto) {
+      try {
+        const Proyecto = require('../models/Proyecto');
+        await Proyecto.findByIdAndUpdate(
+          req.body.proyecto,
+          { 
+            $push: { cotizaciones: cotizacionGuardada._id },
+            $set: { estadoComercial: 'cotizado' }
+          }
+        );
+        logger.info('Proyecto actualizado con nueva cotización', {
+          controlador: 'CotizacionController',
+          accion: 'crearCotizacion',
+          proyectoId: req.body.proyecto,
+          cotizacionId: cotizacionGuardada._id
+        });
+      } catch (error) {
+        logger.error('Error actualizando proyecto con cotización', {
+          controlador: 'CotizacionController',
+          accion: 'crearCotizacion',
+          proyectoId: req.body.proyecto,
+          error: error.message
+        });
+      }
+    }
 
     res.status(201).json({
       message: 'Cotización creada exitosamente',

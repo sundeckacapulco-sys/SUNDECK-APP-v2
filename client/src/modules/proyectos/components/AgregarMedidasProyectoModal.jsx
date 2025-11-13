@@ -26,7 +26,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import {
   Add,
@@ -2257,13 +2260,10 @@ const AgregarMedidasProyectoModal = ({
                                                 {pieza.medidas.map((medida, i) => (
                                                   <Box key={i}>
                                                     <Box 
-                                                      onClick={() => setPiezaExpandida(prev => ({ ...prev, [`${index}-${i}`]: !prev[`${index}-${i}`] }))}
                                                       sx={{ 
                                                         p: 1, 
                                                         bgcolor: 'rgb(248, 250, 252)', 
                                                         borderRadius: 1,
-                                                        cursor: 'pointer',
-                                                        '&:hover': { bgcolor: 'rgb(241, 245, 249)' },
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'space-between'
@@ -2272,12 +2272,33 @@ const AgregarMedidasProyectoModal = ({
                                                       <Typography variant="caption" fontWeight="bold" color="primary">
                                                         ▸ Pieza {i + 1}: {medida.ancho}m × {medida.alto}m ({(parseFloat(medida.ancho || 0) * parseFloat(medida.alto || 0)).toFixed(2)} m²)
                                                       </Typography>
-                                                      <IconButton size="small">
-                                                        {piezaExpandida[`${index}-${i}`] ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
-                                                      </IconButton>
                                                     </Box>
-                                                    <Collapse in={piezaExpandida[`${index}-${i}`]} timeout="auto">
-                                                      <Box sx={{ p: 1.5, bgcolor: 'white', ml: 2, mt: 0.5, border: '1px solid #e2e8f0', borderRadius: 1 }}>
+                                                    {/* Accordion para detalles técnicos */}
+                                                    <Accordion 
+                                                      sx={{ 
+                                                        backgroundColor: "transparent", 
+                                                        boxShadow: "none", 
+                                                        mt: 0.5,
+                                                        ml: 2,
+                                                        '&:before': { display: 'none' }
+                                                      }}
+                                                    >
+                                                      <AccordionSummary
+                                                        expandIcon={<ExpandMore />}
+                                                        aria-controls={`panel-${index}-${i}-content`}
+                                                        id={`panel-${index}-${i}-header`}
+                                                        sx={{
+                                                          p: 0,
+                                                          minHeight: '32px',
+                                                          '& .MuiAccordionSummary-content': { m: 0, my: 0.5 }
+                                                        }}
+                                                      >
+                                                        <Typography variant="caption" sx={{ fontWeight: 500, color: "#0F172A" }}>
+                                                          📋 Ver detalles técnicos
+                                                        </Typography>
+                                                      </AccordionSummary>
+
+                                                      <AccordionDetails sx={{ pl: 2, pb: 1, pt: 0 }}>
                                                         <Grid container spacing={1}>
                                                           {medida.galeria && (
                                                             <Grid item xs={6} sm={4}>
@@ -2411,8 +2432,8 @@ const AgregarMedidasProyectoModal = ({
                                                             </Grid>
                                                           )}
                                                         </Grid>
-                                                      </Box>
-                                                    </Collapse>
+                                                      </AccordionDetails>
+                                                    </Accordion>
                                                   </Box>
                                                 ))}
                                               </Box>

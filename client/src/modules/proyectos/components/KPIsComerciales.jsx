@@ -9,7 +9,8 @@ import {
   Percent as PercentIcon,
   AccessTime as AccessTimeIcon,
   Forum as ForumIcon,
-  Diversity3 as DiversityIcon
+  Diversity3 as DiversityIcon,
+  Warning as WarningIcon
 } from '@mui/icons-material';
 
 const KPIsComerciales = ({ kpis, loading }) => {
@@ -46,6 +47,15 @@ const KPIsComerciales = ({ kpis, loading }) => {
       color: '#14B8A6',
       bgColor: '#D1FAE5',
       subtitle: 'Seguimiento comercial'
+    },
+    {
+      key: 'enRiesgo',
+      title: 'En riesgo',
+      value: formatNumber(resumen.enRiesgo),
+      icon: <WarningIcon fontSize="small" />, 
+      color: '#DC2626',
+      bgColor: '#FEE2E2',
+      subtitle: 'Sin actividad 7+ días'
     },
     {
       key: 'proyectos',

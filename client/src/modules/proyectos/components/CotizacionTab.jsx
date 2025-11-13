@@ -61,10 +61,10 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
         throw new Error('Error al eliminar la cotización');
       }
 
-      alert('✅ Cotización eliminada exitosamente. La página se recargará para mostrar los cambios.');
-      
-      // Recargar toda la página para asegurar que todos los datos se actualicen
-      window.location.reload();
+      // Actualizar solo los datos del proyecto sin recargar toda la página
+      await onActualizar();
+      setEliminando(null);
+      alert('✅ Cotización eliminada exitosamente');
     } catch (error) {
       console.error('Error eliminando cotización:', error);
       alert('❌ Error al eliminar la cotización: ' + error.message);
@@ -126,58 +126,105 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
 
   return (
     <Box>
-      {/* Resumen financiero */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <MoneyIcon sx={{ fontSize: 40, color: '#28a745', mb: 1 }} />
-              <Typography variant="h5" color="primary">
-                {formatearMoneda(datosFinancieros.subtotal)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Subtotal
-              </Typography>
-            </CardContent>
+      {/* Indicadores Financieros */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={4}>
+          <Card sx={{ 
+            p: 2,
+            bgcolor: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 2,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            textAlign: 'center'
+          }}>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#0F172A',
+                mb: 0.5
+              }}
+            >
+              {formatearMoneda(datosFinancieros.total)}
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#475569',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                fontSize: '0.85rem'
+              }}
+            >
+              Total Cotización
+            </Typography>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <MoneyIcon sx={{ fontSize: 40, color: '#17a2b8', mb: 1 }} />
-              <Typography variant="h5" color="primary">
-                {formatearMoneda(datosFinancieros.iva)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                IVA (16%)
-              </Typography>
-            </CardContent>
+        <Grid item xs={12} md={4}>
+          <Card sx={{ 
+            p: 2,
+            bgcolor: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 2,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            textAlign: 'center'
+          }}>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#14B8A6',
+                mb: 0.5
+              }}
+            >
+              {formatearMoneda(datosFinancieros.anticipo || 0)}
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#475569',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                fontSize: '0.85rem'
+              }}
+            >
+              Anticipo Recibido
+            </Typography>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <MoneyIcon sx={{ fontSize: 40, color: '#D4AF37', mb: 1 }} />
-              <Typography variant="h5" color="primary">
-                {formatearMoneda(datosFinancieros.total)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Total
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <MoneyIcon sx={{ fontSize: 40, color: '#fd7e14', mb: 1 }} />
-              <Typography variant="h5" color="primary">
-                {formatearMoneda(datosFinancieros.saldo_pendiente)}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Saldo Pendiente
-              </Typography>
-            </CardContent>
+        <Grid item xs={12} md={4}>
+          <Card sx={{ 
+            p: 2,
+            bgcolor: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 2,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            textAlign: 'center'
+          }}>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                fontWeight: 700, 
+                color: '#F59E0B',
+                mb: 0.5
+              }}
+            >
+              {formatearMoneda(datosFinancieros.saldo_pendiente)}
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#475569',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                fontSize: '0.85rem'
+              }}
+            >
+              Saldo Pendiente
+            </Typography>
           </Card>
         </Grid>
       </Grid>
