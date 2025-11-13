@@ -1,8 +1,136 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
 **Fecha de última sesión:** 13 Noviembre 2025  
-**Hora de finalización:** 5:00 PM  
-**Estado del proyecto:** ✅ PDF COMPLETO | ✅ PAGOS | ✅ TIEMPO ENTREGA | ✅ AUDITORÍA | ✅ ORDEN PRODUCCIÓN PDF
+**Hora de finalización:** 5:40 PM  
+**Estado del proyecto:** ✅ PDF | ✅ PAGOS | ✅ AUDITORÍA | ✅ ORDEN PRODUCCIÓN | ✅ CALCULADORA MATERIALES
+
+---
+
+## 🧮 SESIÓN 13 NOV 2025 PARTE 8 - CALCULADORA DE MATERIALES (5:33 PM - 5:40 PM)
+
+**Tiempo:** 7 minutos  
+**Estado:** ✅ IMPLEMENTADO AL 100%  
+**Archivos creados:** 4  
+**Integración:** Automática con PDF
+
+### 🎯 Objetivo
+
+Crear sistema configurable de cálculo de materiales (BOM) que se integre automáticamente con la Orden de Producción PDF, permitiendo personalizar fórmulas sin modificar código.
+
+### ✅ Implementación Completada
+
+**Archivos creados:**
+
+1. **`server/models/ConfiguracionMateriales.js`** (120 líneas)
+   - Modelo para configuraciones dinámicas
+   - Campos: producto, sistema, materiales[]
+   - Fórmulas JavaScript personalizables
+   - Condiciones de aplicación
+
+2. **`server/services/calculadoraMaterialesService.js`** (350 líneas)
+   - Cálculo inteligente de materiales
+   - Evaluación de fórmulas matemáticas
+   - Evaluación de condiciones lógicas
+   - Fallback a cálculo por defecto
+   - Búsqueda jerárquica de configuración
+
+3. **`server/scripts/inicializarCalculadora.js`** (60 líneas)
+   - Script de inicialización
+   - Crea configuración genérica
+   - 6 materiales base configurados
+
+4. **`docs/CALCULADORA_MATERIALES.md`** (500+ líneas)
+   - Documentación completa
+   - Ejemplos de fórmulas
+   - Guía de uso y personalización
+
+**Archivos modificados:**
+
+1. **`server/services/ordenProduccionService.js`**
+   - Integración con calculadora
+   - Usa `CalculadoraMaterialesService.calcularMaterialesPieza()`
+   - Cálculo automático por pieza
+
+### 📐 Características Implementadas
+
+**Configuración Dinámica:**
+- ✅ Fórmulas JavaScript en base de datos
+- ✅ Condiciones de aplicación
+- ✅ Sin modificar código
+- ✅ Actualización inmediata
+
+**Fórmulas Disponibles:**
+```javascript
+"area * 1.1"                                    // Tela con merma
+"ancho + 0.10"                                  // Tubo con margen
+"ancho <= 1.5 ? 2 : ancho <= 3.0 ? 3 : 4"     // Soportes según ancho
+"Math.ceil(ancho / 1.5)"                        // Redondeo
+```
+
+**Condiciones:**
+```javascript
+"motorizado === true"                           // Solo motorizados
+"ancho > 2.5"                                   // Anchos grandes
+"galeria !== 'sin_galeria'"                     // Con galería
+```
+
+**Variables Disponibles:**
+- `ancho`, `alto`, `area` (números)
+- `motorizado` (boolean)
+- `galeria`, `sistema`, `producto` (strings)
+
+### 🔍 Búsqueda de Configuración
+
+Orden jerárquico:
+1. Específica: `producto` + `sistema`
+2. Por sistema: solo `sistema`
+3. Genérica: nombre "Configuración Genérica"
+4. Fallback: Cálculo por defecto en código
+
+### 🧪 Configuración Inicial
+
+```javascript
+{
+  nombre: "Configuración Genérica",
+  sistema: "Enrollable",
+  materiales: [
+    { tipo: "Tela", formula: "area * 1.1" },
+    { tipo: "Tubo", formula: "ancho + 0.10" },
+    { tipo: "Soportes", formula: "ancho <= 1.5 ? 2 : ancho <= 3.0 ? 3 : 4" },
+    { tipo: "Motor", formula: "1", condicion: "motorizado === true" },
+    { tipo: "Mecanismo", formula: "1", condicion: "motorizado !== true" },
+    { tipo: "Herrajes", formula: "ancho <= 1.5 ? 2 : ancho <= 3.0 ? 3 : 4" }
+  ]
+}
+```
+
+### 🚀 Uso
+
+**Inicialización:**
+```bash
+node server/scripts/inicializarCalculadora.js
+```
+
+**Integración Automática:**
+- Se ejecuta al generar PDF
+- Calcula materiales por pieza
+- Consolida totales
+- Transparente para el usuario
+
+**Personalización:**
+- Editar en MongoDB Compass
+- Colección: `configuracionmateriales`
+- Modificar fórmulas/condiciones
+- Cambios inmediatos
+
+### 🎯 Resultado
+
+✅ **Calculadora de materiales configurable**  
+✅ **Integración automática con PDF**  
+✅ **Fórmulas personalizables sin código**  
+✅ **Configuración inicial creada**  
+✅ **Documentación completa**  
+✅ **Fallback robusto**
 
 ---
 

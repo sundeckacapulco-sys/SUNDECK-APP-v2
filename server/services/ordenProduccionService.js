@@ -1,5 +1,6 @@
 const Proyecto = require('../models/Proyecto');
 const logger = require('../config/logger');
+const CalculadoraMaterialesService = require('./calculadoraMaterialesService');
 
 /**
  * Servicio para generar Orden de Producción
@@ -27,11 +28,15 @@ class OrdenProduccionService {
       // Obtener piezas normalizadas con todos los campos técnicos
       const piezas = this.obtenerPiezasConDetallesTecnicos(proyecto);
 
-      // Calcular BOM (Bill of Materials) por pieza
-      const piezasConBOM = piezas.map(pieza => ({
-        ...pieza,
-        materiales: this.calcularMaterialesPorPieza(pieza)
-      }));
+      // Calcular BOM (Bill of Materials) por pieza usando calculadora inteligente
+      const piezasConBOM = [];
+      for (const pieza of piezas) {
+        const materiales = await CalculadoraMaterialesService.calcularMaterialesPieza(pieza);
+        piezasConBOM.push({
+          ...pieza,
+          materiales
+        });
+      }
 
       // Calcular materiales totales
       const materialesConsolidados = this.consolidarMaterialesTotales(piezasConBOM);
