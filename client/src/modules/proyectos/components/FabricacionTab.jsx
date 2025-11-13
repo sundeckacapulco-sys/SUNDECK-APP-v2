@@ -48,6 +48,7 @@ import {
   GetApp as DownloadIcon,
   Add as AddIcon,
   Warning as WarningIcon,
+  Description as DescriptionIcon,
   PlayArrow as StartIcon,
   Pause as PauseIcon,
   Stop as StopIcon,
@@ -110,6 +111,36 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
     const dias = Math.floor(horas / 24);
     const horasRestantes = horas % 24;
     return `${dias}d ${horasRestantes}h`;
+  };
+
+  // Función para descargar Orden de Producción PDF
+  const descargarOrdenProduccion = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await axiosConfig.get(
+        `/proyectos/${proyecto._id}/pdf?tipo=orden-produccion`,
+        { responseType: 'blob' }
+      );
+
+      // Crear URL del blob y descargar
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `orden-produccion-${proyecto.numero}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setSuccess('Orden de Producción descargada correctamente');
+    } catch (error) {
+      console.error('Error descargando orden:', error);
+      setError(error.response?.data?.message || 'Error al descargar la Orden de Producción');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Funciones para manejar fabricación
@@ -187,6 +218,22 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
             </Typography>
             
             <Box sx={{ display: 'flex', gap: 1 }}>
+              {/* Botón Orden de Producción - Siempre visible */}
+              <Button
+                variant="contained"
+                startIcon={<DescriptionIcon />}
+                onClick={descargarOrdenProduccion}
+                disabled={loading}
+                sx={{
+                  bgcolor: '#D4AF37',
+                  '&:hover': {
+                    bgcolor: '#B8941F'
+                  }
+                }}
+              >
+                🛠️ Orden de Producción
+              </Button>
+
               {puedeIniciarFabricacion() && (
                 <Button
                   variant="contained"

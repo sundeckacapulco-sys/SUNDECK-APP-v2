@@ -3405,7 +3405,7 @@ class PDFService {
       const datosOrden = await OrdenProduccionService.obtenerDatosOrdenProduccion(proyectoId);
 
       // Cargar template
-      await this.ensurePartialsLoaded();
+      await ensurePartialsLoaded();
       const templatePath = path.join(templatesDir, 'ordenProduccion.hbs');
       const templateContent = await fs.readFile(templatePath, 'utf8');
       const template = handlebars.compile(templateContent);
@@ -3416,16 +3416,36 @@ class PDFService {
         company: companyConfig
       });
 
-      // Generar PDF
-      const pdf = await this.generatePDFFromHTML(html, {
+      // Inicializar browser
+      const browserResult = await this.initBrowser();
+      
+      // Si es alternativa (html-pdf-node)
+      if (browserResult.isAlternative) {
+        const htmlPdf = browserResult.htmlPdf;
+        const options = { format: 'Letter' };
+        const file = { content: html };
+        const pdf = await htmlPdf.generatePdf(file, options);
+        return pdf;
+      }
+      
+      // Si es puppeteer
+      const browser = browserResult.browser;
+      const page = await browser.newPage();
+      
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      
+      const pdf = await page.pdf({
         format: 'Letter',
         margin: {
           top: '1cm',
           right: '1cm',
           bottom: '1cm',
           left: '1cm'
-        }
+        },
+        printBackground: true
       });
+      
+      await browser.close();
 
       logger.info('PDF de Orden de Producción generado exitosamente', {
         proyectoId: proyectoId.toString(),

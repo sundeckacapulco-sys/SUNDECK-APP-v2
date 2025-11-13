@@ -240,19 +240,30 @@ router.get('/:id/pdf',
   verificarPermiso('proyectos', 'leer'), 
   async (req, res) => {
     try {
+      const { id } = req.params;
+      const { tipo } = req.query;
       const pdfService = require('../services/pdfService');
-      const proyecto = await require('../models/Proyecto').findById(req.params.id)
-        .populate('prospecto')
-        .populate('cotizacion');
       
-      if (!proyecto) {
-        return res.status(404).json({ message: 'Proyecto no encontrado' });
-      }
+      let pdfBuffer;
+      
+      // Si se especifica tipo, usar el método específico
+      if (tipo === 'orden-produccion') {
+        pdfBuffer = await pdfService.generarPDFOrdenProduccion(id);
+      } else {
+        // Método por defecto
+        const proyecto = await require('../models/Proyecto').findById(id)
+          .populate('prospecto')
+          .populate('cotizacion');
+        
+        if (!proyecto) {
+          return res.status(404).json({ message: 'Proyecto no encontrado' });
+        }
 
-      const pdfBuffer = await pdfService.generarPDFProyecto(proyecto);
+        pdfBuffer = await pdfService.generarPDFProyecto(proyecto);
+      }
       
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="Proyecto-${proyecto.numero}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="Proyecto-${id}.pdf"`);
       res.send(pdfBuffer);
     } catch (error) {
       console.error('Error generando PDF del proyecto:', error);

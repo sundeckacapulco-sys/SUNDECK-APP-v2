@@ -97,29 +97,38 @@ GET /api/proyectos/:id/pdf?tipo=orden-produccion
 GET /api/proyectos/673456789abc123def456789/pdf?tipo=orden-produccion
 ```
 
-### 📝 Próximo Paso INMEDIATO
+### ✅ Botón en Frontend Agregado
 
-**Agregar botón en frontend:**
+**Ubicación:** `FabricacionTab.jsx` - Header de fabricación
 
-1. Crear componente de botón en `ProyectoDetail.jsx` o pestaña Fabricación
-2. Función de descarga:
+**Características:**
+- ✅ Botón dorado Sundeck (#D4AF37)
+- ✅ Icono 🛠️ + DescriptionIcon
+- ✅ Descarga automática del PDF
+- ✅ Nombre de archivo: `orden-produccion-{numero}.pdf`
+- ✅ Mensajes de éxito/error
+- ✅ Loading state durante descarga
+
+**Código agregado:**
 ```javascript
-const descargarOrdenProduccion = async (proyectoId) => {
-  const response = await axios.get(
-    `/api/proyectos/${proyectoId}/pdf?tipo=orden-produccion`,
+const descargarOrdenProduccion = async () => {
+  const response = await axiosConfig.get(
+    `/proyectos/${proyecto._id}/pdf?tipo=orden-produccion`,
     { responseType: 'blob' }
   );
-  // Descargar archivo
+  // Descarga automática
 };
 ```
 
-### 🎯 Resultado
+### 🎯 Resultado FINAL
 
 ✅ **Backend de Orden de Producción 100% funcional**  
+✅ **Frontend con botón de descarga implementado**  
 ✅ **PDF profesional con toda la información técnica**  
 ✅ **Cálculo automático de materiales (BOM)**  
 ✅ **Diseño Sundeck limpio y responsive**  
-✅ **Documentación completa**
+✅ **Documentación completa**  
+✅ **Probado con proyecto real (Héctor Huerta)**
 
 ---
 

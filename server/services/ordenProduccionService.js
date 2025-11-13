@@ -12,9 +12,7 @@ class OrdenProduccionService {
    */
   static async obtenerDatosOrdenProduccion(proyectoId) {
     try {
-      const proyecto = await Proyecto.findById(proyectoId)
-        .populate('responsables.vendedor', 'nombre email')
-        .lean();
+      const proyecto = await Proyecto.findById(proyectoId).lean();
 
       if (!proyecto) {
         throw new Error('Proyecto no encontrado');
@@ -85,7 +83,7 @@ class OrdenProduccionService {
 
         // Metadata
         generadoEn: new Date(),
-        generadoPor: proyecto.responsables?.vendedor?.nombre || 'Sistema'
+        generadoPor: 'Sistema'
       };
 
       return datosOrden;
@@ -151,35 +149,42 @@ class OrdenProduccionService {
       let numeroPieza = 1;
       
       proyecto.levantamiento.partidas.forEach(partida => {
-        if (Array.isArray(partida.medidas)) {
-          partida.medidas.forEach(medida => {
+        // Buscar en 'piezas' primero, luego en 'medidas' (compatibilidad)
+        const items = partida.piezas || partida.medidas || [];
+        
+        if (Array.isArray(items) && items.length > 0) {
+          items.forEach(pieza => {
             piezas.push({
               numero: numeroPieza++,
-              ubicacion: medida.producto || partida.ubicacion || `Pieza ${numeroPieza}`,
+              ubicacion: partida.ubicacion || pieza.producto || `Pieza ${numeroPieza}`,
               
               // 13 CAMPOS TÉCNICOS
-              sistema: medida.sistema || partida.sistema || 'No especificado',
-              control: medida.control || 'No especificado',
-              tipoInstalacion: medida.tipoInstalacion || 'No especificado',
-              tipoFijacion: medida.tipoFijacion || 'No especificado',
-              caida: medida.caida || 'No especificado',
-              galeria: medida.galeria || 'No especificado',
-              telaMarca: medida.telaMarca || partida.telaMarca || 'No especificado',
-              baseTabla: medida.baseTabla || 'No especificado',
-              modoOperacion: medida.modoOperacion || 'Manual',
-              detalleTecnico: medida.detalleTecnico || '',
-              traslape: medida.traslape || 'No aplica',
-              modeloCodigo: medida.modeloCodigo || '',
-              observacionesTecnicas: medida.observacionesTecnicas || '',
+              sistema: pieza.sistema || partida.sistema || 'Enrollable',
+              control: pieza.control || 'No especificado',
+              tipoInstalacion: pieza.instalacion || pieza.tipoInstalacion || 'Techo',
+              tipoFijacion: pieza.fijacion || pieza.tipoFijacion || 'Tablaroca',
+              caida: pieza.caida || 'Normal',
+              galeria: pieza.galeria || 'Sin galería',
+              telaMarca: pieza.telaMarca || 'Shades',
+              baseTabla: pieza.baseTabla || '7cm',
+              modoOperacion: pieza.operacion || pieza.modoOperacion || 'Manual',
+              detalleTecnico: pieza.detalle || pieza.detalleTecnico || '',
+              traslape: pieza.traslape || 'No aplica',
+              modeloCodigo: pieza.modeloCodigo || partida.modelo || partida.producto || '',
+              observacionesTecnicas: pieza.observacionesTecnicas || '',
+              
+              // Producto/Tela
+              producto: partida.producto || 'No especificado',
+              modelo: partida.modelo || pieza.modeloCodigo || 'No especificado',
 
               // Medidas
-              ancho: Number(medida.ancho || 0),
-              alto: Number(medida.alto || 0),
-              area: Number(medida.area || 0),
+              ancho: Number(pieza.ancho || 0),
+              alto: Number(pieza.alto || 0),
+              area: Number(pieza.m2 || pieza.area || 0),
 
               // Adicionales
-              motorizado: medida.modoOperacion === 'motorizado',
-              color: medida.color || 'No especificado',
+              motorizado: pieza.operacion === 'motorizado' || pieza.modoOperacion === 'motorizado',
+              color: pieza.color || partida.color || 'No especificado',
               cantidad: 1
             });
           });
