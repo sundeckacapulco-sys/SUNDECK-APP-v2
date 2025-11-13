@@ -1,8 +1,125 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
 **Fecha de última sesión:** 13 Noviembre 2025  
-**Hora de finalización:** 4:38 PM  
-**Estado del proyecto:** ✅ VISOR DE PDF 100% | ✅ SISTEMA DE PAGOS COMPLETO | ✅ TIEMPO DE ENTREGA | ✅ AUDITORÍA FABRICACIÓN COMPLETADA
+**Hora de finalización:** 5:00 PM  
+**Estado del proyecto:** ✅ PDF COMPLETO | ✅ PAGOS | ✅ TIEMPO ENTREGA | ✅ AUDITORÍA | ✅ ORDEN PRODUCCIÓN PDF
+
+---
+
+## 🛠️ SESIÓN 13 NOV 2025 PARTE 7 - ORDEN DE PRODUCCIÓN PDF (4:47 PM - 5:00 PM)
+
+**Tiempo:** 13 minutos  
+**Estado:** ✅ BACKEND COMPLETADO AL 100%  
+**Archivos creados:** 3  
+**Líneas de código:** ~1,200
+
+### 🎯 Objetivo
+
+Implementar generación de PDF de Orden de Producción con toda la información técnica para el taller, SIN precios ni costos.
+
+### ✅ Implementación Completada
+
+**Archivos creados:**
+
+1. **`server/services/ordenProduccionService.js`** (400+ líneas)
+   - Obtiene datos completos del proyecto
+   - Normaliza piezas con 13 campos técnicos
+   - Calcula BOM (Bill of Materials) por pieza
+   - Consolida materiales totales
+   - Genera checklist de empaque
+
+2. **`server/services/pdfTemplates/ordenProduccion.hbs`** (700+ líneas)
+   - Diseño Sundeck (negro/dorado/neutral)
+   - Responsive (móvil/PC)
+   - 1 página por cada 1-3 piezas
+   - Página final con materiales consolidados
+
+3. **`docs/ORDEN_PRODUCCION_IMPLEMENTACION.md`** (300+ líneas)
+   - Documentación completa
+   - Guía de uso
+   - Ejemplos de testing
+
+**Archivos modificados:**
+
+1. **`server/services/pdfService.js`**
+   - Agregado método `generarPDFOrdenProduccion()`
+   - Agregados helpers: `add`, `modulo`
+
+2. **`server/controllers/proyectoController.js`**
+   - Agregado soporte para `tipo=orden-produccion`
+
+### 📊 Características Implementadas
+
+**Contenido del PDF:**
+- ✅ Información del cliente (nombre, teléfono, dirección)
+- ✅ Información del proyecto (número, fecha, prioridad)
+- ✅ Resumen (total piezas, días estimados, fechas)
+- ✅ Observaciones generales y de fabricación
+- ✅ **TODAS las piezas con 13 campos técnicos:**
+  - Sistema, Control, Tipo Instalación, Tipo Fijación
+  - Caída, Galería, Tela/Marca, Base/Tabla
+  - Modo Operación, Detalle Técnico, Traslape
+  - Modelo/Código, Observaciones Técnicas
+- ✅ Materiales por pieza (BOM calculado automáticamente)
+- ✅ Materiales totales consolidados
+- ✅ Checklist de empaque y control de calidad
+- ✅ Firmas (Fabricación, Calidad, Coordinación)
+
+**Cálculos Automáticos:**
+- ✅ Diámetro de tubo según ancho (38mm, 43mm, 50mm)
+- ✅ Cantidad de soportes según ancho
+- ✅ Merma de tela (10%)
+- ✅ Herrajes según tipo de fijación
+- ✅ Consolidación de materiales iguales
+
+**Diseño:**
+- ✅ Estilo Sundeck profesional
+- ✅ Colores: Negro (#000), Dorado (#D4AF37), Neutral (#f5f5f5)
+- ✅ Badges de prioridad (Urgente, Alta, Normal)
+- ✅ Badges de motorización
+- ✅ Tablas limpias y legibles
+- ✅ Page breaks automáticos
+
+**SIN INCLUIR:**
+- ❌ Precios
+- ❌ Costos
+- ❌ Margen
+- ❌ Información financiera
+
+### 🔌 Endpoint Disponible
+
+```
+GET /api/proyectos/:id/pdf?tipo=orden-produccion
+```
+
+**Ejemplo:**
+```bash
+GET /api/proyectos/673456789abc123def456789/pdf?tipo=orden-produccion
+```
+
+### 📝 Próximo Paso INMEDIATO
+
+**Agregar botón en frontend:**
+
+1. Crear componente de botón en `ProyectoDetail.jsx` o pestaña Fabricación
+2. Función de descarga:
+```javascript
+const descargarOrdenProduccion = async (proyectoId) => {
+  const response = await axios.get(
+    `/api/proyectos/${proyectoId}/pdf?tipo=orden-produccion`,
+    { responseType: 'blob' }
+  );
+  // Descargar archivo
+};
+```
+
+### 🎯 Resultado
+
+✅ **Backend de Orden de Producción 100% funcional**  
+✅ **PDF profesional con toda la información técnica**  
+✅ **Cálculo automático de materiales (BOM)**  
+✅ **Diseño Sundeck limpio y responsive**  
+✅ **Documentación completa**
 
 ---
 

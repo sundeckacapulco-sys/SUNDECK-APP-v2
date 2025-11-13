@@ -92,10 +92,12 @@ const generarPDFProyecto = async (req, res) => {
       pdfBuffer = await pdfService.generarPDFCotizacion(id, documentoId);
     } else if (tipo === 'levantamiento') {
       pdfBuffer = await pdfService.generarPDFLevantamiento(id);
+    } else if (tipo === 'orden-produccion') {
+      pdfBuffer = await pdfService.generarPDFOrdenProduccion(id);
     } else {
       return res.status(400).json({
         success: false,
-        message: 'Tipo de documento no válido'
+        message: 'Tipo de documento no válido. Tipos permitidos: cotizacion, levantamiento, orden-produccion'
       });
     }
 

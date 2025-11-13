@@ -65,6 +65,18 @@ if (!handlebars.helpers.multiply) {
   });
 }
 
+if (!handlebars.helpers.add) {
+  handlebars.registerHelper('add', (a, b) => {
+    return (Number(a) || 0) + (Number(b) || 0);
+  });
+}
+
+if (!handlebars.helpers.modulo) {
+  handlebars.registerHelper('modulo', (a, b) => {
+    return (Number(a) || 0) % (Number(b) || 1);
+  });
+}
+
 async function ensurePartialsLoaded() {
   // En desarrollo, recargar partials cada vez para ver cambios
   if (process.env.NODE_ENV !== 'production') {
@@ -3377,6 +3389,58 @@ class PDFService {
         stack: error.stack
       });
       throw new Error('No se pudo generar el PDF del proyecto');
+    }
+  }
+
+  // Método para generar PDF de Orden de Producción
+  async generarPDFOrdenProduccion(proyectoId) {
+    try {
+      const OrdenProduccionService = require('./ordenProduccionService');
+      
+      logger.info('Generando PDF de Orden de Producción', {
+        proyectoId: proyectoId.toString()
+      });
+
+      // Obtener datos de la orden
+      const datosOrden = await OrdenProduccionService.obtenerDatosOrdenProduccion(proyectoId);
+
+      // Cargar template
+      await this.ensurePartialsLoaded();
+      const templatePath = path.join(templatesDir, 'ordenProduccion.hbs');
+      const templateContent = await fs.readFile(templatePath, 'utf8');
+      const template = handlebars.compile(templateContent);
+
+      // Generar HTML
+      const html = template({
+        ...datosOrden,
+        company: companyConfig
+      });
+
+      // Generar PDF
+      const pdf = await this.generatePDFFromHTML(html, {
+        format: 'Letter',
+        margin: {
+          top: '1cm',
+          right: '1cm',
+          bottom: '1cm',
+          left: '1cm'
+        }
+      });
+
+      logger.info('PDF de Orden de Producción generado exitosamente', {
+        proyectoId: proyectoId.toString(),
+        totalPiezas: datosOrden.totalPiezas
+      });
+
+      return pdf;
+
+    } catch (error) {
+      logger.error('Error generando PDF de Orden de Producción', {
+        proyectoId: proyectoId?.toString(),
+        error: error.message,
+        stack: error.stack
+      });
+      throw new Error('No se pudo generar el PDF de Orden de Producción');
     }
   }
 }
