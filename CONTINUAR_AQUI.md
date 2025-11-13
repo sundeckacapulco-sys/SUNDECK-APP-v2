@@ -1,8 +1,324 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
 **Fecha de última sesión:** 13 Noviembre 2025  
-**Hora de finalización:** 1:03 PM  
-**Estado del proyecto:** ✅ VISOR DE PDF FUNCIONAL | ⚠️ REGENERACIÓN DE PDFs PENDIENTE
+**Hora de finalización:** 2:54 PM  
+**Estado del proyecto:** ✅ VISOR DE PDF 100% FUNCIONAL | ✅ SISTEMA DE PAGOS COMPLETO | ✅ TIEMPO DE ENTREGA AUTOMÁTICO
+
+---
+
+## 🚚 SESIÓN 13 NOV 2025 PARTE 5 - TIEMPO DE ENTREGA Y CONTADOR (2:16 PM - 2:54 PM)
+
+**Tiempo:** 38 minutos  
+**Estado:** ✅ COMPLETADO AL 100%  
+**Archivos creados:** 3 scripts  
+**Archivos modificados:** 2
+
+### 🎯 Problema Resuelto
+
+**Antes:**
+- ❌ Tiempo de entrega mostraba "Por definir"
+- ❌ No había cálculo automático de días
+- ❌ Fecha de cotización mostraba "Invalid Date"
+- ❌ "Requiere factura" mostraba "No" incorrectamente
+
+**Después:**
+- ✅ Cálculo automático de 15 días hábiles
+- ✅ Opción de entrega exprés (7 días)
+- ✅ Contador de días transcurridos (X/15)
+- ✅ Fecha de cotización corregida
+- ✅ Campo "Requiere factura" actualizado
+
+### ✅ Implementado
+
+**1. Cálculo de Tiempo de Entrega (Backend):**
+- ✅ 15 días hábiles para entrega normal
+- ✅ 7 días hábiles para entrega exprés
+- ✅ Excluye sábados y domingos
+- ✅ Calcula desde fecha del anticipo
+- ✅ Se ejecuta automáticamente al registrar pago
+
+**2. Selector de Tipo de Entrega (Frontend):**
+- ✅ Campo en modal de pago
+- ✅ Opciones: Normal (📦) y Exprés (⚡)
+- ✅ Descripción de días hábiles
+- ✅ Integrado con backend
+
+**3. Contador de Días Transcurridos:**
+- ✅ Muestra "X / Y" días
+- ✅ Calcula solo días hábiles
+- ✅ Actualización en tiempo real
+- ✅ Estilo visual destacado (fondo azul)
+
+**4. Correcciones de Bugs:**
+- ✅ Fecha de cotización usa `proyecto.createdAt`
+- ✅ Campo `requiere_factura` actualizado
+- ✅ Función `formatearFecha()` mejorada
+- ✅ Manejo de valores null/undefined
+
+### 📊 Algoritmo de Días Hábiles
+
+```javascript
+function calcularFechaHabil(fechaInicio, diasHabiles) {
+  const fecha = new Date(fechaInicio);
+  let diasAgregados = 0;
+  
+  while (diasAgregados < diasHabiles) {
+    fecha.setDate(fecha.getDate() + 1);
+    const diaSemana = fecha.getDay();
+    
+    // Si no es sábado (6) ni domingo (0)
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      diasAgregados++;
+    }
+  }
+  
+  return fecha;
+}
+```
+
+### 📁 Archivos Modificados
+
+**Backend:**
+1. `server/controllers/pagoController.js`
+   - Cálculo automático de tiempo de entrega
+   - Función de días hábiles
+   - Soporte para tipo de entrega
+
+**Frontend:**
+2. `client/src/modules/proyectos/components/ModalRegistrarPago.jsx`
+   - Campo de tipo de entrega agregado
+   - Opciones Normal/Exprés
+
+3. `client/src/modules/proyectos/components/CotizacionTab.jsx`
+   - Función `calcularDiasTranscurridos()`
+   - Contador visual de días
+   - Fecha de cotización corregida
+   - Función `formatearFecha()` mejorada
+
+**Scripts:**
+4. `server/scripts/actualizarTiemposEntrega.js`
+5. `server/scripts/actualizarRequiereFactura.js`
+6. `server/scripts/actualizarProyectoManual.js`
+7. `server/scripts/actualizarFechaCotizacion.js`
+
+### 📊 Ejemplo de Cálculo
+
+**Entrega Normal (15 días hábiles):**
+```
+Fecha anticipo: 7 Nov 2025 (Jueves)
+Tipo: Normal
+
+Cálculo:
+7 Nov (Jue) → Día 0
+8 Nov (Vie) → Día 1
+9-10 Nov (S-D) → No cuentan ❌
+11 Nov (Lun) → Día 2
+...
+27 Nov (Jue) → Día 15 ✅
+
+Contador hoy (13 Nov): 4 / 15 días
+```
+
+**Entrega Exprés (7 días hábiles):**
+```
+Fecha anticipo: 7 Nov 2025 (Jueves)
+Tipo: Exprés
+
+Cálculo:
+7 Nov (Jue) → Día 0
+8 Nov (Vie) → Día 1
+9-10 Nov (S-D) → No cuentan ❌
+11 Nov (Lun) → Día 2
+...
+18 Nov (Lun) → Día 7 ✅
+
+Contador hoy (13 Nov): 4 / 7 días
+```
+
+### 🎨 Vista en Interfaz
+
+```
+🚚 Tiempo de Entrega
+┌─────────────────────────────────────────┐
+│ Tipo: Normal                            │
+│ Días estimados: 15                      │
+│ Días transcurridos: [4 / 15] ← NUEVO   │
+│ Fecha estimada: 27 nov 2025             │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## 💰 SESIÓN 13 NOV 2025 PARTE 4 - SISTEMA DE PAGOS (1:32 PM - 2:16 PM)
+
+**Tiempo:** 44 minutos  
+**Estado:** ✅ COMPLETADO AL 100%  
+**Archivos creados:** 3  
+**Archivos modificados:** 4
+
+### 🎯 Problema Resuelto
+
+**Antes:**
+- ❌ KPI "ANTICIPO RECIBIDO" mostraba $0.00
+- ❌ No había forma de registrar pagos
+- ❌ Sin comprobantes de pago
+- ❌ Sin auditoría
+
+**Después:**
+- ✅ KPI lee correctamente de `proyecto.pagos.anticipo.monto`
+- ✅ 4 endpoints para gestión de pagos
+- ✅ Subida y almacenamiento de comprobantes
+- ✅ Historial completo con logs
+
+### ✅ Implementado
+
+1. **Controller de Pagos** (`pagoController.js`) ✅
+   - `registrarAnticipo()` - Registra pago de anticipo
+   - `registrarSaldo()` - Registra pago de saldo
+   - `subirComprobante()` - Sube comprobante (base64 o URL)
+   - `obtenerPagos()` - Historial completo de pagos
+
+2. **Rutas de Pagos** (`pagos.js`) ✅
+   - `POST /api/proyectos/:id/pagos/anticipo`
+   - `POST /api/proyectos/:id/pagos/saldo`
+   - `POST /api/proyectos/:id/pagos/comprobante`
+   - `GET /api/proyectos/:id/pagos`
+
+3. **Corrección de KPI** ✅
+   - Actualizado `obtenerEstadisticasProyecto()`
+   - Lee de `proyecto.pagos.anticipo.monto`
+   - Fallback a `proyecto.anticipo` (legacy)
+
+4. **Path Helper Integrado** ✅
+   - Comprobantes en `server/uploads/comprobantes/`
+   - Nombres: `comprobante-{numero}-{tipo}-{timestamp}.{ext}`
+   - Uso correcto de rutas con pathHelper
+
+### 📄 Documentación
+
+- `docs/SISTEMA_PAGOS_COMPROBANTES.md` - Guía completa
+- `docs/GUIA_PATH_HELPER.md` - Manejo de rutas
+- `server/utils/pathHelper.js` - Utilidad de rutas
+
+### ✅ Actualización (1:48 PM)
+
+**Modal de Registro de Pagos Implementado:**
+1. ✅ Componente `ModalRegistrarPago.jsx` creado
+2. ✅ Diseño premium con gradientes morados
+3. ✅ Formulario completo con validaciones
+4. ✅ Subida de comprobantes con preview
+5. ✅ Estados visuales (loading, success, error)
+6. ✅ Integrado en `CotizacionTab.jsx`
+7. ✅ Corrección de cálculo de anticipo (60% del total)
+
+**Archivos:**
+- `client/src/modules/proyectos/components/ModalRegistrarPago.jsx` (nuevo)
+- `client/src/modules/proyectos/components/CotizacionTab.jsx` (modificado)
+- `docs/MODAL_REGISTRO_PAGOS.md` (documentación)
+
+### ✅ Mejoras Adicionales (1:56 PM - 2:04 PM)
+
+**1. Sugerencias de Redondeo:**
+- ✅ Chips clicables con montos redondeados
+- ✅ Indicador de diferencia con colores
+- ✅ Edición manual del monto
+
+**2. Sección de Facturación:**
+- ✅ Checkbox "Requiere factura"
+- ✅ Campo de correo electrónico
+- ✅ Subida de constancia fiscal (PDF)
+- ✅ Alert informativo
+
+**3. Correcciones de Bugs:**
+- ✅ Iconos duplicados en método de pago (corregido)
+- ✅ Backend actualiza `requiere_factura` en proyecto
+- ✅ Backend guarda correo del cliente
+- ✅ Backend guarda constancia fiscal
+- ✅ Modelo Proyecto con campo `constancia_fiscal`
+
+**4. Integración con Fabricación (2:08 PM):**
+- ✅ Alerta automática al registrar anticipo
+- ✅ Notificación para equipo de fabricación
+- ✅ Cambio automático de estado: `aprobado` → `fabricacion`
+- ✅ Datos completos en la alerta (proyecto, cliente, monto, factura)
+- ✅ Logs estructurados del flujo completo
+
+**Flujo implementado:**
+```
+Anticipo Registrado → Alerta Creada → Estado Actualizado → Fabricación Notificada
+```
+
+**Archivos modificados:**
+- `client/src/modules/proyectos/components/ModalRegistrarPago.jsx`
+- `server/controllers/pagoController.js`
+- `server/models/Proyecto.js`
+
+**Documentación:**
+- `docs/MODAL_REGISTRO_PAGOS.md` - Diseño del modal
+- `docs/FLUJO_PAGO_FABRICACION.md` - Flujo completo con alertas
+
+### 🎯 Próximo Paso INMEDIATO
+
+**Pendientes para completar el flujo:**
+1. ⚠️ Calcular días de entrega automáticamente
+2. ⚠️ Completar información en PDF de cotización
+3. 📋 Centro de notificaciones en frontend (2-3 horas)
+4. 📋 Vista de alertas de fabricación
+
+**Ver:** `docs/FLUJO_PAGO_FABRICACION.md` para el flujo completo
+
+---
+
+## 🔍 SESIÓN 13 NOV 2025 PARTE 3 - DEBUG Y SOLUCIÓN DE REGENERACIÓN (1:15 PM - 1:30 PM)
+
+**Tiempo:** 15 minutos  
+**Estado:** ✅ PROBLEMA RESUELTO COMPLETAMENTE  
+**Archivos modificados:** 1  
+**Documentos creados:** 4
+
+### ✅ Implementado
+
+1. **Logs estructurados en endpoint PDF** ✅
+   - 15+ puntos de instrumentación
+   - Logs en cada rama del flujo (lectura vs generación)
+   - Errores detallados con código y stack trace
+   - Inicio y fin con timestamps
+
+2. **Endpoint de debug** ✅
+   - Ruta: `GET /api/cotizaciones/:id/debug-pdf`
+   - Información completa de `pdfPath` en BD
+   - Verificación de existencia de archivo
+   - Datos del modelo Mongoose
+
+3. **Diagnóstico exitoso** ✅
+   - Logs revelaron error ENOENT (archivo no encontrado)
+   - Identificada ruta incorrecta en construcción del path
+   - Causa: Un nivel de directorio de más
+
+4. **Solución implementada** ✅
+   - Corregida construcción de ruta en `cotizaciones.js` línea 944
+   - Cambio: `path.join(__dirname, '../..', ...)` → `path.join(__dirname, '..', ...)`
+   - Verificado con 4 aperturas del visor
+   - Logs confirman lectura del disco sin regeneración
+
+### 📊 Resultados
+
+**Antes:**
+- ⏱️ Carga: 3-4 segundos
+- 🔄 Regeneraba: Siempre
+- 📁 Duplicados: 60+ archivos
+
+**Después:**
+- ⏱️ Carga: <1 segundo ✅
+- 🔄 Regenera: Solo primera vez ✅
+- 📁 Duplicados: 0 ✅
+
+### 📄 Documentación
+
+- `docs/INSTRUCCIONES_DEBUG_PDF.md` - Guía de pruebas
+- `docs/RESUMEN_IMPLEMENTACION_DEBUG_PDF.md` - Resumen técnico
+- `docs/PROBLEMA_PDF_REGENERACION.md` - Análisis del problema
+- `docs/SOLUCION_PDF_REGENERACION.md` - Solución completa ✅
 
 ---
 

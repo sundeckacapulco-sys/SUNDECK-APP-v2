@@ -889,6 +889,9 @@ router.delete('/:id', auth, verificarPermiso('cotizaciones', 'eliminar'), async 
 // Aprobar cotización (convertir a pedido)
 router.put('/:id/aprobar', auth, verificarPermiso('cotizaciones', 'actualizar'), cotizacionController.aprobarCotizacion);
 
+// Importar pathHelper para construcción correcta de rutas
+const { getAbsolutePath, getUploadPath, getRelativePath, fileExists } = require('../utils/pathHelper');
+
 // Generar PDF de cotización
 router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res) => {
   try {
@@ -915,87 +918,160 @@ router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (re
       return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
     }
 
-    // Log para debug
-    logger.info('Verificando PDF guardado', {
+    // ===== LOGS ESTRUCTURADOS PARA DEBUG =====
+    logger.info('=== INICIO ENDPOINT PDF ===', {
+      cotizacionId: req.params.id,
+      numero: cotizacion.numero,
+      timestamp: new Date().toISOString()
+    });
+
+    logger.info('Estado de pdfPath en BD', {
       cotizacionId: req.params.id,
       tienePdfPath: !!cotizacion.pdfPath,
-      pdfPath: cotizacion.pdfPath
+      pdfPath: cotizacion.pdfPath,
+      tipoPdfPath: typeof cotizacion.pdfPath,
+      longitudPdfPath: cotizacion.pdfPath?.length,
+      pdfGeneradoEn: cotizacion.pdfGeneradoEn,
+      valorBooleano: !!cotizacion.pdfPath
     });
 
     // Si existe un PDF guardado, servirlo directamente
     if (cotizacion.pdfPath) {
+      logger.info('✅ RAMA: Leer PDF guardado', {
+        cotizacionId: req.params.id,
+        pdfPath: cotizacion.pdfPath
+      });
       const fs = require('fs').promises;
-      const path = require('path');
-      const pdfPath = path.join(__dirname, '../..', cotizacion.pdfPath);
+      
+      // Usar pathHelper para construcción correcta de ruta
+      const pdfPath = getAbsolutePath(cotizacion.pdfPath);
+      
+      logger.info('Intentando leer archivo del disco', {
+        cotizacionId: req.params.id,
+        rutaRelativa: cotizacion.pdfPath,
+        rutaAbsoluta: pdfPath
+      });
       
       try {
+        // Verificar si el archivo existe antes de leer
+        await fs.access(pdfPath);
+        logger.info('✅ Archivo existe en disco', {
+          cotizacionId: req.params.id,
+          pdfPath: pdfPath
+        });
+        
         const pdfBuffer = await fs.readFile(pdfPath);
-        logger.info('Sirviendo PDF guardado', {
+        logger.info('✅ PDF leído exitosamente del disco', {
           cotizacionId: req.params.id,
           pdfPath: cotizacion.pdfPath,
-          pdfGeneradoEn: cotizacion.pdfGeneradoEn
+          pdfGeneradoEn: cotizacion.pdfGeneradoEn,
+          tamañoBytes: pdfBuffer.length
         });
         
         // Headers simples - dejar que el navegador maneje el PDF
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Length', pdfBuffer.length);
         
+        logger.info('=== FIN ENDPOINT PDF (archivo guardado) ===', {
+          cotizacionId: req.params.id,
+          resultado: 'exitoso'
+        });
+        
         return res.send(pdfBuffer);
       } catch (readError) {
-        logger.warn('No se pudo leer PDF guardado, generando uno nuevo', {
+        logger.error('❌ ERROR al leer PDF guardado', {
           cotizacionId: req.params.id,
           pdfPath: cotizacion.pdfPath,
-          error: readError.message
+          rutaAbsoluta: pdfPath,
+          error: readError.message,
+          errorCode: readError.code,
+          errorStack: readError.stack
         });
         // Si no se puede leer, continuar con la generación
       }
+    } else {
+      logger.warn('❌ RAMA: Generar PDF nuevo (pdfPath vacío o null)', {
+        cotizacionId: req.params.id,
+        pdfPath: cotizacion.pdfPath,
+        tipoPdfPath: typeof cotizacion.pdfPath
+      });
     }
 
     // Si no hay PDF guardado o no se pudo leer, generar uno nuevo Y GUARDARLO
-    logger.info('Generando PDF nuevo (no hay guardado)', {
-      cotizacionId: req.params.id
+    logger.info('🔄 Iniciando generación de PDF nuevo', {
+      cotizacionId: req.params.id,
+      numero: cotizacion.numero,
+      razon: cotizacion.pdfPath ? 'error_lectura' : 'sin_pdfPath'
     });
     
     const pdf = await pdfService.generarCotizacionPDF(cotizacion);
+    
+    logger.info('✅ PDF generado exitosamente', {
+      cotizacionId: req.params.id,
+      tamañoBytes: pdf.length
+    });
 
     // Guardar el PDF generado para no tener que regenerarlo
     // SOLO si no existe un pdfPath previo (para no sobrescribir)
     const fs = require('fs').promises;
-    const path = require('path');
-    const uploadsDir = path.join(__dirname, '../uploads/cotizaciones');
     
-    // Crear directorio si no existe
-    await fs.mkdir(uploadsDir, { recursive: true });
+    // Usar pathHelper para construcción correcta de rutas
+    const { ensureUploadDirectory } = require('../utils/pathHelper');
+    await ensureUploadDirectory('cotizaciones');
     
     // Nombre de archivo simple
     const nombreArchivo = `${cotizacion.numero}-${Date.now()}.pdf`;
-    const rutaCompleta = path.join(uploadsDir, nombreArchivo);
+    const rutaCompleta = getUploadPath('cotizaciones', nombreArchivo);
+    const rutaRelativa = getRelativePath('cotizaciones', nombreArchivo);
+    
+    logger.info('💾 Guardando PDF en disco', {
+      cotizacionId: req.params.id,
+      nombreArchivo: nombreArchivo,
+      rutaCompleta: rutaCompleta
+    });
     
     // Guardar PDF en disco
     await fs.writeFile(rutaCompleta, pdf);
     
+    logger.info('✅ PDF guardado en disco', {
+      cotizacionId: req.params.id,
+      rutaCompleta: rutaCompleta
+    });
+    
     // Actualizar cotización con la ruta del PDF SOLO si no tenía una antes
     // Esto evita sobrescribir el PDF original si se regenera por error
     if (!cotizacion.pdfPath) {
-      cotizacion.pdfPath = `/uploads/cotizaciones/${nombreArchivo}`;
+      logger.info('📝 Actualizando pdfPath en BD (primera vez)', {
+        cotizacionId: req.params.id,
+        pdfPathNuevo: rutaRelativa
+      });
+      
+      cotizacion.pdfPath = rutaRelativa;
       cotizacion.pdfGeneradoEn = new Date();
       await cotizacion.save();
       
-      logger.info('PDF generado y guardado (primera vez)', {
+      logger.info('✅ PDF generado y guardado (primera vez)', {
         cotizacionId: req.params.id,
-        pdfPath: cotizacion.pdfPath
+        pdfPath: cotizacion.pdfPath,
+        pdfGeneradoEn: cotizacion.pdfGeneradoEn
       });
     } else {
-      logger.warn('PDF regenerado pero NO se actualizó pdfPath (ya existía)', {
+      logger.warn('⚠️ PDF regenerado pero NO se actualizó pdfPath (ya existía)', {
         cotizacionId: req.params.id,
         pdfPathExistente: cotizacion.pdfPath,
-        pdfNuevoGenerado: nombreArchivo
+        pdfNuevoGenerado: nombreArchivo,
+        nota: 'Esto NO debería pasar - investigar por qué se regeneró'
       });
     }
 
     // Headers simples - dejar que el navegador maneje el PDF
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Length', pdf.length);
+    
+    logger.info('=== FIN ENDPOINT PDF (PDF nuevo generado) ===', {
+      cotizacionId: req.params.id,
+      resultado: 'exitoso'
+    });
     
     res.send(pdf);
 
@@ -1015,6 +1091,105 @@ router.get('/:id/pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (re
       message: 'Error generando PDF de cotización',
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Endpoint de debug para diagnosticar problema de regeneración de PDFs
+router.get('/:id/debug-pdf', auth, verificarPermiso('cotizaciones', 'leer'), async (req, res) => {
+  try {
+    const cotizacion = await Cotizacion.findById(req.params.id)
+      .populate('prospecto')
+      .populate('elaboradaPor', 'nombre apellido');
+
+    if (!cotizacion) {
+      return res.status(404).json({ message: 'Cotización no encontrada' });
+    }
+
+    // Verificar permisos
+    if (req.usuario.rol !== 'admin' && req.usuario.rol !== 'gerente' && 
+        cotizacion.elaboradaPor._id.toString() !== req.usuario._id.toString()) {
+      return res.status(403).json({ message: 'No tienes acceso a esta cotización' });
+    }
+
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    // Información detallada del pdfPath
+    const debugInfo = {
+      cotizacion: {
+        id: cotizacion._id,
+        numero: cotizacion.numero,
+        createdAt: cotizacion.createdAt,
+        updatedAt: cotizacion.updatedAt
+      },
+      pdfPath: {
+        valor: cotizacion.pdfPath,
+        tipo: typeof cotizacion.pdfPath,
+        esNull: cotizacion.pdfPath === null,
+        esUndefined: cotizacion.pdfPath === undefined,
+        esStringVacio: cotizacion.pdfPath === '',
+        longitud: cotizacion.pdfPath?.length,
+        valorBooleano: !!cotizacion.pdfPath,
+        pdfGeneradoEn: cotizacion.pdfGeneradoEn
+      },
+      archivo: {
+        rutaRelativa: cotizacion.pdfPath,
+        rutaAbsoluta: null,
+        existe: false,
+        tamaño: null,
+        error: null
+      }
+    };
+
+    // Verificar si el archivo existe en disco
+    if (cotizacion.pdfPath) {
+      try {
+        const pdfPath = path.join(__dirname, '../..', cotizacion.pdfPath);
+        debugInfo.archivo.rutaAbsoluta = pdfPath;
+        
+        const stats = await fs.stat(pdfPath);
+        debugInfo.archivo.existe = true;
+        debugInfo.archivo.tamaño = stats.size;
+        debugInfo.archivo.fechaModificacion = stats.mtime;
+      } catch (fileError) {
+        debugInfo.archivo.error = {
+          mensaje: fileError.message,
+          codigo: fileError.code
+        };
+      }
+    }
+
+    // Información del modelo
+    debugInfo.modelo = {
+      campos: Object.keys(cotizacion.toObject()),
+      tienePdfPath: cotizacion.schema.paths.hasOwnProperty('pdfPath'),
+      tipoCampoPdfPath: cotizacion.schema.paths.pdfPath?.instance
+    };
+
+    logger.info('🔍 Debug PDF solicitado', {
+      cotizacionId: req.params.id,
+      usuario: req.usuario.nombre,
+      debugInfo: debugInfo
+    });
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      debug: debugInfo
+    });
+
+  } catch (error) {
+    logger.error('Error en endpoint debug-pdf', {
+      cotizacionId: req.params.id,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    res.status(500).json({ 
+      success: false,
+      message: 'Error en debug',
+      error: error.message
     });
   }
 });

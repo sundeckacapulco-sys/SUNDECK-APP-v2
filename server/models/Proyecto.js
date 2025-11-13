@@ -855,6 +855,10 @@ const proyectoSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  constancia_fiscal: {
+    type: String, // URL o base64 del archivo PDF
+    trim: true
+  },
   metodo_pago_anticipo: {
     type: String,
     enum: ['efectivo', 'transferencia', 'tarjeta_credito', 'tarjeta_debito', 'cheque', 'deposito', 'otro']

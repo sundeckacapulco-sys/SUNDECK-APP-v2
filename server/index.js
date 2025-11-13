@@ -142,6 +142,7 @@ app.use('/api/plantillas-whatsapp', require('./routes/plantillasWhatsApp'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/etapas', require('./routes/etapas'));
 app.use('/api/proyectos', require('./routes/proyectos'));
+app.use('/api/proyectos', require('./routes/pagos')); // ✅ NUEVO - Gestión de Pagos y Comprobantes
 app.use('/api/proyecto-pedido', require('./routes/proyectoPedido')); // ✅ NUEVO - Modelo Unificado
 app.use('/api/exportacion', require('./routes/exportacion')); // ✅ REACTIVADO - Proyecto Unificado
 app.use('/api/kpis', require('./routes/kpis')); // ✅ NUEVO - KPIs y Métricas de Ventas

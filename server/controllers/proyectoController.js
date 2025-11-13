@@ -1434,8 +1434,9 @@ const obtenerEstadisticasProyecto = async (req, res) => {
         subtotal: totalesFinancieros.subtotal,
         iva: totalesFinancieros.iva,
         total: totalesFinancieros.total,
-        anticipo: proyecto.anticipo || 0,
-        saldo_pendiente: totalesFinancieros.total - (proyecto.anticipo || 0)
+        anticipo: proyecto.pagos?.anticipo?.monto || proyecto.anticipo || 0,
+        anticipo_pagado: proyecto.pagos?.anticipo?.pagado || false,
+        saldo_pendiente: totalesFinancieros.total - (proyecto.pagos?.anticipo?.monto || proyecto.anticipo || 0)
       },
       flujo: {
         cotizaciones: {

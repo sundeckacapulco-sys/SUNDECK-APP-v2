@@ -38,10 +38,13 @@ import {
   Edit as EditIcon
 } from '@mui/icons-material';
 import axiosConfig from '../../../config/axios';
+import ModalRegistrarPago from './ModalRegistrarPago';
 
 const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
   const navigate = useNavigate();
   const [eliminando, setEliminando] = useState(null);
+  const [modalPagoOpen, setModalPagoOpen] = useState(false);
+  const [tipoPagoModal, setTipoPagoModal] = useState('anticipo');
   
   const handleEliminarCotizacion = async (cotizacionId) => {
     if (!window.confirm('¿Estás seguro de eliminar esta cotización? Esta acción no se puede deshacer.')) {
@@ -82,11 +85,35 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
   };
 
   const formatearFecha = (fecha) => {
-    return new Date(fecha).toLocaleDateString('es-MX', {
+    if (!fecha) return 'No definida';
+    const date = new Date(fecha);
+    if (isNaN(date.getTime())) return 'Fecha inválida';
+    return date.toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Calcular días transcurridos desde el anticipo (solo días hábiles)
+  const calcularDiasTranscurridos = (fechaInicio) => {
+    if (!fechaInicio) return 0;
+    
+    const inicio = new Date(fechaInicio);
+    const hoy = new Date();
+    let diasHabiles = 0;
+    
+    const fechaActual = new Date(inicio);
+    while (fechaActual < hoy) {
+      fechaActual.setDate(fechaActual.getDate() + 1);
+      const diaSemana = fechaActual.getDay();
+      // Si no es sábado (6) ni domingo (0)
+      if (diaSemana !== 0 && diaSemana !== 6) {
+        diasHabiles++;
+      }
+    }
+    
+    return diasHabiles;
   };
 
   const obtenerColorEstado = (estado) => {
@@ -312,7 +339,7 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                         <Box sx={{ mt: 1 }}>
                           <Typography variant="body2" color="text.secondary">
                             <CalendarIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
-                            Creada: {formatearFecha(cotizacion.fechaCreacion || cotizacion.fecha_creacion)}
+                            Creada: {formatearFecha(proyecto.createdAt || proyecto.fecha_creacion)}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
                             <MoneyIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
@@ -457,11 +484,31 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                   Términos de Pago
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Anticipo:</strong> {formatearMoneda(proyecto.anticipo)} (60%)
+                  <strong>Anticipo:</strong> {formatearMoneda(datosFinancieros.total * 0.6)} (60%)
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Saldo:</strong> {formatearMoneda(datosFinancieros.saldo_pendiente)} (40%)
+                  <strong>Saldo:</strong> {formatearMoneda(datosFinancieros.total * 0.4)} (40%)
                 </Typography>
+                {datosFinancieros.anticipo > 0 && (
+                  <Box sx={{ mt: 1, p: 1, bgcolor: '#e8f5e9', borderRadius: 1 }}>
+                    <Typography variant="body2" color="success.main">
+                      ✅ <strong>Anticipo recibido:</strong> {formatearMoneda(datosFinancieros.anticipo)}
+                    </Typography>
+                  </Box>
+                )}
+                {datosFinancieros.anticipo === 0 && proyecto.estado === 'aprobado' && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    sx={{ mt: 1, bgcolor: '#4caf50', '&:hover': { bgcolor: '#45a049' } }}
+                    onClick={() => {
+                      setTipoPagoModal('anticipo');
+                      setModalPagoOpen(true);
+                    }}
+                  >
+                    💰 Registrar Anticipo
+                  </Button>
+                )}
               </Paper>
             </Grid>
           </Grid>
@@ -474,17 +521,33 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                 🚚 Tiempo de Entrega
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={3}>
                   <Typography variant="body2">
                     <strong>Tipo:</strong> {proyecto.tiempo_entrega.tipo === 'normal' ? 'Normal' : 'Exprés'}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={3}>
                   <Typography variant="body2">
                     <strong>Días estimados:</strong> {proyecto.tiempo_entrega.dias_estimados || 'Por definir'}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={3}>
+                  <Typography variant="body2">
+                    <strong>Días transcurridos:</strong>{' '}
+                    <Box component="span" sx={{ 
+                      color: '#1976d2', 
+                      fontWeight: 'bold',
+                      bgcolor: '#e3f2fd',
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      display: 'inline-block'
+                    }}>
+                      {calcularDiasTranscurridos(proyecto.pagos?.anticipo?.fechaPago)} / {proyecto.tiempo_entrega.dias_estimados || 0}
+                    </Box>
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={3}>
                   <Typography variant="body2">
                     <strong>Fecha estimada:</strong> {
                       proyecto.tiempo_entrega.fecha_estimada 
@@ -498,6 +561,23 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Registro de Pago */}
+      <ModalRegistrarPago
+        open={modalPagoOpen}
+        onClose={() => setModalPagoOpen(false)}
+        proyectoId={proyecto._id}
+        tipoPago={tipoPagoModal}
+        montoSugerido={
+          tipoPagoModal === 'anticipo' 
+            ? datosFinancieros.total * 0.6 
+            : datosFinancieros.total * 0.4
+        }
+        onSuccess={() => {
+          // Recargar datos del proyecto
+          onActualizar();
+        }}
+      />
     </Box>
   );
 };

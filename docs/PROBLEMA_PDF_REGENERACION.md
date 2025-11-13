@@ -1,7 +1,8 @@
 # 🐛 PROBLEMA: PDF SE REGENERA EN CADA VISTA
 
 **Fecha:** 13 Nov 2025 13:02 PM  
-**Estado:** ❌ NO RESUELTO - Requiere investigación profunda
+**Actualizado:** 13 Nov 2025 13:20 PM  
+**Estado:** 🔄 EN DIAGNÓSTICO - Logs estructurados implementados ✅
 
 ---
 
@@ -203,11 +204,78 @@ router.get('/:id/debug-pdf', async (req, res) => {
 
 ---
 
-## 🧭 RESUMEN DE ACCIONES SIGUIENTES
+## ✅ IMPLEMENTACIÓN DE LOGS (13 Nov 2025 13:20 PM)
 
-1. **Instrumentar logs estructurados en `cotizaciones.js`:** Registrar cada rama del flujo (lectura vs. regeneración) y cualquier excepción de `fs.readFile` o `fs.access`.
-2. **Preparar dashboard de depuración temporal:** Exponer `/api/cotizaciones/:id/debug-pdf` y revisar resultados desde la consola del navegador al abrir el visor.
-3. **Pasar al flujo Cotización → Proyecto una vez estabilizado:** Con el endpoint estable, conectar el botón de conversión desde la pestaña de cotizaciones para eliminar saltos de contexto.
+### **1. Logs Estructurados Agregados**
+
+**Archivo:** `server/routes/cotizaciones.js`
+
+**Puntos de instrumentación:**
+- ✅ Inicio del endpoint con timestamp
+- ✅ Estado completo de `pdfPath` en BD (tipo, longitud, valor booleano)
+- ✅ Rama de lectura de PDF guardado
+- ✅ Verificación de existencia de archivo con `fs.access()`
+- ✅ Lectura exitosa con tamaño del buffer
+- ✅ Errores detallados con código y stack trace
+- ✅ Rama de generación de PDF nuevo
+- ✅ Guardado en disco con ruta completa
+- ✅ Actualización de BD con pdfPath
+- ✅ Advertencia si se regenera cuando ya existía
+
+**Total de logs:** 15+ puntos de instrumentación
+
+### **2. Endpoint de Debug Creado**
+
+**Ruta:** `GET /api/cotizaciones/:id/debug-pdf`
+
+**Información que devuelve:**
+- Estado completo de `pdfPath` en BD
+- Tipo de dato y validaciones booleanas
+- Existencia del archivo en disco
+- Tamaño y fecha de modificación
+- Errores de lectura si existen
+- Campos del modelo Mongoose
+
+### **3. Documentación Creada**
+
+**Archivo:** `docs/INSTRUCCIONES_DEBUG_PDF.md`
+
+**Contenido:**
+- Instrucciones paso a paso para pruebas
+- Qué buscar en los logs
+- 4 escenarios posibles con causas
+- Soluciones según el escenario
+- Checklist completo de prueba
+
+---
+
+## 🧭 PRÓXIMOS PASOS
+
+### **Paso 1: Ejecutar Pruebas (10-15 min)**
+
+1. Reiniciar servidor backend
+2. Abrir visor de PDF 3 veces
+3. Capturar logs de cada apertura
+4. Probar endpoint `/debug-pdf`
+5. Analizar resultados
+
+**Ver:** `docs/INSTRUCCIONES_DEBUG_PDF.md` para detalles completos
+
+### **Paso 2: Analizar Logs**
+
+Identificar cuál de estos 4 escenarios ocurre:
+1. `pdfPath` es null/undefined en BD
+2. Archivo no existe en disco
+3. Error de permisos al leer archivo
+4. `.populate()` borra el campo
+
+### **Paso 3: Implementar Solución**
+
+Según el escenario identificado, aplicar la solución específica.
+
+### **Paso 4: Flujo Cotización → Proyecto**
+
+Una vez estabilizado el PDF, conectar el botón de conversión desde la pestaña de cotizaciones.
 
 ---
 
