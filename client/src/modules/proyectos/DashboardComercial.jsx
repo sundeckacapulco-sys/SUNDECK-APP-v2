@@ -14,6 +14,7 @@ import axiosConfig from '../../config/axios';
 import FiltrosComerciales from './components/FiltrosComerciales';
 import KPIsComerciales from './components/KPIsComerciales';
 import TablaComercial from './components/TablaComercial';
+import PanelAlertas from './components/PanelAlertas';
 
 const createDefaultKpiState = () => ({
   resumen: {
@@ -52,6 +53,7 @@ const DashboardComercial = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRegistros, setTotalRegistros] = useState(0);
+  const [alertasRefreshToken, setAlertasRefreshToken] = useState(0);
   const limit = 20;
 
   const cargarRegistros = useCallback(async () => {
@@ -149,6 +151,7 @@ const DashboardComercial = () => {
   const handleRecargar = useCallback(() => {
     cargarRegistros();
     cargarKPIs();
+    setAlertasRefreshToken(prev => prev + 1);
   }, [cargarRegistros, cargarKPIs]);
 
   const handleNuevo = useCallback(() => {
@@ -265,6 +268,11 @@ const DashboardComercial = () => {
             </Button>
           </Stack>
         </Box>
+
+        <PanelAlertas
+          refreshToken={alertasRefreshToken}
+          onVerAlertas={() => navigate('/alertas')}
+        />
 
         <KPIsComerciales kpis={kpis} loading={kpiLoading} />
 

@@ -123,10 +123,37 @@ exports.agregarNota = async (req, res) => {
       tipo,
       fecha: new Date()
     });
-    
+
     // Actualizar fecha de última nota
     prospecto.ultimaNota = new Date();
-    
+
+    const estadoAnterior = prospecto.estadoComercial || 'nuevo';
+    const tipoNormalizado = (tipo || '').toLowerCase();
+    const esInteraccionActiva = ['llamada', 'whatsapp', 'email', 'visita', 'nota'].includes(tipoNormalizado);
+
+    if (esInteraccionActiva) {
+      let nuevoEstado = estadoAnterior;
+
+      if (estadoAnterior === 'nuevo') {
+        nuevoEstado = 'en seguimiento';
+      } else if (['contactado', 'sin respuesta', 'en pausa'].includes(estadoAnterior)) {
+        nuevoEstado = 'en seguimiento';
+      }
+
+      if (nuevoEstado !== estadoAnterior) {
+        prospecto.estadoComercial = nuevoEstado;
+
+        logger.info('Estado comercial actualizado automáticamente por nota', {
+          controlador: 'prospectosController',
+          metodo: 'agregarNota',
+          prospectoId: id,
+          estadoAnterior,
+          estadoNuevo: nuevoEstado,
+          tipoNota: tipoNormalizado
+        });
+      }
+    }
+
     await prospecto.save();
     
     // Poblar para respuesta

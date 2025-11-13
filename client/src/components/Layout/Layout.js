@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Drawer,
@@ -46,6 +46,7 @@ import { BotonCapturaFlotante } from '../Common/CapturaModal';
 import { BotonInspectorSimple } from '../Common/InspectorSimple';
 import { BotonDevToolsInspector } from '../Common/DevToolsInspector';
 import { BotonSelectorDirecto } from '../Common/InspectorDirecto';
+import axiosConfig from '../../config/axios';
 import { SoporteProvider } from '../Common/ModuloSoporte';
 import ModuloSoporte from '../Common/ModuloSoporte';
 
@@ -54,6 +55,7 @@ const drawerWidth = 240;
 const menuItems = [
   { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
   { text: 'Proyectos', icon: <Assignment />, path: '/proyectos', badge: 'PRINCIPAL' },
+  { text: 'Alertas', icon: <Notifications />, path: '/alertas', badge: 'NUEVO' },
   { text: 'Cotización Directa', icon: <Calculate />, path: '/cotizacion-directa', badge: 'RÁPIDO' },
   { text: 'Fabricación', icon: <Construction />, path: '/fabricacion' },
   { 
@@ -80,6 +82,8 @@ const Layout = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [soporteModalOpen, setSoporteModalOpen] = useState(false);
+  const [alertasResumen, setAlertasResumen] = useState({ total: 0, prospectos: 0, proyectos: 0 });
+  const [alertasLoading, setAlertasLoading] = useState(false);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -97,6 +101,42 @@ const Layout = ({ children }) => {
     logout();
     handleMenuClose();
   };
+
+  useEffect(() => {
+    let activo = true;
+
+    const cargarAlertas = async () => {
+      try {
+        setAlertasLoading(true);
+        const response = await axiosConfig.get('/alertas/inteligentes', { params: { limite: 3 } });
+        if (!activo) return;
+
+        const data = response?.data?.data || response?.data || {};
+
+        setAlertasResumen({
+          total: data?.resumen?.total ?? 0,
+          prospectos: data?.resumen?.prospectosInactivos ?? 0,
+          proyectos: data?.resumen?.proyectosSinMovimiento ?? 0
+        });
+      } catch (error) {
+        if (activo) {
+          setAlertasResumen((prev) => ({ ...prev }));
+        }
+      } finally {
+        if (activo) {
+          setAlertasLoading(false);
+        }
+      }
+    };
+
+    cargarAlertas();
+    const intervalo = setInterval(cargarAlertas, 5 * 60 * 1000);
+
+    return () => {
+      activo = false;
+      clearInterval(intervalo);
+    };
+  }, []);
 
   const drawer = (
     <div style={{ backgroundColor: '#000000', height: '100%' }}>
@@ -215,8 +255,11 @@ const Layout = ({ children }) => {
             </Typography>
           </Box>
 
-          <IconButton color="inherit" sx={{ mr: 1 }}>
-            <Badge badgeContent={4} color="error">
+          <IconButton color="inherit" sx={{ mr: 1 }} onClick={() => navigate('/alertas')}>
+            <Badge
+              badgeContent={alertasLoading ? '…' : alertasResumen.total}
+              color={alertasResumen.total > 0 ? 'error' : 'default'}
+            >
               <Notifications />
             </Badge>
           </IconButton>

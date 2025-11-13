@@ -146,6 +146,7 @@ app.use('/api/proyectos', require('./routes/pagos')); // ✅ NUEVO - Gestión de
 app.use('/api/proyecto-pedido', require('./routes/proyectoPedido')); // ✅ NUEVO - Modelo Unificado
 app.use('/api/exportacion', require('./routes/exportacion')); // ✅ REACTIVADO - Proyecto Unificado
 app.use('/api/kpis', require('./routes/kpis')); // ✅ NUEVO - KPIs y Métricas de Ventas
+app.use('/api/alertas', require('./routes/alertas'));
 app.use('/api/storage', require('./routes/storage'));
 app.use('/api/backup', require('./routes/backup'));
 app.use('/api/fix', require('./routes/fix')); // Ruta temporal para correcciones
