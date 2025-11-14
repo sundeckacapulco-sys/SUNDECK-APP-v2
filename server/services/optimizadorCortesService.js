@@ -1,5 +1,6 @@
 const logger = require('../config/logger');
 const ConfiguracionMateriales = require('../models/ConfiguracionMateriales');
+const SobranteMaterial = require('../models/SobranteMaterial');
 
 /**
  * Servicio para optimizar cortes de materiales y seleccionar componentes
@@ -134,8 +135,143 @@ class OptimizadorCortesService {
   }
   
   /**
+   * Optimiza cortes USANDO SOBRANTES DEL ALMACÉN primero
+   * @param {Array} cortes - Array de longitudes a cortar
+   * @param {string} tipoMaterial - Tipo de material (Tubo, Contrapeso, etc.)
+   * @param {string} codigo - Código del material (T38, T50, etc.)
+   * @param {number} longitudBarra - Longitud de la barra estándar
+   * @returns {Promise<object>} Plan de cortes optimizado con sobrantes
+   */
+  static async optimizarCortesConSobrantes(cortes, tipoMaterial, codigo, longitudBarra = 5.80) {
+    // PASO 1: Buscar sobrantes disponibles en almacén
+    const sobrantesDisponibles = await SobranteMaterial.buscarDisponibles(
+      tipoMaterial,
+      0.50, // Mínimo 50cm para considerar
+      { codigo }
+    );
+
+    logger.info('Sobrantes encontrados en almacén', {
+      servicio: 'optimizadorCortesService',
+      tipoMaterial,
+      codigo,
+      sobrantesEncontrados: sobrantesDisponibles.length,
+      longitudesTotales: sobrantesDisponibles.reduce((sum, s) => sum + s.longitud, 0)
+    });
+
+    // PASO 2: Ordenar cortes de mayor a menor
+    const cortesOrdenados = [...cortes].sort((a, b) => b - a);
+    const barras = [];
+    const sobrantesUsados = [];
+    const cortesRestantes = [...cortesOrdenados];
+
+    // PASO 3: Intentar usar sobrantes primero
+    for (const sobrante of sobrantesDisponibles) {
+      if (cortesRestantes.length === 0) break;
+
+      const cortesEnSobrante = [];
+      let espacioUsado = 0;
+
+      // Intentar meter cortes en este sobrante
+      for (let i = cortesRestantes.length - 1; i >= 0; i--) {
+        const corte = cortesRestantes[i];
+        const espacioDisponible = sobrante.longitud - espacioUsado;
+
+        if (espacioDisponible >= corte + this.MARGEN_CORTE) {
+          cortesEnSobrante.push(corte);
+          espacioUsado += corte + this.MARGEN_CORTE;
+          cortesRestantes.splice(i, 1);
+        }
+      }
+
+      // Si se usó el sobrante, agregarlo al plan
+      if (cortesEnSobrante.length > 0) {
+        const sobranteRestante = sobrante.longitud - espacioUsado;
+
+        barras.push({
+          numero: barras.length + 1,
+          tipo: 'sobrante',
+          sobranteId: sobrante._id,
+          etiqueta: sobrante.etiqueta,
+          longitudOriginal: sobrante.longitud,
+          cortes: cortesEnSobrante,
+          usado: espacioUsado,
+          sobrante: sobranteRestante,
+          eficiencia: Number(((espacioUsado / sobrante.longitud) * 100).toFixed(2)),
+          desperdicio: Number(((sobranteRestante / sobrante.longitud) * 100).toFixed(2)),
+          observaciones: `Reutilizado de almacén (${sobrante.ubicacionAlmacen})`
+        });
+
+        sobrantesUsados.push({
+          id: sobrante._id,
+          etiqueta: sobrante.etiqueta,
+          longitudOriginal: sobrante.longitud,
+          usado: espacioUsado,
+          sobranteNuevo: sobranteRestante
+        });
+      }
+    }
+
+    // PASO 4: Optimizar cortes restantes con barras nuevas
+    if (cortesRestantes.length > 0) {
+      const optimizacionNueva = this.optimizarCortes(cortesRestantes, longitudBarra);
+      
+      // Agregar barras nuevas al plan
+      optimizacionNueva.barras.forEach(barra => {
+        barras.push({
+          ...barra,
+          numero: barras.length + 1,
+          tipo: 'nueva',
+          observaciones: 'Material nuevo'
+        });
+      });
+    }
+
+    // PASO 5: Calcular estadísticas totales
+    const totalUsado = barras.reduce((sum, b) => sum + b.usado, 0);
+    const totalSobrante = barras.reduce((sum, b) => sum + b.sobrante, 0);
+    const barrasNuevas = barras.filter(b => b.tipo === 'nueva').length;
+    const sobrantesReutilizados = barras.filter(b => b.tipo === 'sobrante').length;
+    
+    const longitudTotalNecesaria = barrasNuevas * longitudBarra + 
+                                   sobrantesUsados.reduce((sum, s) => sum + s.longitudOriginal, 0);
+    const eficienciaGlobal = (totalUsado / longitudTotalNecesaria) * 100;
+
+    const resultado = {
+      barras,
+      sobrantesUsados,
+      resumen: {
+        totalBarras: barras.length,
+        barrasNuevas,
+        sobrantesReutilizados,
+        totalCortes: cortes.length,
+        cortesEnSobrantes: cortes.length - cortesRestantes.length,
+        cortesEnBarrasNuevas: cortesRestantes.length,
+        longitudTotal: longitudTotalNecesaria,
+        totalUsado: Number(totalUsado.toFixed(2)),
+        totalSobrante: Number(totalSobrante.toFixed(2)),
+        eficienciaGlobal: Number(eficienciaGlobal.toFixed(2)),
+        desperdicioGlobal: Number((100 - eficienciaGlobal).toFixed(2)),
+        ahorroMaterial: sobrantesUsados.reduce((sum, s) => sum + s.usado, 0)
+      }
+    };
+
+    logger.info('Optimización con sobrantes completada', {
+      servicio: 'optimizadorCortesService',
+      tipoMaterial,
+      codigo,
+      sobrantesUsados: sobrantesReutilizados,
+      barrasNuevas,
+      ahorroMaterial: resultado.resumen.ahorroMaterial,
+      eficiencia: resultado.resumen.eficienciaGlobal
+    });
+
+    return resultado;
+  }
+
+  /**
    * Optimiza cortes para minimizar desperdicios (Bin Packing Problem)
    * Agrupa cortinas inteligentemente en barras de 5.80m
+   * SIN usar sobrantes (método base)
    * @param {Array} cortes - Array de longitudes a cortar
    * @param {number} longitudBarra - Longitud de la barra estándar
    * @returns {object} Plan de cortes optimizado
@@ -378,6 +514,96 @@ class OptimizadorCortesService {
     };
   }
   
+  /**
+   * Registrar sobrantes generados en la producción
+   * @param {object} planCortes - Plan de cortes optimizado
+   * @param {string} tipoMaterial - Tipo de material
+   * @param {string} codigo - Código del material
+   * @param {string} proyectoId - ID del proyecto origen
+   * @param {string} ordenProduccion - Número de orden
+   * @returns {Promise<Array>} Sobrantes registrados
+   */
+  static async registrarSobrantes(planCortes, tipoMaterial, codigo, proyectoId, ordenProduccion) {
+    const sobrantesRegistrados = [];
+    const MINIMO_REUTILIZABLE = 1.00; // 1 metro mínimo para guardar
+
+    try {
+      // Procesar cada barra del plan
+      for (const barra of planCortes.barras) {
+        // Solo registrar sobrantes > 1.00m
+        if (barra.sobrante >= MINIMO_REUTILIZABLE) {
+          const etiqueta = SobranteMaterial.generarEtiqueta(tipoMaterial, codigo);
+          
+          const sobrante = new SobranteMaterial({
+            tipo: tipoMaterial,
+            descripcion: barra.tipo === 'sobrante' 
+              ? `Sobrante reutilizado (${barra.etiqueta})` 
+              : `Sobrante de producción`,
+            codigo,
+            longitud: barra.sobrante,
+            unidad: 'ml',
+            diametro: barra.diametro,
+            estado: 'disponible',
+            ubicacionAlmacen: 'Almacén General',
+            etiqueta,
+            origenProyecto: proyectoId,
+            origenOrdenProduccion: ordenProduccion,
+            condicion: 'excelente',
+            observaciones: `Generado en orden ${ordenProduccion}. Barra ${barra.numero}: ${barra.cortes.join('m + ')}m`
+          });
+
+          await sobrante.save();
+          sobrantesRegistrados.push(sobrante);
+
+          logger.info('Sobrante registrado', {
+            servicio: 'optimizadorCortesService',
+            etiqueta,
+            longitud: barra.sobrante,
+            tipo: tipoMaterial,
+            codigo
+          });
+        }
+      }
+
+      // Marcar sobrantes usados como "usado"
+      if (planCortes.sobrantesUsados) {
+        for (const sobranteUsado of planCortes.sobrantesUsados) {
+          await SobranteMaterial.findByIdAndUpdate(
+            sobranteUsado.id,
+            {
+              estado: 'usado',
+              'usadoEn.proyecto': proyectoId,
+              'usadoEn.fecha': new Date(),
+              'usadoEn.observaciones': `Usado en orden ${ordenProduccion}`
+            }
+          );
+
+          logger.info('Sobrante marcado como usado', {
+            servicio: 'optimizadorCortesService',
+            sobranteId: sobranteUsado.id,
+            etiqueta: sobranteUsado.etiqueta
+          });
+        }
+      }
+
+      logger.info('Sobrantes registrados exitosamente', {
+        servicio: 'optimizadorCortesService',
+        totalRegistrados: sobrantesRegistrados.length,
+        totalUsados: planCortes.sobrantesUsados?.length || 0
+      });
+
+      return sobrantesRegistrados;
+
+    } catch (error) {
+      logger.error('Error registrando sobrantes', {
+        servicio: 'optimizadorCortesService',
+        error: error.message,
+        stack: error.stack
+      });
+      throw error;
+    }
+  }
+
   /**
    * Genera recomendaciones de producción
    * @param {Array} piezas - Array de piezas
