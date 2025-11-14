@@ -21,9 +21,9 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import useAlertasInteligentes from '../../alertas/hooks/useAlertasInteligentes';
 
 const iconosPorCategoria = {
-  ordenes_retrasadas: <AccessTimeIcon sx={{ color: '#DC2626' }} />, // 🔴
+  fabricacion_retrasada: <AccessTimeIcon sx={{ color: '#DC2626' }} />, // 🔴
   materiales_faltantes: <Inventory2Icon sx={{ color: '#CA8A04' }} />, // 🟡
-  control_calidad_pendiente: <FactCheckIcon sx={{ color: '#EA580C' }} /> // 🟠
+  calidad_pendiente: <FactCheckIcon sx={{ color: '#EA580C' }} /> // 🟠
 };
 
 const prioridadAColor = {
@@ -114,7 +114,7 @@ const PanelAlertasFabricacion = ({ onVerFabricacion, refreshToken }) => {
       );
     }
 
-    if (categoria.tipo === 'ordenes_retrasadas') {
+    if (categoria.tipo === 'fabricacion_retrasada') {
       return (
         <Typography variant="caption" sx={{ color: '#DC2626', fontWeight: 600 }}>
           {item.diasRetraso} día(s) de retraso
@@ -122,7 +122,7 @@ const PanelAlertasFabricacion = ({ onVerFabricacion, refreshToken }) => {
       );
     }
 
-    if (categoria.tipo === 'control_calidad_pendiente') {
+    if (categoria.tipo === 'calidad_pendiente') {
       return (
         <Typography variant="caption" sx={{ color: '#EA580C', fontWeight: 600 }}>
           {item.diasPendientes} día(s) sin control de calidad
@@ -309,14 +309,14 @@ const PanelAlertasFabricacion = ({ onVerFabricacion, refreshToken }) => {
                               }}
                             />
                           </Tooltip>
-                          {categoria.tipo === 'ordenes_retrasadas' && (
+                          {categoria.tipo === 'fabricacion_retrasada' && (
                             <Chip
                               label={`${item.diasRetraso ?? 0} días`}
                               size="small"
                               sx={{ backgroundColor: '#FEE2E2', color: '#991B1B', fontWeight: 500 }}
                             />
                           )}
-                          {categoria.tipo === 'control_calidad_pendiente' && (
+                          {categoria.tipo === 'calidad_pendiente' && (
                             <Chip
                               label={`${item.diasPendientes ?? 0} días`}
                               size="small"

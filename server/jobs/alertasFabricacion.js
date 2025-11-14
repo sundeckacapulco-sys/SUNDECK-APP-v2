@@ -16,8 +16,8 @@ async function alertasFabricacion() {
   try {
     const [ordenesRetrasadas, materialesFaltantes, controlCalidadPendiente] = await Promise.all([
       alertasFabricacionService.obtenerOrdenesRetrasadas(),
-      alertasFabricacionService.detectarMaterialesFaltantes(),
-      alertasFabricacionService.verificarControlCalidadPendiente()
+      alertasFabricacionService.obtenerMaterialesFaltantes(),
+      alertasFabricacionService.obtenerCalidadPendiente()
     ]);
 
     const totalAlertas =
