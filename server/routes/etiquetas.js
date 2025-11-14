@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const etiquetasController = require('../controllers/etiquetasController');
-const { verificarToken } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 /**
  * Rutas para etiquetas de producción
@@ -9,7 +9,7 @@ const { verificarToken } = require('../middleware/auth');
  */
 
 // Aplicar autenticación a todas las rutas
-router.use(verificarToken);
+router.use(auth);
 
 // GET /api/etiquetas/proyecto/:proyectoId - Generar PDF de etiquetas
 // Query params: ?formato=multiple|individual

@@ -36,15 +36,30 @@ class OrdenProduccionService {
         usuarioId
       });
       
+      // Generar lista de pedido para proveedor
+      const piezasConBOM = [];
+      for (const pieza of piezas) {
+        const materiales = await OptimizadorCortesService.calcularMaterialesPieza(pieza);
+        piezasConBOM.push({ ...pieza, materiales });
+      }
+      const reporteOptimizacion = await OptimizadorCortesService.generarReporteOptimizacion(piezas);
+      const listaPedido = this.generarListaPedido(piezasConBOM, reporteOptimizacion);
+      
+      // Retornar resultado completo
+      const resultadoCompleto = {
+        ...resultado,
+        listaPedido // LISTA DE PEDIDO PARA PROVEEDOR
+      };
+      
       logger.info('Orden procesada con almacén', {
         servicio: 'ordenProduccionService',
         proyectoId,
-        success: resultado.success,
-        materialesUsados: resultado.materiales?.length || 0,
-        sobrantesGenerados: resultado.sobrantes?.length || 0
+        success: resultadoCompleto.success,
+        materialesUsados: resultadoCompleto.materiales?.length || 0,
+        sobrantesGenerados: resultadoCompleto.sobrantes?.length || 0
       });
       
-      return resultado;
+      return resultadoCompleto;
       
     } catch (error) {
       logger.error('Error procesando orden con almacén', {

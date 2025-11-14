@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const almacenController = require('../controllers/almacenController');
-const { verificarToken } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 /**
  * Rutas para gestión de almacén
@@ -9,7 +9,7 @@ const { verificarToken } = require('../middleware/auth');
  */
 
 // Aplicar autenticación a todas las rutas
-router.use(verificarToken);
+router.use(auth);
 
 // ============================================
 // INVENTARIO
