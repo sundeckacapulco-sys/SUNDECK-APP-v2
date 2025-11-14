@@ -1,503 +1,144 @@
 [
   {
-    "_id": "68f8f89aca4798f5414480fe",
+    "_id": "691662600ae067ee9b70e429",
     "cliente": {
-      "nombre": "Sahid Campos",
-      "telefono": "744 199 6925",
-      "correo": "sundeck.acapulco@gmail.com",
-      "direccion": "Cond. Porta do Sol Depto 402, Acapulco, 39850",
-      "zona": ""
+      "nombre": "Cliente de Prueba",
+      "telefono": "664-123-4567",
+      "direccion": {
+        "calle": "Calle Principal #123",
+        "colonia": "Centro",
+        "ciudad": "Tijuana",
+        "codigoPostal": "22000",
+        "referencias": "Casa azul, portón negro"
+      }
     },
-    "tipo_fuente": "formal",
-    "estado": "cotizacion",
-    "fecha_compromiso": "2025-10-21T00:00:00.000Z",
-    "observaciones": "el cliente pregunta , por persianas motorizadas",
-    "medidas": [
+    "numero": "TEST-2025-001",
+    "tipo_fuente": "simple",
+    "tipo": "prospecto",
+    "estadoComercial": "nuevo",
+    "origenComercial": {
+      "fechaPrimerContacto": "2025-11-13T22:57:36.284Z"
+    },
+    "probabilidadCierre": 0,
+    "ultimaNota": null,
+    "estado": "fabricacion",
+    "observaciones": "Proyecto de prueba para validar Orden de Producción PDF",
+    "levantamiento": {
+      "partidas": [],
+      "fotosGenerales": [],
+      "actualizadoEn": "2025-11-13T22:57:36.284Z"
+    },
+    "medidas": [],
+    "cotizacionActual": {
+      "fechaCreacion": "2025-11-13T22:57:36.284Z"
+    },
+    "productos": [
       {
-        "tipo": "levantamiento",
-        "personaVisita": "David Rojas",
-        "fechaCotizacion": "2025-10-30T00:00:00.000Z",
-        "quienRecibe": "Sahi Campos",
-        "observacionesGenerales": "",
-        "fechaHora": "2025-10-30T15:57:15.479Z",
-        "esPartidasV2": false,
-        "piezas": [
-          {
-            "ubicacion": "Sala comedor ",
-            "cantidad": 3,
-            "producto": "blackout",
-            "productoLabel": "Persianas Blackout",
-            "modeloCodigo": "Long Beach",
-            "color": "ivory",
-            "observaciones": "Partida de 3 piezas",
-            "areaTotal": 13.799999999999999,
-            "precioTotal": 0,
-            "totalPiezas": 3,
-            "motorizado": false,
-            "motorModelo": "",
-            "motorPrecio": null,
-            "controlModelo": "",
-            "controlPrecio": null,
-            "medidas": [
-              {
-                "ancho": 1.5,
-                "alto": 2.3,
-                "producto": "blackout",
-                "productoLabel": "Persianas Blackout",
-                "modeloCodigo": "Long Beach",
-                "color": "ivory",
-                "galeria": "galeria",
-                "tipoControl": "izquierda",
-                "caida": "normal",
-                "tipoInstalacion": "muro",
-                "tipoFijacion": "concreto",
-                "modoOperacion": "manual",
-                "detalleTecnico": "traslape",
-                "sistema": "Enrollable ",
-                "telaMarca": "Shades",
-                "baseTabla": "15",
-                "traslape": "otro",
-                "precioM2": null,
-                "_id": "69038adb4d200514e33b3c08"
-              },
-              {
-                "ancho": 3,
-                "alto": 2.3,
-                "producto": "blackout",
-                "productoLabel": "Persianas Blackout",
-                "modeloCodigo": "Long Beach",
-                "color": "ivory",
-                "galeria": "galeria",
-                "tipoControl": "derecha",
-                "caida": "normal",
-                "tipoInstalacion": "muro",
-                "tipoFijacion": "concreto",
-                "modoOperacion": "motorizado",
-                "detalleTecnico": "traslape",
-                "sistema": "Enrollable ",
-                "telaMarca": "Shades",
-                "baseTabla": "15",
-                "observacionesTecnicas": "Este lienzo lleva el motor ",
-                "traslape": "otro",
-                "precioM2": null,
-                "_id": "69038adb4d200514e33b3c09"
-              },
-              {
-                "ancho": 1.5,
-                "alto": 2.3,
-                "producto": "blackout",
-                "productoLabel": "Persianas Blackout",
-                "modeloCodigo": "Long Beach",
-                "color": "ivory",
-                "galeria": "galeria",
-                "tipoControl": "derecha",
-                "caida": "normal",
-                "tipoInstalacion": "muro",
-                "tipoFijacion": "concreto",
-                "modoOperacion": "motorizado",
-                "detalleTecnico": "traslape",
-                "sistema": "Enrollable ",
-                "telaMarca": "Shades",
-                "baseTabla": "15",
-                "traslape": "otro",
-                "precioM2": null,
-                "_id": "69038adb4d200514e33b3c0a"
-              }
-            ],
-            "_id": "69038adb4d200514e33b3c07"
-          }
-        ],
-        "totales": {
-          "totalPartidas": 1,
-          "totalPiezas": 3,
-          "areaTotal": 13.799999999999999
-        },
-        "fotoUrls": [],
-        "_id": "69038adb4d200514e33b3c06"
+        "cantidad": 1,
+        "_id": "691662600ae067ee9b70e42a"
+      },
+      {
+        "cantidad": 1,
+        "_id": "691662600ae067ee9b70e42b"
       }
     ],
-    "materiales": [],
-    "productos": [],
     "fotos": [],
-    "responsable": "68cc13722bf86c5ed8fd211a",
-    "asesor_asignado": "68cc13722bf86c5ed8fd211a",
     "monto_estimado": 0,
     "subtotal": 0,
     "iva": 0,
     "total": 0,
     "anticipo": 0,
     "saldo_pendiente": 0,
-    "prospecto_original": "68f8231337108dff7cb87bc4",
-    "cotizaciones": [
-      "6903f452e8b3dc92cf42c03a"
-    ],
-    "pedidos": [],
-    "ordenes_fabricacion": [],
-    "instalaciones": [],
-    "creado_por": "68cc13722bf86c5ed8fd211a",
-    "requiere_factura": false,
-    "metodo_pago_anticipo": "transferencia",
-    "tiempo_entrega": {
-      "tipo": "normal"
+    "cronograma": {
+      "fechaInicioFabricacion": "2025-11-13T22:57:36.276Z",
+      "fechaFinFabricacionEstimada": "2025-11-20T22:57:36.276Z"
     },
-    "activo": false,
-    "fecha_creacion": "2025-10-22T15:30:34.698Z",
-    "fecha_actualizacion": "2025-11-05T01:12:47.617Z",
-    "createdAt": "2025-10-22T15:30:34.701Z",
-    "updatedAt": "2025-11-05T01:12:47.617Z",
-    "__v": 2,
-    "actualizado_por": "68cc13722bf86c5ed8fd211a",
-    "cotizacionActual": null,
-    "levantamiento": {
-      "partidas": [
-        {
-          "ubicacion": "Sala Comedor",
-          "producto": "Persianas Blackout",
-          "color": "Ivory ",
-          "modelo": "",
-          "cantidad": 3,
-          "piezas": [
-            {
-              "ancho": 1.5,
-              "alto": 2.3,
-              "m2": 3.45,
-              "sistema": "Roller",
-              "control": "izquierdo",
-              "instalacion": "muro",
-              "fijacion": "concreto",
-              "caida": "hacia_frente",
-              "galeria": "si",
-              "telaMarca": "shades",
-              "baseTabla": "15cm",
-              "operacion": "manual",
-              "detalle": "traslape",
-              "traslape": "5cm",
-              "modeloCodigo": "Long beach ",
-              "color": "Ivory ",
-              "observacionesTecnicas": "",
-              "precioM2": 0,
-              "_id": "6903f452e8b3dc92cf42c043"
-            },
-            {
-              "ancho": 3,
-              "alto": 2.3,
-              "m2": 6.9,
-              "sistema": "Roller",
-              "control": "derecho",
-              "instalacion": "muro",
-              "fijacion": "concreto",
-              "caida": "caida_normal",
-              "galeria": "si",
-              "telaMarca": "shades",
-              "baseTabla": "15cm",
-              "operacion": "manual",
-              "detalle": "traslape",
-              "traslape": "5cm",
-              "modeloCodigo": "Long beach ",
-              "color": "Ivory ",
-              "observacionesTecnicas": "este lleva el motor de baterias ",
-              "precioM2": 0,
-              "_id": "6903f452e8b3dc92cf42c044"
-            },
-            {
-              "ancho": 1.5,
-              "alto": 2.3,
-              "m2": 3.45,
-              "sistema": "Roller",
-              "control": "derecho",
-              "instalacion": "muro",
-              "fijacion": "concreto",
-              "caida": "hacia_frente",
-              "galeria": "si",
-              "telaMarca": "shades",
-              "baseTabla": "15cm",
-              "operacion": "manual",
-              "detalle": "traslape",
-              "traslape": "5cm",
-              "modeloCodigo": "Long beach ",
-              "color": "Ivory ",
-              "observacionesTecnicas": "",
-              "precioM2": 0,
-              "_id": "6903f452e8b3dc92cf42c045"
-            }
-          ],
-          "motorizacion": {
-            "activa": true,
-            "modeloMotor": "otro_manual",
-            "precioMotor": 0,
-            "cantidadMotores": 1,
-            "modeloControl": "monocanal",
-            "precioControl": 0,
-            "tipoControl": "Individual",
-            "piezasPorControl": 1
-          },
-          "instalacionEspecial": {
-            "activa": false,
-            "tipoCobro": "",
-            "precioBase": 0,
-            "precioPorPieza": 0,
-            "observaciones": ""
-          },
-          "totales": {
-            "m2": 13.8,
-            "subtotal": 0,
-            "costoMotorizacion": 0,
-            "costoInstalacion": 0
-          },
-          "_id": "6903f452e8b3dc92cf42c042"
-        }
-      ],
-      "totales": {
-        "m2": 13.8,
-        "subtotal": 0,
-        "descuento": 0,
-        "iva": 0,
+    "fabricacion": {
+      "estado": "materiales_pedidos",
+      "prioridad": "alta",
+      "materiales": [],
+      "procesos": [],
+      "controlCalidad": {
+        "realizado": false,
+        "evidenciasFotos": [],
+        "defectosEncontrados": []
+      },
+      "empaque": {
+        "realizado": false,
+        "evidenciasFotos": []
+      },
+      "costos": {
+        "materiales": 0,
+        "manoObra": 0,
+        "overhead": 0,
         "total": 0
       },
-      "observaciones": "",
-      "personaVisita": "",
-      "actualizadoEn": "2025-10-30T23:27:14.483Z"
+      "progreso": 0,
+      "etiquetas": []
     },
-    "numero": "2025-SAHID-CAMPOS-001"
-  },
-  {
-    "_id": "69038d15b8188c55a56e3a4b",
-    "cliente": {
-      "nombre": "Cliente Test Automatizado",
-      "telefono": "7441234567",
-      "correo": "test@cliente.com",
-      "direccion": "Av. Test #123, Acapulco",
-      "zona": "Diamante"
+    "instalacion": {
+      "programacion": {
+        "cuadrilla": []
+      },
+      "ejecucion": {
+        "materialesAdicionalesUsados": [],
+        "incidencias": []
+      },
+      "evidencias": {
+        "fotosAntes": [],
+        "fotosDurante": [],
+        "fotosDespues": []
+      },
+      "garantia": {
+        "vigente": true
+      },
+      "costos": {
+        "manoObra": 0,
+        "materiales": 0,
+        "transporte": 0,
+        "total": 0
+      },
+      "estado": "programada",
+      "productosInstalar": [],
+      "checklist": []
     },
-    "tipo_fuente": "en_vivo",
-    "estado": "cotizacion",
-    "observaciones": "Prueba automatizada de levantamiento",
-    "levantamiento": {
-      "partidas": [
-        {
-          "ubicacion": "Sala comedor TEST",
-          "producto": "Persianas Blackout",
-          "color": "Ivory",
-          "modelo": "Long Beach",
-          "cantidad": 2,
-          "piezas": [
-            {
-              "ancho": 2.5,
-              "alto": 3,
-              "m2": 7.5,
-              "sistema": "Roller",
-              "control": "Izquierda",
-              "instalacion": "Muro",
-              "fijacion": "Concreto",
-              "caida": "Normal",
-              "galeria": "Galería",
-              "telaMarca": "BDhome",
-              "baseTabla": "15",
-              "operacion": "Manual",
-              "detalle": "Traslape",
-              "traslape": "10cm",
-              "modeloCodigo": "LB-001",
-              "color": "Ivory",
-              "observacionesTecnicas": "Prueba automatizada",
-              "precioM2": 750,
-              "_id": "69038e05b81f808ac82e9362"
-            },
-            {
-              "ancho": 2.5,
-              "alto": 3,
-              "m2": 7.5,
-              "sistema": "Roller",
-              "control": "Derecha",
-              "instalacion": "Muro",
-              "fijacion": "Concreto",
-              "caida": "Normal",
-              "galeria": "Galería",
-              "telaMarca": "BDhome",
-              "baseTabla": "15",
-              "operacion": "Manual",
-              "detalle": "Traslape",
-              "traslape": "10cm",
-              "modeloCodigo": "LB-001",
-              "color": "Ivory",
-              "observacionesTecnicas": "Prueba automatizada",
-              "precioM2": 750,
-              "_id": "69038e05b81f808ac82e9363"
-            }
-          ],
-          "motorizacion": {
-            "activa": true,
-            "modeloMotor": "Somfy RTS",
-            "precioMotor": 7000,
-            "cantidadMotores": 1,
-            "modeloControl": "15 canales",
-            "precioControl": 1200,
-            "tipoControl": "Individual",
-            "piezasPorControl": 1
-          },
-          "instalacionEspecial": {
-            "activa": true,
-            "tipoCobro": "Fijo",
-            "precioBase": 3500,
-            "precioPorPieza": 0,
-            "observaciones": "Instalación estándar"
-          },
-          "totales": {
-            "m2": 15,
-            "subtotal": 11250,
-            "costoMotorizacion": 8200,
-            "costoInstalacion": 3500
-          },
-          "_id": "69038e05b81f808ac82e9361"
-        }
-      ],
-      "totales": {
-        "m2": 15,
-        "subtotal": 22950,
-        "descuento": 2295,
-        "iva": 3304.8,
-        "total": 23959.8
+    "pagos": {
+      "anticipo": {
+        "porcentaje": 60,
+        "pagado": false
       },
-      "observaciones": "Prueba automatizada de levantamiento",
-      "personaVisita": "Admin Test",
-      "actualizadoEn": "2025-10-30T16:10:45.577Z"
+      "saldo": {
+        "porcentaje": 40,
+        "pagado": false
+      },
+      "pagosAdicionales": []
     },
-    "cotizacionActual": {
-      "cotizacion": "69038e05b81f808ac82e935a",
-      "numero": "COT-0003",
-      "totales": {
-        "m2": 15,
-        "subtotal": 22950,
-        "descuento": 2295,
-        "iva": 3304.8,
-        "total": 23959.8
-      },
-      "precioReglas": {
-        "precio_m2": 750,
-        "aplicaDescuento": true,
-        "tipoDescuento": "porcentaje",
-        "valorDescuento": 10
-      },
-      "facturacion": {
-        "requiereFactura": true,
-        "razonSocial": "Empresa Test SA de CV",
-        "rfc": "EMP123456ABC"
-      },
-      "observaciones": "Prueba automatizada de levantamiento",
-      "personaVisita": "Admin Test",
-      "fechaCreacion": "2025-10-30T16:10:45.579Z"
-    },
-    "medidas": [
-      {
-        "tipo": "levantamiento",
-        "personaVisita": "Admin Test",
-        "observacionesGenerales": "Prueba automatizada de levantamiento",
-        "fechaHora": "2025-10-30T16:10:45.565Z",
-        "esPartidasV2": true,
-        "piezas": [
-          {
-            "ubicacion": "Sala comedor TEST",
-            "cantidad": 2,
-            "producto": "Persianas Blackout",
-            "productoLabel": "Persianas Blackout",
-            "modeloCodigo": "Long Beach",
-            "color": "Ivory",
-            "observaciones": "",
-            "areaTotal": 15,
-            "precioTotal": 11250,
-            "totalPiezas": 2,
-            "motorizado": true,
-            "motorModelo": "Somfy RTS",
-            "motorPrecio": 7000,
-            "controlModelo": "15 canales",
-            "controlPrecio": 1200,
-            "medidas": [
-              {
-                "ancho": 2.5,
-                "alto": 3,
-                "producto": "Persianas Blackout",
-                "productoLabel": "Persianas Blackout",
-                "modeloCodigo": "LB-001",
-                "color": "Ivory",
-                "galeria": "Galería",
-                "tipoControl": "Izquierda",
-                "caida": "Normal",
-                "tipoInstalacion": "Muro",
-                "tipoFijacion": "Concreto",
-                "modoOperacion": "Manual",
-                "detalleTecnico": "Traslape",
-                "sistema": "Roller",
-                "telaMarca": "BDhome",
-                "baseTabla": "15",
-                "observacionesTecnicas": "Prueba automatizada",
-                "traslape": "10cm",
-                "precioM2": 750,
-                "_id": "69038e05b81f808ac82e935f"
-              },
-              {
-                "ancho": 2.5,
-                "alto": 3,
-                "producto": "Persianas Blackout",
-                "productoLabel": "Persianas Blackout",
-                "modeloCodigo": "LB-001",
-                "color": "Ivory",
-                "galeria": "Galería",
-                "tipoControl": "Derecha",
-                "caida": "Normal",
-                "tipoInstalacion": "Muro",
-                "tipoFijacion": "Concreto",
-                "modoOperacion": "Manual",
-                "detalleTecnico": "Traslape",
-                "sistema": "Roller",
-                "telaMarca": "BDhome",
-                "baseTabla": "15",
-                "observacionesTecnicas": "Prueba automatizada",
-                "traslape": "10cm",
-                "precioM2": 750,
-                "_id": "69038e05b81f808ac82e9360"
-              }
-            ],
-            "_id": "69038e05b81f808ac82e935e"
-          }
-        ],
-        "totales": {
-          "totalPartidas": 1,
-          "totalPiezas": 2,
-          "areaTotal": 15,
-          "precioTotal": 11250
-        },
-        "fotoUrls": [],
-        "_id": "69038e05b81f808ac82e935d"
-      }
-    ],
-    "materiales": [],
-    "productos": [],
-    "fotos": [],
-    "monto_estimado": 0,
-    "subtotal": 22950,
-    "iva": 3304.8,
-    "total": 23959.8,
-    "anticipo": 0,
-    "saldo_pendiente": 0,
-    "cotizaciones": [
-      "69038d411f0c66955d0aa890",
-      "69038d5aad6ba2ffbafa4126",
-      "69038e05b81f808ac82e935a"
-    ],
+    "cotizaciones": [],
     "pedidos": [],
     "ordenes_fabricacion": [],
     "instalaciones": [],
-    "creado_por": "68cc13722bf86c5ed8fd211a",
-    "actualizado_por": "68cc13722bf86c5ed8fd211a",
+    "creado_por": "691662600ae067ee9b70e428",
     "requiere_factura": false,
     "tiempo_entrega": {
       "tipo": "normal"
     },
     "activo": true,
-    "fecha_creacion": "2025-10-30T16:06:45.964Z",
-    "fecha_actualizacion": "2025-10-30T20:23:25.722Z",
-    "createdAt": "2025-10-30T16:06:45.965Z",
-    "updatedAt": "2025-10-30T20:23:25.722Z",
-    "__v": 6,
-    "numero": "2025-CLIENTE-TEST-002"
+    "seguimiento": [],
+    "historialEstados": [
+      {
+        "estado": "nuevo",
+        "fecha": "2025-11-13T22:57:36.290Z",
+        "usuario": "691662600ae067ee9b70e428",
+        "observaciones": "Prospecto creado",
+        "_id": "691662600ae067ee9b70e42c"
+      }
+    ],
+    "fecha_creacion": "2025-11-13T22:57:36.284Z",
+    "fecha_actualizacion": "2025-11-13T22:57:36.290Z",
+    "materiales": [],
+    "notas": [],
+    "createdAt": "2025-11-13T22:57:36.289Z",
+    "updatedAt": "2025-11-13T22:57:36.289Z",
+    "__v": 0
   }
 ]
