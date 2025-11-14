@@ -2,6 +2,7 @@ const Proyecto = require('../models/Proyecto');
 const logger = require('../config/logger');
 const CalculadoraMaterialesService = require('./calculadoraMaterialesService');
 const OptimizadorCortesService = require('./optimizadorCortesService');
+const AlmacenProduccionService = require('./almacenProduccionService');
 
 /**
  * Servicio para generar Orden de Producción
@@ -9,6 +10,53 @@ const OptimizadorCortesService = require('./optimizadorCortesService');
  */
 class OrdenProduccionService {
   
+  /**
+   * Procesar orden de producción con integración de almacén
+   * @param {string} proyectoId - ID del proyecto
+   * @param {string} usuarioId - ID del usuario
+   * @param {object} opciones - Opciones de procesamiento
+   * @returns {Promise<object>} Resultado del procesamiento
+   */
+  static async procesarOrdenConAlmacen(proyectoId, usuarioId, opciones = {}) {
+    try {
+      const proyecto = await Proyecto.findById(proyectoId).lean();
+      
+      if (!proyecto) {
+        throw new Error('Proyecto no encontrado');
+      }
+      
+      // Obtener piezas
+      const piezas = this.obtenerPiezasConDetallesTecnicos(proyecto);
+      
+      // Procesar con almacén
+      const resultado = await AlmacenProduccionService.procesarOrdenProduccion({
+        proyectoId,
+        ordenProduccion: proyecto.numero || `OP-${proyectoId.toString().slice(-6)}`,
+        piezas,
+        usuarioId
+      });
+      
+      logger.info('Orden procesada con almacén', {
+        servicio: 'ordenProduccionService',
+        proyectoId,
+        success: resultado.success,
+        materialesUsados: resultado.materiales?.length || 0,
+        sobrantesGenerados: resultado.sobrantes?.length || 0
+      });
+      
+      return resultado;
+      
+    } catch (error) {
+      logger.error('Error procesando orden con almacén', {
+        servicio: 'ordenProduccionService',
+        proyectoId,
+        error: error.message,
+        stack: error.stack
+      });
+      throw error;
+    }
+  }
+
   /**
    * Obtener datos completos para Orden de Producción
    */
