@@ -20,6 +20,7 @@ async function crearProyectoPrueba() {
     const proyectoPrueba = new Proyecto({
       numero: `PRUEBA-${Date.now()}`,
       estado: 'aprobado',
+      tipo_fuente: 'simple',
       
       cliente: {
         nombre: 'Cliente Prueba Sistema',
@@ -40,12 +41,12 @@ async function crearProyectoPrueba() {
         {
           numero: 1,
           ubicacion: 'Sala Principal',
-          sistema: 'Roller Shade',
+          sistema: 'Roller Shade', // ✅ Sistema correcto
           control: 'Derecha',
           ancho: 2.40,
           alto: 2.00,
           motorizado: false,
-          galeria: 'Sin galería',
+          galeria: false,
           color: 'Ivory',
           telaMarca: 'Blackout Premium',
           precioUnitario: 2500,
@@ -55,12 +56,12 @@ async function crearProyectoPrueba() {
         {
           numero: 2,
           ubicacion: 'Recámara Principal',
-          sistema: 'Roller Shade',
+          sistema: 'Roller Shade', // ✅ Sistema correcto
           control: 'Izquierda',
           ancho: 1.80,
           alto: 2.10,
           motorizado: false,
-          galeria: 'Sin galería',
+          galeria: false,
           color: 'Chocolate',
           telaMarca: 'Blackout Premium',
           precioUnitario: 2200,
@@ -70,12 +71,12 @@ async function crearProyectoPrueba() {
         {
           numero: 3,
           ubicacion: 'Recámara 2',
-          sistema: 'Roller Shade',
+          sistema: 'Roller Shade', // ✅ Sistema correcto
           control: 'Derecha',
           ancho: 1.50,
           alto: 1.80,
           motorizado: false,
-          galeria: 'Sin galería',
+          galeria: false,
           color: 'Gris',
           telaMarca: 'Blackout Premium',
           precioUnitario: 1800,
@@ -85,12 +86,12 @@ async function crearProyectoPrueba() {
         {
           numero: 4,
           ubicacion: 'Terraza',
-          sistema: 'Toldos Contempo',
+          sistema: 'Toldos Contempo', // ✅ Sistema correcto
           control: 'Manual',
           ancho: 3.50,
           alto: 2.50,
           motorizado: false,
-          galeria: 'N/A',
+          galeria: false,
           color: 'Blanco',
           telaMarca: 'Screen 5%',
           precioUnitario: 4500,
@@ -100,12 +101,12 @@ async function crearProyectoPrueba() {
         {
           numero: 5,
           ubicacion: 'Comedor',
-          sistema: 'Sheer Elegance',
+          sistema: 'Sheer Elegance', // ✅ Sistema correcto
           control: 'Derecha',
           ancho: 2.20,
           alto: 2.30,
           motorizado: false,
-          galeria: 'Sin galería',
+          galeria: false,
           color: 'Beige',
           telaMarca: 'Sheer Elegance',
           precioUnitario: 3200,
@@ -132,9 +133,19 @@ async function crearProyectoPrueba() {
       observaciones: 'Proyecto creado automáticamente para pruebas del sistema de producción'
     });
     
-    await proyectoPrueba.save();
-    
-    console.log('✅ Proyecto de prueba creado exitosamente\n');
+    try {
+      await proyectoPrueba.save();
+      console.log('✅ Proyecto de prueba creado exitosamente\n');
+    } catch (saveError) {
+      console.error('❌ Error al guardar proyecto:', saveError.message);
+      if (saveError.errors) {
+        console.error('Errores de validación:');
+        Object.keys(saveError.errors).forEach(key => {
+          console.error(`  - ${key}: ${saveError.errors[key].message}`);
+        });
+      }
+      throw saveError;
+    }
     console.log('Detalles:');
     console.log(`   Número: ${proyectoPrueba.numero}`);
     console.log(`   ID: ${proyectoPrueba._id}`);
