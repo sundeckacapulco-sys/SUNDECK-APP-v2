@@ -103,6 +103,10 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Google Drive temporary files
+*.tmp.driveupload
+.tmp.driveupload
+
 # Database files
 *.db
 *.sqlite
