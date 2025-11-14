@@ -1,11 +1,11 @@
 const logger = require('../config/logger');
-const CalculadoraMaterialesService = require('./calculadoraMaterialesService');
+const ConfiguracionMateriales = require('../models/ConfiguracionMateriales');
 
 /**
  * Servicio para optimizar cortes de materiales y seleccionar componentes
- * según las reglas de negocio de Sundeck
+ * LEE CONFIGURACIONES DE LA BASE DE DATOS (100% configurable)
  * 
- * HÍBRIDO: Combina lógica de negocio automática con configuración flexible de BD
+ * v2.0: Sistema completamente dinámico sin reglas hardcodeadas
  */
 class OptimizadorCortesService {
   
@@ -20,97 +20,108 @@ class OptimizadorCortesService {
   static MARGEN_CORTE = 0.10;
   
   /**
-   * Selecciona el tipo de tubo según el ancho
-   * @param {number} ancho - Ancho en metros
+   * Selecciona el tipo de tubo según reglas de BD
+   * @param {object} configuracion - Configuración del sistema
+   * @param {object} variables - Variables de la pieza (ancho, alto, motorizado, etc.)
    * @returns {object} Información del tubo
    */
-  static seleccionarTubo(ancho) {
-    if (ancho <= 2.50) {
-      return {
-        diametro: '38mm',
-        descripcion: 'Tubo 38mm (hasta 2.50m)',
-        codigo: 'T38'
-      };
-    } else if (ancho > 2.50 && ancho <= 3.00) {
-      return {
-        diametro: '50mm',
-        descripcion: 'Tubo 50mm (2.50m - 3.00m)',
-        codigo: 'T50'
-      };
-    } else if (ancho > 3.00 && ancho <= 4.00) {
-      return {
-        diametro: '65mm',
-        descripcion: 'Tubo 65mm/70mm (3.00m - 4.00m)',
-        codigo: 'T65'
-      };
-    } else {
-      return {
-        diametro: '79mm',
-        descripcion: 'Tubo 79mm (mayor a 4.00m)',
-        codigo: 'T79'
-      };
+  static seleccionarTubo(configuracion, variables) {
+    const reglasTubos = configuracion.reglasSeleccion?.tubos || [];
+    
+    // Buscar la primera regla que cumpla la condición
+    for (const regla of reglasTubos) {
+      try {
+        if (regla.condicion) {
+          const condicionFn = new Function(
+            ...Object.keys(variables),
+            `return ${regla.condicion}`
+          );
+          const cumple = condicionFn(...Object.values(variables));
+          
+          if (cumple) {
+            return {
+              diametro: regla.diametro,
+              descripcion: regla.descripcion,
+              codigo: regla.codigo
+            };
+          }
+        }
+      } catch (error) {
+        logger.error('Error evaluando regla de tubo', {
+          regla: regla.condicion,
+          error: error.message
+        });
+      }
     }
+    
+    // Fallback si no hay reglas o ninguna cumple
+    return {
+      diametro: '50mm',
+      descripcion: 'Tubo 50mm (por defecto)',
+      codigo: 'T50'
+    };
   }
   
   /**
-   * Selecciona el tipo de mecanismo según el ancho
-   * @param {number} ancho - Ancho en metros
-   * @param {boolean} motorizado - Si es motorizado
+   * Selecciona el tipo de mecanismo según reglas de BD
+   * @param {object} configuracion - Configuración del sistema
+   * @param {object} variables - Variables de la pieza
    * @returns {object} Información del mecanismo
    */
-  static seleccionarMecanismo(ancho, motorizado = false) {
-    // Si es mayor a 3m, debe ser motorizado obligatoriamente
-    if (ancho > 3.00) {
-      return {
-        tipo: 'Motor',
-        descripcion: 'Motor tubular (obligatorio para anchos > 3.00m)',
-        codigo: 'MOTOR',
-        esMotor: true,
-        obligatorio: true
-      };
+  static seleccionarMecanismo(configuracion, variables) {
+    const reglasMecanismos = configuracion.reglasSeleccion?.mecanismos || [];
+    
+    // Buscar la primera regla que cumpla la condición
+    for (const regla of reglasMecanismos) {
+      try {
+        if (regla.condicion) {
+          const condicionFn = new Function(
+            ...Object.keys(variables),
+            `return ${regla.condicion}`
+          );
+          const cumple = condicionFn(...Object.values(variables));
+          
+          if (cumple) {
+            return {
+              tipo: regla.tipo,
+              descripcion: regla.descripcion,
+              codigo: regla.codigo,
+              incluye: regla.incluye || [],
+              esMotor: regla.tipo === 'Motor',
+              obligatorio: regla.condicion.includes('> 3') // Detectar si es obligatorio
+            };
+          }
+        }
+      } catch (error) {
+        logger.error('Error evaluando regla de mecanismo', {
+          regla: regla.condicion,
+          error: error.message
+        });
+      }
     }
     
-    // Si el usuario lo pidió motorizado
-    if (motorizado) {
-      return {
-        tipo: 'Motor',
-        descripcion: 'Motor tubular',
-        codigo: 'MOTOR',
-        esMotor: true,
-        obligatorio: false
-      };
-    }
-    
-    // Mecanismos manuales según ancho
-    if (ancho <= 2.50) {
-      return {
-        tipo: 'Mecanismo',
-        descripcion: 'Mecanismo SL-16 (hasta 2.50m)',
-        codigo: 'SL-16',
-        esMotor: false,
-        obligatorio: false
-      };
-    } else {
-      return {
-        tipo: 'Mecanismo',
-        descripcion: 'Mecanismo R-24 (2.50m - 3.00m)',
-        codigo: 'R-24',
-        esMotor: false,
-        obligatorio: false
-      };
-    }
+    // Fallback
+    return {
+      tipo: 'Mecanismo',
+      descripcion: 'Mecanismo estándar',
+      codigo: 'MEC-STD',
+      incluye: [],
+      esMotor: false,
+      obligatorio: false
+    };
   }
   
   /**
    * Calcula cuántos cortes salen de un tubo estándar
    * @param {number} anchoCorte - Ancho del corte en metros
+   * @param {number} longitudEstandar - Longitud estándar del tubo
    * @returns {object} Información de optimización
    */
-  static calcularCortesOptimos(anchoCorte) {
+  static calcularCortesOptimos(anchoCorte, longitudEstandar = 5.80) {
     const longitudNecesaria = anchoCorte + this.MARGEN_CORTE;
-    const cortesCompletos = Math.floor(this.LONGITUD_TUBO_ESTANDAR / longitudNecesaria);
-    const desperdicioMetros = this.LONGITUD_TUBO_ESTANDAR - (cortesCompletos * longitudNecesaria);
-    const desperdicioPorc = (desperdicioMetros / this.LONGITUD_TUBO_ESTANDAR) * 100;
+    const cortesCompletos = Math.floor(longitudEstandar / longitudNecesaria);
+    const desperdicioMetros = longitudEstandar - (cortesCompletos * longitudNecesaria);
+    const desperdicioPorc = (desperdicioMetros / longitudEstandar) * 100;
     
     return {
       cortesCompletos,
@@ -170,87 +181,106 @@ class OptimizadorCortesService {
   }
   
   /**
-   * Calcula todos los materiales para una pieza según reglas de negocio
-   * HÍBRIDO: Usa lógica de negocio para tubo/mecanismo + configuración BD para resto
+   * Calcula todos los materiales para una pieza usando configuración de BD
+   * v2.0: 100% dinámico desde base de datos
    * @param {object} pieza - Datos de la pieza
    * @returns {Promise<Array>} Lista de materiales calculados
    */
   static async calcularMaterialesPieza(pieza) {
-    const { ancho, alto, motorizado = false } = pieza;
+    const { ancho, alto, motorizado = false, sistema = 'Roller Shade', producto } = pieza;
     
-    // PASO 1: Aplicar lógica de negocio para selección automática
-    const tubo = this.seleccionarTubo(ancho);
-    const mecanismo = this.seleccionarMecanismo(ancho, motorizado);
-    const optimizacion = this.calcularCortesOptimos(ancho);
-    
-    // PASO 2: Enriquecer pieza con información de negocio
-    const piezaEnriquecida = {
-      ...pieza,
-      // Agregar metadata de selección automática
-      _tuboSeleccionado: tubo,
-      _mecanismoSeleccionado: mecanismo,
-      _optimizacion: optimizacion,
-      // Forzar motorizado si es obligatorio
-      motorizado: mecanismo.obligatorio ? true : motorizado
-    };
-    
-    // PASO 3: Obtener materiales desde configuración de BD
-    let materialesBase = await CalculadoraMaterialesService.calcularMaterialesPieza(piezaEnriquecida);
-    
-    // PASO 4: Enriquecer materiales con metadata de optimización
-    const materialesEnriquecidos = materialesBase.map(material => {
-      // Si es tubo, agregar información de optimización
-      if (material.tipo === 'Tubo') {
-        return {
-          ...material,
-          descripcion: `${material.descripcion} - ${tubo.descripcion}`,
-          codigo: tubo.codigo,
-          observaciones: `${material.observaciones || ''}\n${optimizacion.cortesCompletos} cortes por tubo de 5.80m. Desperdicio: ${optimizacion.desperdicioPorc}%. Eficiencia: ${optimizacion.eficiencia}%`.trim(),
-          metadata: {
-            ...(material.metadata || {}),
-            diametro: tubo.diametro,
-            cortesCompletos: optimizacion.cortesCompletos,
-            desperdicioPorc: optimizacion.desperdicioPorc,
-            tubosNecesarios: optimizacion.tubosNecesarios,
-            eficiencia: optimizacion.eficiencia
-          }
-        };
+    try {
+      // PASO 1: Buscar configuración en BD
+      const query = { sistema, activo: true };
+      if (producto) query.producto = producto;
+      
+      const configuracion = await ConfiguracionMateriales.findOne(query).lean();
+      
+      if (!configuracion) {
+        logger.warn('No se encontró configuración para el sistema', { sistema, producto });
+        return [];
       }
       
-      // Si es mecanismo o motor, agregar información de selección
-      if (material.tipo === 'Mecanismo' || material.tipo === 'Motor') {
-        return {
-          ...material,
-          descripcion: `${mecanismo.descripcion}`,
-          codigo: mecanismo.codigo,
-          observaciones: mecanismo.obligatorio 
-            ? '⚠️ OBLIGATORIO por ancho > 3.00m' 
-            : material.observaciones || '',
-          metadata: {
-            ...(material.metadata || {}),
+      // PASO 2: Preparar variables para evaluación
+      const variables = {
+        ancho,
+        alto,
+        area: ancho * alto,
+        motorizado,
+        esManual: !motorizado,
+        galeria: pieza.galeria || 'sin_galeria',
+        color: pieza.color || '',
+        Math,
+        Number
+      };
+      
+      // PASO 3: Seleccionar componentes según reglas
+      const tubo = this.seleccionarTubo(configuracion, variables);
+      const mecanismo = this.seleccionarMecanismo(configuracion, variables);
+      
+      // PASO 4: Calcular optimización de cortes
+      const longitudEstandar = configuracion.optimizacion?.longitudEstandar || 5.80;
+      const optimizacion = this.calcularCortesOptimos(ancho, longitudEstandar);
+      
+      // PASO 5: Calcular materiales usando el modelo
+      const materiales = configuracion.calcularTodosMateriales(variables);
+      
+      // PASO 6: Enriquecer con información de selección y optimización
+      const materialesEnriquecidos = materiales.map(material => {
+        const materialEnriquecido = { ...material };
+        
+        // Enriquecer tubos
+        if (material.tipo === 'Tubo') {
+          materialEnriquecido.descripcion = `${tubo.descripcion}`;
+          materialEnriquecido.codigo = tubo.codigo;
+          materialEnriquecido.diametro = tubo.diametro;
+          materialEnriquecido.observaciones = `${optimizacion.cortesCompletos} cortes por tubo. Desperdicio: ${optimizacion.desperdicioPorc}%`;
+          materialEnriquecido.metadata = {
+            ...optimizacion,
+            diametro: tubo.diametro
+          };
+        }
+        
+        // Enriquecer mecanismos
+        if (material.tipo === 'Mecanismo' || material.tipo === 'Motor') {
+          materialEnriquecido.descripcion = mecanismo.descripcion;
+          materialEnriquecido.codigo = mecanismo.codigo;
+          materialEnriquecido.incluye = mecanismo.incluye;
+          if (mecanismo.obligatorio) {
+            materialEnriquecido.observaciones = '⚠️ OBLIGATORIO';
+          }
+          materialEnriquecido.metadata = {
             esMotor: mecanismo.esMotor,
-            obligatorio: mecanismo.obligatorio,
-            codigoMecanismo: mecanismo.codigo
-          }
-        };
-      }
+            obligatorio: mecanismo.obligatorio
+          };
+        }
+        
+        return materialEnriquecido;
+      });
       
-      return material;
-    });
-    
-    logger.info('Materiales calculados con optimización híbrida', {
-      servicio: 'optimizadorCortesService',
-      ancho,
-      alto,
-      motorizado: piezaEnriquecida.motorizado,
-      tubo: tubo.codigo,
-      mecanismo: mecanismo.codigo,
-      cortesOptimos: optimizacion.cortesCompletos,
-      desperdicio: optimizacion.desperdicioPorc,
-      totalMateriales: materialesEnriquecidos.length
-    });
-    
-    return materialesEnriquecidos;
+      logger.info('Materiales calculados desde BD', {
+        servicio: 'optimizadorCortesService',
+        sistema,
+        producto,
+        ancho,
+        alto,
+        motorizado,
+        tubo: tubo.codigo,
+        mecanismo: mecanismo.codigo,
+        totalMateriales: materialesEnriquecidos.length
+      });
+      
+      return materialesEnriquecidos;
+      
+    } catch (error) {
+      logger.error('Error calculando materiales', {
+        servicio: 'optimizadorCortesService',
+        error: error.message,
+        stack: error.stack,
+        pieza
+      });
+      throw error;
+    }
   }
   
   /**
