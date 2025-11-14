@@ -148,6 +148,7 @@ app.use('/api/exportacion', require('./routes/exportacion')); // ✅ REACTIVADO 
 app.use('/api/kpis', require('./routes/kpis')); // ✅ NUEVO - KPIs y Métricas de Ventas
 app.use('/api/alertas', require('./routes/alertas'));
 app.use('/api/calculadora', require('./routes/calculadora')); // ✅ NUEVO - Calculadora de Materiales
+app.use('/api/almacen', require('./routes/almacen')); // ✅ NUEVO - Gestión de Almacén e Inventario
 app.use('/api/storage', require('./routes/storage'));
 app.use('/api/backup', require('./routes/backup'));
 app.use('/api/fix', require('./routes/fix')); // Ruta temporal para correcciones
