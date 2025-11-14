@@ -1,8 +1,88 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
 **Fecha de última sesión:** 13 Noviembre 2025  
-**Hora de finalización:** 5:40 PM  
-**Estado del proyecto:** ✅ PDF | ✅ PAGOS | ✅ AUDITORÍA | ✅ ORDEN PRODUCCIÓN | ✅ CALCULADORA MATERIALES
+**Hora de finalización:** 6:35 PM  
+**Estado del proyecto:** ✅ PDF | ✅ PAGOS | ✅ AUDITORÍA | ✅ ORDEN PRODUCCIÓN | 🔄 CALCULADORA v1.2
+
+---
+
+## 📐 SESIÓN 13 NOV 2025 - CALCULADORA v1.2 (6:32 PM - 7:12 PM)
+
+**Duración:** 40 minutos  
+**Estado:** ✅ ROLLER SHADE COMPLETADO AL 100%  
+**Objetivo:** Sistema 100% configurable sin reglas hardcodeadas
+
+### 🎯 Plan de Trabajo
+
+**FASE 1: DOCUMENTAR REGLAS** ✅ **ROLLER SHADE COMPLETO**
+- Documento creado: `docs/REGLAS_CALCULADORA_v1.2.md`
+- ✅ Roller Shade (Enrollable) - 100% DOCUMENTADO
+- ⏳ Sheer Elegance - PENDIENTE
+- ⏳ Toldos - PENDIENTE
+
+**FASE 2: LIMPIAR CÓDIGO**
+- Eliminar reglas hardcodeadas
+- Dejar solo optimización de cortes
+- Mover lógica a configuración BD
+
+**FASE 3: MEJORAR MODELO**
+- Agregar campo `reglasSeleccion`
+- Agregar campo `optimizacion`
+- Validadores de reglas
+
+**FASE 4: ACTUALIZAR PANEL WEB**
+- Sección reglas de tubo
+- Sección reglas de mecanismo
+- Configuración de optimización
+- Probador de reglas
+
+**FASE 5: CONFIGURAR SISTEMAS**
+- Crear configuraciones desde panel web
+- Probar con datos reales
+- Activar para producción
+
+### ✅ ROLLER SHADE - COMPLETADO
+
+**9 componentes documentados:**
+1. ✅ Tubos (manual 38/50mm, motorizado 35/50/70/79mm)
+2. ✅ Mecanismos (SL-16, R-24, Motor + soportes intermedios)
+3. ✅ Tela (normal, rotada, termosello)
+4. ✅ Contrapesos (Elegance, Ovalado)
+5. ✅ Cadena y accesorios
+6. ✅ Tapas y tapones
+7. ✅ Cinta adhesiva
+8. ✅ Insertos
+9. ✅ Galería (madera + tela)
+
+**Reglas especiales documentadas:**
+- Optimización de cortes (tubos y contrapesos de 5.80m)
+- Rotación de tela (altura ≤ 2.80m, contrapeso Elegance)
+- Termosello (blackout plastificado)
+- Motorización obligatoria (ancho > 3.00m)
+- Soportes intermedios (2-3 lienzos)
+- Galería (+25cm tela, madera 2.40m)
+
+### 📝 PRÓXIMOS PASOS PARA MAÑANA
+
+**1. CONTINUAR DOCUMENTACIÓN:**
+   - Sheer Elegance (desde cero)
+   - Toldos (desde cero)
+
+**2. IMPLEMENTAR MODELO MEJORADO:**
+   - Agregar campo `reglasSeleccion` al modelo
+   - Agregar campo `optimizacion`
+   - Validadores de reglas
+
+**3. ACTUALIZAR PANEL WEB:**
+   - Sección reglas de tubo
+   - Sección reglas de mecanismo
+   - Configuración de optimización
+   - Probador de reglas
+
+**4. CONFIGURAR ROLLER SHADE:**
+   - Crear configuración desde panel web
+   - Usar reglas documentadas
+   - Probar con datos reales
 
 ---
 
