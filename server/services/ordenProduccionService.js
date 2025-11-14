@@ -194,12 +194,28 @@ class OrdenProduccionService {
           ? producto.medidas[0] 
           : producto.medidas || {};
 
+        // Mapear sistema
+        let sistema = producto.sistema || medidas.sistema;
+        
+        if (!sistema || sistema === 'Enrollable' || sistema === 'No especificado') {
+          const nombreProducto = (producto.nombre || producto.descripcion || '').toLowerCase();
+          const telaMarca = (producto.telaMarca || '').toLowerCase();
+          
+          if (nombreProducto.includes('sheer') || telaMarca.includes('sheer')) {
+            sistema = 'Sheer Elegance';
+          } else if (nombreProducto.includes('toldo') || nombreProducto.includes('contempo')) {
+            sistema = 'Toldos Contempo';
+          } else {
+            sistema = 'Roller Shade'; // Default
+          }
+        }
+
         piezas.push({
           numero: index + 1,
           ubicacion: producto.ubicacion || medidas.producto || `Pieza ${index + 1}`,
           
           // 13 CAMPOS TÉCNICOS
-          sistema: producto.sistema || medidas.sistema || 'No especificado',
+          sistema: sistema,
           control: producto.control || medidas.control || 'No especificado',
           tipoInstalacion: producto.tipoInstalacion || medidas.tipoInstalacion || 'No especificado',
           tipoFijacion: producto.tipoFijacion || medidas.tipoFijacion || 'No especificado',
@@ -236,12 +252,28 @@ class OrdenProduccionService {
         
         if (Array.isArray(items) && items.length > 0) {
           items.forEach(pieza => {
+            // Mapear sistema desde producto/modelo
+            let sistema = pieza.sistema || partida.sistema;
+            
+            if (!sistema || sistema === 'Enrollable' || sistema === 'No especificado') {
+              const producto = (partida.producto || pieza.producto || '').toLowerCase();
+              const modelo = (partida.modelo || pieza.modelo || '').toLowerCase();
+              
+              if (producto.includes('sheer') || modelo.includes('sheer')) {
+                sistema = 'Sheer Elegance';
+              } else if (producto.includes('toldo') || modelo.includes('toldo') || modelo.includes('contempo')) {
+                sistema = 'Toldos Contempo';
+              } else {
+                sistema = 'Roller Shade'; // Default para enrollables
+              }
+            }
+            
             piezas.push({
               numero: numeroPieza++,
               ubicacion: partida.ubicacion || pieza.producto || `Pieza ${numeroPieza}`,
               
               // 13 CAMPOS TÉCNICOS
-              sistema: pieza.sistema || partida.sistema || 'Enrollable',
+              sistema: sistema,
               control: pieza.control || 'No especificado',
               tipoInstalacion: pieza.instalacion || pieza.tipoInstalacion || 'Techo',
               tipoFijacion: pieza.fijacion || pieza.tipoFijacion || 'Tablaroca',

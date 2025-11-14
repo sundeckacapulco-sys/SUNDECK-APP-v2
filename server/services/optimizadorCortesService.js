@@ -397,14 +397,14 @@ class OptimizadorCortesService {
     const { ancho, alto, motorizado = false, sistema = 'Roller Shade', producto } = pieza;
     
     try {
-      // PASO 1: Buscar configuración en BD
-      const query = { sistema, activo: true };
-      if (producto) query.producto = producto;
-      
-      const configuracion = await ConfiguracionMateriales.findOne(query).lean();
+      // PASO 1: Buscar configuración en BD (solo por sistema)
+      const configuracion = await ConfiguracionMateriales.findOne({ 
+        sistema, 
+        activo: true 
+      }).lean();
       
       if (!configuracion) {
-        logger.warn('No se encontró configuración para el sistema', { sistema, producto });
+        logger.warn('No se encontró configuración para el sistema', { sistema });
         return [];
       }
       
@@ -415,6 +415,8 @@ class OptimizadorCortesService {
         area: ancho * alto,
         motorizado,
         esManual: !motorizado,
+        rotada: pieza.rotada || false,
+        galeria: pieza.galeria || false,
         galeria: pieza.galeria || 'sin_galeria',
         color: pieza.color || '',
         Math,
@@ -429,8 +431,39 @@ class OptimizadorCortesService {
       const longitudEstandar = configuracion.optimizacion?.longitudEstandar || 5.80;
       const optimizacion = this.calcularCortesOptimos(ancho, longitudEstandar);
       
-      // PASO 5: Calcular materiales usando el modelo
-      const materiales = configuracion.calcularTodosMateriales(variables);
+      // PASO 5: Calcular materiales evaluando fórmulas
+      const materiales = [];
+      
+      if (configuracion.materiales && Array.isArray(configuracion.materiales)) {
+        configuracion.materiales.forEach(materialConfig => {
+          // Verificar condición si existe
+          if (materialConfig.condicion) {
+            try {
+              const cumpleCondicion = eval(materialConfig.condicion);
+              if (!cumpleCondicion) return; // Skip este material
+            } catch (e) {
+              logger.warn('Error evaluando condición', { condicion: materialConfig.condicion, error: e.message });
+              return;
+            }
+          }
+          
+          // Evaluar fórmula
+          try {
+            const cantidad = eval(materialConfig.formula);
+            
+            materiales.push({
+              tipo: materialConfig.tipo,
+              codigo: materialConfig.codigo || materialConfig.tipo.toUpperCase(),
+              descripcion: materialConfig.descripcion,
+              cantidad: Number(cantidad) || 0,
+              unidad: materialConfig.unidad,
+              observaciones: materialConfig.observaciones || ''
+            });
+          } catch (e) {
+            logger.warn('Error evaluando fórmula', { formula: materialConfig.formula, error: e.message });
+          }
+        });
+      }
       
       // PASO 6: Enriquecer con información de selección y optimización
       const materialesEnriquecidos = materiales.map(material => {
