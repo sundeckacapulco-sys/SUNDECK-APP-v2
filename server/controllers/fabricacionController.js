@@ -1,5 +1,6 @@
 const FabricacionService = require('../services/fabricacionService');
 const CotizacionMappingService = require('../services/cotizacionMappingService');
+const OrdenProduccionService = require('../services/ordenProduccionService');
 const Pedido = require('../models/Pedido');
 const OrdenFabricacion = require('../models/OrdenFabricacion');
 const logger = require('../config/logger');
@@ -384,11 +385,89 @@ function calcularFechaFinEstimada(fechaInicio, diasFabricacion) {
   return fecha;
 }
 
+/**
+ * Generar orden de producción con integración de almacén
+ */
+async function generarOrdenProduccionConAlmacen(req, res) {
+  try {
+    const { proyectoId } = req.params;
+    const usuarioId = req.user?._id;
+    
+    logger.info('Generando orden de producción con almacén', {
+      controlador: 'fabricacionController',
+      accion: 'generarOrdenProduccionConAlmacen',
+      proyectoId,
+      usuarioId
+    });
+    
+    // Procesar orden con almacén integrado
+    const resultado = await OrdenProduccionService.procesarOrdenConAlmacen(
+      proyectoId,
+      usuarioId
+    );
+    
+    if (!resultado.success) {
+      logger.warn('Stock insuficiente para orden de producción', {
+        controlador: 'fabricacionController',
+        proyectoId,
+        faltantes: resultado.etapas?.verificacion?.faltantes
+      });
+      
+      return res.status(400).json({
+        success: false,
+        message: 'No hay stock suficiente para procesar la orden',
+        faltantes: resultado.etapas?.verificacion?.faltantes || [],
+        advertencias: resultado.etapas?.verificacion?.advertencias || []
+      });
+    }
+    
+    logger.info('Orden de producción generada exitosamente', {
+      controlador: 'fabricacionController',
+      proyectoId,
+      materialesUsados: resultado.materiales?.length || 0,
+      sobrantesGenerados: resultado.sobrantes?.length || 0
+    });
+    
+    return res.json({
+      success: true,
+      message: 'Orden de producción procesada exitosamente',
+      data: {
+        materiales: resultado.materiales,
+        sobrantes: resultado.sobrantes,
+        etapas: resultado.etapas,
+        resumen: {
+          materialesUsados: resultado.materiales?.length || 0,
+          sobrantesGenerados: resultado.sobrantes?.length || 0,
+          barrasNuevas: resultado.etapas?.optimizacion?.resumen?.barrasNuevas || 0,
+          sobrantesReutilizados: resultado.etapas?.optimizacion?.resumen?.sobrantesReutilizados || 0,
+          eficienciaGlobal: resultado.etapas?.optimizacion?.resumen?.eficienciaGlobal || 0
+        }
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error generando orden de producción', {
+      controlador: 'fabricacionController',
+      accion: 'generarOrdenProduccionConAlmacen',
+      proyectoId: req.params?.proyectoId,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    return res.status(500).json({
+      success: false,
+      message: 'Error generando orden de producción',
+      error: error.message
+    });
+  }
+}
+
 module.exports = {
   obtenerColaFabricacion,
   obtenerMetricasFabricacion,
   crearOrdenDesdePedido,
   actualizarEstadoOrden,
+  generarOrdenProduccionConAlmacen,
   // Exportar helpers para facilitar pruebas si es necesario
   __test__: {
     normalizarProductoParaOrden,
