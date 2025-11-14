@@ -134,43 +134,114 @@ class OptimizadorCortesService {
   }
   
   /**
-   * Calcula tubos necesarios para múltiples piezas
+   * Optimiza cortes para minimizar desperdicios (Bin Packing Problem)
+   * Agrupa cortinas inteligentemente en barras de 5.80m
+   * @param {Array} cortes - Array de longitudes a cortar
+   * @param {number} longitudBarra - Longitud de la barra estándar
+   * @returns {object} Plan de cortes optimizado
+   */
+  static optimizarCortes(cortes, longitudBarra = 5.80) {
+    // Ordenar cortes de mayor a menor (First Fit Decreasing)
+    const cortesOrdenados = [...cortes].sort((a, b) => b - a);
+    const barras = [];
+    
+    cortesOrdenados.forEach(corte => {
+      // Buscar una barra donde quepa el corte
+      let colocado = false;
+      
+      for (const barra of barras) {
+        const espacioDisponible = longitudBarra - barra.usado;
+        
+        if (espacioDisponible >= corte + this.MARGEN_CORTE) {
+          barra.cortes.push(corte);
+          barra.usado += corte + this.MARGEN_CORTE;
+          colocado = true;
+          break;
+        }
+      }
+      
+      // Si no cabe en ninguna barra, crear una nueva
+      if (!colocado) {
+        barras.push({
+          numero: barras.length + 1,
+          cortes: [corte],
+          usado: corte + this.MARGEN_CORTE,
+          sobrante: longitudBarra - (corte + this.MARGEN_CORTE),
+          eficiencia: 0
+        });
+      }
+    });
+    
+    // Calcular eficiencia de cada barra
+    barras.forEach(barra => {
+      barra.sobrante = Number((longitudBarra - barra.usado).toFixed(3));
+      barra.eficiencia = Number(((barra.usado / longitudBarra) * 100).toFixed(2));
+      barra.desperdicio = Number(((barra.sobrante / longitudBarra) * 100).toFixed(2));
+    });
+    
+    // Calcular estadísticas totales
+    const totalUsado = barras.reduce((sum, b) => sum + b.usado, 0);
+    const totalSobrante = barras.reduce((sum, b) => sum + b.sobrante, 0);
+    const eficienciaGlobal = (totalUsado / (barras.length * longitudBarra)) * 100;
+    
+    return {
+      barras,
+      resumen: {
+        totalBarras: barras.length,
+        totalCortes: cortes.length,
+        longitudTotal: barras.length * longitudBarra,
+        totalUsado: Number(totalUsado.toFixed(2)),
+        totalSobrante: Number(totalSobrante.toFixed(2)),
+        eficienciaGlobal: Number(eficienciaGlobal.toFixed(2)),
+        desperdicioGlobal: Number((100 - eficienciaGlobal).toFixed(2))
+      }
+    };
+  }
+
+  /**
+   * Calcula tubos necesarios para múltiples piezas CON OPTIMIZACIÓN
    * @param {Array} piezas - Array de objetos con {ancho, cantidad}
-   * @returns {object} Resumen de tubos necesarios
+   * @returns {object} Resumen de tubos necesarios optimizado
    */
   static calcularTubosParaProduccion(piezas) {
     const resumenPorTipo = {};
     let totalTubos = 0;
     
+    // Agrupar piezas por tipo de tubo
+    const piezasPorTipo = {};
+    
     piezas.forEach(pieza => {
       const tubo = this.seleccionarTubo(pieza.ancho);
-      const optimizacion = this.calcularCortesOptimos(pieza.ancho);
-      const cantidad = pieza.cantidad || 1;
       
-      if (!resumenPorTipo[tubo.codigo]) {
-        resumenPorTipo[tubo.codigo] = {
+      if (!piezasPorTipo[tubo.codigo]) {
+        piezasPorTipo[tubo.codigo] = {
           tubo,
-          piezas: [],
-          totalCortes: 0,
-          tubosNecesarios: 0
+          cortes: []
         };
       }
       
-      resumenPorTipo[tubo.codigo].piezas.push({
-        ancho: pieza.ancho,
-        cantidad,
-        cortesCompletos: optimizacion.cortesCompletos,
-        desperdicioPorc: optimizacion.desperdicioPorc
-      });
-      
-      resumenPorTipo[tubo.codigo].totalCortes += cantidad;
-      resumenPorTipo[tubo.codigo].tubosNecesarios += optimizacion.tubosNecesarios * cantidad;
+      // Agregar el corte (con margen de corte ya incluido)
+      const cantidad = pieza.cantidad || 1;
+      for (let i = 0; i < cantidad; i++) {
+        piezasPorTipo[tubo.codigo].cortes.push(pieza.ancho);
+      }
     });
     
-    // Redondear tubos hacia arriba
-    Object.keys(resumenPorTipo).forEach(codigo => {
-      resumenPorTipo[codigo].tubosNecesarios = Math.ceil(resumenPorTipo[codigo].tubosNecesarios);
-      totalTubos += resumenPorTipo[codigo].tubosNecesarios;
+    // Optimizar cortes para cada tipo de tubo
+    Object.keys(piezasPorTipo).forEach(codigo => {
+      const { tubo, cortes } = piezasPorTipo[codigo];
+      const optimizacion = this.optimizarCortes(cortes, this.LONGITUD_TUBO_ESTANDAR);
+      
+      resumenPorTipo[codigo] = {
+        tubo,
+        optimizacion,
+        totalCortes: cortes.length,
+        tubosNecesarios: optimizacion.resumen.totalBarras,
+        eficiencia: optimizacion.resumen.eficienciaGlobal,
+        desperdicio: optimizacion.resumen.desperdicioGlobal
+      };
+      
+      totalTubos += optimizacion.resumen.totalBarras;
     });
     
     return {
