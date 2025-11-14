@@ -40,9 +40,18 @@ import {
   Calculate as CalculateIcon
 } from '@mui/icons-material';
 import axiosConfig from '../../config/axios';
+import ReglasSeleccionForm from './components/ReglasSeleccionForm';
+import ColoresForm from './components/ColoresForm';
+import OptimizacionForm from './components/OptimizacionForm';
+import MaterialFormFields from './components/MaterialFormFields';
 
-const TIPOS_MATERIAL = ['Tela', 'Tubo', 'Soportes', 'Mecanismo', 'Motor', 'Galería', 'Herrajes', 'Accesorios'];
+const TIPOS_MATERIAL = [
+  'Tela', 'Tubo', 'Cofre', 'Barra de Giro', 'Contrapeso', 
+  'Soportes', 'Mecanismo', 'Motor', 'Cadena', 'Cable',
+  'Tapas', 'Insertos', 'Cinta', 'Galería', 'Herrajes', 'Accesorios', 'Kit'
+];
 const UNIDADES = ['ml', 'm²', 'pza', 'kit', 'juego'];
+const SISTEMAS = ['Roller Shade', 'Sheer Elegance', 'Toldos Contempo'];
 
 const CalculadoraMateriales = () => {
   const [configuraciones, setConfiguraciones] = useState([]);
@@ -60,8 +69,20 @@ const CalculadoraMateriales = () => {
   const [formConfig, setFormConfig] = useState({
     nombre: '',
     producto: '',
-    sistema: 'Enrollable',
-    activo: true
+    sistema: 'Roller Shade',
+    activo: true,
+    reglasSeleccion: {
+      tubos: [],
+      mecanismos: [],
+      kits: []
+    },
+    optimizacion: {
+      habilitada: true,
+      longitudEstandar: 5.80,
+      materialesOptimizables: []
+    },
+    reglasEspeciales: [],
+    coloresDisponibles: []
   });
   
   const [formMaterial, setFormMaterial] = useState({
@@ -72,7 +93,12 @@ const CalculadoraMateriales = () => {
     condicion: '',
     precioUnitario: 0,
     observaciones: '',
-    activo: true
+    activo: true,
+    // Campos específicos para telas
+    puedeRotar: false,
+    alturaMaxRotacion: 2.80,
+    permiteTermosello: false,
+    anchosRollo: []
   });
   
   const [materialEditando, setMaterialEditando] = useState(null);
@@ -84,7 +110,8 @@ const CalculadoraMateriales = () => {
     area: 7.5,
     motorizado: false,
     galeria: 'sin_galeria',
-    sistema: 'Enrollable'
+    sistema: 'Roller Shade',
+    color: 'Ivory'
   });
   const [resultadoPrueba, setResultadoPrueba] = useState(null);
 
@@ -155,7 +182,11 @@ const CalculadoraMateriales = () => {
         condicion: '',
         precioUnitario: 0,
         observaciones: '',
-        activo: true
+        activo: true,
+        puedeRotar: false,
+        alturaMaxRotacion: 2.80,
+        permiteTermosello: false,
+        anchosRollo: []
       });
       setMaterialEditando(null);
     }
