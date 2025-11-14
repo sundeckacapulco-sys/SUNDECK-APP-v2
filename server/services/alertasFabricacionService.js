@@ -13,8 +13,11 @@ const normalizarString = (valor = '') => (typeof valor === 'string' ? valor.trim
 
 class AlertasFabricacionService {
   constructor() {
-    this.umbralRetrasoDias = 3;
-    this.umbralControlCalidadDias = 1;
+    const umbralRetraso = Number.parseInt(process.env.ALERTAS_FABRICACION_UMBRAL_RETRASO, 10);
+    const umbralCalidad = Number.parseInt(process.env.ALERTAS_FABRICACION_UMBRAL_CALIDAD, 10);
+
+    this.umbralRetrasoDias = Number.isFinite(umbralRetraso) && umbralRetraso > 0 ? umbralRetraso : 3;
+    this.umbralControlCalidadDias = Number.isFinite(umbralCalidad) && umbralCalidad > 0 ? umbralCalidad : 1;
   }
 
   async obtenerOrdenesRetrasadas({ diasUmbral = this.umbralRetrasoDias, limite = 50 } = {}) {
@@ -54,10 +57,10 @@ class AlertasFabricacionService {
     return retrasadas;
   }
 
-  async detectarMaterialesFaltantes({ limite = 50 } = {}) {
+  async obtenerMaterialesFaltantes({ limite = 50 } = {}) {
     logger.info('Buscando materiales faltantes en fabricación', {
       servicio: 'alertasFabricacion',
-      metodo: 'detectarMaterialesFaltantes'
+      metodo: 'obtenerMaterialesFaltantes'
     });
 
     const proyectos = await Proyecto.find({
@@ -77,23 +80,23 @@ class AlertasFabricacionService {
       .lean();
 
     const materiales = proyectos
-      .map((proyecto) => this.formatearMaterialesFaltantes(proyecto))
+      .map((proyecto) => this.formatearMaterialFaltante(proyecto))
       .filter((alerta) => alerta?.materialesPendientes?.length > 0)
       .slice(0, limite);
 
     logger.info('Materiales faltantes detectados', {
       servicio: 'alertasFabricacion',
-      metodo: 'detectarMaterialesFaltantes',
+      metodo: 'obtenerMaterialesFaltantes',
       total: materiales.length
     });
 
     return materiales;
   }
 
-  async verificarControlCalidadPendiente({ diasUmbral = this.umbralControlCalidadDias, limite = 50 } = {}) {
+  async obtenerCalidadPendiente({ diasUmbral = this.umbralControlCalidadDias, limite = 50 } = {}) {
     logger.info('Verificando control de calidad pendiente', {
       servicio: 'alertasFabricacion',
-      metodo: 'verificarControlCalidadPendiente',
+      metodo: 'obtenerCalidadPendiente',
       diasUmbral
     });
 
@@ -110,41 +113,54 @@ class AlertasFabricacionService {
       .lean();
 
     const pendientes = proyectos
-      .map((proyecto) => this.formatearControlCalidadPendiente(proyecto, diasUmbral))
+      .map((proyecto) => this.formatearCalidadPendiente(proyecto, diasUmbral))
       .filter(Boolean)
       .slice(0, limite);
 
     logger.info('Controles de calidad pendientes detectados', {
       servicio: 'alertasFabricacion',
-      metodo: 'verificarControlCalidadPendiente',
+      metodo: 'obtenerCalidadPendiente',
       total: pendientes.length
     });
 
     return pendientes;
   }
 
-  async generarPanelFabricacion({ limitePorCategoria = 6 } = {}) {
-    logger.info('Generando panel de alertas de fabricación', {
+  async obtenerTodasLasAlertas({
+    limitePorCategoria = 50,
+    diasUmbralRetraso,
+    diasUmbralCalidad
+  } = {}) {
+    const umbralRetraso = Number.isFinite(diasUmbralRetraso) && diasUmbralRetraso > 0
+      ? diasUmbralRetraso
+      : this.umbralRetrasoDias;
+    const umbralCalidad = Number.isFinite(diasUmbralCalidad) && diasUmbralCalidad > 0
+      ? diasUmbralCalidad
+      : this.umbralControlCalidadDias;
+
+    logger.info('Obteniendo alertas completas de fabricación', {
       servicio: 'alertasFabricacion',
-      metodo: 'generarPanelFabricacion',
-      limitePorCategoria
+      metodo: 'obtenerTodasLasAlertas',
+      limitePorCategoria,
+      umbralRetraso,
+      umbralCalidad
     });
 
     const [ordenesRetrasadas, materialesFaltantes, controlCalidadPendiente] = await Promise.all([
-      this.obtenerOrdenesRetrasadas({ limite: limitePorCategoria * 2 }),
-      this.detectarMaterialesFaltantes({ limite: limitePorCategoria * 2 }),
-      this.verificarControlCalidadPendiente({ limite: limitePorCategoria * 2 })
+      this.obtenerOrdenesRetrasadas({ diasUmbral: umbralRetraso, limite: limitePorCategoria }),
+      this.obtenerMaterialesFaltantes({ limite: limitePorCategoria }),
+      this.obtenerCalidadPendiente({ diasUmbral: umbralCalidad, limite: limitePorCategoria })
     ]);
 
     const categorias = [
       {
-        tipo: 'ordenes_retrasadas',
+        tipo: 'fabricacion_retrasada',
         titulo: 'Órdenes de fabricación retrasadas',
-        descripcion: `Retraso superior a ${this.umbralRetrasoDias} día(s) en la fecha estimada de finalización`,
+        descripcion: `Retraso superior a ${umbralRetraso} día(s) en la fecha estimada de finalización`,
         prioridad: 'critica',
         color: prioridadAColor.critica,
         total: ordenesRetrasadas.length,
-        items: ordenesRetrasadas.slice(0, limitePorCategoria)
+        items: ordenesRetrasadas
       },
       {
         tipo: 'materiales_faltantes',
@@ -153,16 +169,16 @@ class AlertasFabricacionService {
         prioridad: 'alta',
         color: prioridadAColor.alta,
         total: materialesFaltantes.length,
-        items: materialesFaltantes.slice(0, limitePorCategoria)
+        items: materialesFaltantes
       },
       {
-        tipo: 'control_calidad_pendiente',
+        tipo: 'calidad_pendiente',
         titulo: 'Control de calidad pendiente',
-        descripcion: `Órdenes terminadas sin revisión en ${this.umbralControlCalidadDias}+ día(s)`,
+        descripcion: `Órdenes terminadas sin revisión en ${umbralCalidad}+ día(s)`,
         prioridad: 'importante',
         color: prioridadAColor.importante,
         total: controlCalidadPendiente.length,
-        items: controlCalidadPendiente.slice(0, limitePorCategoria)
+        items: controlCalidadPendiente
       }
     ];
 
@@ -173,6 +189,45 @@ class AlertasFabricacionService {
       controlCalidadPendiente: controlCalidadPendiente.length
     };
 
+    const alertas = categorias.flatMap((categoria) =>
+      categoria.items.map((item) => ({ ...item, categoria: categoria.tipo }))
+    );
+
+    logger.info('Alertas completas de fabricación generadas', {
+      servicio: 'alertasFabricacion',
+      metodo: 'obtenerTodasLasAlertas',
+      resumen
+    });
+
+    return {
+      generadoEn: new Date().toISOString(),
+      resumen,
+      categorias,
+      alertas
+    };
+  }
+
+  async generarPanelFabricacion({ limitePorCategoria = 6 } = {}) {
+    logger.info('Generando panel de alertas de fabricación', {
+      servicio: 'alertasFabricacion',
+      metodo: 'generarPanelFabricacion',
+      limitePorCategoria
+    });
+
+    const panel = await this.obtenerTodasLasAlertas({ limitePorCategoria: limitePorCategoria * 2 });
+
+    const categorias = panel.categorias.map((categoria) => ({
+      ...categoria,
+      items: categoria.items.slice(0, limitePorCategoria)
+    }));
+
+    const resumen = {
+      total: categorias.reduce((acc, categoria) => acc + categoria.total, 0),
+      ordenesRetrasadas: categorias.find((c) => c.tipo === 'fabricacion_retrasada')?.total || 0,
+      materialesFaltantes: categorias.find((c) => c.tipo === 'materiales_faltantes')?.total || 0,
+      controlCalidadPendiente: categorias.find((c) => c.tipo === 'calidad_pendiente')?.total || 0
+    };
+
     logger.info('Panel de alertas de fabricación generado', {
       servicio: 'alertasFabricacion',
       metodo: 'generarPanelFabricacion',
@@ -180,7 +235,7 @@ class AlertasFabricacionService {
     });
 
     return {
-      generadoEn: new Date().toISOString(),
+      generadoEn: panel.generadoEn,
       resumen,
       categorias
     };
@@ -201,6 +256,7 @@ class AlertasFabricacionService {
       id: proyecto?._id?.toString(),
       numero: proyecto?.numero,
       prioridad: 'critica',
+      tipo: 'fabricacion_retrasada',
       diasRetraso,
       umbral: diasUmbral,
       fechaEstimada: fechaEstimada.toISOString(),
@@ -217,7 +273,7 @@ class AlertasFabricacionService {
     };
   }
 
-  formatearMaterialesFaltantes(proyecto) {
+  formatearMaterialFaltante(proyecto) {
     const materialesPendientes = (proyecto?.fabricacion?.materiales || [])
       .filter((material) => material && material.disponible !== true)
       .map((material) => ({
@@ -236,6 +292,7 @@ class AlertasFabricacionService {
       id: proyecto?._id?.toString(),
       numero: proyecto?.numero,
       prioridad: 'alta',
+      tipo: 'materiales_faltantes',
       materialesPendientes,
       cliente: this.obtenerDatosCliente(proyecto?.cliente),
       responsable: this.obtenerDatosResponsable(proyecto?.fabricacion?.asignadoA),
@@ -250,7 +307,7 @@ class AlertasFabricacionService {
     };
   }
 
-  formatearControlCalidadPendiente(proyecto, diasUmbral) {
+  formatearCalidadPendiente(proyecto, diasUmbral) {
     const fechaTerminado = this.obtenerFecha(
       proyecto?.cronograma?.fechaFinFabricacionReal ||
         this.obtenerUltimaFechaProceso(proyecto?.fabricacion?.procesos)
@@ -269,6 +326,7 @@ class AlertasFabricacionService {
       id: proyecto?._id?.toString(),
       numero: proyecto?.numero,
       prioridad: 'importante',
+      tipo: 'calidad_pendiente',
       diasPendientes,
       umbral: diasUmbral,
       fechaTerminado: fechaTerminado.toISOString(),
