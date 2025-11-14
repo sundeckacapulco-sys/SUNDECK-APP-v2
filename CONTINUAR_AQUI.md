@@ -6,40 +6,92 @@
 
 ---
 
+## 📐 SESIÓN 14 NOV 2025 - CALCULADORA v1.2 HÍBRIDA
+
+**Estrategia:** 🔄 TRABAJO EN PARALELO Usuario + Agente  
+**Estado:** ✅ ROLLER SHADE | ⏳ SHEER | ⏳ TOLDOS | ⏳ IMPLEMENTACIÓN  
+**Objetivo:** Documentar reglas + Implementar sistema simultáneamente
+
+### 🎯 Plan Híbrido
+
+**📋 DOCUMENTOS CREADOS:**
+- ✅ `docs/PLAN_HIBRIDO_CALCULADORA.md` - Estrategia completa
+- ✅ `docs/PLANTILLA_SHEER_ELEGANCE.md` - Plantilla para llenar
+- ✅ `docs/PLANTILLA_TOLDOS.md` - Plantilla para llenar
+
+**👤 TRACK USUARIO: Documentación**
+1. ⏳ Llenar `PLANTILLA_SHEER_ELEGANCE.md` (30-45 min)
+2. ⏳ Llenar `PLANTILLA_TOLDOS.md` (30-45 min)
+3. ⏳ Revisar panel web implementado
+
+**🤖 TRACK AGENTE: Implementación**
+1. ⏳ Modelo mejorado con `reglasSeleccion` (30 min)
+2. ⏳ Panel web de configuración (1-2 horas)
+3. ⏳ Configurar Roller Shade en producción (30 min)
+
+### 📊 Timeline Estimado
+
+```
+0:00 ─ Usuario: Sheer Elegance | Agente: Modelo mejorado
+0:30 ─ Usuario: Toldos         | Agente: Panel web
+1:30 ─ Sincronización: Revisar panel juntos
+2:00 ─ Configurar 3 sistemas en producción
+```
+
+### 🎯 Próximos Pasos INMEDIATOS
+
+**OPCIÓN A: Empezar con implementación**
+```bash
+# Agente empieza YA con:
+1. Modelo ConfiguracionMateriales mejorado
+2. Panel web de configuración
+3. Probador de fórmulas
+
+# Usuario documenta mientras tanto:
+1. Sheer Elegance (PLANTILLA_SHEER_ELEGANCE.md)
+2. Toldos (PLANTILLA_TOLDOS.md)
+```
+
+**OPCIÓN B: Empezar con documentación**
+```bash
+# Usuario llena plantillas primero
+# Agente espera y luego implementa todo junto
+```
+
+**OPCIÓN C: Secuencial**
+```bash
+# Primero documentar todo
+# Luego implementar todo
+```
+
+---
+
 ## 📐 SESIÓN 13 NOV 2025 - CALCULADORA v1.2 (6:32 PM - 7:12 PM)
 
 **Duración:** 40 minutos  
 **Estado:** ✅ ROLLER SHADE COMPLETADO AL 100%  
 **Objetivo:** Sistema 100% configurable sin reglas hardcodeadas
 
-### 🎯 Plan de Trabajo
+### ✅ ROLLER SHADE - COMPLETADO
 
-**FASE 1: DOCUMENTAR REGLAS** ✅ **ROLLER SHADE COMPLETO**
-- Documento creado: `docs/REGLAS_CALCULADORA_v1.2.md`
-- ✅ Roller Shade (Enrollable) - 100% DOCUMENTADO
-- ⏳ Sheer Elegance - PENDIENTE
-- ⏳ Toldos - PENDIENTE
+**9 componentes documentados:**
+1. ✅ Tubos (manual 38/50mm, motorizado 35/50/70/79mm)
+2. ✅ Mecanismos (SL-16, R-24, Motor + soportes intermedios)
+3. ✅ Tela (normal, rotada, termosello)
+4. ✅ Contrapesos (Elegance, Ovalado)
+5. ✅ Cadena y accesorios
+6. ✅ Tapas y tapones
+7. ✅ Cinta adhesiva
+8. ✅ Insertos
+9. ✅ Galería (madera + tela)
 
-**FASE 2: LIMPIAR CÓDIGO**
-- Eliminar reglas hardcodeadas
-- Dejar solo optimización de cortes
-- Mover lógica a configuración BD
-
-**FASE 3: MEJORAR MODELO**
-- Agregar campo `reglasSeleccion`
-- Agregar campo `optimizacion`
-- Validadores de reglas
-
-**FASE 4: ACTUALIZAR PANEL WEB**
-- Sección reglas de tubo
-- Sección reglas de mecanismo
-- Configuración de optimización
-- Probador de reglas
-
-**FASE 5: CONFIGURAR SISTEMAS**
-- Crear configuraciones desde panel web
-- Probar con datos reales
-- Activar para producción
+**Reglas especiales documentadas:**
+- Optimización de cortes (tubos y contrapesos de 5.80m)
+- Rotación de tela (altura ≤ 2.80m, contrapeso Elegance)
+- Termosello (blackout plastificado)
+- Motorización obligatoria (ancho > 3.00m)
+- Soportes intermedios (2-3 lienzos)
+- Galería (+25cm tela, madera 2.40m)
 
 ### ✅ ROLLER SHADE - COMPLETADO
 

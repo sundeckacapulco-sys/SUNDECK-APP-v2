@@ -306,7 +306,7 @@ largoCadena = (alto - 0.80) * 2
 - Cortina 2.20m → 1 madera (corte de 2.40m)
 - Cortina 2.60m → 2 maderas unidas
 - Dos cortinas: 2.00m + 2.20m → 2 maderas total
-- Dos cortinas: 2.60m + 2.20m → 3 maderas total (2 para la de 2.60m, 1 para la de 2.20m)
+- Dos cortinas: 2.60m + 2.20m → 2 maderas total (1 para la de 2.60m+.20 cm de sobrante, 1 para la de 2.20m sobran .20 cm )
 
 ##### B) TELA PARA GALERÍA ✅ CONFIRMADO
 
