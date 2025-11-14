@@ -1,8 +1,11 @@
 const logger = require('../config/logger');
+const CalculadoraMaterialesService = require('./calculadoraMaterialesService');
 
 /**
  * Servicio para optimizar cortes de materiales y seleccionar componentes
  * según las reglas de negocio de Sundeck
+ * 
+ * HÍBRIDO: Combina lógica de negocio automática con configuración flexible de BD
  */
 class OptimizadorCortesService {
   
@@ -168,161 +171,100 @@ class OptimizadorCortesService {
   
   /**
    * Calcula todos los materiales para una pieza según reglas de negocio
+   * HÍBRIDO: Usa lógica de negocio para tubo/mecanismo + configuración BD para resto
    * @param {object} pieza - Datos de la pieza
-   * @returns {Array} Lista de materiales calculados
+   * @returns {Promise<Array>} Lista de materiales calculados
    */
-  static calcularMaterialesPieza(pieza) {
+  static async calcularMaterialesPieza(pieza) {
     const { ancho, alto, motorizado = false } = pieza;
-    const materiales = [];
     
-    // 1. TUBO
+    // PASO 1: Aplicar lógica de negocio para selección automática
     const tubo = this.seleccionarTubo(ancho);
+    const mecanismo = this.seleccionarMecanismo(ancho, motorizado);
     const optimizacion = this.calcularCortesOptimos(ancho);
     
-    materiales.push({
-      tipo: 'Tubo',
-      descripcion: tubo.descripcion,
-      codigo: tubo.codigo,
-      cantidad: ancho + this.MARGEN_CORTE,
-      unidad: 'ml',
-      observaciones: `${optimizacion.cortesCompletos} cortes por tubo de 5.80m. Desperdicio: ${optimizacion.desperdicioPorc}%`,
-      metadata: {
-        diametro: tubo.diametro,
-        cortesCompletos: optimizacion.cortesCompletos,
-        desperdicioPorc: optimizacion.desperdicioPorc,
-        tubosNecesarios: optimizacion.tubosNecesarios
+    // PASO 2: Enriquecer pieza con información de negocio
+    const piezaEnriquecida = {
+      ...pieza,
+      // Agregar metadata de selección automática
+      _tuboSeleccionado: tubo,
+      _mecanismoSeleccionado: mecanismo,
+      _optimizacion: optimizacion,
+      // Forzar motorizado si es obligatorio
+      motorizado: mecanismo.obligatorio ? true : motorizado
+    };
+    
+    // PASO 3: Obtener materiales desde configuración de BD
+    let materialesBase = await CalculadoraMaterialesService.calcularMaterialesPieza(piezaEnriquecida);
+    
+    // PASO 4: Enriquecer materiales con metadata de optimización
+    const materialesEnriquecidos = materialesBase.map(material => {
+      // Si es tubo, agregar información de optimización
+      if (material.tipo === 'Tubo') {
+        return {
+          ...material,
+          descripcion: `${material.descripcion} - ${tubo.descripcion}`,
+          codigo: tubo.codigo,
+          observaciones: `${material.observaciones || ''}\n${optimizacion.cortesCompletos} cortes por tubo de 5.80m. Desperdicio: ${optimizacion.desperdicioPorc}%. Eficiencia: ${optimizacion.eficiencia}%`.trim(),
+          metadata: {
+            ...(material.metadata || {}),
+            diametro: tubo.diametro,
+            cortesCompletos: optimizacion.cortesCompletos,
+            desperdicioPorc: optimizacion.desperdicioPorc,
+            tubosNecesarios: optimizacion.tubosNecesarios,
+            eficiencia: optimizacion.eficiencia
+          }
+        };
       }
-    });
-    
-    // 2. MECANISMO O MOTOR
-    const mecanismo = this.seleccionarMecanismo(ancho, motorizado);
-    
-    materiales.push({
-      tipo: mecanismo.tipo,
-      descripcion: mecanismo.descripcion,
-      codigo: mecanismo.codigo,
-      cantidad: 1,
-      unidad: 'pza',
-      observaciones: mecanismo.obligatorio ? 'OBLIGATORIO por ancho > 3.00m' : '',
-      metadata: {
-        esMotor: mecanismo.esMotor,
-        obligatorio: mecanismo.obligatorio
+      
+      // Si es mecanismo o motor, agregar información de selección
+      if (material.tipo === 'Mecanismo' || material.tipo === 'Motor') {
+        return {
+          ...material,
+          descripcion: `${mecanismo.descripcion}`,
+          codigo: mecanismo.codigo,
+          observaciones: mecanismo.obligatorio 
+            ? '⚠️ OBLIGATORIO por ancho > 3.00m' 
+            : material.observaciones || '',
+          metadata: {
+            ...(material.metadata || {}),
+            esMotor: mecanismo.esMotor,
+            obligatorio: mecanismo.obligatorio,
+            codigoMecanismo: mecanismo.codigo
+          }
+        };
       }
-    });
-    
-    // 3. TELA
-    materiales.push({
-      tipo: 'Tela',
-      descripcion: 'Roller Fabric',
-      cantidad: alto * 1.15, // 15% merma
-      unidad: 'ml',
-      observaciones: 'Alto + 15% merma'
-    });
-    
-    // 4. SOPORTES
-    materiales.push({
-      tipo: 'Soportes',
-      descripcion: 'Drive End Bracket',
-      cantidad: 1,
-      unidad: 'pza',
-      observaciones: 'Soporte lado mecanismo'
-    });
-    
-    materiales.push({
-      tipo: 'Soportes',
-      descripcion: 'Idle End Bracket',
-      cantidad: 1,
-      unidad: 'pza',
-      observaciones: 'Soporte lado opuesto'
-    });
-    
-    // 5. CADENA (solo si es manual)
-    if (!mecanismo.esMotor) {
-      materiales.push({
-        tipo: 'Mecanismo',
-        descripcion: 'Bead Chain (Cadena de control)',
-        cantidad: (alto * 2) + 0.50,
-        unidad: 'ml',
-        observaciones: 'Doble del alto + 50cm'
-      });
       
-      materiales.push({
-        tipo: 'Accesorios',
-        descripcion: 'Chain Connector',
-        cantidad: 1,
-        unidad: 'pza'
-      });
-      
-      materiales.push({
-        tipo: 'Accesorios',
-        descripcion: 'Chain Crimp',
-        cantidad: 1,
-        unidad: 'pza'
-      });
-      
-      materiales.push({
-        tipo: 'Accesorios',
-        descripcion: 'Chain Tensioner',
-        cantidad: 1,
-        unidad: 'pza'
-      });
-    }
-    
-    // 6. ACCESORIOS GENERALES
-    materiales.push({
-      tipo: 'Accesorios',
-      descripcion: 'Adhesive Strip (Cinta adhesiva)',
-      cantidad: ancho,
-      unidad: 'ml',
-      observaciones: 'Para pegar tela al tubo'
+      return material;
     });
     
-    materiales.push({
-      tipo: 'Accesorios',
-      descripcion: 'End Plug (Tapón lateral tubo)',
-      cantidad: 2,
-      unidad: 'pza'
-    });
-    
-    // 7. BASE
-    materiales.push({
-      tipo: 'Herrajes',
-      descripcion: 'Bottom Rail (Riel inferior)',
-      cantidad: ancho,
-      unidad: 'ml'
-    });
-    
-    materiales.push({
-      tipo: 'Accesorios',
-      descripcion: 'End Cap (Tapa lateral inferior)',
-      cantidad: 2,
-      unidad: 'pza'
-    });
-    
-    logger.info('Materiales calculados con optimización', {
+    logger.info('Materiales calculados con optimización híbrida', {
       servicio: 'optimizadorCortesService',
       ancho,
       alto,
-      motorizado,
+      motorizado: piezaEnriquecida.motorizado,
       tubo: tubo.codigo,
       mecanismo: mecanismo.codigo,
       cortesOptimos: optimizacion.cortesCompletos,
-      totalMateriales: materiales.length
+      desperdicio: optimizacion.desperdicioPorc,
+      totalMateriales: materialesEnriquecidos.length
     });
     
-    return materiales;
+    return materialesEnriquecidos;
   }
   
   /**
    * Genera reporte de optimización para producción
    * @param {Array} piezas - Array de piezas del proyecto
-   * @returns {object} Reporte completo
+   * @returns {Promise<object>} Reporte completo
    */
-  static generarReporteOptimizacion(piezas) {
-    const materialesPorPieza = piezas.map(pieza => ({
-      pieza,
-      materiales: this.calcularMaterialesPieza(pieza)
-    }));
+  static async generarReporteOptimizacion(piezas) {
+    const materialesPorPieza = await Promise.all(
+      piezas.map(async pieza => ({
+        pieza,
+        materiales: await this.calcularMaterialesPieza(pieza)
+      }))
+    );
     
     const resumenTubos = this.calcularTubosParaProduccion(
       piezas.map(p => ({ ancho: p.ancho, cantidad: 1 }))

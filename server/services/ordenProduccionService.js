@@ -32,8 +32,8 @@ class OrdenProduccionService {
       // Calcular BOM (Bill of Materials) por pieza usando optimizador inteligente
       const piezasConBOM = [];
       for (const pieza of piezas) {
-        // Usar optimizador de cortes que incluye lógica de negocio
-        const materiales = OptimizadorCortesService.calcularMaterialesPieza(pieza);
+        // Usar optimizador de cortes que incluye lógica de negocio + configuración BD
+        const materiales = await OptimizadorCortesService.calcularMaterialesPieza(pieza);
         piezasConBOM.push({
           ...pieza,
           materiales
@@ -41,7 +41,7 @@ class OrdenProduccionService {
       }
       
       // Generar reporte de optimización de tubos
-      const reporteOptimizacion = OptimizadorCortesService.generarReporteOptimizacion(piezas);
+      const reporteOptimizacion = await OptimizadorCortesService.generarReporteOptimizacion(piezas);
 
       // Calcular materiales totales
       const materialesConsolidados = this.consolidarMaterialesTotales(piezasConBOM);
