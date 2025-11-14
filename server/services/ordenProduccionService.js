@@ -71,6 +71,9 @@ class OrdenProduccionService {
         // Materiales consolidados
         materialesConsolidados,
 
+        // Lista de pedido para proveedor/almacén
+        listaPedido: this.generarListaPedido(piezasConBOM, reporteOptimizacion),
+
         // Cronograma
         cronograma: {
           fechaInicioFabricacion: proyecto.cronograma?.fechaInicioFabricacion,
@@ -393,6 +396,157 @@ class OrdenProduccionService {
     const diff = fin - inicio;
     
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }
+
+  /**
+   * Generar lista de pedido para proveedor/almacén
+   * Consolida materiales y calcula barras/rollos necesarios
+   */
+  static generarListaPedido(piezasConBOM, reporteOptimizacion) {
+    const listaPedido = {
+      tubos: [],
+      telas: [],
+      mecanismos: [],
+      contrapesos: [],
+      accesorios: [],
+      resumen: {
+        totalItems: 0,
+        totalBarras: 0,
+        totalRollos: 0
+      }
+    };
+
+    // Consolidar materiales por tipo
+    const materialesAgrupados = {};
+    
+    piezasConBOM.forEach(pieza => {
+      pieza.materiales.forEach(material => {
+        const key = `${material.tipo}-${material.codigo || material.descripcion}`;
+        
+        if (!materialesAgrupados[key]) {
+          materialesAgrupados[key] = {
+            tipo: material.tipo,
+            descripcion: material.descripcion,
+            codigo: material.codigo,
+            unidad: material.unidad,
+            cantidad: 0,
+            metadata: material.metadata || {}
+          };
+        }
+        
+        materialesAgrupados[key].cantidad += Number(material.cantidad);
+      });
+    });
+
+    // Procesar tubos con información de optimización
+    Object.values(materialesAgrupados).forEach(material => {
+      if (material.tipo === 'Tubo') {
+        const longitudEstandar = 5.80;
+        const barrasNecesarias = Math.ceil(material.cantidad / longitudEstandar);
+        const cortesOptimos = material.metadata?.cortesCompletos || Math.floor(longitudEstandar / (material.cantidad / piezasConBOM.length));
+        
+        listaPedido.tubos.push({
+          descripcion: material.descripcion,
+          codigo: material.codigo,
+          diametro: material.metadata?.diametro || 'N/A',
+          metrosLineales: material.cantidad.toFixed(2),
+          barrasNecesarias,
+          longitudBarra: longitudEstandar,
+          cortesOptimos,
+          desperdicio: material.metadata?.desperdicioPorc || 0,
+          observaciones: `${barrasNecesarias} barras de ${longitudEstandar}m para ${piezasConBOM.length} cortes`
+        });
+        
+        listaPedido.resumen.totalBarras += barrasNecesarias;
+      }
+      
+      // Procesar telas
+      else if (material.tipo === 'Tela') {
+        const anchosRollo = material.metadata?.anchosRollo || [2.50, 3.00];
+        const anchoRecomendado = anchosRollo[anchosRollo.length - 1] || 3.00;
+        const rollosNecesarios = Math.ceil(material.cantidad / 50); // Asumiendo rollos de 50m
+        
+        listaPedido.telas.push({
+          descripcion: material.descripcion,
+          codigo: material.codigo,
+          metrosLineales: material.cantidad.toFixed(2),
+          anchoRollo: anchoRecomendado,
+          rollosNecesarios,
+          puedeRotar: material.metadata?.puedeRotar || false,
+          observaciones: `${rollosNecesarios} rollo(s) de ${anchoRecomendado}m de ancho`
+        });
+        
+        listaPedido.resumen.totalRollos += rollosNecesarios;
+      }
+      
+      // Procesar mecanismos y motores
+      else if (material.tipo === 'Mecanismo' || material.tipo === 'Motor') {
+        listaPedido.mecanismos.push({
+          descripcion: material.descripcion,
+          codigo: material.codigo,
+          cantidad: Math.ceil(material.cantidad),
+          unidad: material.unidad,
+          esMotor: material.metadata?.esMotor || false,
+          incluye: material.metadata?.incluye || [],
+          observaciones: material.metadata?.obligatorio ? '⚠️ OBLIGATORIO' : ''
+        });
+      }
+      
+      // Procesar contrapesos
+      else if (material.tipo === 'Contrapeso') {
+        const longitudEstandar = 5.80;
+        const barrasNecesarias = Math.ceil(material.cantidad / longitudEstandar);
+        
+        listaPedido.contrapesos.push({
+          descripcion: material.descripcion,
+          codigo: material.codigo,
+          metrosLineales: material.cantidad.toFixed(2),
+          barrasNecesarias,
+          longitudBarra: longitudEstandar,
+          observaciones: `${barrasNecesarias} barras de ${longitudEstandar}m`
+        });
+        
+        listaPedido.resumen.totalBarras += barrasNecesarias;
+      }
+      
+      // Procesar accesorios
+      else {
+        listaPedido.accesorios.push({
+          tipo: material.tipo,
+          descripcion: material.descripcion,
+          codigo: material.codigo,
+          cantidad: material.unidad === 'ml' ? material.cantidad.toFixed(2) : Math.ceil(material.cantidad),
+          unidad: material.unidad,
+          observaciones: ''
+        });
+      }
+    });
+
+    // Calcular total de items
+    listaPedido.resumen.totalItems = 
+      listaPedido.tubos.length +
+      listaPedido.telas.length +
+      listaPedido.mecanismos.length +
+      listaPedido.contrapesos.length +
+      listaPedido.accesorios.length;
+
+    // Agregar información de optimización de tubos si está disponible
+    if (reporteOptimizacion?.resumenTubos) {
+      listaPedido.optimizacionTubos = {
+        totalTubos: reporteOptimizacion.resumenTubos.totalTubos,
+        longitudEstandar: reporteOptimizacion.resumenTubos.longitudTuboEstandar,
+        resumenPorTipo: reporteOptimizacion.resumenTubos.resumenPorTipo
+      };
+    }
+
+    logger.info('Lista de pedido generada', {
+      servicio: 'ordenProduccionService',
+      totalItems: listaPedido.resumen.totalItems,
+      totalBarras: listaPedido.resumen.totalBarras,
+      totalRollos: listaPedido.resumen.totalRollos
+    });
+
+    return listaPedido;
   }
 }
 
