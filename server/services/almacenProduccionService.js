@@ -301,7 +301,7 @@ class AlmacenProduccionService {
       const salidas = await this.registrarSalidaProduccion(
         proyectoId,
         ordenProduccion,
-        materialesNecesarios,
+        verificacion.materiales, // Usar materiales con materialId
         usuarioId
       );
       resultado.etapas.salidas = { movimientos: salidas, total: salidas.length };
