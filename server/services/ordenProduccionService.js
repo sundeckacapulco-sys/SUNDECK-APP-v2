@@ -1,6 +1,7 @@
 const Proyecto = require('../models/Proyecto');
 const logger = require('../config/logger');
 const CalculadoraMaterialesService = require('./calculadoraMaterialesService');
+const OptimizadorCortesService = require('./optimizadorCortesService');
 
 /**
  * Servicio para generar Orden de Producción
@@ -28,15 +29,19 @@ class OrdenProduccionService {
       // Obtener piezas normalizadas con todos los campos técnicos
       const piezas = this.obtenerPiezasConDetallesTecnicos(proyecto);
 
-      // Calcular BOM (Bill of Materials) por pieza usando calculadora inteligente
+      // Calcular BOM (Bill of Materials) por pieza usando optimizador inteligente
       const piezasConBOM = [];
       for (const pieza of piezas) {
-        const materiales = await CalculadoraMaterialesService.calcularMaterialesPieza(pieza);
+        // Usar optimizador de cortes que incluye lógica de negocio
+        const materiales = OptimizadorCortesService.calcularMaterialesPieza(pieza);
         piezasConBOM.push({
           ...pieza,
           materiales
         });
       }
+      
+      // Generar reporte de optimización de tubos
+      const reporteOptimizacion = OptimizadorCortesService.generarReporteOptimizacion(piezas);
 
       // Calcular materiales totales
       const materialesConsolidados = this.consolidarMaterialesTotales(piezasConBOM);
@@ -82,6 +87,12 @@ class OrdenProduccionService {
 
         // Checklist de empaque
         checklistEmpaque: this.generarChecklistEmpaque(piezasConBOM),
+
+        // Optimización de cortes y tubos
+        optimizacion: {
+          resumenTubos: reporteOptimizacion.resumenTubos,
+          recomendaciones: reporteOptimizacion.recomendaciones
+        },
 
         // Fotos del proyecto
         fotos: proyecto.fotos || [],
