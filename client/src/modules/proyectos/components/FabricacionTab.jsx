@@ -59,6 +59,7 @@ import {
   Timeline as TimelineIcon
 } from '@mui/icons-material';
 import axiosConfig from '../../../config/axios';
+import PanelAlertasFabricacion from '../../fabricacion/components/PanelAlertasFabricacion';
 
 const ESTADOS_FABRICACION = {
   'pendiente': { color: 'default', label: 'Pendiente', icon: <PendingIcon /> },
@@ -80,6 +81,7 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [alertasRefreshToken, setAlertasRefreshToken] = useState(0);
   
   // Estados para diálogos
   const [dialogoIniciar, setDialogoIniciar] = useState(false);
@@ -114,6 +116,11 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
   };
 
   // Función para descargar Orden de Producción PDF
+  const manejarActualizacion = () => {
+    if (onActualizar) onActualizar();
+    setAlertasRefreshToken((prev) => prev + 1);
+  };
+
   const descargarOrdenProduccion = async () => {
     try {
       setLoading(true);
@@ -150,7 +157,7 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
       const response = await axiosConfig.post(`/proyectos/${proyecto._id}/fabricacion/iniciar`, datosIniciales);
       setSuccess('Fabricación iniciada exitosamente');
       setDialogoIniciar(false);
-      if (onActualizar) onActualizar();
+      manejarActualizacion();
     } catch (error) {
       setError(error.response?.data?.message || 'Error iniciando fabricación');
     } finally {
@@ -163,7 +170,7 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
       setLoading(true);
       await axiosConfig.put(`/proyectos/${proyecto._id}/fabricacion/proceso/${procesoId}`, datosActualizacion);
       setSuccess('Proceso actualizado exitosamente');
-      if (onActualizar) onActualizar();
+      manejarActualizacion();
     } catch (error) {
       setError(error.response?.data?.message || 'Error actualizando proceso');
     } finally {
@@ -177,7 +184,7 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
       await axiosConfig.post(`/proyectos/${proyecto._id}/fabricacion/control-calidad`, datosCalidad);
       setSuccess('Control de calidad registrado');
       setDialogoCalidad(false);
-      if (onActualizar) onActualizar();
+      manejarActualizacion();
     } catch (error) {
       setError(error.response?.data?.message || 'Error en control de calidad');
     } finally {
@@ -196,6 +203,10 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
 
   return (
     <Box>
+      <Box sx={{ mb: 3 }}>
+        <PanelAlertasFabricacion refreshToken={alertasRefreshToken} />
+      </Box>
+
       {/* Alertas */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
