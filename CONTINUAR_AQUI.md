@@ -1,12 +1,61 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
-**Fecha de última sesión:** 13 Noviembre 2025  
-**Hora de finalización:** 6:35 PM  
-**Estado del proyecto:** ✅ PDF | ✅ PAGOS | ✅ AUDITORÍA | ✅ ORDEN PRODUCCIÓN | 🔄 CALCULADORA v1.2
+**Fecha de última sesión:** 14 Noviembre 2025  
+**Hora de finalización:** 7:16 PM  
+**Estado del proyecto:** ✅ PDF | ✅ PAGOS | ✅ AUDITORÍA | ✅ ORDEN PRODUCCIÓN | ✅ PDFs FABRICACIÓN | 🔄 CALCULADORA v1.2 | ⏳ ALMACÉN
 
 ---
 
-## 📐 SESIÓN 14 NOV 2025 - CALCULADORA v1.2 HÍBRIDA
+## 🎯 SESIÓN 14 NOV 2025 - PDFs FABRICACIÓN + CALCULADORA (6:14 PM - 7:16 PM)
+
+**Duración:** 1 hora  
+**Estado:** ✅ PDFs COMPLETADOS | ✅ SHEER DOCUMENTADO | ⏳ ALMACÉN  
+**Archivos modificados:** 4 principales + 2 scripts debug
+
+### ✅ COMPLETADO HOY
+
+**1. PDFs de Fabricación (6 features):**
+- ✅ Conectores y topes corregidos (1 por pieza manual)
+- ✅ Contrapesos en sección propia (perfiles 5.80m)
+- ✅ Telas separadas por modelo y color
+- ✅ Cálculo inteligente de ancho de rollo
+- ✅ Modelo y color en PDF
+- ✅ Anchos disponibles mostrados
+
+**2. Calculadora - Sheer Elegance:**
+- ✅ Despiece completo documentado (12 componentes)
+- ✅ Fórmulas validadas
+- ✅ Reglas especiales (NO rotable, ancho máx 3.0m)
+
+**3. Sistema de Almacén:**
+- ⏳ Trabajo en paralelo (pendiente documentar)
+
+### ⚠️ PENDIENTES PARA MAÑANA (15 NOV)
+
+**PRIORIDAD ALTA (30 min):**
+1. 🔴 Corregir visualización de sugerencias en PDF
+   - Código implementado pero no aparece
+   - Revisar `pdfOrdenFabricacionService.js` línea ~224
+2. 🟡 Quitar logs de debug temporales
+3. 🟢 Validar PDFs con datos reales
+
+**PRIORIDAD MEDIA (1 hora):**
+4. 📋 Documentar trabajo de almacén
+5. 📋 Probar con proyecto Sheer Elegance
+6. 📋 Validar cálculos de tela rotada
+
+### 📊 Métricas de Hoy
+- Bugs corregidos: 5
+- Features: 7
+- Líneas código: ~400
+- Scripts debug: 2
+
+### 📄 Documentación Generada
+- `docs/auditorias/AUDITORIA_SESION_14_NOV_2025.md` - Auditoría completa
+
+---
+
+## 📐 SESIÓN 14 NOV 2025 - CALCULADORA v1.2 HÍBRIDA (PLAN ORIGINAL)
 
 **Estrategia:** 🔄 TRABAJO EN PARALELO Usuario + Agente  
 **Estado:** ✅ ROLLER SHADE | ⏳ SHEER | ⏳ TOLDOS | ⏳ IMPLEMENTACIÓN  

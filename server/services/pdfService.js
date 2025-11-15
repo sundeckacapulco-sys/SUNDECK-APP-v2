@@ -3396,71 +3396,32 @@ class PDFService {
   async generarPDFOrdenProduccion(proyectoId) {
     try {
       const OrdenProduccionService = require('./ordenProduccionService');
+      const PDFOrdenFabricacionService = require('./pdfOrdenFabricacionService');
       
-      logger.info('Generando PDF de Orden de Producción', {
+      logger.info('Generando PDF de Lista de Pedido (Proveedor)', {
         proyectoId: proyectoId.toString()
       });
 
       // Obtener datos de la orden
       const datosOrden = await OrdenProduccionService.obtenerDatosOrdenProduccion(proyectoId);
-
-      // Cargar template
-      await ensurePartialsLoaded();
-      const templatePath = path.join(templatesDir, 'ordenProduccion.hbs');
-      const templateContent = await fs.readFile(templatePath, 'utf8');
-      const template = handlebars.compile(templateContent);
-
-      // Generar HTML
-      const html = template({
-        ...datosOrden,
-        company: companyConfig
-      });
-
-      // Inicializar browser
-      const browserResult = await this.initBrowser();
       
-      // Si es alternativa (html-pdf-node)
-      if (browserResult.isAlternative) {
-        const htmlPdf = browserResult.htmlPdf;
-        const options = { format: 'Letter' };
-        const file = { content: html };
-        const pdf = await htmlPdf.generatePdf(file, options);
-        return pdf;
-      }
+      // Usar el nuevo servicio optimizado con PDFKit (para proveedores)
+      const pdfBuffer = await PDFOrdenFabricacionService.generarPDF(datosOrden, datosOrden.listaPedido);
       
-      // Si es puppeteer
-      const browser = browserResult.browser;
-      const page = await browser.newPage();
-      
-      await page.setContent(html, { waitUntil: 'networkidle0' });
-      
-      const pdf = await page.pdf({
-        format: 'Letter',
-        margin: {
-          top: '1cm',
-          right: '1cm',
-          bottom: '1cm',
-          left: '1cm'
-        },
-        printBackground: true
-      });
-      
-      await browser.close();
-
-      logger.info('PDF de Orden de Producción generado exitosamente', {
+      logger.info('PDF de Lista de Pedido generado exitosamente', {
         proyectoId: proyectoId.toString(),
         totalPiezas: datosOrden.totalPiezas
       });
-
-      return pdf;
+      
+      return pdfBuffer;
 
     } catch (error) {
-      logger.error('Error generando PDF de Orden de Producción', {
+      logger.error('Error generando PDF de Lista de Pedido', {
         proyectoId: proyectoId?.toString(),
         error: error.message,
         stack: error.stack
       });
-      throw new Error('No se pudo generar el PDF de Orden de Producción');
+      throw new Error('No se pudo generar el PDF de Lista de Pedido');
     }
   }
 }

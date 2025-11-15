@@ -1,3 +1,4 @@
+// ACTUALIZADO: 2025-11-14 17:30 - Agregado campo Rotada
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
@@ -478,6 +479,7 @@ const AgregarMedidasProyectoModal = ({
             operacion: medida.tipoOperacion,
             detalle: medida.detalleTecnico === 'otro' ? medida.detalleTecnicoManual : medida.detalleTecnico,
             traslape: medida.traslape === 'otro' ? medida.traslapeManual : medida.traslape,
+            rotada: medida.rotada || false,
             modeloCodigo: medida.modeloCodigo,
             color: medida.color,
             observacionesTecnicas: medida.observacionesTecnicas || ''
@@ -594,6 +596,7 @@ const AgregarMedidasProyectoModal = ({
             operacion: medida.tipoOperacion,
             detalle: medida.detalleTecnico === 'otro' ? medida.detalleTecnicoManual : medida.detalleTecnico,
             traslape: medida.traslape === 'otro' ? medida.traslapeManual : medida.traslape,
+            rotada: medida.rotada || false,
             modeloCodigo: medida.modeloCodigo,
             color: medida.color,
             precioM2: parseFloat(medida.precioM2) || parseFloat(precioGeneral),
@@ -1471,12 +1474,14 @@ const AgregarMedidasProyectoModal = ({
                                     nuevasMedidas[index] = { 
                                       ...nuevasMedidas[index], 
                                       detalleTecnico: e.target.value,
-                                      detalleTecnicoManual: e.target.value === 'otro' ? nuevasMedidas[index]?.detalleTecnicoManual : ''
+                                      detalleTecnicoManual: e.target.value === 'otro' ? nuevasMedidas[index]?.detalleTecnicoManual : '',
+                                      rotada: e.target.value === 'rotada' // Guardar rotada cuando se selecciona
                                     };
                                     setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
                                   }}
                                 >
                                   <MenuItem value="">No aplica</MenuItem>
+                                  <MenuItem value="rotada">🔄 Rotada (usa ancho)</MenuItem>
                                   <MenuItem value="traslape">Traslape</MenuItem>
                                   <MenuItem value="corte">Corte</MenuItem>
                                   <MenuItem value="sin_traslape">Sin traslape</MenuItem>
@@ -1504,6 +1509,28 @@ const AgregarMedidasProyectoModal = ({
                                 />
                               </Grid>
                             )}
+
+                            {/* Rotada (para cálculo de tela) */}
+                            <Grid item xs={6} sm={4}>
+                              <FormControl fullWidth size="small">
+                                <InputLabel>Tela Rotada</InputLabel>
+                                <Select
+                                  value={medida.rotada ? 'si' : 'no'}
+                                  label="Tela Rotada"
+                                  onChange={(e) => {
+                                    const nuevasMedidas = [...piezaForm.medidas];
+                                    nuevasMedidas[index] = { 
+                                      ...nuevasMedidas[index], 
+                                      rotada: e.target.value === 'si'
+                                    };
+                                    setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                  }}
+                                >
+                                  <MenuItem value="no">No (usa alto)</MenuItem>
+                                  <MenuItem value="si">Sí (usa ancho)</MenuItem>
+                                </Select>
+                              </FormControl>
+                            </Grid>
 
                             {/* Traslape */}
                             <Grid item xs={6} sm={4}>

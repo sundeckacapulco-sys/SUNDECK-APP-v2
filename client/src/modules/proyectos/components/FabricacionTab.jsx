@@ -121,30 +121,59 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
     setAlertasRefreshToken((prev) => prev + 1);
   };
 
-  const descargarOrdenProduccion = async () => {
+  // Descargar Lista de Pedido para Proveedor (rápida)
+  const descargarListaPedido = async () => {
     try {
       setLoading(true);
       setError(null);
 
       const response = await axiosConfig.get(
-        `/proyectos/${proyecto._id}/pdf?tipo=orden-produccion`,
+        `/fabricacion/lista-pedido/${proyecto._id}/pdf`,
         { responseType: 'blob' }
       );
 
-      // Crear URL del blob y descargar
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `orden-produccion-${proyecto.numero}.pdf`);
+      link.setAttribute('download', `Lista-Pedido-${proyecto.numero}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      setSuccess('Orden de Producción descargada correctamente');
+      setSuccess('Lista de Pedido descargada correctamente');
     } catch (error) {
-      console.error('Error descargando orden:', error);
-      setError(error.response?.data?.message || 'Error al descargar la Orden de Producción');
+      console.error('Error descargando lista:', error);
+      setError(error.response?.data?.message || 'Error al descargar la Lista de Pedido');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Descargar Orden de Fabricación para Taller (completa con todas las especificaciones)
+  const descargarOrdenTaller = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await axiosConfig.get(
+        `/fabricacion/orden-taller/${proyecto._id}/pdf`,
+        { responseType: 'blob' }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Orden-Taller-${proyecto.numero}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setSuccess('Orden de Taller descargada correctamente');
+    } catch (error) {
+      console.error('Error descargando orden taller:', error);
+      setError(error.response?.data?.message || 'Error al descargar la Orden de Taller');
     } finally {
       setLoading(false);
     }
@@ -228,12 +257,12 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
               Estado de Fabricación
             </Typography>
             
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              {/* Botón Orden de Producción - Siempre visible */}
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {/* Botón Orden de Taller (completa) */}
               <Button
                 variant="contained"
                 startIcon={<DescriptionIcon />}
-                onClick={descargarOrdenProduccion}
+                onClick={descargarOrdenTaller}
                 disabled={loading}
                 sx={{
                   bgcolor: '#D4AF37',
@@ -242,7 +271,7 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                   }
                 }}
               >
-                🛠️ Orden de Producción
+                🛠️ Orden de Taller
               </Button>
 
               {puedeIniciarFabricacion() && (
@@ -321,10 +350,29 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
       {proyecto.fabricacion?.materiales && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <BuildIcon />
-              Materiales
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <BuildIcon />
+                Materiales
+              </Typography>
+              
+              {/* Botón Lista de Pedido para Proveedor */}
+              <Button
+                variant="contained"
+                startIcon={<DescriptionIcon />}
+                onClick={descargarListaPedido}
+                disabled={loading}
+                size="small"
+                sx={{
+                  bgcolor: '#2196F3',
+                  '&:hover': {
+                    bgcolor: '#1976D2'
+                  }
+                }}
+              >
+                📋 Lista de Pedido
+              </Button>
+            </Box>
             
             <TableContainer>
               <Table size="small">

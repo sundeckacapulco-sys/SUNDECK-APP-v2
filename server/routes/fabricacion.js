@@ -5,7 +5,9 @@ const {
   obtenerMetricasFabricacion,
   crearOrdenDesdePedido,
   actualizarEstadoOrden,
-  generarOrdenProduccionConAlmacen
+  generarOrdenProduccionConAlmacen,
+  descargarPDFListaPedido,
+  descargarPDFOrdenTaller
 } = require('../controllers/fabricacionController');
 
 const router = express.Router();
@@ -39,6 +41,18 @@ router.post('/orden-produccion/:proyectoId',
   auth,
   verificarPermiso('fabricacion', 'crear'),
   generarOrdenProduccionConAlmacen
+);
+
+// Descargar PDF de LISTA DE PEDIDO (para proveedores)
+router.get('/lista-pedido/:proyectoId/pdf',
+  auth,
+  descargarPDFListaPedido
+);
+
+// Descargar PDF de ORDEN DE TALLER (con especificaciones técnicas)
+router.get('/orden-taller/:proyectoId/pdf',
+  auth,
+  descargarPDFOrdenTaller
 );
 
 module.exports = router;

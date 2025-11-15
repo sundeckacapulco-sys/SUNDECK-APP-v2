@@ -1,8 +1,9 @@
 const FabricacionService = require('../services/fabricacionService');
 const CotizacionMappingService = require('../services/cotizacionMappingService');
 const OrdenProduccionService = require('../services/ordenProduccionService');
-const Pedido = require('../models/Pedido');
-const OrdenFabricacion = require('../models/OrdenFabricacion');
+const AlmacenProduccionService = require('../services/almacenProduccionService');
+const OptimizadorCortesService = require('../services/optimizadorCortesService');
+const PDFOrdenFabricacionService = require('../services/pdfOrdenFabricacionService');
 const logger = require('../config/logger');
 const eventBus = require('../services/eventBusService');
 
@@ -462,12 +463,118 @@ async function generarOrdenProduccionConAlmacen(req, res) {
   }
 }
 
+/**
+ * Generar y descargar PDF de LISTA DE PEDIDO (para proveedores)
+ */
+async function descargarPDFListaPedido(req, res) {
+  try {
+    const { proyectoId } = req.params;
+    
+    logger.info('Generando PDF de lista de pedido', {
+      controlador: 'fabricacionController',
+      accion: 'descargarPDFListaPedido',
+      proyectoId
+    });
+    
+    // Obtener datos de la orden
+    const datosOrden = await OrdenProduccionService.obtenerDatosOrdenProduccion(proyectoId);
+    
+    // Generar PDF de lista de pedido (solo materiales)
+    const pdfBuffer = await PDFOrdenFabricacionService.generarPDFListaPedido(
+      datosOrden,
+      datosOrden.listaPedido
+    );
+    
+    // Configurar headers para descarga
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Lista-Pedido-${datosOrden.proyecto.numero}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    res.send(pdfBuffer);
+    
+    logger.info('PDF de lista de pedido generado exitosamente', {
+      controlador: 'fabricacionController',
+      accion: 'descargarPDFListaPedido',
+      proyectoId,
+      tamano: pdfBuffer.length
+    });
+    
+  } catch (error) {
+    logger.error('Error generando PDF de lista de pedido', {
+      controlador: 'fabricacionController',
+      accion: 'descargarPDFListaPedido',
+      proyectoId: req.params?.proyectoId,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    res.status(500).json({
+      message: 'Error generando PDF de lista de pedido',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Generar y descargar PDF de ORDEN DE TALLER (con especificaciones técnicas)
+ */
+async function descargarPDFOrdenTaller(req, res) {
+  try {
+    const { proyectoId } = req.params;
+    
+    logger.info('Generando PDF de orden de taller', {
+      controlador: 'fabricacionController',
+      accion: 'descargarPDFOrdenTaller',
+      proyectoId
+    });
+    
+    // Obtener datos de la orden
+    const datosOrden = await OrdenProduccionService.obtenerDatosOrdenProduccion(proyectoId);
+    
+    // Generar PDF completo (con especificaciones técnicas)
+    const pdfBuffer = await PDFOrdenFabricacionService.generarPDF(
+      datosOrden,
+      datosOrden.listaPedido
+    );
+    
+    // Configurar headers para descarga
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Orden-Taller-${datosOrden.proyecto.numero}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    res.send(pdfBuffer);
+    
+    logger.info('PDF de orden de taller generado exitosamente', {
+      controlador: 'fabricacionController',
+      accion: 'descargarPDFOrdenTaller',
+      proyectoId,
+      tamano: pdfBuffer.length
+    });
+    
+  } catch (error) {
+    logger.error('Error generando PDF de orden de taller', {
+      controlador: 'fabricacionController',
+      accion: 'descargarPDFOrdenTaller',
+      proyectoId: req.params?.proyectoId,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    res.status(500).json({
+      message: 'Error generando PDF de orden de taller',
+      error: error.message
+    });
+  }
+}
+
 module.exports = {
   obtenerColaFabricacion,
   obtenerMetricasFabricacion,
   crearOrdenDesdePedido,
   actualizarEstadoOrden,
   generarOrdenProduccionConAlmacen,
+  descargarPDFListaPedido,
+  descargarPDFOrdenTaller,
   // Exportar helpers para facilitar pruebas si es necesario
   __test__: {
     normalizarProductoParaOrden,

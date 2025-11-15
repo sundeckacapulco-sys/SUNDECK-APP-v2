@@ -409,16 +409,19 @@ class OptimizadorCortesService {
       }
       
       // PASO 2: Preparar variables para evaluación
+      const rotada = pieza.rotada || false;
+      const galeria = pieza.galeria || false;
+      const color = pieza.color || '';
+      
       const variables = {
         ancho,
         alto,
         area: ancho * alto,
         motorizado,
         esManual: !motorizado,
-        rotada: pieza.rotada || false,
-        galeria: pieza.galeria || false,
-        galeria: pieza.galeria || 'sin_galeria',
-        color: pieza.color || '',
+        rotada,
+        galeria,
+        color,
         Math,
         Number
       };
@@ -434,12 +437,17 @@ class OptimizadorCortesService {
       // PASO 5: Calcular materiales evaluando fórmulas
       const materiales = [];
       
+      // Función helper para evaluar con contexto
+      const evalWithContext = (expression) => {
+        return Function('"use strict"; const {ancho, alto, area, motorizado, esManual, rotada, galeria, color, Math, Number} = this; return (' + expression + ')').call(variables);
+      };
+      
       if (configuracion.materiales && Array.isArray(configuracion.materiales)) {
         configuracion.materiales.forEach(materialConfig => {
           // Verificar condición si existe
           if (materialConfig.condicion) {
             try {
-              const cumpleCondicion = eval(materialConfig.condicion);
+              const cumpleCondicion = evalWithContext(materialConfig.condicion);
               if (!cumpleCondicion) return; // Skip este material
             } catch (e) {
               logger.warn('Error evaluando condición', { condicion: materialConfig.condicion, error: e.message });
@@ -449,7 +457,7 @@ class OptimizadorCortesService {
           
           // Evaluar fórmula
           try {
-            const cantidad = eval(materialConfig.formula);
+            const cantidad = evalWithContext(materialConfig.formula);
             
             materiales.push({
               tipo: materialConfig.tipo,

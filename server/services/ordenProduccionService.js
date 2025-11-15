@@ -236,6 +236,7 @@ class OrdenProduccionService {
 
           // Adicionales
           motorizado: Boolean(producto.motorizado || medidas.modoOperacion === 'motorizado'),
+          rotada: Boolean(producto.rotada || medidas.rotada || medidas.detalleTecnico === 'rotada'),
           color: producto.color || medidas.color || 'No especificado',
           cantidad: producto.cantidad || 1
         });
@@ -298,6 +299,7 @@ class OrdenProduccionService {
 
               // Adicionales
               motorizado: pieza.operacion === 'motorizado' || pieza.modoOperacion === 'motorizado',
+              rotada: Boolean(pieza.rotada || pieza.detalle === 'rotada' || pieza.detalleTecnico === 'rotada'),
               color: pieza.color || partida.color || 'No especificado',
               cantidad: 1
             });
@@ -516,7 +518,16 @@ class OrdenProduccionService {
     
     piezasConBOM.forEach(pieza => {
       pieza.materiales.forEach(material => {
-        const key = `${material.tipo}-${material.codigo || material.descripcion}`;
+        // Para telas, incluir modelo y color en la clave para separarlas
+        let key;
+        if (material.tipo === 'Tela' || material.tipo === 'Tela Sheer') {
+          const modelo = pieza.modelo || pieza.modeloCodigo || pieza.producto || '';
+          const color = pieza.color || '';
+          key = `${material.tipo}-${material.descripcion}-${modelo}-${color}`;
+        } else {
+          key = `${material.tipo}-${material.descripcion}`;
+        }
+        
         
         if (!materialesAgrupados[key]) {
           materialesAgrupados[key] = {
@@ -525,10 +536,22 @@ class OrdenProduccionService {
             codigo: material.codigo,
             unidad: material.unidad,
             cantidad: 0,
-            metadata: material.metadata || {}
+            metadata: material.metadata || {},
+            // Para telas, guardar modelo y color
+            modelo: (material.tipo === 'Tela' || material.tipo === 'Tela Sheer') ? (pieza.modelo || pieza.modeloCodigo || pieza.producto || '') : undefined,
+            color: (material.tipo === 'Tela' || material.tipo === 'Tela Sheer') ? (pieza.color || '') : undefined,
+            // Guardar anchos de piezas para calcular ancho de rollo correcto
+            anchosPiezas: []
           };
         }
         
+        // Para telas, guardar ancho de cada pieza (considerando rotación)
+        if (material.tipo === 'Tela' || material.tipo === 'Tela Sheer') {
+          const anchoEfectivo = pieza.rotada ? pieza.alto : pieza.ancho;
+          materialesAgrupados[key].anchosPiezas.push(anchoEfectivo);
+        }
+        
+        // Sumar normalmente
         materialesAgrupados[key].cantidad += Number(material.cantidad);
       });
     });
@@ -549,6 +572,7 @@ class OrdenProduccionService {
           longitudBarra: longitudEstandar,
           cortesOptimos,
           desperdicio: material.metadata?.desperdicioPorc || 0,
+          enAlmacen: false, // Por defecto se debe pedir
           observaciones: `${barrasNecesarias} barras de ${longitudEstandar}m para ${piezasConBOM.length} cortes`
         });
         
@@ -556,22 +580,77 @@ class OrdenProduccionService {
       }
       
       // Procesar telas
-      else if (material.tipo === 'Tela') {
+      else if (material.tipo === 'Tela' || material.tipo === 'Tela Sheer') {
         const anchosRollo = material.metadata?.anchosRollo || [2.50, 3.00];
-        const anchoRecomendado = anchosRollo[anchosRollo.length - 1] || 3.00;
+        
+        // Usar modelo y color ya guardados en el material
+        const modelo = material.modelo || '';
+        const color = material.color || '';
+        
+        // Analizar anchos de piezas para sugerencia inteligente
+        const anchosPiezas = material.anchosPiezas || [0];
+        const anchoMaxPieza = Math.max(...anchosPiezas);
+        const anchoMinPieza = Math.min(...anchosPiezas);
+        
+        // Contar piezas por rango de ancho
+        const piezasPequenas = anchosPiezas.filter(a => a <= 2.50).length;
+        const piezasGrandes = anchosPiezas.filter(a => a > 2.50).length;
+        
+        // Encontrar el ancho de rollo más pequeño que cubra el ancho máximo
+        const anchoRecomendado = anchosRollo.find(a => a >= anchoMaxPieza) || anchosRollo[anchosRollo.length - 1];
+        
         const rollosNecesarios = Math.ceil(material.cantidad / 50); // Asumiendo rollos de 50m
+        
+        // Crear string de anchos disponibles
+        const anchosDisponibles = anchosRollo.map(a => `${a}m`).join(' o ');
+        
+        // Crear observaciones inteligentes
+        let observaciones = `${rollosNecesarios} rollo(s) de ${anchoRecomendado}m de ancho`;
+        
+        // Si hay piezas pequeñas y grandes mezcladas, dar sugerencia
+        if (piezasPequenas > 0 && piezasGrandes > 0) {
+          observaciones += ` | ⚠️ SUGERENCIA: ${piezasPequenas} pieza(s) ≤2.50m pueden usar rollo de 2.50m. ${piezasGrandes} pieza(s) >2.50m requieren 3.0m`;
+        } else if (anchoMaxPieza <= 2.50) {
+          observaciones += ` | ✓ Todas las piezas caben en rollo de 2.50m`;
+        } else {
+          observaciones += ` (disponible en: ${anchosDisponibles})`;
+        }
         
         listaPedido.telas.push({
           descripcion: material.descripcion,
           codigo: material.codigo,
           metrosLineales: material.cantidad.toFixed(2),
           anchoRollo: anchoRecomendado,
+          anchosDisponibles,
           rollosNecesarios,
+          modelo,
+          color,
+          enAlmacen: false, // Por defecto se debe pedir
           puedeRotar: material.metadata?.puedeRotar || false,
-          observaciones: `${rollosNecesarios} rollo(s) de ${anchoRecomendado}m de ancho`
+          observaciones
         });
         
         listaPedido.resumen.totalRollos += rollosNecesarios;
+      }
+      
+      // Procesar contrapesos (perfiles de 5.80m)
+      else if (material.tipo === 'Contrapeso') {
+        const longitudEstandar = 5.80;
+        const barrasNecesarias = Math.ceil(material.cantidad / longitudEstandar);
+        const desperdicio = (barrasNecesarias * longitudEstandar) - material.cantidad;
+        
+        listaPedido.contrapesos.push({
+          descripcion: material.descripcion,
+          codigo: material.codigo,
+          metrosLineales: material.cantidad.toFixed(2),
+          barrasNecesarias,
+          longitudBarra: longitudEstandar,
+          desperdicio: ((desperdicio / material.cantidad) * 100).toFixed(1),
+          enAlmacen: false,
+          observaciones: `${barrasNecesarias} barras de ${longitudEstandar}m (${desperdicio.toFixed(2)}ml desperdicio)`
+        });
+        
+        listaPedido.resumen.totalBarras += barrasNecesarias;
       }
       
       // Procesar mecanismos y motores
@@ -587,24 +666,6 @@ class OrdenProduccionService {
         });
       }
       
-      // Procesar contrapesos
-      else if (material.tipo === 'Contrapeso') {
-        const longitudEstandar = 5.80;
-        const barrasNecesarias = Math.ceil(material.cantidad / longitudEstandar);
-        
-        listaPedido.contrapesos.push({
-          descripcion: material.descripcion,
-          codigo: material.codigo,
-          metrosLineales: material.cantidad.toFixed(2),
-          barrasNecesarias,
-          longitudBarra: longitudEstandar,
-          observaciones: `${barrasNecesarias} barras de ${longitudEstandar}m`
-        });
-        
-        listaPedido.resumen.totalBarras += barrasNecesarias;
-      }
-      
-      // Procesar accesorios
       else {
         listaPedido.accesorios.push({
           tipo: material.tipo,

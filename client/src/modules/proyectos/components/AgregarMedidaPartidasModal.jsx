@@ -307,10 +307,11 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
 
       // Preparar partidas en el formato que espera el backend
       const partidas = piezasManager.piezas.map(pieza => {
-        // Asegurar que cada medida tenga su área calculada
+        // Asegurar que cada medida tenga su área calculada y campo rotada
         const medidasConArea = (pieza.medidas || []).map(medida => ({
           ...medida,
-          area: (parseFloat(medida.ancho) || 0) * (parseFloat(medida.alto) || 0)
+          area: (parseFloat(medida.ancho) || 0) * (parseFloat(medida.alto) || 0),
+          rotada: medida.rotada || medida.detalleTecnico === 'rotada' || false
         }));
         
         const areaTotal = calcularAreaPieza({ ...pieza, medidas: medidasConArea });
@@ -1049,12 +1050,14 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                                   nuevasMedidas[index] = { 
                                     ...nuevasMedidas[index], 
                                     detalleTecnico: e.target.value,
-                                    detalleTecnicoManual: e.target.value === 'otro' ? nuevasMedidas[index]?.detalleTecnicoManual : ''
+                                    detalleTecnicoManual: e.target.value === 'otro' ? nuevasMedidas[index]?.detalleTecnicoManual : '',
+                                    rotada: e.target.value === 'rotada'
                                   };
                                   piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
                                 }}
                               >
                                 <MenuItem value="">No aplica</MenuItem>
+                                <MenuItem value="rotada">🔄 Rotada (usa ancho)</MenuItem>
                                 <MenuItem value="traslape">Traslape</MenuItem>
                                 <MenuItem value="corte">Corte</MenuItem>
                                 <MenuItem value="sin_traslape">Sin traslape</MenuItem>
