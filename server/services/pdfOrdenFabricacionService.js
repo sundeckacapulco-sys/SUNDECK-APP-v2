@@ -240,7 +240,14 @@ class PDFOrdenProduccionService {
         detalles.push(origen);
         doc.text(`   ${detalles.join(' | ')}`, 60, doc.y);
         doc.fillColor('#000');
-        
+
+        // Mostrar observaciones o sugerencias inteligentes si existen
+        if (tela.observaciones) {
+          doc.fontSize(7).font('Helvetica').fillColor('#444');
+          doc.text(`   ${tela.observaciones}`, 60, doc.y);
+          doc.fillColor('#000');
+        }
+
         doc.moveDown(0.8);
       });
     }
