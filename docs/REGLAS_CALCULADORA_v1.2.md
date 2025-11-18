@@ -150,9 +150,14 @@ NOTAS: Unión horizontal. Diseño se borra en la franja. Solo algunas telas perm
 
 Ejemplo: 3.20m alto x 3.20m ancho
 Proceso: Unir 2+ lienzos horizontalmente
-Telas permitidas: Blackout plastificado (y otras específicas)
+
+TELAS QUE PERMITEN TERMOSELLO: ✅ CONFIRMADO (18 Nov 2025)
+- Blackout (modelo 500)
+- Montreal
+- Screens (todos los tipos)
+
 ADVERTIR: Diseño se borra en unión
-VALIDAR: Solo ciertas telas permiten termosello
+VALIDAR: Solo las telas listadas permiten termosello
 ```
 
 **📝 EJEMPLOS PRÁCTICOS:**
@@ -350,6 +355,31 @@ CON galería: (alto + 0.25) + 0.25 (galería)
 - Madera: Según ancho (1 o 2 piezas de 2.40m)
 - Tela: +25cm adicionales al cálculo normal
 - Contrapeso: ELEGANCE (ancho total)
+
+---
+
+### 🎨 COLORES DE PERFILERÍA (ROLLER SHADE)
+
+**✅ CONFIRMADO (18 Nov 2025)**
+
+**Colores disponibles:**
+- **Blanco**
+- **Ivory** (Marfil)
+- **Negro**
+- **Gris**
+
+**Componentes que llevan color:**
+- Mecanismos (SL-16, R-24)
+- Cadenas
+- Topes de cadena
+- Conectores de cadena
+- Tapas de tubo
+- Tapas de contrapeso
+- Fascia (si aplica)
+- Cofre (si aplica)
+- Contrapeso plano
+
+**Nota:** Los colores de tela se configuran en los productos, no en la calculadora.
 
 ---
 

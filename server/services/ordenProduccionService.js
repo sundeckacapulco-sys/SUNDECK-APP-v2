@@ -3,6 +3,7 @@ const logger = require('../config/logger');
 const CalculadoraMaterialesService = require('./calculadoraMaterialesService');
 const OptimizadorCortesService = require('./optimizadorCortesService');
 const AlmacenProduccionService = require('./almacenProduccionService');
+const InventarioOptimizadoService = require('./inventarioOptimizadoService');
 
 /**
  * Servicio para generar Orden de Producción
@@ -587,33 +588,114 @@ class OrdenProduccionService {
         const modelo = material.modelo || '';
         const color = material.color || '';
         
+        // Obtener tipo de producto de las piezas que usan esta tela
+        const piezaConTela = piezasConBOM.find(p => 
+          p.materiales?.some(m => 
+            (m.tipo === 'Tela' || m.tipo === 'Tela Sheer') &&
+            m.descripcion === material.descripcion
+          )
+        );
+        const tipoProducto = piezaConTela?.producto || '';
+        
         // Analizar anchos de piezas para sugerencia inteligente
         const anchosPiezas = material.anchosPiezas || [0];
         const anchoMaxPieza = Math.max(...anchosPiezas);
         const anchoMinPieza = Math.min(...anchosPiezas);
         
-        // Contar piezas por rango de ancho
-        const piezasPequenas = anchosPiezas.filter(a => a <= 2.50).length;
-        const piezasGrandes = anchosPiezas.filter(a => a > 2.50).length;
-        
         // Encontrar el ancho de rollo más pequeño que cubra el ancho máximo
         const anchoRecomendado = anchosRollo.find(a => a >= anchoMaxPieza) || anchosRollo[anchosRollo.length - 1];
+        
+        // Obtener piezas que usan esta tela
+        const piezasConEstaTela = piezasConBOM.filter(p => {
+          return p.materiales?.some(m => 
+            (m.tipo === 'Tela' || m.tipo === 'Tela Sheer') &&
+            m.descripcion === material.descripcion
+          );
+        });
+        
+        // Análisis detallado de piezas con información completa y sobrantes de lienzo
+        const detallesPiezas = piezasConEstaTela.map(p => {
+          const anchoCorte = p.rotada ? p.alto : p.ancho;
+          const altoCorte = p.rotada ? p.ancho : p.alto;
+          
+          // Buscar la cantidad de tela que ya calculó la calculadora para esta pieza
+          const materialTela = p.materiales?.find(m => 
+            (m.tipo === 'Tela' || m.tipo === 'Tela Sheer') &&
+            m.descripcion === material.descripcion
+          );
+          const metrosLineales = materialTela ? materialTela.cantidad : (altoCorte + 0.05);
+          
+          // Calcular sobrante de lienzo si el ancho de corte es menor al ancho del rollo
+          let sobranteLienzo = null;
+          if (anchoCorte < anchoRecomendado) {
+            const anchoSobrante = anchoRecomendado - anchoCorte;
+            sobranteLienzo = {
+              ancho: anchoSobrante.toFixed(2),
+              largo: metrosLineales.toFixed(2),
+              metros: (anchoSobrante * metrosLineales).toFixed(2)
+            };
+          }
+          
+          return {
+            numero: p.numero,
+            ubicacion: p.ubicacion,
+            ancho: anchoCorte,
+            alto: altoCorte,
+            metrosLineales: metrosLineales.toFixed(2),
+            producto: p.producto,
+            modelo: p.modelo || modelo,
+            color: p.color || color,
+            rotada: p.rotada || false,
+            sobranteLienzo
+          };
+        });
+        
+        // Contar piezas por rango de ancho
+        const piezasPequenas = anchosPiezas.filter(a => a <= 2.50);
+        const piezasGrandes = anchosPiezas.filter(a => a > 2.50);
         
         const rollosNecesarios = Math.ceil(material.cantidad / 50); // Asumiendo rollos de 50m
         
         // Crear string de anchos disponibles
         const anchosDisponibles = anchosRollo.map(a => `${a}m`).join(' o ');
         
-        // Crear observaciones inteligentes
-        let observaciones = `${rollosNecesarios} rollo(s) de ${anchoRecomendado}m de ancho`;
+        // Crear sugerencias inteligentes de corte
+        let sugerencias = [];
         
-        // Si hay piezas pequeñas y grandes mezcladas, dar sugerencia
-        if (piezasPequenas > 0 && piezasGrandes > 0) {
-          observaciones += ` | ⚠️ SUGERENCIA: ${piezasPequenas} pieza(s) ≤2.50m pueden usar rollo de 2.50m. ${piezasGrandes} pieza(s) >2.50m requieren 3.0m`;
-        } else if (anchoMaxPieza <= 2.50) {
-          observaciones += ` | ✓ Todas las piezas caben en rollo de 2.50m`;
-        } else {
-          observaciones += ` (disponible en: ${anchosDisponibles})`;
+        // Sugerencia 1: Si todas las piezas pequeñas caben en 2.50m
+        if (piezasPequenas.length > 0 && piezasGrandes.length === 0) {
+          sugerencias.push(`Todas las ${piezasPequenas.length} pieza(s) caben en lienzo de 2.50m`);
+          sugerencias.push(`Revisar si hay lienzo de 2.50m en stock del taller`);
+        }
+        
+        // Sugerencia 2: Si hay mezcla de piezas pequeñas y grandes
+        else if (piezasPequenas.length > 0 && piezasGrandes.length > 0) {
+          sugerencias.push(`OPCION 1: Pedir 1 rollo de 3.0m para todas las piezas`);
+          sugerencias.push(`OPCION 2: Usar lienzo de 2.50m del taller para ${piezasPequenas.length} pieza(s) pequena(s)`);
+          
+          // Calcular si las piezas pequeñas se pueden combinar en un solo lienzo
+          const sumaPequenas = piezasPequenas.reduce((sum, a) => sum + a, 0);
+          if (sumaPequenas <= 2.50) {
+            const ubicaciones = piezasConEstaTela
+              .filter(p => {
+                const anchoEfectivo = p.rotada ? p.alto : p.ancho;
+                return anchoEfectivo <= 2.50;
+              })
+              .map(p => p.ubicacion)
+              .join(', ');
+            sugerencias.push(`>> Las piezas pequenas (${ubicaciones}) se pueden cortar de un mismo lienzo de 2.50m`);
+          }
+        }
+        
+        // Sugerencia 3: Si todas son grandes
+        else if (piezasGrandes.length > 0) {
+          sugerencias.push(`Requiere rollo de 3.0m (piezas grandes)`);
+        }
+        
+        // Crear observaciones sin emojis
+        let observaciones = `${rollosNecesarios} rollo(s) de ${anchoRecomendado}m de ancho`;
+        if (sugerencias.length > 0) {
+          observaciones += ` | SUGERENCIAS: ${sugerencias.join(' | ')}`;
         }
         
         listaPedido.telas.push({
@@ -625,9 +707,15 @@ class OrdenProduccionService {
           rollosNecesarios,
           modelo,
           color,
+          tipoProducto, // Screen, Blackout, etc.
+          anchosPiezas, // Array de anchos de piezas para análisis en PDF
+          detallesPiezas, // Información completa de cada pieza (ubicación, ancho, modelo, color)
+          piezasPequenas: piezasPequenas.length,
+          piezasGrandes: piezasGrandes.length,
           enAlmacen: false, // Por defecto se debe pedir
           puedeRotar: material.metadata?.puedeRotar || false,
-          observaciones
+          observaciones,
+          sugerencias // Array de sugerencias para mostrar en PDF
         });
         
         listaPedido.resumen.totalRollos += rollosNecesarios;
@@ -703,6 +791,52 @@ class OrdenProduccionService {
     });
 
     return listaPedido;
+  }
+
+  /**
+   * Generar lista de pedido V2.0 optimizada con gestión de inventario
+   * @param {string} proyectoId - ID del proyecto
+   * @returns {Promise<Object>} Lista optimizada con secciones separadas
+   */
+  static async generarListaPedidoV2(proyectoId) {
+    try {
+      logger.info('Generando lista de pedido V2.0 optimizada', {
+        servicio: 'ordenProduccionService',
+        accion: 'generarListaPedidoV2',
+        proyectoId
+      });
+
+      // 1. Obtener datos de la orden de producción
+      const datosOrden = await this.obtenerDatosOrdenProduccion(proyectoId);
+      
+      // 2. Generar lista de pedido tradicional
+      const listaPedido = await this.generarListaPedido(datosOrden.piezas);
+      
+      // 3. Optimizar con gestión de inventario
+      const listaOptimizada = await InventarioOptimizadoService.generarListaOptimizada(listaPedido);
+      
+      logger.info('Lista de pedido V2.0 generada', {
+        servicio: 'ordenProduccionService',
+        itemsPedir: listaOptimizada.resumen.totalItemsPedir,
+        itemsAlmacen: listaOptimizada.resumen.totalItemsAlmacen
+      });
+
+      return {
+        datosOrden,
+        listaPedido,
+        listaOptimizada
+      };
+
+    } catch (error) {
+      logger.error('Error generando lista de pedido V2.0', {
+        servicio: 'ordenProduccionService',
+        accion: 'generarListaPedidoV2',
+        proyectoId,
+        error: error.message,
+        stack: error.stack
+      });
+      throw error;
+    }
   }
 }
 

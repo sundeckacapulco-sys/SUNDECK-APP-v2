@@ -26,7 +26,8 @@ const {
   generarExcelLevantamiento,
   subirFotosLevantamiento,
   convertirProspectoAProyecto,
-  obtenerKPIsComerciales
+  obtenerKPIsComerciales,
+  generarListaPedidoV2
 } = require('../controllers/proyectoController');
 
 const router = express.Router();
@@ -399,6 +400,13 @@ router.post('/levantamiento/fotos',
   verificarPermiso('proyectos', 'crear'),
   upload.array('fotos', 10), // Máximo 10 fotos a la vez
   subirFotosLevantamiento
+);
+
+// GET /api/proyectos/:id/lista-pedido-v2 - Generar Lista de Pedido V2.0 optimizada
+router.get('/:id/lista-pedido-v2',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
+  generarListaPedidoV2
 );
 
 module.exports = router;

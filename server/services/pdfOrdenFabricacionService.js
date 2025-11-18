@@ -6,6 +6,7 @@
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
+const QRCode = require('qrcode');
 const logger = require('../config/logger');
 
 class PDFOrdenProduccionService {
@@ -30,14 +31,14 @@ class PDFOrdenProduccionService {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
         
-        // PÁGINA 1: ORDEN DE PRODUCCIÓN
+        // PÁGINA 1: ORDEN DE FABRICACIÓN
         this.generarPaginaOrden(doc, datosOrden);
         
-        // PÁGINA 2: LISTA DE PEDIDO
+        // PÁGINA 2: ETIQUETAS DE PRODUCCIÓN (para imprimir y recortar)
         doc.addPage();
-        this.generarPaginaListaPedido(doc, datosOrden, listaPedido);
+        this.generarPaginaEtiquetas(doc, datosOrden);
         
-        // PÁGINA 3: DETALLE POR PIEZA
+        // PÁGINA 3+: DETALLE POR PIEZA (con materiales simplificados)
         doc.addPage();
         this.generarPaginaDetallePiezas(doc, datosOrden);
         
@@ -60,6 +61,110 @@ class PDFOrdenProduccionService {
   }
   
   /**
+   * PÁGINA 2: Etiquetas de Producción (para imprimir y recortar)
+   */
+  static generarPaginaEtiquetas(doc, datos) {
+    const { proyecto, piezas } = datos;
+    
+    // Título
+    doc.fontSize(16).font('Helvetica-Bold')
+       .text('ETIQUETAS DE PRODUCCIÓN', { align: 'center' });
+    
+    doc.moveDown(0.3);
+    doc.fontSize(10).font('Helvetica')
+       .text(`Orden: ${proyecto.numero}`, { align: 'center' });
+    
+    doc.moveDown(0.5);
+    doc.fontSize(8).font('Helvetica').fillColor('#666')
+       .text('Imprimir esta página y recortar cada etiqueta | Pegar en cada paquete', { align: 'center' });
+    doc.fillColor('#000');
+    
+    doc.moveDown(1);
+    
+    // Configuración de etiquetas (2 por fila)
+    const etiquetaWidth = 250;
+    const etiquetaHeight = 120;
+    const marginX = 50;
+    const marginY = doc.y;
+    const spacingX = 20;
+    const spacingY = 15;
+    
+    piezas.forEach((pieza, index) => {
+      const col = index % 2; // 0 o 1
+      const row = Math.floor(index / 2);
+      
+      const x = marginX + (col * (etiquetaWidth + spacingX));
+      const y = marginY + (row * (etiquetaHeight + spacingY));
+      
+      // Si no cabe en la página, crear nueva
+      if (y + etiquetaHeight > 700) {
+        doc.addPage();
+        doc.y = 50;
+        return; // Saltar esta iteración, se dibujará en la siguiente página
+      }
+      
+      // Dibujar borde de etiqueta con línea punteada para recortar
+      doc.save();
+      doc.dash(3, { space: 3 });
+      doc.rect(x, y, etiquetaWidth, etiquetaHeight).stroke();
+      doc.undash();
+      doc.restore();
+      
+      // Contenido de la etiqueta
+      let currentY = y + 8;
+      
+      // Encabezado
+      doc.fontSize(9).font('Helvetica-Bold');
+      doc.text(`ORDEN: ${proyecto.numero}`, x + 10, currentY);
+      currentY += 14;
+      
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#0066CC');
+      doc.text(`PIEZA ${pieza.numero} de ${piezas.length}`, x + 10, currentY);
+      doc.fillColor('#000');
+      currentY += 12;
+      
+      // Información de la pieza
+      doc.fontSize(7).font('Helvetica');
+      doc.text(`Ubicación: ${pieza.ubicacion}`, x + 10, currentY);
+      currentY += 10;
+      doc.text(`Producto: ${pieza.producto || 'N/A'} ${pieza.color || ''}`, x + 10, currentY);
+      currentY += 10;
+      doc.text(`Dimensiones: ${pieza.ancho}m × ${pieza.alto}m`, x + 10, currentY);
+      currentY += 10;
+      doc.text(`Tipo: ${pieza.motorizado ? 'Motorizado' : 'Manual'}${pieza.galeria ? ' + Galería' : ''}`, x + 10, currentY);
+      currentY += 10;
+      
+      // Notas especiales - Detectar rotación automáticamente
+      const anchoMaximoTela = 3.0; // Ancho máximo de tela disponible
+      const debeRotarse = pieza.ancho > anchoMaximoTela && pieza.alto <= anchoMaximoTela;
+      const estaRotada = pieza.rotada || debeRotarse;
+      
+      if (estaRotada) {
+        doc.fontSize(7).font('Helvetica-Bold').fillColor('#CC0000');
+        doc.text('⚠ TELA ROTADA', x + 10, currentY);
+        doc.fillColor('#000');
+        currentY += 10;
+      }
+      
+      // QR Code placeholder (esquina superior derecha)
+      const qrSize = 60;
+      const qrX = x + etiquetaWidth - qrSize - 10;
+      const qrY = y + 10;
+      doc.rect(qrX, qrY, qrSize, qrSize).stroke();
+      doc.fontSize(6).fillColor('#999');
+      doc.text('QR', qrX + 20, qrY + 25, { width: 20, align: 'center' });
+      doc.text(`#${pieza.numero}`, qrX + 10, qrY + 35, { width: 40, align: 'center' });
+      doc.fillColor('#000');
+      
+      // Líneas para firmas (parte inferior)
+      currentY = y + etiquetaHeight - 20;
+      doc.fontSize(6).font('Helvetica');
+      doc.text('Fabricado: _________', x + 10, currentY);
+      doc.text('Fecha: _______', x + 150, currentY);
+    });
+  }
+  
+  /**
    * PÁGINA 1: Orden de Fabricación
    */
   static generarPaginaOrden(doc, datos) {
@@ -67,7 +172,7 @@ class PDFOrdenProduccionService {
     
     // Header
     doc.fontSize(20).font('Helvetica-Bold')
-       .text('ORDEN DE FABRICACIÓN', { align: 'center' });
+       .text('ORDEN DE FABRICACIÓN - TALLER', { align: 'center' });
     
     doc.moveDown(0.5);
     doc.fontSize(12).font('Helvetica')
@@ -216,39 +321,84 @@ class PDFOrdenProduccionService {
     if (listaPedido.telas && listaPedido.telas.length > 0) {
       this.dibujarSeccion(doc, 'TELAS');
       
-      listaPedido.telas.forEach(tela => {
+      listaPedido.telas.forEach((tela, index) => {
+        // Título de la tela
         doc.fontSize(9).font('Helvetica-Bold');
-        doc.text(`${tela.codigo || 'TELA'} - ${tela.descripcion}`, 50, doc.y);
+        doc.text(`${index + 1}. ${tela.descripcion}`, 50, doc.y);
         
-        doc.fontSize(8).font('Helvetica');
-        doc.text(`   >> PEDIR: ${tela.rollosNecesarios} rollo(s) x ${tela.anchoRollo}m | Total: ${tela.metrosLineales}ml`, 60, doc.y);
+        // ESPECIFICACIONES (modelo, color, ancho)
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#000');
+        doc.text(`   ESPECIFICACIONES:`, 60, doc.y);
         
-        // Agregar modelo y color si están disponibles
-        if (tela.modelo || tela.color) {
-          doc.fontSize(7).font('Helvetica-Bold').fillColor('#000');
-          const especificaciones = [];
-          if (tela.modelo) especificaciones.push(`Modelo: ${tela.modelo}`);
-          if (tela.color) especificaciones.push(`Color: ${tela.color}`);
-          doc.text(`   ${especificaciones.join(' | ')}`, 60, doc.y);
+        doc.fontSize(7).font('Helvetica').fillColor('#000');
+        if (tela.modelo) doc.text(`      • Modelo: ${tela.modelo}`, 60, doc.y);
+        if (tela.color) doc.text(`      • Color: ${tela.color}`, 60, doc.y);
+        doc.text(`      • Ancho de rollo: ${tela.anchoRollo}m`, 60, doc.y);
+        if (tela.anchosDisponibles) doc.text(`      • Anchos disponibles: ${tela.anchosDisponibles}`, 60, doc.y);
+        
+        doc.moveDown(0.3);
+        
+        // PEDIDO
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#000');
+        doc.text(`   PEDIDO:`, 60, doc.y);
+        
+        doc.fontSize(7).font('Helvetica').fillColor('#000');
+        doc.text(`      • Cantidad: ${tela.rollosNecesarios} rollo(s) de ${tela.anchoRollo}m`, 60, doc.y);
+        doc.text(`      • Total metros lineales: ${tela.metrosLineales}ml`, 60, doc.y);
+        
+        const origen = tela.enAlmacen ? 'Disponible en almacen' : '>> PEDIR A PROVEEDOR';
+        doc.fontSize(7).font('Helvetica-Bold').fillColor(tela.enAlmacen ? '#006400' : '#FF6600');
+        doc.text(`      ${origen}`, 60, doc.y);
+        doc.fillColor('#000');
+        
+        doc.moveDown(0.3);
+        
+        // ANÁLISIS DE CORTES con información detallada de cada pieza
+        if (tela.detallesPiezas && tela.detallesPiezas.length > 0) {
+          doc.fontSize(8).font('Helvetica-Bold').fillColor('#000');
+          doc.text(`   ANÁLISIS DE CORTES:`, 60, doc.y);
+          
+          doc.fontSize(7).font('Helvetica').fillColor('#000');
+          doc.text(`      • Total de piezas: ${tela.detallesPiezas.length}`, 60, doc.y);
+          
+          // Mostrar información detallada de cada pieza
+          doc.fontSize(6).font('Helvetica').fillColor('#333');
+          tela.detallesPiezas.forEach((pieza, idx) => {
+            const anchoTexto = pieza.ancho.toFixed(2);
+            const tipo = pieza.ancho <= 2.50 ? '≤2.50m' : '>2.50m';
+            doc.text(`         ${idx + 1}. ${pieza.ubicacion}: ${anchoTexto}m (${tipo})`, 60, doc.y);
+          });
+          doc.fillColor('#000');
+          
+          // Resumen por tamaño
+          doc.fontSize(7).font('Helvetica').fillColor('#000');
+          if (tela.piezasPequenas > 0) {
+            doc.text(`      • Piezas ≤2.50m: ${tela.piezasPequenas}`, 60, doc.y);
+          }
+          if (tela.piezasGrandes > 0) {
+            doc.text(`      • Piezas >2.50m: ${tela.piezasGrandes}`, 60, doc.y);
+          }
+          
+          doc.moveDown(0.3);
         }
         
-        // Agregar anchos disponibles y origen
-        doc.fontSize(7).font('Helvetica').fillColor('#666');
-        const detalles = [];
-        if (tela.anchosDisponibles) detalles.push(`Anchos disponibles: ${tela.anchosDisponibles}`);
-        const origen = tela.enAlmacen ? '✓ Disponible en almacén' : '⚠ PEDIR A PROVEEDOR';
-        detalles.push(origen);
-        doc.text(`   ${detalles.join(' | ')}`, 60, doc.y);
-        doc.fillColor('#000');
-
-        // Mostrar observaciones o sugerencias inteligentes si existen
-        if (tela.observaciones) {
-          doc.fontSize(7).font('Helvetica').fillColor('#444');
-          doc.text(`   ${tela.observaciones}`, 60, doc.y);
+        // SUGERENCIAS INTELIGENTES
+        if (tela.sugerencias && tela.sugerencias.length > 0) {
+          doc.fontSize(8).font('Helvetica-Bold').fillColor('#0066CC');
+          doc.text(`   [>>] SUGERENCIAS:`, 60, doc.y);
+          doc.fillColor('#000');
+          
+          doc.fontSize(7).font('Helvetica').fillColor('#333');
+          
+          // Mostrar sugerencias del backend
+          tela.sugerencias.forEach(sugerencia => {
+            doc.text(`      ${sugerencia}`, 60, doc.y);
+          });
+          
           doc.fillColor('#000');
         }
-
-        doc.moveDown(0.8);
+        
+        doc.moveDown(1.0);
       });
     }
     
@@ -433,23 +583,17 @@ class PDFOrdenProduccionService {
       
       doc.moveDown(0.3);
       
-      // MATERIALES (BOM)
+      // MATERIALES (BOM) - Lista simplificada
       if (pieza.materiales && pieza.materiales.length > 0) {
         doc.fontSize(8).font('Helvetica-Bold');
-        doc.text('MATERIALES (BOM):', 60, doc.y);
+        doc.text('MATERIALES NECESARIOS:', 60, doc.y);
         doc.moveDown(0.3);
         
         doc.fontSize(7).font('Helvetica');
         pieza.materiales.forEach(material => {
           const cantidad = Number(material.cantidad).toFixed(2);
-          doc.text(`   - ${material.tipo}: ${material.descripcion}`, 70, doc.y);
+          doc.text(`• ${material.descripcion}`, 70, doc.y);
           doc.text(`${cantidad} ${material.unidad}`, 450, doc.y - 10, { align: 'right' });
-          if (material.observaciones) {
-            doc.fontSize(6).fillColor('#666');
-            doc.text(`     ${material.observaciones}`, 75, doc.y);
-            doc.fillColor('#000');
-            doc.fontSize(7);
-          }
           doc.moveDown(0.3);
         });
       }
@@ -486,24 +630,17 @@ class PDFOrdenProduccionService {
     
     doc.moveDown(2);
     
-    // FIRMAS
-    doc.fontSize(10).font('Helvetica-Bold');
-    doc.text('FIRMAS', 50, doc.y);
-    doc.moveDown(1);
+    // ELABORADO POR
+    doc.fontSize(9).font('Helvetica-Bold');
+    doc.text('Elaborado por:', 60, doc.y);
+    doc.moveDown(0.5);
     
-    const firmas = [
-      'Responsable de Fabricación',
-      'Control de Calidad',
-      'Coordinador de Producción'
-    ];
-    
+    doc.fontSize(9).font('Helvetica');
     const firmaY = doc.y;
-    firmas.forEach((firma, i) => {
-      const x = 70 + (i * 160);
-      doc.moveTo(x, firmaY + 40).lineTo(x + 120, firmaY + 40).stroke();
-      doc.fontSize(7).font('Helvetica');
-      doc.text(firma, x, firmaY + 45, { width: 120, align: 'center' });
-    });
+    doc.moveTo(150, firmaY).lineTo(400, firmaY).stroke();
+    doc.fontSize(7).fillColor('#666');
+    doc.text('Nombre completo', 150, firmaY + 5, { width: 250, align: 'center' });
+    doc.fillColor('#000');
     
     // Footer
     doc.fontSize(8).font('Helvetica')
@@ -753,13 +890,73 @@ class PDFOrdenProduccionService {
   }
 
   /**
-   * Helper: Dibujar sección
+   * Dibujar etiqueta de producción con QR code
+   */
+  static dibujarEtiquetaProduccion(doc, pieza, proyecto) {
+    // Verificar si hay espacio suficiente, si no, nueva página
+    if (doc.y > 550) {
+      doc.addPage();
+      doc.y = 50;
+    }
+
+    // Título de la etiqueta
+    doc.fontSize(8).font('Helvetica-Bold').fillColor('#0066CC');
+    doc.text('📋 ETIQUETA DE PRODUCCIÓN', 60, doc.y);
+    doc.fillColor('#000');
+    doc.moveDown(0.3);
+
+    // Dibujar borde de la etiqueta
+    const boxX = 60;
+    const boxY = doc.y;
+    const boxWidth = 480;
+    const boxHeight = 100;
+
+    doc.rect(boxX, boxY, boxWidth, boxHeight).stroke();
+
+    // Contenido de la etiqueta (lado izquierdo)
+    let currentY = boxY + 10;
+    doc.fontSize(8).font('Helvetica-Bold');
+    doc.text(`ORDEN: ${proyecto.numero}`, boxX + 10, currentY);
+    currentY += 14;
+
+    doc.fontSize(7).font('Helvetica');
+    doc.text(`PIEZA: ${pieza.numero} de ${proyecto.totalPiezas || 'N/A'}`, boxX + 10, currentY);
+    currentY += 11;
+    doc.text(`UBICACIÓN: ${pieza.ubicacion}`, boxX + 10, currentY);
+    currentY += 11;
+    doc.text(`PRODUCTO: ${pieza.producto || 'N/A'} ${pieza.color || ''}`, boxX + 10, currentY);
+    currentY += 11;
+    doc.text(`DIMENSIONES: ${pieza.ancho}m × ${pieza.alto}m`, boxX + 10, currentY);
+    currentY += 11;
+    doc.text(`TIPO: ${pieza.motorizado ? 'Motorizado' : 'Manual'}${pieza.galeria ? ' con galería' : ''}`, boxX + 10, currentY);
+
+    // Placeholder para QR code (lado derecho)
+    // Dibujar un cuadro para el QR
+    doc.rect(boxX + boxWidth - 90, boxY + 10, 80, 80).stroke();
+    doc.fontSize(6).fillColor('#999');
+    doc.text('QR CODE', boxX + boxWidth - 65, boxY + 35, { width: 50, align: 'center' });
+    doc.text(`${proyecto.numero}`, boxX + boxWidth - 65, boxY + 45, { width: 50, align: 'center' });
+    doc.text(`Pieza ${pieza.numero}`, boxX + boxWidth - 65, boxY + 55, { width: 50, align: 'center' });
+    doc.fillColor('#000');
+
+    // Líneas para firmas (parte inferior de la etiqueta)
+    currentY = boxY + boxHeight - 18;
+    doc.fontSize(6).font('Helvetica');
+    doc.text('FABRICADO: _______________', boxX + 10, currentY);
+    doc.text('REVISADO: _______________', boxX + 180, currentY);
+    doc.text('FECHA: __________', boxX + 350, currentY);
+
+    doc.y = boxY + boxHeight + 5;
+  }
+
+  /**
+   * Dibujar sección con título
    */
   static dibujarSeccion(doc, titulo) {
     doc.fontSize(11).font('Helvetica-Bold')
        .fillColor('#333333')
        .text(titulo, 50, doc.y);
-    
+
     doc.moveDown(0.3);
     doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
     doc.moveDown(0.5);

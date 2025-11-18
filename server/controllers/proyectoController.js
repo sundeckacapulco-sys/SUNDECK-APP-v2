@@ -23,6 +23,8 @@ const dashboardCache = new NodeCache({
 });
 const qrCodeGenerator = require('../utils/qrcodeGenerator');
 const notificacionService = require('../services/notificacionService');
+const OrdenProduccionService = require('../services/ordenProduccionService');
+const PDFListaPedidoV2Service = require('../services/pdfListaPedidoV2Service');
 
 const toNumber = (value, defaultValue = 0) => {
   if (value === null || value === undefined || value === '') {
@@ -2299,6 +2301,52 @@ const obtenerKPIsComerciales = async (req, res) => {
   }
 };
 
+/**
+ * Generar Lista de Pedido V2.0 optimizada (máximo 2 páginas)
+ */
+const generarListaPedidoV2 = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    logger.info('Generando Lista de Pedido V2.0', {
+      controller: 'proyectoController',
+      proyectoId: id
+    });
+
+    // Generar lista optimizada con inventario
+    const resultado = await OrdenProduccionService.generarListaPedidoV2(id);
+    
+    const { datosOrden, listaOptimizada } = resultado;
+
+    // Generar PDF
+    const pdfBuffer = await PDFListaPedidoV2Service.generarPDF(datosOrden, listaOptimizada);
+
+    // Enviar PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Lista-Pedido-V2-${datosOrden.proyecto.numero}.pdf`);
+    res.send(pdfBuffer);
+
+    logger.info('Lista de Pedido V2.0 generada exitosamente', {
+      controller: 'proyectoController',
+      proyectoId: id,
+      itemsPedir: listaOptimizada.resumen.totalItemsPedir,
+      itemsAlmacen: listaOptimizada.resumen.totalItemsAlmacen
+    });
+
+  } catch (error) {
+    logger.error('Error generando Lista de Pedido V2.0', {
+      controller: 'proyectoController',
+      proyectoId: req.params.id,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ 
+      message: 'Error generando Lista de Pedido V2.0',
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   crearProyecto,
   obtenerProyectos,
@@ -2319,5 +2367,6 @@ module.exports = {
   generarExcelLevantamiento,
   subirFotosLevantamiento,
   convertirProspectoAProyecto,
-  obtenerKPIsComerciales
+  obtenerKPIsComerciales,
+  generarListaPedidoV2
 };

@@ -105,8 +105,8 @@ async function cargarConfiguracionesMateriales() {
         {
           tipo: 'Tela',
           descripcion: 'Tela Blackout',
-          unidad: 'm²',
-          formula: 'ancho * (alto + 0.25)',
+          unidad: 'ml',
+          formula: 'alto + 0.25',
           condicion: '',
           activo: true,
           puedeRotar: true,
@@ -172,10 +172,10 @@ async function cargarConfiguracionesMateriales() {
       },
       materiales: [
         {
-          tipo: 'Tela',
+          tipo: 'Tela Sheer',
           descripcion: 'Tela Sheer Elegance',
-          unidad: 'm²',
-          formula: 'ancho * (alto + 0.30)',
+          unidad: 'ml',
+          formula: '(alto * 2) + 0.35',
           condicion: '',
           activo: true,
           puedeRotar: false,
@@ -213,8 +213,8 @@ async function cargarConfiguracionesMateriales() {
         {
           tipo: 'Tela',
           descripcion: 'Tela Screen',
-          unidad: 'm²',
-          formula: '(ancho - 0.13) * (alto + 0.25)',
+          unidad: 'ml',
+          formula: 'alto + 0.25',
           condicion: '',
           activo: true,
           puedeRotar: true,
