@@ -1,5 +1,9 @@
 const mongoose = require('mongoose');
+const path = require('path');
 const OrdenProduccionService = require('../services/ordenProduccionService');
+
+// Cargar variables de entorno desde la raíz del proyecto
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 async function debugConsolidacion() {
   try {

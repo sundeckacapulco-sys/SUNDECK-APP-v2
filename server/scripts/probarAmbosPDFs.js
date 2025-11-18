@@ -8,7 +8,9 @@ const path = require('path');
 const Proyecto = require('../models/Proyecto');
 const OrdenProduccionService = require('../services/ordenProduccionService');
 const PDFOrdenFabricacionService = require('../services/pdfOrdenFabricacionService');
-require('dotenv').config();
+
+// Cargar variables de entorno desde la raíz del proyecto
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 async function probarAmbosPDFs() {
   try {
