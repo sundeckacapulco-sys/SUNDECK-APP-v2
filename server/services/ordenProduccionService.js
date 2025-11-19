@@ -615,20 +615,22 @@ class OrdenProduccionService {
         
         // Análisis detallado de piezas con información completa y sobrantes de lienzo
         const detallesPiezas = piezasConEstaTela.map(p => {
-          const anchoCorte = p.rotada ? p.alto : p.ancho;
-          const altoCorte = p.rotada ? p.ancho : p.alto;
+          // Las dimensiones originales NO cambian cuando se rota
+          // Solo cambia el cálculo de metros lineales
+          const anchoOriginal = p.ancho;
+          const altoOriginal = p.alto;
           
           // Buscar la cantidad de tela que ya calculó la calculadora para esta pieza
           const materialTela = p.materiales?.find(m => 
             (m.tipo === 'Tela' || m.tipo === 'Tela Sheer') &&
             m.descripcion === material.descripcion
           );
-          const metrosLineales = materialTela ? materialTela.cantidad : (altoCorte + 0.05);
+          const metrosLineales = materialTela ? materialTela.cantidad : (altoOriginal + 0.05);
           
-          // Calcular sobrante de lienzo si el ancho de corte es menor al ancho del rollo
+          // Calcular sobrante de lienzo si el ancho es menor al ancho del rollo
           let sobranteLienzo = null;
-          if (anchoCorte < anchoRecomendado) {
-            const anchoSobrante = anchoRecomendado - anchoCorte;
+          if (anchoOriginal < anchoRecomendado) {
+            const anchoSobrante = anchoRecomendado - anchoOriginal;
             sobranteLienzo = {
               ancho: anchoSobrante.toFixed(2),
               largo: metrosLineales.toFixed(2),
@@ -639,8 +641,8 @@ class OrdenProduccionService {
           return {
             numero: p.numero,
             ubicacion: p.ubicacion,
-            ancho: anchoCorte,
-            alto: altoCorte,
+            ancho: anchoOriginal,
+            alto: altoOriginal,
             metrosLineales: metrosLineales.toFixed(2),
             producto: p.producto,
             modelo: p.modelo || modelo,

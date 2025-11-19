@@ -123,6 +123,12 @@ const configuracionMaterialesSchema = new mongoose.Schema({
       // "Math.ceil(ancho / 1.5)" - Soportes cada 1.5m
     },
     
+    // Fórmula cuando está rotada (solo para telas)
+    formulaRotada: {
+      type: String,
+      // Ejemplo: "ancho + 0.25" cuando se rota la tela
+    },
+    
     // Condición para aplicar (opcional)
     condicion: {
       type: String,

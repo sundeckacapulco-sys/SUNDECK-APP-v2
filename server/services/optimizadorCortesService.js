@@ -399,8 +399,7 @@ class OptimizadorCortesService {
     try {
       // PASO 1: Buscar configuración en BD (solo por sistema)
       const configuracion = await ConfiguracionMateriales.findOne({ 
-        sistema, 
-        activo: true 
+        sistema
       }).lean();
       
       if (!configuracion) {
@@ -408,8 +407,11 @@ class OptimizadorCortesService {
         return [];
       }
       
-      // PASO 2: Preparar variables para evaluación
+      // PASO 2: Decidir si rotar la pieza
+      // Respetar el campo rotada de la pieza (viene del proyecto)
+      // Si no está definido, NO rotar por defecto
       const rotada = pieza.rotada || false;
+      
       const galeria = pieza.galeria || false;
       const color = pieza.color || '';
       
@@ -455,9 +457,16 @@ class OptimizadorCortesService {
             }
           }
           
-          // Evaluar fórmula
+          // Evaluar fórmula (usar formulaRotada si está rotada y existe)
           try {
-            const cantidad = evalWithContext(materialConfig.formula);
+            let formulaAUsar = materialConfig.formula;
+            
+            // Si la pieza está rotada y existe formulaRotada, usarla
+            if (rotada && materialConfig.formulaRotada) {
+              formulaAUsar = materialConfig.formulaRotada;
+            }
+            
+            const cantidad = evalWithContext(formulaAUsar);
             
             materiales.push({
               tipo: materialConfig.tipo,
@@ -465,7 +474,8 @@ class OptimizadorCortesService {
               descripcion: materialConfig.descripcion,
               cantidad: Number(cantidad) || 0,
               unidad: materialConfig.unidad,
-              observaciones: materialConfig.observaciones || ''
+              observaciones: materialConfig.observaciones || '',
+              rotada: rotada && (materialConfig.tipo === 'Tela' || materialConfig.tipo === 'Tela Sheer')
             });
           } catch (e) {
             logger.warn('Error evaluando fórmula', { formula: materialConfig.formula, error: e.message });

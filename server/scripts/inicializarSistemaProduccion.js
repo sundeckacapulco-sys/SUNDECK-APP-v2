@@ -33,11 +33,15 @@ async function inicializarSistema() {
     // PASO 3: Sobrantes de Ejemplo
     await cargarSobrantesEjemplo();
     
-    console.log('\n✅ SISTEMA INICIALIZADO CORRECTAMENTE\n');
+    console.log('\n SISTEMA INICIALIZADO CORRECTAMENTE\n');
     
     // Mostrar resumen
     await mostrarResumen();
     
+    // Esperar a que se guarden todos los datos
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    await mongoose.disconnect();
     process.exit(0);
     
   } catch (error) {
@@ -107,6 +111,7 @@ async function cargarConfiguracionesMateriales() {
           descripcion: 'Tela Blackout',
           unidad: 'ml',
           formula: 'alto + 0.25',
+          formulaRotada: 'ancho',
           condicion: '',
           activo: true,
           puedeRotar: true,
@@ -172,7 +177,7 @@ async function cargarConfiguracionesMateriales() {
       },
       materiales: [
         {
-          tipo: 'Tela Sheer',
+          tipo: 'Tela',
           descripcion: 'Tela Sheer Elegance',
           unidad: 'ml',
           formula: '(alto * 2) + 0.35',
@@ -215,6 +220,7 @@ async function cargarConfiguracionesMateriales() {
           descripcion: 'Tela Screen',
           unidad: 'ml',
           formula: 'alto + 0.25',
+          formulaRotada: 'ancho',
           condicion: '',
           activo: true,
           puedeRotar: true,
@@ -239,17 +245,18 @@ async function cargarConfiguracionesMateriales() {
     }
   ];
   
+  // Eliminar configuraciones existentes
+  await ConfiguracionMateriales.deleteMany({});
+  console.log('  🗑️  Configuraciones anteriores eliminadas');
+  
+  // Crear nuevas configuraciones
   for (const config of configuraciones) {
-    const existe = await ConfiguracionMateriales.findOne({ 
-      sistema: config.sistema 
-    });
-    
-    if (existe) {
-      console.log(`  ⚠️  ${config.sistema} ya existe, actualizando...`);
-      await ConfiguracionMateriales.findByIdAndUpdate(existe._id, config);
-    } else {
-      await ConfiguracionMateriales.create(config);
-      console.log(`  ✅ ${config.sistema} creado`);
+    try {
+      const resultado = await ConfiguracionMateriales.create(config);
+      console.log(`  ✅ ${config.sistema} creado (ID: ${resultado._id})`);
+    } catch (error) {
+      console.error(`  ❌ Error creando ${config.sistema}:`, error.message);
+      throw error;
     }
   }
   
