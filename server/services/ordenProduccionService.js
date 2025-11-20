@@ -652,72 +652,67 @@ class OrdenProduccionService {
           };
         });
         
-        // Contar piezas por rango de ancho
-        const piezasPequenas = anchosPiezas.filter(a => a <= 2.50);
-        const piezasGrandes = anchosPiezas.filter(a => a > 2.50);
-        
-        const rollosNecesarios = Math.ceil(material.cantidad / 50); // Asumiendo rollos de 50m
+        // NUEVA LÓGICA: Compra por ML vs Rollo Completo
+        const ROLLO_COMPLETO_ML = 30; // Rollo estándar de 30 ml
+        const UMBRAL_ROLLO = 22; // Si faltante >= 22 ml, comprar rollo completo
         
         // Crear string de anchos disponibles
         const anchosDisponibles = anchosRollo.map(a => `${a}m`).join(' o ');
         
-        // Crear sugerencias inteligentes de corte
-        let sugerencias = [];
+        // TODO: Integrar con almacén para obtener stock real
+        // Por ahora asumimos stock = 0 (siempre pedir)
+        const stockAlmacen = 0;
+        const requerimientoTotal = material.cantidad;
+        const faltante = requerimientoTotal - stockAlmacen;
         
-        // Sugerencia 1: Si todas las piezas pequeñas caben en 2.50m
-        if (piezasPequenas.length > 0 && piezasGrandes.length === 0) {
-          sugerencias.push(`Todas las ${piezasPequenas.length} pieza(s) caben en lienzo de 2.50m`);
-          sugerencias.push(`Revisar si hay lienzo de 2.50m en stock del taller`);
-        }
+        // Determinar tipo de compra y cantidades
+        let tipoPedido = 'ninguno'; // 'ninguno', 'metros', 'rollo'
+        let cantidadPedir = 0;
+        let rollosNecesarios = 0;
+        let sobranteEstimado = 0;
+        let observaciones = '';
         
-        // Sugerencia 2: Si hay mezcla de piezas pequeñas y grandes
-        else if (piezasPequenas.length > 0 && piezasGrandes.length > 0) {
-          sugerencias.push(`OPCION 1: Pedir 1 rollo de 3.0m para todas las piezas`);
-          sugerencias.push(`OPCION 2: Usar lienzo de 2.50m del taller para ${piezasPequenas.length} pieza(s) pequena(s)`);
-          
-          // Calcular si las piezas pequeñas se pueden combinar en un solo lienzo
-          const sumaPequenas = piezasPequenas.reduce((sum, a) => sum + a, 0);
-          if (sumaPequenas <= 2.50) {
-            const ubicaciones = piezasConEstaTela
-              .filter(p => {
-                const anchoEfectivo = p.rotada ? p.alto : p.ancho;
-                return anchoEfectivo <= 2.50;
-              })
-              .map(p => p.ubicacion)
-              .join(', ');
-            sugerencias.push(`>> Las piezas pequenas (${ubicaciones}) se pueden cortar de un mismo lienzo de 2.50m`);
-          }
-        }
-        
-        // Sugerencia 3: Si todas son grandes
-        else if (piezasGrandes.length > 0) {
-          sugerencias.push(`Requiere rollo de 3.0m (piezas grandes)`);
-        }
-        
-        // Crear observaciones sin emojis
-        let observaciones = `${rollosNecesarios} rollo(s) de ${anchoRecomendado}m de ancho`;
-        if (sugerencias.length > 0) {
-          observaciones += ` | SUGERENCIAS: ${sugerencias.join(' | ')}`;
+        if (faltante <= 0) {
+          // No pedir nada, hay suficiente en almacén
+          tipoPedido = 'ninguno';
+          observaciones = `Stock suficiente en almacén (${stockAlmacen.toFixed(2)} ml)`;
+        } else if (faltante < UMBRAL_ROLLO) {
+          // Comprar por metros lineales exactos
+          tipoPedido = 'metros';
+          cantidadPedir = faltante;
+          observaciones = `Compra por metro lineal (${faltante.toFixed(2)} ml)`;
+        } else {
+          // Comprar rollo completo
+          tipoPedido = 'rollo';
+          rollosNecesarios = 1;
+          cantidadPedir = ROLLO_COMPLETO_ML;
+          sobranteEstimado = ROLLO_COMPLETO_ML - faltante;
+          observaciones = `Compra rollo completo (30 ml) | Sobrante: ${sobranteEstimado.toFixed(2)} ml`;
         }
         
         listaPedido.telas.push({
           descripcion: material.descripcion,
           codigo: material.codigo,
-          metrosLineales: material.cantidad.toFixed(2),
-          anchoRollo: anchoRecomendado,
-          anchosDisponibles,
-          rollosNecesarios,
           modelo,
           color,
-          tipoProducto, // Screen, Blackout, etc.
-          anchosPiezas, // Array de anchos de piezas para análisis en PDF
-          detallesPiezas, // Información completa de cada pieza (ubicación, ancho, modelo, color)
-          piezasPequenas: piezasPequenas.length,
-          piezasGrandes: piezasGrandes.length,
-          enAlmacen: false, // Por defecto se debe pedir
-          puedeRotar: material.metadata?.puedeRotar || false,
+          anchoRollo: anchoRecomendado,
+          anchosDisponibles,
+          
+          // Cantidades y stock
+          requerimientoTotal: requerimientoTotal.toFixed(2),
+          stockAlmacen: stockAlmacen.toFixed(2),
+          faltante: faltante > 0 ? faltante.toFixed(2) : '0.00',
+          
+          // Información de compra
+          tipoPedido, // 'ninguno', 'metros', 'rollo'
+          cantidadPedir: cantidadPedir.toFixed(2),
+          rollosNecesarios,
+          sobranteEstimado: sobranteEstimado.toFixed(2),
+          
+          // Información simplificada (sin análisis técnico)
           observaciones,
-          sugerencias // Array de sugerencias para mostrar en PDF
+          enAlmacen: faltante <= 0,
+          puedeRotar: material.metadata?.puedeRotar || false
         });
         
         listaPedido.resumen.totalRollos += rollosNecesarios;

@@ -226,7 +226,12 @@ const proyectoSchema = new mongoose.Schema({
         modeloCodigo: String,
         color: String,
         observacionesTecnicas: String,
-        precioM2: Number
+        precioM2: Number,
+        rotadaForzada: {
+          type: Boolean,
+          default: false,
+          description: '🔒 Candado: Si true, esta pieza DEBE ir rotada (ancho > 3.0m o decisión manual)'
+        }
       }],
       motorizacion: {
         activa: Boolean,

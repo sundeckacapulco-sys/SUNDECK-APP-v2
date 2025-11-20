@@ -317,88 +317,47 @@ class PDFOrdenProduccionService {
       });
     }
     
-    // TELAS
+    // TELAS - FORMATO SIMPLIFICADO
     if (listaPedido.telas && listaPedido.telas.length > 0) {
       this.dibujarSeccion(doc, 'TELAS');
       
       listaPedido.telas.forEach((tela, index) => {
-        // Título de la tela
+        // Título de la tela con modelo y color
         doc.fontSize(9).font('Helvetica-Bold');
-        doc.text(`${index + 1}. ${tela.descripcion}`, 50, doc.y);
+        const titulo = `${index + 1}. ${tela.modelo || ''} ${tela.color || ''} - ${tela.anchoRollo}m`.trim();
+        doc.text(titulo, 50, doc.y);
         
-        // ESPECIFICACIONES (modelo, color, ancho)
-        doc.fontSize(8).font('Helvetica-Bold').fillColor('#000');
-        doc.text(`   ESPECIFICACIONES:`, 60, doc.y);
+        doc.moveDown(0.2);
         
-        doc.fontSize(7).font('Helvetica').fillColor('#000');
-        if (tela.modelo) doc.text(`      • Modelo: ${tela.modelo}`, 60, doc.y);
-        if (tela.color) doc.text(`      • Color: ${tela.color}`, 60, doc.y);
-        doc.text(`      • Ancho de rollo: ${tela.anchoRollo}m`, 60, doc.y);
-        if (tela.anchosDisponibles) doc.text(`      • Anchos disponibles: ${tela.anchosDisponibles}`, 60, doc.y);
-        
-        doc.moveDown(0.3);
-        
-        // PEDIDO
-        doc.fontSize(8).font('Helvetica-Bold').fillColor('#000');
-        doc.text(`   PEDIDO:`, 60, doc.y);
-        
-        doc.fontSize(7).font('Helvetica').fillColor('#000');
-        doc.text(`      • Cantidad: ${tela.rollosNecesarios} rollo(s) de ${tela.anchoRollo}m`, 60, doc.y);
-        doc.text(`      • Total metros lineales: ${tela.metrosLineales}ml`, 60, doc.y);
-        
-        const origen = tela.enAlmacen ? 'Disponible en almacen' : '>> PEDIR A PROVEEDOR';
-        doc.fontSize(7).font('Helvetica-Bold').fillColor(tela.enAlmacen ? '#006400' : '#FF6600');
-        doc.text(`      ${origen}`, 60, doc.y);
-        doc.fillColor('#000');
-        
-        doc.moveDown(0.3);
-        
-        // ANÁLISIS DE CORTES con información detallada de cada pieza
-        if (tela.detallesPiezas && tela.detallesPiezas.length > 0) {
-          doc.fontSize(8).font('Helvetica-Bold').fillColor('#000');
-          doc.text(`   ANÁLISIS DE CORTES:`, 60, doc.y);
-          
-          doc.fontSize(7).font('Helvetica').fillColor('#000');
-          doc.text(`      • Total de piezas: ${tela.detallesPiezas.length}`, 60, doc.y);
-          
-          // Mostrar información detallada de cada pieza
-          doc.fontSize(6).font('Helvetica').fillColor('#333');
-          tela.detallesPiezas.forEach((pieza, idx) => {
-            const anchoTexto = pieza.ancho.toFixed(2);
-            const tipo = pieza.ancho <= 2.50 ? '≤2.50m' : '>2.50m';
-            doc.text(`         ${idx + 1}. ${pieza.ubicacion}: ${anchoTexto}m (${tipo})`, 60, doc.y);
-          });
+        // Información de compra según tipo de pedido
+        if (tela.tipoPedido === 'ninguno') {
+          // No pedir nada
+          doc.fontSize(8).font('Helvetica').fillColor('#006400');
+          doc.text(`   ✓ Stock suficiente en almacén (${tela.stockAlmacen} ml)`, 60, doc.y);
           doc.fillColor('#000');
           
-          // Resumen por tamaño
-          doc.fontSize(7).font('Helvetica').fillColor('#000');
-          if (tela.piezasPequenas > 0) {
-            doc.text(`      • Piezas ≤2.50m: ${tela.piezasPequenas}`, 60, doc.y);
-          }
-          if (tela.piezasGrandes > 0) {
-            doc.text(`      • Piezas >2.50m: ${tela.piezasGrandes}`, 60, doc.y);
-          }
-          
-          doc.moveDown(0.3);
-        }
-        
-        // SUGERENCIAS INTELIGENTES
-        if (tela.sugerencias && tela.sugerencias.length > 0) {
-          doc.fontSize(8).font('Helvetica-Bold').fillColor('#0066CC');
-          doc.text(`   [>>] SUGERENCIAS:`, 60, doc.y);
+        } else if (tela.tipoPedido === 'metros') {
+          // Compra por metros lineales
+          doc.fontSize(8).font('Helvetica-Bold').fillColor('#FF6600');
+          doc.text(`   >> PEDIR: ${tela.cantidadPedir} ml (compra por metro)`, 60, doc.y);
           doc.fillColor('#000');
           
-          doc.fontSize(7).font('Helvetica').fillColor('#333');
+          doc.fontSize(7).font('Helvetica').fillColor('#666');
+          doc.text(`   Ancho: ${tela.anchoRollo}m | Requerimiento: ${tela.requerimientoTotal} ml`, 60, doc.y);
+          doc.fillColor('#000');
           
-          // Mostrar sugerencias del backend
-          tela.sugerencias.forEach(sugerencia => {
-            doc.text(`      ${sugerencia}`, 60, doc.y);
-          });
+        } else if (tela.tipoPedido === 'rollo') {
+          // Compra rollo completo
+          doc.fontSize(8).font('Helvetica-Bold').fillColor('#FF6600');
+          doc.text(`   >> PEDIR: 1 rollo de 30 ml`, 60, doc.y);
+          doc.fillColor('#000');
           
+          doc.fontSize(7).font('Helvetica').fillColor('#666');
+          doc.text(`   Ancho: ${tela.anchoRollo}m | Sobrante estimado: ${tela.sobranteEstimado} ml`, 60, doc.y);
           doc.fillColor('#000');
         }
         
-        doc.moveDown(1.0);
+        doc.moveDown(0.8);
       });
     }
     
