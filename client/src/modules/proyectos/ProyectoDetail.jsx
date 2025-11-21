@@ -47,6 +47,7 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import proyectosApi from './services/proyectosApi';
+import axiosConfig from '../../config/axios';
 
 // Importar componentes de pestañas
 import LevantamientoTab from './components/LevantamientoTab';
@@ -56,22 +57,37 @@ import InstalacionTab from './components/InstalacionTab';
 import CheckInOut from '../../components/Asistencia/CheckInOut';
 
 const ESTADOS_CONFIG = {
-  'levantamiento': { color: '#ffc107', label: 'Levantamiento', icon: '📏' },
-  'cotizacion': { color: '#17a2b8', label: 'Cotización', icon: '💰' },
-  'aprobado': { color: '#28a745', label: 'Aprobado', icon: '✅' },
-  'fabricacion': { color: '#fd7e14', label: 'Fabricación', icon: '🏭' },
-  'instalacion': { color: '#6f42c1', label: 'Instalación', icon: '🔧' },
+  'nuevo': { color: '#6c757d', label: 'Nuevo', icon: '🆕' },
+  'contactado': { color: '#ffc107', label: 'Contactado', icon: '📞' },
+  'en_seguimiento': { color: '#ffc107', label: 'En Seguimiento', icon: '👁️' },
+  'en seguimiento': { color: '#ffc107', label: 'En Seguimiento', icon: '👁️' },
+  'cita_agendada': { color: '#ffc107', label: 'Cita Agendada', icon: '📅' },
+  'cita agendada': { color: '#ffc107', label: 'Cita Agendada', icon: '📅' },
+  'cotizado': { color: '#17a2b8', label: 'Cotizado', icon: '💰' },
+  'sin_respuesta': { color: '#6c757d', label: 'Sin Respuesta', icon: '❓' },
+  'sin respuesta': { color: '#6c757d', label: 'Sin Respuesta', icon: '❓' },
+  'en_pausa': { color: '#ffc107', label: 'En Pausa', icon: '⏸️' },
+  'en pausa': { color: '#ffc107', label: 'En Pausa', icon: '⏸️' },
+  'perdido': { color: '#dc3545', label: 'Perdido', icon: '❌' },
+  'convertido': { color: '#28a745', label: 'Convertido', icon: '✅' },
+  'activo': { color: '#28a745', label: 'Activo', icon: '✅' },
+  'en_fabricacion': { color: '#fd7e14', label: 'En Fabricación', icon: '🏭' },
+  'en fabricacion': { color: '#fd7e14', label: 'En Fabricación', icon: '🏭' },
+  'en_instalacion': { color: '#6f42c1', label: 'En Instalación', icon: '🔧' },
+  'en instalacion': { color: '#6f42c1', label: 'En Instalación', icon: '🔧' },
   'completado': { color: '#20c997', label: 'Completado', icon: '🎉' },
+  'pausado': { color: '#ffc107', label: 'Pausado', icon: '⏸️' },
+  'critico': { color: '#dc3545', label: 'Crítico', icon: '⚠️' },
   'cancelado': { color: '#dc3545', label: 'Cancelado', icon: '❌' }
 };
 
 const PASOS_FLUJO = [
-  { key: 'levantamiento', label: 'Levantamiento', icon: '📏' },
-  { key: 'cotizacion', label: 'Cotización', icon: '💰' },
-  { key: 'aprobado', label: 'Aprobado', icon: '✅' },
-  { key: 'fabricacion', label: 'Fabricación', icon: '🏭' },
-  { key: 'instalacion', label: 'Instalación', icon: '🔧' },
-  { key: 'completado', label: 'Completado', icon: '🎉' }
+  { key: 'levantamiento', label: 'Levantamiento', icon: '📏', aliases: ['nuevo', 'contactado', 'en_seguimiento', 'en seguimiento', 'cita_agendada', 'cita agendada', 'sin_respuesta', 'sin respuesta', 'en_pausa', 'en pausa'] },
+  { key: 'cotizacion', label: 'Cotización', icon: '💰', aliases: ['cotizado'] },
+  { key: 'aprobado', label: 'Aprobado', icon: '✅', aliases: ['convertido', 'activo'] },
+  { key: 'fabricacion', label: 'Fabricación', icon: '🏭', aliases: ['en_fabricacion', 'en fabricacion'] },
+  { key: 'instalacion', label: 'Instalación', icon: '🔧', aliases: ['en_instalacion', 'en instalacion'] },
+  { key: 'completado', label: 'Completado', icon: '🎉', aliases: [] }
 ];
 
 const ProyectoDetail = () => {
@@ -197,15 +213,28 @@ const ProyectoDetail = () => {
   const handleSincronizar = async () => {
     try {
       setSincronizando(true);
+      
+      // Sincronizar estado basado en progreso real (cotizaciones, pagos, etc.)
+      const estadoResponse = await axiosConfig.post(`/proyectos/${id}/sincronizar-estado`);
+      console.log('✅ Estado sincronizado:', estadoResponse.data);
+      
+      // Sincronizar proyecto con prospecto
       const response = await proyectosApi.sincronizarProyecto(id);
       
-      if (response.success) {
+      if (response.success || estadoResponse.data.success) {
         await cargarProyecto();
         await cargarEstadisticas();
+        
+        const mensaje = estadoResponse.data.cambios && estadoResponse.data.cambios.length > 0
+          ? `✅ Sincronizado: ${estadoResponse.data.cambios.join(', ')}`
+          : '✅ Proyecto sincronizado exitosamente';
+        
+        alert(mensaje);
       }
     } catch (error) {
       console.error('Error sincronizando:', error);
       setError('Error sincronizando proyecto');
+      alert('❌ Error al sincronizar proyecto');
     } finally {
       setSincronizando(false);
       handleMenuClose();
@@ -224,12 +253,22 @@ const ProyectoDetail = () => {
 
   // Funciones auxiliares
   const calcularProgreso = (estado) => {
-    const indice = PASOS_FLUJO.findIndex(paso => paso.key === estado);
-    return indice >= 0 ? Math.round((indice / (PASOS_FLUJO.length - 1)) * 100) : 0;
+    console.log('🔍 Calculando progreso para estado:', estado);
+    const indice = PASOS_FLUJO.findIndex(paso => 
+      paso.key === estado || (paso.aliases && paso.aliases.includes(estado))
+    );
+    console.log('📊 Índice encontrado:', indice, 'de', PASOS_FLUJO.length);
+    const progreso = indice >= 0 ? Math.round((indice / (PASOS_FLUJO.length - 1)) * 100) : 0;
+    console.log('✅ Progreso calculado:', progreso + '%');
+    return progreso;
   };
 
   const obtenerPasoActual = (estado) => {
-    return PASOS_FLUJO.findIndex(paso => paso.key === estado);
+    const paso = PASOS_FLUJO.findIndex(paso => 
+      paso.key === estado || (paso.aliases && paso.aliases.includes(estado))
+    );
+    console.log('🎯 Paso actual:', paso, 'para estado:', estado);
+    return paso;
   };
 
   const formatearFecha = (fecha) => {
@@ -273,8 +312,17 @@ const ProyectoDetail = () => {
     );
   }
 
-  const estadoConfig = ESTADOS_CONFIG[proyecto.estado] || {};
-  const pasoActual = obtenerPasoActual(proyecto.estado);
+  const estadoProyecto = proyecto.estadoComercial || proyecto.estado || 'nuevo';
+  
+  console.log('📦 Proyecto cargado:', {
+    estadoComercial: proyecto.estadoComercial,
+    estado: proyecto.estado,
+    estadoUsado: estadoProyecto,
+    numero: proyecto.numero
+  });
+
+  const estadoConfig = ESTADOS_CONFIG[estadoProyecto] || ESTADOS_CONFIG['nuevo'];
+  const pasoActual = obtenerPasoActual(estadoProyecto);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -380,7 +428,7 @@ const ProyectoDetail = () => {
               <Box sx={{ mb: 2 }}>
                 <LinearProgress
                   variant="determinate"
-                  value={calcularProgreso(proyecto.estado)}
+                  value={calcularProgreso(estadoProyecto)}
                   sx={{
                     height: 12,
                     borderRadius: 6,
@@ -391,30 +439,43 @@ const ProyectoDetail = () => {
                   }}
                 />
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  {calcularProgreso(proyecto.estado)}% completado
+                  {calcularProgreso(estadoProyecto)}% completado
                 </Typography>
               </Box>
               
               {/* Mini stepper */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                {PASOS_FLUJO.map((paso, index) => (
-                  <Box key={paso.key} sx={{ textAlign: 'center' }}>
-                    <Avatar
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        bgcolor: index <= pasoActual ? estadoConfig.color : 'grey.300',
-                        fontSize: '14px',
-                        mx: 'auto'
-                      }}
-                    >
-                      {paso.icon}
-                    </Avatar>
-                    <Typography variant="caption" display="block">
-                      {paso.label}
-                    </Typography>
-                  </Box>
-                ))}
+                {PASOS_FLUJO.map((paso, index) => {
+                  const isCompleted = index < pasoActual;
+                  const isCurrent = index === pasoActual;
+                  const isPending = index > pasoActual;
+                  
+                  return (
+                    <Box key={paso.key} sx={{ textAlign: 'center' }}>
+                      <Avatar
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          bgcolor: isCompleted ? '#28a745' : (isCurrent ? estadoConfig.color : 'grey.300'),
+                          fontSize: '14px',
+                          mx: 'auto'
+                        }}
+                      >
+                        {isCompleted ? '✓' : paso.icon}
+                      </Avatar>
+                      <Typography 
+                        variant="caption" 
+                        display="block"
+                        sx={{ 
+                          fontWeight: isCurrent ? 600 : 400,
+                          color: isCompleted ? '#28a745' : (isCurrent ? estadoConfig.color : 'text.secondary')
+                        }}
+                      >
+                        {paso.label}
+                      </Typography>
+                    </Box>
+                  );
+                })}
               </Box>
             </CardContent>
           </Card>

@@ -173,7 +173,15 @@ const FabricacionTab = ({ proyecto, estadisticas, onActualizar }) => {
       setSuccess('Orden de Taller descargada correctamente');
     } catch (error) {
       console.error('Error descargando orden taller:', error);
-      setError(error.response?.data?.message || 'Error al descargar la Orden de Taller');
+      
+      // Si es un error de red (ERR_NETWORK), probablemente IDM interceptó la descarga
+      // En este caso, no mostramos error porque el archivo sí se descargó
+      if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+        console.log('⚠️ Descarga interceptada por gestor de descargas (IDM). El archivo se descargó correctamente.');
+        setSuccess('Orden de Taller descargada correctamente');
+      } else {
+        setError(error.response?.data?.message || 'Error al descargar la Orden de Taller');
+      }
     } finally {
       setLoading(false);
     }

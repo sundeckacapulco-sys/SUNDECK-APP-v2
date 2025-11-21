@@ -52,8 +52,38 @@ const verificarRol = (...roles) => {
   };
 };
 
+// Middleware de autenticación opcional (no bloquea si no hay token)
+const authOptional = async (req, res, next) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      req.usuario = null;
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const usuario = await Usuario.findById(decoded.id).select('-password');
+    
+    if (usuario && usuario.activo) {
+      // Actualizar último acceso
+      usuario.fechaUltimoAcceso = new Date();
+      await usuario.save();
+      req.usuario = usuario;
+    } else {
+      req.usuario = null;
+    }
+    
+    next();
+  } catch (error) {
+    req.usuario = null;
+    next();
+  }
+};
+
 module.exports = {
   auth,
+  authOptional,
   verificarPermiso,
   verificarRol
 };

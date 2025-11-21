@@ -631,7 +631,14 @@ class PDFService {
           fecha: documentoFecha ? new Date(documentoFecha) : new Date(),
           vigencia: cotizacion.vigencia || '30 días'
         },
-        cliente: proyecto?.cliente || {},
+        prospecto: {
+          nombre: proyecto?.cliente?.nombre || '',
+          telefono: proyecto?.cliente?.telefono || '',
+          email: proyecto?.cliente?.correo || proyecto?.cliente?.email || '',
+          direccion: proyecto?.cliente?.direccion?.calle 
+            ? `${proyecto.cliente.direccion.calle}${proyecto.cliente.direccion.colonia ? ', ' + proyecto.cliente.direccion.colonia : ''}${proyecto.cliente.direccion.ciudad ? ', ' + proyecto.cliente.direccion.ciudad : ''}`
+            : proyecto?.cliente?.direccion || ''
+        },
         asesor: cotizacion?.elaboradaPor || {},
         partidas,
         totales,

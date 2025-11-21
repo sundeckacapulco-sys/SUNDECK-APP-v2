@@ -133,6 +133,71 @@ router.post('/:id/sincronizar',
   sincronizarProyecto
 );
 
+// POST /api/proyectos/:id/sincronizar-estado - Sincronizar estado basado en el progreso real
+router.post('/:id/sincronizar-estado',
+  auth,
+  verificarPermiso('proyectos', 'editar'),
+  async (req, res) => {
+    try {
+      const Proyecto = require('../models/Proyecto');
+      const proyecto = await Proyecto.findById(req.params.id)
+        .populate('cotizaciones')
+        .populate('pagos');
+      
+      if (!proyecto) {
+        return res.status(404).json({ message: 'Proyecto no encontrado' });
+      }
+
+      const estadoAnterior = proyecto.estadoComercial;
+      let estadoNuevo = estadoAnterior;
+      let cambios = [];
+
+      // Flujo: Levantamiento → Cotización → Activo → Fabricación → Instalación → Completado
+      
+      // 1. Si tiene cotizaciones → mínimo 'cotizado'
+      if (proyecto.cotizaciones && proyecto.cotizaciones.length > 0) {
+        const estadosProspecto = ['nuevo', 'contactado', 'en_seguimiento', 'en seguimiento', 'cita_agendada', 'cita agendada', 'sin_respuesta', 'sin respuesta', 'en_pausa', 'en pausa'];
+        if (estadosProspecto.includes(proyecto.estadoComercial)) {
+          estadoNuevo = 'cotizado';
+          cambios.push('Tiene cotizaciones → cotizado');
+        }
+      }
+
+      // 2. Si tiene anticipo pagado → 'activo'
+      if (proyecto.pagos?.anticipo?.pagado) {
+        if (['cotizado', ...['nuevo', 'contactado', 'en_seguimiento', 'en seguimiento', 'cita_agendada', 'cita agendada', 'sin_respuesta', 'sin respuesta', 'en_pausa', 'en pausa']].includes(proyecto.estadoComercial)) {
+          estadoNuevo = 'activo';
+          cambios.push('Anticipo pagado → activo');
+        }
+      }
+
+      // Aplicar cambio si es necesario
+      if (estadoNuevo !== estadoAnterior) {
+        proyecto.estadoComercial = estadoNuevo;
+        await proyecto.save();
+        
+        return res.json({
+          success: true,
+          message: `Estado sincronizado: ${estadoAnterior} → ${estadoNuevo}`,
+          estadoAnterior,
+          estadoNuevo,
+          cambios
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Estado ya está sincronizado correctamente',
+        estadoActual: proyecto.estadoComercial
+      });
+
+    } catch (error) {
+      console.error('Error sincronizando estado:', error);
+      res.status(500).json({ message: 'Error al sincronizar estado' });
+    }
+  }
+);
+
 // GET /api/proyectos/:id/estadisticas - Obtener estadísticas del proyecto
 router.get('/:id/estadisticas',
   auth,

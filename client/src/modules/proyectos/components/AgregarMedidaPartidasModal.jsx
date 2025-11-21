@@ -33,7 +33,8 @@ import {
   ExpandMore as ExpandMoreIcon,
   Straighten as StraightenIcon,
   Photo as PhotoIcon,
-  CheckCircle
+  CheckCircle,
+  Link as LinkIcon
 } from '@mui/icons-material';
 import usePiezasManager from '../../../components/Prospectos/hooks/usePiezasManager';
 import { productosOptions, createEmptyPieza } from '../../../components/Prospectos/AgregarEtapaModal.constants';
@@ -83,7 +84,19 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
         
         // Cargar partidas si existen
         if (medidaEditando.piezas && medidaEditando.piezas.length > 0) {
-          console.log('📦 Cargando piezas:', medidaEditando.piezas);
+          console.log('📦 Cargando piezas para editar:', medidaEditando.piezas);
+          console.log('📦 Primera pieza completa:', JSON.stringify(medidaEditando.piezas[0], null, 2));
+          
+          // Verificar si las medidas tienen los campos especiales
+          if (medidaEditando.piezas[0]?.medidas?.[0]) {
+            const primeraMedida = medidaEditando.piezas[0].medidas[0];
+            console.log('🔍 Campos especiales en primera medida:', {
+              galeriaCompartida: primeraMedida.galeriaCompartida,
+              grupoGaleria: primeraMedida.grupoGaleria,
+              sistemaSkyline: primeraMedida.sistemaSkyline
+            });
+          }
+          
           piezasManager.reemplazarPiezas(medidaEditando.piezas);
         }
       } else {
@@ -201,19 +214,24 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
+            // Convertir dirección a string
+            const direccionStr = proyecto.cliente?.direccion?.calle 
+              ? `${proyecto.cliente.direccion.calle}, ${proyecto.cliente.direccion.colonia || ''} ${proyecto.cliente.direccion.ciudad || ''}`.trim()
+              : 'Dirección del proyecto';
+
             const checkInData = {
-              proyectoId: proyecto._id,
               ubicacion: {
-                type: 'Point',
-                coordinates: [position.coords.longitude, position.coords.latitude]
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                precision: position.coords.accuracy,
+                direccion: direccionStr
               },
-              direccion: proyecto.cliente?.direccion || 'Dirección del proyecto',
-              notas: `Check-in desde levantamiento: ${nombreLevantamiento || 'Sin nombre'}`
+              observaciones: `Check-in desde levantamiento: ${nombreLevantamiento || 'Sin nombre'}`
             };
 
             console.log('📍 Haciendo check-in:', checkInData);
             
-            const respuesta = await axiosConfig.post('/asistencia/check-in', checkInData);
+            const respuesta = await axiosConfig.post(`/asistencia/check-in/${proyecto._id}`, checkInData);
             
             console.log('✅ Check-in exitoso:', respuesta.data);
             setCheckInRealizado(true);
@@ -308,11 +326,36 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
       // Preparar partidas en el formato que espera el backend
       const partidas = piezasManager.piezas.map(pieza => {
         // Asegurar que cada medida tenga su área calculada y campo rotada
-        const medidasConArea = (pieza.medidas || []).map(medida => ({
-          ...medida,
-          area: (parseFloat(medida.ancho) || 0) * (parseFloat(medida.alto) || 0),
-          rotada: medida.rotada || medida.detalleTecnico === 'rotada' || false
-        }));
+        const medidasConArea = (pieza.medidas || []).map(medida => {
+          const medidaConArea = {
+            ...medida,
+            area: (parseFloat(medida.ancho) || 0) * (parseFloat(medida.alto) || 0),
+            rotada: medida.rotada || medida.detalleTecnico === 'rotada' || false,
+            // Incluir campos de galería compartida y sistema Skyline
+            galeriaCompartida: medida.galeriaCompartida || false,
+            grupoGaleria: medida.grupoGaleria || null,
+            sistemaSkyline: medida.sistemaSkyline || false,
+            // Incluir campos de motor compartido
+            motorCompartido: medida.motorCompartido || false,
+            grupoMotor: medida.grupoMotor || null,
+            piezasPorMotor: medida.piezasPorMotor || 1
+          };
+          
+          // Log para debug si tiene campos especiales
+          if (medida.galeriaCompartida || medida.sistemaSkyline || medida.motorCompartido) {
+            console.log('🔍 Medida con campos especiales:', {
+              galeriaCompartida: medida.galeriaCompartida,
+              grupoGaleria: medida.grupoGaleria,
+              sistemaSkyline: medida.sistemaSkyline,
+              motorCompartido: medida.motorCompartido,
+              grupoMotor: medida.grupoMotor,
+              piezasPorMotor: medida.piezasPorMotor,
+              medidaCompleta: medidaConArea
+            });
+          }
+          
+          return medidaConArea;
+        });
         
         const areaTotal = calcularAreaPieza({ ...pieza, medidas: medidasConArea });
         
@@ -369,6 +412,7 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
       console.log('🔍 Guardando levantamiento con endpoint correcto:', payload);
       console.log('📦 Total de partidas:', partidas.length);
       console.log('📊 Totales calculados:', totales);
+      console.log('🔍 PAYLOAD COMPLETO:', JSON.stringify(payload, null, 2));
 
       // Usar el endpoint específico para levantamientos
       const respuesta = await axiosConfig.patch(`/proyectos/${proyecto._id}/levantamiento`, payload);
@@ -931,6 +975,74 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                             </FormControl>
                           </Grid>
 
+                          {/* Galería Compartida */}
+                          <Grid item xs={12}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, bgcolor: '#f0f9ff', borderRadius: 1, border: '1px solid #bae6fd' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={medida.galeriaCompartida || false}
+                                  onChange={(e) => {
+                                    const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                    nuevasMedidas[index] = { 
+                                      ...nuevasMedidas[index], 
+                                      galeriaCompartida: e.target.checked,
+                                      grupoGaleria: e.target.checked ? (nuevasMedidas[index].grupoGaleria || 'A') : null
+                                    };
+                                    piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                  }}
+                                  style={{ width: 18, height: 18, cursor: 'pointer' }}
+                                />
+                                <Typography variant="body2" sx={{ fontWeight: 600, color: '#0369a1' }}>
+                                  <LinkIcon sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                                  Galería compartida
+                                </Typography>
+                              </Box>
+                              
+                              {medida.galeriaCompartida && (
+                                <>
+                                  <FormControl size="small" sx={{ minWidth: 100 }}>
+                                    <InputLabel>Grupo</InputLabel>
+                                    <Select
+                                      value={medida.grupoGaleria || 'A'}
+                                      label="Grupo"
+                                      onChange={(e) => {
+                                        const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                        nuevasMedidas[index] = { ...nuevasMedidas[index], grupoGaleria: e.target.value };
+                                        piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                      }}
+                                    >
+                                      <MenuItem value="A">Grupo A</MenuItem>
+                                      <MenuItem value="B">Grupo B</MenuItem>
+                                      <MenuItem value="C">Grupo C</MenuItem>
+                                      <MenuItem value="D">Grupo D</MenuItem>
+                                      <MenuItem value="E">Grupo E</MenuItem>
+                                    </Select>
+                                  </FormControl>
+
+                                  <Box sx={{ flex: 1 }}>
+                                    {(() => {
+                                      const grupo = medida.grupoGaleria || 'A';
+                                      const medidasDelGrupo = (piezasManager.piezaForm.medidas || []).filter(
+                                        m => m.galeriaCompartida && m.grupoGaleria === grupo
+                                      );
+                                      const anchoTotal = medidasDelGrupo.reduce((sum, m) => sum + (parseFloat(m.ancho) || 0), 0);
+                                      const cantidad = medidasDelGrupo.length;
+                                      
+                                      return (
+                                        <Alert severity="info" sx={{ py: 0.5 }}>
+                                          <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                                            Grupo {grupo}: {cantidad} pieza{cantidad !== 1 ? 's' : ''} → Galería total: {anchoTotal.toFixed(2)}m
+                                          </Typography>
+                                        </Alert>
+                                      );
+                                    })()}
+                                  </Box>
+                                </>
+                              )}
+                            </Box>
+                          </Grid>
+
                           {/* Tipo de Control */}
                           <Grid item xs={6} sm={4}>
                             <FormControl fullWidth size="small">
@@ -993,6 +1105,105 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                                 <MenuItem value="empotrado">Empotrado</MenuItem>
                               </Select>
                             </FormControl>
+                          </Grid>
+
+                          {/* Sistema Skyline */}
+                          <Grid item xs={12} sm={4}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: '#fef3c7', borderRadius: 1, border: '1px solid #fbbf24' }}>
+                              <input
+                                type="checkbox"
+                                checked={medida.sistemaSkyline || false}
+                                onChange={(e) => {
+                                  const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                  nuevasMedidas[index] = { ...nuevasMedidas[index], sistemaSkyline: e.target.checked };
+                                  piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                }}
+                                style={{ width: 18, height: 18, cursor: 'pointer' }}
+                              />
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: '#92400e' }}>
+                                ⭐ Sistema Skyline
+                              </Typography>
+                              {medida.sistemaSkyline && (
+                                <Chip 
+                                  label="División mínima" 
+                                  size="small" 
+                                  sx={{ bgcolor: '#fbbf24', color: '#78350f', fontWeight: 600, fontSize: '0.7rem' }}
+                                />
+                              )}
+                            </Box>
+                          </Grid>
+
+                          {/* Motor Compartido */}
+                          <Grid item xs={12}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: '#dbeafe', borderRadius: 1, border: '1px solid #3b82f6' }}>
+                              <input
+                                type="checkbox"
+                                checked={medida.motorCompartido || false}
+                                onChange={(e) => {
+                                  const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                  nuevasMedidas[index] = { 
+                                    ...nuevasMedidas[index], 
+                                    motorCompartido: e.target.checked,
+                                    grupoMotor: e.target.checked ? (nuevasMedidas[index].grupoMotor || 'M1') : null,
+                                    piezasPorMotor: e.target.checked ? (nuevasMedidas[index].piezasPorMotor || 1) : 1
+                                  };
+                                  piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                }}
+                                style={{ width: 18, height: 18, cursor: 'pointer' }}
+                              />
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e40af' }}>
+                                🔌 Motor Compartido
+                              </Typography>
+                              
+                              {medida.motorCompartido && (
+                                <>
+                                  <FormControl size="small" sx={{ minWidth: 100 }}>
+                                    <InputLabel>Grupo</InputLabel>
+                                    <Select
+                                      value={medida.grupoMotor || 'M1'}
+                                      label="Grupo"
+                                      onChange={(e) => {
+                                        const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                        nuevasMedidas[index] = { ...nuevasMedidas[index], grupoMotor: e.target.value };
+                                        piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                      }}
+                                    >
+                                      <MenuItem value="M1">M1</MenuItem>
+                                      <MenuItem value="M2">M2</MenuItem>
+                                      <MenuItem value="M3">M3</MenuItem>
+                                      <MenuItem value="M4">M4</MenuItem>
+                                      <MenuItem value="M5">M5</MenuItem>
+                                    </Select>
+                                  </FormControl>
+                                  
+                                  <TextField
+                                    type="number"
+                                    label="Piezas por motor"
+                                    size="small"
+                                    value={medida.piezasPorMotor || 1}
+                                    onChange={(e) => {
+                                      const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                      nuevasMedidas[index] = { ...nuevasMedidas[index], piezasPorMotor: parseInt(e.target.value) || 1 };
+                                      piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                    }}
+                                    inputProps={{ min: 1, max: 10 }}
+                                    sx={{ width: 140 }}
+                                  />
+                                  
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: 'white', px: 1, py: 0.5, borderRadius: 1 }}>
+                                    <Typography variant="caption" sx={{ color: '#1e40af' }}>
+                                      ℹ️ Grupo {medida.grupoMotor || 'M1'}: {(() => {
+                                        const grupo = medida.grupoMotor || 'M1';
+                                        const medidasDelGrupo = (piezasManager.piezaForm.medidas || []).filter(
+                                          m => m.motorCompartido && m.grupoMotor === grupo
+                                        );
+                                        return `${medidasDelGrupo.length} pieza${medidasDelGrupo.length !== 1 ? 's' : ''}`;
+                                      })()}
+                                    </Typography>
+                                  </Box>
+                                </>
+                              )}
+                            </Box>
                           </Grid>
 
                           {/* Tipo de Fijación */}

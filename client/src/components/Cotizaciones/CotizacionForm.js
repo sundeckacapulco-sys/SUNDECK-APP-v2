@@ -28,7 +28,10 @@ import {
   DialogActions,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  Chip,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material';
 import {
   ArrowBack,
@@ -50,11 +53,6 @@ import CalculadoraDiasHabiles from '../Calculadoras/CalculadoraDiasHabiles';
 import CalculadoraMotores from '../Calculadoras/CalculadoraMotores';
 import CalcularYAgregar from '../Calculadoras/CalcularYAgregar';
 import { calcularSubtotalProducto } from './calculadora';
-import {
-  Checkbox,
-  FormControlLabel,
-  Chip
-} from '@mui/material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
@@ -871,10 +869,11 @@ const CotizacionForm = () => {
     const primerProducto = productos[0];
     const precioUnitario = parseFloat(primerProducto?.precioUnitario) || 0;
     
-    if (precioUnitario === 0) {
-      alert('El primer producto debe tener un precio válido');
-      return;
-    }
+    // Permitir precio 0 para promociones/regalos
+    // if (precioUnitario === 0) {
+    //   alert('El primer producto debe tener un precio válido');
+    //   return;
+    // }
 
     // Copiar precio del primer producto a todos los demás y recalcular subtotales
     for (let i = 1; i < productos.length; i++) {
@@ -1137,13 +1136,13 @@ const CotizacionForm = () => {
         return;
       }
 
-      // Validar que los productos tienen información básica
+      // Validar que los productos tienen información básica (permitir precio 0 para promociones)
       const productosIncompletos = data.productos.some(producto => 
-        !producto.nombre || !producto.precioUnitario || producto.precioUnitario <= 0
+        !producto.nombre || producto.precioUnitario === null || producto.precioUnitario === undefined || producto.precioUnitario < 0
       );
       
       if (productosIncompletos) {
-        setError('Todos los productos deben tener nombre y precio válido');
+        setError('Todos los productos deben tener nombre y precio válido (puede ser $0 para promociones)');
         return;
       }
 
@@ -1910,6 +1909,7 @@ const CotizacionForm = () => {
                                 }
                                 return '$/m²';
                               })()}
+                              helperText={parseFloat(field.value) === 0 ? "🎁 Promoción" : ""}
                               onChange={(e) => {
                                 field.onChange(e);
                                 // Calcular subtotal automáticamente según tipo de producto
@@ -1934,10 +1934,32 @@ const CotizacionForm = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        ${(() => {
+                        {(() => {
                           const producto = watchedProductos[index];
                           const subtotal = calcularSubtotalProducto(producto);
-                          return subtotal.toLocaleString();
+                          const precio = parseFloat(producto?.precioUnitario) || 0;
+                          
+                          if (precio === 0) {
+                            return (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <span style={{ textDecoration: 'line-through', color: '#999' }}>
+                                  ${subtotal.toLocaleString()}
+                                </span>
+                                <Chip 
+                                  label="PROMOCIÓN" 
+                                  size="small" 
+                                  sx={{ 
+                                    bgcolor: '#22c55e', 
+                                    color: 'white', 
+                                    fontWeight: 600,
+                                    fontSize: '0.65rem'
+                                  }}
+                                />
+                              </Box>
+                            );
+                          }
+                          
+                          return `$${subtotal.toLocaleString()}`;
                         })()}
                       </TableCell>
                       <TableCell>

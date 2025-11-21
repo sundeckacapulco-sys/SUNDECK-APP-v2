@@ -249,7 +249,10 @@ class PDFOrdenProduccionService {
         pieza.caida ? `Caída: ${pieza.caida}` : null,
         pieza.tipoInstalacion ? `Inst: ${pieza.tipoInstalacion}` : null,
         pieza.tipoFijacion ? `Fij: ${pieza.tipoFijacion}` : null,
-        pieza.color ? `Color: ${pieza.color}` : null
+        pieza.color ? `Color: ${pieza.color}` : null,
+        pieza.galeriaCompartida ? `[GAL-${pieza.grupoGaleria || 'A'}]` : null,
+        pieza.sistemaSkyline ? '[SKYLINE]' : null,
+        pieza.motorCompartido ? `[MOTOR-${pieza.grupoMotor || 'M1'}]` : null
       ].filter(Boolean).join(' | ');
       
       doc.text(specs, 60, doc.y);
@@ -520,8 +523,8 @@ class PDFOrdenProduccionService {
         `Control: ${pieza.control || 'N/A'}`,
         `Caída: ${pieza.caida || 'N/A'}`,
         `Tipo: ${pieza.motorizado ? 'Motorizado' : 'Manual'}`,
-        `Producto: ${pieza.producto || 'N/A'}`,
-        `Modelo: ${pieza.modelo || 'N/A'}`,
+        `Tela: ${pieza.telaMarca || 'N/A'}`,
+        `Modelo: ${pieza.modeloCodigo || 'N/A'}`,
         `Color: ${pieza.color || 'N/A'}`,
         `Instalación: ${pieza.tipoInstalacion || 'N/A'}`,
         `Fijación: ${pieza.tipoFijacion || 'N/A'}`,
@@ -530,6 +533,21 @@ class PDFOrdenProduccionService {
         `Modo Operación: ${pieza.modoOperacion || 'N/A'}`,
         `Traslape: ${pieza.traslape || 'N/A'}`
       ];
+      
+      // Agregar información de galería compartida si aplica
+      if (pieza.galeriaCompartida) {
+        especificaciones.push(`>> GALERIA COMPARTIDA - Grupo ${pieza.grupoGaleria || 'A'}`);
+      }
+      
+      // Agregar información de sistema Skyline si aplica
+      if (pieza.sistemaSkyline) {
+        especificaciones.push(`>> SISTEMA SKYLINE`);
+      }
+      
+      // Agregar información de motor compartido si aplica
+      if (pieza.motorCompartido) {
+        especificaciones.push(`>> MOTOR COMPARTIDO - Grupo ${pieza.grupoMotor || 'M1'} (${pieza.piezasPorMotor} piezas)`);
+      }
       
       // Mostrar en 2 columnas
       for (let i = 0; i < especificaciones.length; i += 2) {

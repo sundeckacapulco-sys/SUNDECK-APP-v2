@@ -93,6 +93,16 @@ class OrdenProduccionService {
       // Obtener piezas normalizadas con todos los campos técnicos
       const piezas = this.obtenerPiezasConDetallesTecnicos(proyecto);
 
+      if (!piezas || piezas.length === 0) {
+        logger.warn('No hay piezas para generar orden de producción', {
+          servicio: 'ordenProduccionService',
+          proyectoId: proyectoId.toString(),
+          tieneProductos: !!proyecto.productos?.length,
+          tieneLevantamiento: !!proyecto.levantamiento?.partidas?.length
+        });
+        throw new Error('No hay piezas para generar la orden de producción. Asegúrate de que el proyecto tenga un levantamiento con medidas.');
+      }
+
       // Calcular BOM (Bill of Materials) por pieza usando optimizador inteligente
       const piezasConBOM = [];
       for (const pieza of piezas) {
@@ -239,7 +249,16 @@ class OrdenProduccionService {
           motorizado: Boolean(producto.motorizado || medidas.modoOperacion === 'motorizado'),
           rotada: Boolean(producto.rotada || medidas.rotada || medidas.detalleTecnico === 'rotada'),
           color: producto.color || medidas.color || 'No especificado',
-          cantidad: producto.cantidad || 1
+          cantidad: producto.cantidad || 1,
+          
+          // CAMPOS ESPECIALES: Galería Compartida y Sistema Skyline
+          galeriaCompartida: Boolean(producto.galeriaCompartida || medidas.galeriaCompartida),
+          grupoGaleria: producto.grupoGaleria || medidas.grupoGaleria || null,
+          sistemaSkyline: Boolean(producto.sistemaSkyline || medidas.sistemaSkyline),
+          // CAMPOS ESPECIALES: Motor Compartido
+          motorCompartido: Boolean(producto.motorCompartido || medidas.motorCompartido),
+          grupoMotor: producto.grupoMotor || medidas.grupoMotor || null,
+          piezasPorMotor: Number(producto.piezasPorMotor || medidas.piezasPorMotor) || 1
         });
       });
     }
@@ -302,7 +321,16 @@ class OrdenProduccionService {
               motorizado: pieza.operacion === 'motorizado' || pieza.modoOperacion === 'motorizado',
               rotada: Boolean(pieza.rotada || pieza.detalle === 'rotada' || pieza.detalleTecnico === 'rotada'),
               color: pieza.color || partida.color || 'No especificado',
-              cantidad: 1
+              cantidad: 1,
+              
+              // CAMPOS ESPECIALES: Galería Compartida y Sistema Skyline
+              galeriaCompartida: Boolean(pieza.galeriaCompartida),
+              grupoGaleria: pieza.grupoGaleria || null,
+              sistemaSkyline: Boolean(pieza.sistemaSkyline),
+              // CAMPOS ESPECIALES: Motor Compartido
+              motorCompartido: Boolean(pieza.motorCompartido),
+              grupoMotor: pieza.grupoMotor || null,
+              piezasPorMotor: Number(pieza.piezasPorMotor) || 1
             });
           });
         }

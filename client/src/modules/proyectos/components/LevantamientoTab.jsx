@@ -647,6 +647,12 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
                                     telaMarca={medidaIndiv.telaMarca}
                                     baseTabla={medidaIndiv.baseTabla}
                                     observacionesTecnicas={medidaIndiv.observacionesTecnicas}
+                                    galeriaCompartida={medidaIndiv.galeriaCompartida}
+                                    grupoGaleria={medidaIndiv.grupoGaleria}
+                                    sistemaSkyline={medidaIndiv.sistemaSkyline}
+                                    motorCompartido={medidaIndiv.motorCompartido}
+                                    grupoMotor={medidaIndiv.grupoMotor}
+                                    piezasPorMotor={medidaIndiv.piezasPorMotor}
                                   />
                                 ))}
                               </Grid>

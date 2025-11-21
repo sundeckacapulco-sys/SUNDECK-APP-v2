@@ -1,6 +1,6 @@
 const express = require('express');
 const Proyecto = require('../models/Proyecto');
-const { auth } = require('../middleware/auth');
+const { auth, authOptional } = require('../middleware/auth');
 const logger = require('../config/logger');
 
 const router = express.Router();
@@ -22,23 +22,33 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 }
 
 // POST /api/asistencia/check-in/:proyectoId
-router.post('/check-in/:proyectoId', auth, async (req, res) => {
+router.post('/check-in/:proyectoId', authOptional, async (req, res) => {
   try {
+    console.log('🔍 Check-in iniciado:', {
+      proyectoId: req.params.proyectoId,
+      body: req.body,
+      usuario: req.usuario?.nombre || 'Sin autenticar'
+    });
+
     const { proyectoId } = req.params;
     const { ubicacion, foto, observaciones } = req.body;
 
     // Validaciones
     if (!ubicacion || !ubicacion.lat || !ubicacion.lng) {
+      console.log('❌ Validación fallida: ubicación incompleta');
       return res.status(400).json({ 
         message: 'Se requiere la ubicación (latitud y longitud)' 
       });
     }
 
+    console.log('🔍 Buscando proyecto:', proyectoId);
     // Buscar proyecto
     const proyecto = await Proyecto.findById(proyectoId);
     if (!proyecto) {
+      console.log('❌ Proyecto no encontrado');
       return res.status(404).json({ message: 'Proyecto no encontrado' });
     }
+    console.log('✅ Proyecto encontrado:', proyecto.numero);
 
     // Verificar que no haya check-in previo sin check-out
     if (proyecto.instalacion?.ejecucion?.checkIn?.fecha && 
@@ -48,6 +58,7 @@ router.post('/check-in/:proyectoId', auth, async (req, res) => {
       });
     }
 
+    console.log('🔍 Calculando distancia al sitio...');
     // Calcular distancia al sitio del cliente
     let distanciaAlSitio = null;
     let enSitio = false;
@@ -61,6 +72,9 @@ router.post('/check-in/:proyectoId', auth, async (req, res) => {
         proyecto.cliente.direccion.coordenadas.lng
       );
       enSitio = distanciaAlSitio <= 100; // Dentro de 100 metros
+      console.log('📍 Distancia calculada:', distanciaAlSitio, 'metros');
+    } else {
+      console.log('⚠️ No hay coordenadas del cliente para calcular distancia');
     }
 
     const ahora = new Date();
@@ -70,6 +84,7 @@ router.post('/check-in/:proyectoId', auth, async (req, res) => {
       hour12: false 
     });
 
+    console.log('🔍 Preparando estructura de instalación...');
     // Registrar check-in
     if (!proyecto.instalacion) {
       proyecto.instalacion = {};
@@ -81,8 +96,8 @@ router.post('/check-in/:proyectoId', auth, async (req, res) => {
     proyecto.instalacion.ejecucion.checkIn = {
       fecha: ahora,
       hora: horaActual,
-      usuario: req.usuario._id,
-      nombreUsuario: req.usuario.nombre,
+      usuario: req.usuario?._id || null,
+      nombreUsuario: req.usuario?.nombre || 'Usuario desconocido',
       ubicacion: {
         lat: ubicacion.lat,
         lng: ubicacion.lng,
@@ -117,12 +132,17 @@ router.post('/check-in/:proyectoId', auth, async (req, res) => {
       proyecto.instalacion.ejecucion.metricas.fueronPuntuales = Math.abs(diferencia) <= 15; // ±15 min
     }
 
-    proyecto.actualizado_por = req.usuario._id;
+    if (req.usuario?._id) {
+      proyecto.actualizado_por = req.usuario._id;
+    }
+    
+    console.log('💾 Guardando proyecto con check-in...');
     await proyecto.save();
+    console.log('✅ Proyecto guardado exitosamente');
 
     logger.info('Check-in registrado exitosamente', {
       proyectoId,
-      usuario: req.usuario.nombre,
+      usuario: req.usuario?.nombre || 'Usuario desconocido',
       ubicacion: `${ubicacion.lat}, ${ubicacion.lng}`,
       distanciaAlSitio,
       enSitio,
@@ -139,6 +159,7 @@ router.post('/check-in/:proyectoId', auth, async (req, res) => {
     });
 
   } catch (error) {
+    console.error('❌ ERROR EN CHECK-IN:', error);
     logger.error('Error en check-in', {
       error: error.message,
       stack: error.stack,
@@ -147,7 +168,8 @@ router.post('/check-in/:proyectoId', auth, async (req, res) => {
     });
     res.status(500).json({ 
       message: 'Error al registrar check-in',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

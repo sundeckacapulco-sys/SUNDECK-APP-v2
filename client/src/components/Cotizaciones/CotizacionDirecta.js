@@ -313,12 +313,13 @@ const CotizacionDirecta = () => {
           return;
         }
 
+        // Permitir precio 0 para promociones/regalos
         const productosIncompletos = data.productos.some(producto => 
-          !producto.nombre || !producto.precioUnitario || producto.precioUnitario <= 0
+          !producto.nombre || producto.precioUnitario === null || producto.precioUnitario === undefined || producto.precioUnitario < 0
         );
         
         if (productosIncompletos) {
-          setError('Todos los productos deben tener nombre y precio válido');
+          setError('Todos los productos deben tener nombre y precio válido (puede ser $0 para promociones)');
           return;
         }
         setActiveStep(2);

@@ -83,16 +83,22 @@ const proyectoSchema = new mongoose.Schema({
       'nuevo',
       'contactado',
       'en_seguimiento',
+      'en seguimiento', // Variante con espacio
       'cita_agendada',
+      'cita agendada', // Variante con espacio
       'cotizado',
       'sin_respuesta',
+      'sin respuesta', // Variante con espacio
       'en_pausa',
+      'en pausa', // Variante con espacio
       'perdido',
       // Estados de proyecto
       'convertido',
       'activo',
       'en_fabricacion',
+      'en fabricacion', // Variante con espacio
       'en_instalacion',
+      'en instalacion', // Variante con espacio
       'completado',
       'pausado',
       // Estados críticos
@@ -231,6 +237,38 @@ const proyectoSchema = new mongoose.Schema({
           type: Boolean,
           default: false,
           description: '🔒 Candado: Si true, esta pieza DEBE ir rotada (ancho > 3.0m o decisión manual)'
+        },
+        // CAMPOS ESPECIALES: Galería Compartida y Sistema Skyline
+        galeriaCompartida: {
+          type: Boolean,
+          default: false,
+          description: '🔗 Indica si esta pieza comparte galería con otras piezas'
+        },
+        grupoGaleria: {
+          type: String,
+          default: null,
+          description: '🔗 Grupo de galería compartida (A, B, C, etc.)'
+        },
+        sistemaSkyline: {
+          type: Boolean,
+          default: false,
+          description: '⭐ Indica si esta pieza usa el sistema Skyline'
+        },
+        // CAMPOS ESPECIALES: Motor Compartido
+        motorCompartido: {
+          type: Boolean,
+          default: false,
+          description: '🔌 Indica si esta pieza comparte motor con otras piezas'
+        },
+        grupoMotor: {
+          type: String,
+          default: null,
+          description: '🔌 Grupo de motor compartido (M1, M2, M3, etc.)'
+        },
+        piezasPorMotor: {
+          type: Number,
+          default: 1,
+          description: '🔌 Cantidad de piezas que sube este motor'
         }
       }],
       motorizacion: {
@@ -871,11 +909,18 @@ const proyectoSchema = new mongoose.Schema({
   tiempo_entrega: {
     tipo: {
       type: String,
-      enum: ['normal', 'expres'],
+      enum: ['normal', 'expres', 'personalizado'],
       default: 'normal'
     },
     dias_estimados: Number,
-    fecha_estimada: Date
+    fecha_estimada: Date,
+    personalizado: {
+      cantidad: Number,
+      unidad: {
+        type: String,
+        enum: ['horas', 'dias']
+      }
+    }
   },
 
   // Campos de auditoría

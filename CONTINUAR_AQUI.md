@@ -1,8 +1,167 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
-**Fecha de última sesión:** 19 Noviembre 2025  
-**Hora de finalización:** 7:04 PM  
-**Estado del proyecto:** ✅ PDF | ✅ PAGOS | ✅ AUDITORÍA | ✅ ORDEN PRODUCCIÓN | ✅ PDFs FABRICACIÓN | ✅ **LISTA PEDIDO V3.1** | 🔒 **CANDADO ROTACIÓN** | 🔴 **CONSOLIDAR PDFs PEDIDO** | 🔄 CALCULADORA v1.2 | ⏳ ALMACÉN
+**Fecha de última sesión:** 20 Noviembre 2025  
+**Hora de finalización:** 7:27 PM  
+**Estado del proyecto:** ✅ PDF | ✅ PAGOS | ✅ AUDITORÍA | ✅ ORDEN PRODUCCIÓN | ✅ PDFs FABRICACIÓN | ✅ LISTA PEDIDO V3.1 | 🔒 CANDADO ROTACIÓN | ✅ **MOTOR COMPARTIDO** | 📋 **DATA CONTRACT** | 🔴 **CONSOLIDAR PDFs PEDIDO** | 📐 **OPTIMIZACIÓN CORTES** | 🔄 CALCULADORA v1.2 | ⏳ ALMACÉN
+
+---
+
+## 🎯 SESIÓN 20 NOV 2025 - MOTOR COMPARTIDO + DATA CONTRACT + FIX PDF (5:42 PM - 7:27 PM)
+
+**Duración:** 1 hora 45 minutos  
+**Estado:** ✅ MOTOR COMPARTIDO COMPLETADO | ✅ DOCUMENTACIÓN CREADA | ✅ FIX CRÍTICO PDF  
+**Archivos modificados:** 8 (5 backend + 3 frontend)
+
+### ✅ COMPLETADO
+
+**1. Motor Compartido - Implementación Completa:**
+
+**Backend (100%):**
+- ✅ Schema BD: 3 campos nuevos en `Proyecto.js` (líneas 257-272)
+  - `motorCompartido` (Boolean) - 🔌 Indica si comparte motor
+  - `grupoMotor` (String) - Grupo: "M1", "M2", "M3", etc.
+  - `piezasPorMotor` (Number) - Cantidad de piezas por motor
+- ✅ Normalización en `proyectoController.js` (líneas 205-213, 238-241, 410-413)
+- ✅ Extracción en `ordenProduccionService.js` (líneas 258-261, 330-333)
+- ✅ PDF renderizado en `pdfOrdenFabricacionService.js` (líneas 255, 547-550)
+
+**Frontend (100%):**
+- ✅ Formulario de captura en `AgregarMedidaPartidasModal.jsx` (líneas 1136-1207)
+  - Checkbox con fondo azul distintivo
+  - Select de grupo motor (M1-M10)
+  - Input de piezas por motor
+  - Contador en vivo de piezas compartiendo motor
+- ✅ Payload preparado (líneas 338-341, 345-353)
+- ✅ Badges en `PiezaCard.jsx` (líneas 24-30, 284-331)
+- ✅ Props pasados desde `LevantamientoTab.jsx` (líneas 650-655)
+
+**Características:**
+```javascript
+// Ejemplo de uso
+{
+  motorCompartido: true,
+  grupoMotor: "M1",
+  piezasPorMotor: 3  // 1 motor sube 3 cortinas
+}
+```
+
+**Paleta de colores:**
+- Fondo: `#dbeafe` (azul claro)
+- Borde: `#3b82f6` (azul)
+- Texto: `#1e40af` (azul oscuro)
+
+**2. Documentación Técnica Creada:**
+
+**A. `docs/CAMBIOS_PDF_ORDEN_TALLER.md` (500+ líneas)**
+- ✅ Guía genérica para modificar PDFs
+- ✅ Estructura actual del PDF (3 páginas)
+- ✅ 3 casos de uso comunes con código
+- ✅ Métodos auxiliares útiles
+- ✅ Estilos y formato estándar
+- ✅ Checklist de implementación
+- ✅ Errores comunes y soluciones
+
+**B. `docs/DATA_MODEL_ACTUAL.md` (600+ líneas)**
+- ✅ DATA CONTRACT oficial del sistema
+- ✅ Estructura EXACTA de Levantamiento Técnico
+- ✅ Estructura EXACTA de Proyecto
+- ✅ Estructura EXACTA de Orden de Taller
+- ✅ Estructura EXACTA de Lista de Pedido
+- ✅ Campos NO usados documentados
+- ✅ Ejemplo JSON real completo
+- ✅ Transformaciones automáticas
+- ✅ Mapeo inteligente de sistema
+
+**C. Actualización de `docs/AGREGAR_ESPECIFICACIONES_LEVANTAMIENTO.md`**
+- ✅ Paso 6: Captura en frontend (Motor Compartido)
+- ✅ Paso 7: Visualización en PiezaCard
+- ✅ Paleta de colores estandarizada
+- ✅ Tabla de archivos completa (7 archivos)
+- ✅ Resumen final con líneas exactas
+
+**3. Fix Crítico - PDF Cotización con Datos Vacíos (7:13 PM - 7:27 PM):**
+
+**Problema reportado:** PDFs de cotización mostraban campos vacíos en "Información del Cliente"
+
+**Causa raíz:**
+- ❌ Código pasaba `cliente` pero template esperaba `prospecto`
+- ❌ Campo `correo` en BD pero template esperaba `email`
+- ❌ Dirección como objeto complejo pero template esperaba string
+
+**Solución implementada:**
+```javascript
+prospecto: {
+  nombre: proyecto?.cliente?.nombre || '',
+  telefono: proyecto?.cliente?.telefono || '',
+  email: proyecto?.cliente?.correo || '',      // Normalizado
+  direccion: "Calle, Colonia, Ciudad"          // Formateado
+}
+```
+
+**Archivo modificado:**
+- `server/services/pdfService.js` (líneas 634-641)
+
+**Resultado:**
+- ✅ Nombre del cliente visible
+- ✅ Teléfono visible
+- ✅ Email normalizado desde `correo`
+- ✅ Dirección formateada correctamente
+
+### 📊 Métricas de Hoy
+
+- Archivos modificados: 8
+- Líneas agregadas: ~210
+- Documentos creados: 2 nuevos
+- Documentos actualizados: 1
+- Implementaciones exitosas: 3 (Galería, Skyline, Motor)
+- Bugs críticos corregidos: 1 (PDF cotización)
+
+### 🎯 PRÓXIMA SESIÓN - PRIORIDAD #1
+
+**📋 DATA CONTRACT OFICIAL (30-45 min)**
+
+**Objetivo:** Validar y firmar el DATA CONTRACT antes de cualquier cambio futuro
+
+**Tareas:**
+1. ⏳ Revisar `docs/DATA_MODEL_ACTUAL.md` línea por línea
+2. ⏳ Validar que TODO esté correcto y completo
+3. ⏳ Identificar inconsistencias o campos faltantes
+4. ⏳ Confirmar transformaciones automáticas
+5. ⏳ Verificar ejemplo JSON con proyecto real
+6. ⏳ Firmar versión oficial del contrato
+
+**Beneficio:**
+- Evitar que el agente se pierda en cambios futuros
+- Tener VERDAD ABSOLUTA del sistema actual
+- Base sólida para cualquier migración o cambio
+- Documentación oficial para integraciones
+
+**Archivos a revisar:**
+- `docs/DATA_MODEL_ACTUAL.md` - Leer completo
+- Comparar con código actual si hay dudas
+- Validar ejemplo JSON con BD real
+
+### 🎯 PRÓXIMA SESIÓN - PRIORIDAD #2
+
+**📐 OPTIMIZACIÓN DE CORTES (1-2 horas)**
+
+**Objetivo:** Agregar sección de optimización de tubos y telas en PDF de orden de taller
+
+**Tareas:**
+1. ⏳ Implementar lógica de optimización de tubos (6m)
+2. ⏳ Implementar lógica de optimización de telas (rollos)
+3. ⏳ Agregar sección en PDF (después de "Piezas a Fabricar")
+4. ⏳ Mostrar plan de cortes optimizado
+5. ⏳ Calcular desperdicios y sobrantes
+6. ⏳ Documentar en `CAMBIOS_PDF_ORDEN_TALLER.md`
+
+**Referencia:**
+- Guía genérica ya creada: `docs/CAMBIOS_PDF_ORDEN_TALLER.md`
+- Seguir patrón de "Agregar Nueva Sección en Página Existente"
+
+**Ubicación en PDF:**
+- Página 1, después de "PIEZAS A FABRICAR" (línea ~263)
+- Método: `dibujarSeccionOptimizacionCortes(doc, datos)`
 
 ---
 

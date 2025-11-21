@@ -91,11 +91,35 @@ const registrarAnticipo = async (req, res) => {
 
     // 📅 Calcular tiempo de entrega si no está definido
     if (!proyecto.tiempo_entrega || !proyecto.tiempo_entrega.dias_estimados) {
-      // Determinar tipo de entrega (normal o exprés)
+      // Determinar tipo de entrega (normal, exprés o personalizado)
       const tipoEntrega = req.body.tipoEntrega || proyecto.tiempo_entrega?.tipo || 'normal';
       
       // Días hábiles según tipo
-      let diasHabiles = tipoEntrega === 'expres' ? 7 : 15;
+      let diasHabiles;
+      
+      if (tipoEntrega === 'personalizado') {
+        // Usar valores personalizados del frontend
+        const cantidad = parseInt(req.body.tiempoEntregaCantidad) || 1;
+        const unidad = req.body.tiempoEntregaUnidad || 'dias';
+        
+        // Convertir a días hábiles
+        if (unidad === 'horas') {
+          // Convertir horas a días (8 horas = 1 día hábil)
+          diasHabiles = Math.ceil(cantidad / 8);
+        } else {
+          diasHabiles = cantidad;
+        }
+        
+        logger.info('📅 Entrega personalizada configurada', {
+          proyectoId: id,
+          cantidad: cantidad,
+          unidad: unidad,
+          diasHabilesCalculados: diasHabiles
+        });
+      } else {
+        // Usar valores predeterminados
+        diasHabiles = tipoEntrega === 'expres' ? 7 : 15;
+      }
       
       // Función para calcular fecha sumando solo días hábiles (L-V)
       function calcularFechaHabil(fechaInicio, diasHabiles) {
@@ -126,11 +150,36 @@ const registrarAnticipo = async (req, res) => {
       proyecto.tiempo_entrega.dias_estimados = diasHabiles;
       proyecto.tiempo_entrega.fecha_estimada = fechaEstimada;
       
+      // Guardar información personalizada si aplica
+      if (tipoEntrega === 'personalizado') {
+        proyecto.tiempo_entrega.personalizado = {
+          cantidad: parseInt(req.body.tiempoEntregaCantidad),
+          unidad: req.body.tiempoEntregaUnidad
+        };
+      }
+      
       logger.info('📅 Tiempo de entrega calculado automáticamente', {
         proyectoId: id,
         tipo: tipoEntrega,
         diasHabiles: diasHabiles,
-        fechaEstimada: fechaEstimada.toISOString().split('T')[0]
+        fechaEstimada: fechaEstimada.toISOString().split('T')[0],
+        personalizado: tipoEntrega === 'personalizado' ? proyecto.tiempo_entrega.personalizado : null
+      });
+    }
+
+    // Actualizar estado comercial: anticipo recibido = proyecto activo
+    // Solo actualizar si está en estado de prospecto o cotizado
+    const estadosProspecto = ['nuevo', 'contactado', 'en_seguimiento', 'en seguimiento', 'cita_agendada', 'cita agendada', 'sin_respuesta', 'sin respuesta', 'en_pausa', 'en pausa', 'cotizado'];
+    
+    if (estadosProspecto.includes(proyecto.estadoComercial)) {
+      const estadoAnterior = proyecto.estadoComercial;
+      proyecto.estadoComercial = 'activo'; // Anticipo pagado = proyecto activo
+      
+      logger.info('✅ Estado comercial actualizado: Anticipo recibido → Proyecto ACTIVO', {
+        proyectoId: id,
+        estadoAnterior: estadoAnterior,
+        estadoNuevo: 'activo',
+        flujo: 'Levantamiento → Cotización → ACTIVO → Fabricación → Instalación → Completado'
       });
     }
 

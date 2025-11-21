@@ -201,6 +201,18 @@ const normalizarPartidas = (partidas = [], { incluirPrecios = false } = {}) => {
       const alto = roundNumber(pieza.alto, 4);
       const m2 = roundNumber(ancho * alto, 4);
 
+      // Log para debug de campos especiales
+      if (pieza.galeriaCompartida || pieza.sistemaSkyline || pieza.motorCompartido) {
+        logger.info('🔍 Campos especiales detectados en pieza', {
+          galeriaCompartida: pieza.galeriaCompartida,
+          grupoGaleria: pieza.grupoGaleria,
+          sistemaSkyline: pieza.sistemaSkyline,
+          motorCompartido: pieza.motorCompartido,
+          grupoMotor: pieza.grupoMotor,
+          piezasPorMotor: pieza.piezasPorMotor
+        });
+      }
+
       return {
         ancho,
         alto,
@@ -221,7 +233,15 @@ const normalizarPartidas = (partidas = [], { incluirPrecios = false } = {}) => {
         modeloCodigo: pieza.modeloCodigo || partida.modelo || '',
         color: pieza.color || partida.color || '',
         observacionesTecnicas: pieza.observacionesTecnicas || '',
-        precioM2: incluirPrecios ? roundNumber(pieza.precioM2 ?? partida.precioM2) : undefined
+        precioM2: incluirPrecios ? roundNumber(pieza.precioM2 ?? partida.precioM2) : undefined,
+        // CAMPOS ESPECIALES: Galería Compartida y Sistema Skyline
+        galeriaCompartida: Boolean(pieza.galeriaCompartida),
+        grupoGaleria: pieza.grupoGaleria || null,
+        sistemaSkyline: Boolean(pieza.sistemaSkyline),
+        // CAMPOS ESPECIALES: Motor Compartido
+        motorCompartido: Boolean(pieza.motorCompartido),
+        grupoMotor: pieza.grupoMotor || null,
+        piezasPorMotor: Number(pieza.piezasPorMotor) || 1
       };
     });
 
@@ -382,7 +402,15 @@ const construirRegistroMedidas = (
         baseTabla: medida.baseTabla,
         observacionesTecnicas: medida.observacionesTecnicas,
         traslape: medida.traslape,
-        precioM2: incluirPrecios ? medida.precioM2 : undefined
+        precioM2: incluirPrecios ? medida.precioM2 : undefined,
+        // CAMPOS ESPECIALES: Galería Compartida y Sistema Skyline
+        galeriaCompartida: medida.galeriaCompartida || false,
+        grupoGaleria: medida.grupoGaleria || null,
+        sistemaSkyline: medida.sistemaSkyline || false,
+        // CAMPOS ESPECIALES: Motor Compartido
+        motorCompartido: medida.motorCompartido || false,
+        grupoMotor: medida.grupoMotor || null,
+        piezasPorMotor: medida.piezasPorMotor || 1
       }))
     })),
     totales: {
@@ -1623,6 +1651,16 @@ const guardarLevantamiento = async (req, res) => {
       primeraPartida: JSON.stringify(partidas[0])
     });
 
+    // Log detallado de las medidas de la primera partida
+    if (partidas[0]?.medidas?.[0]) {
+      logger.info('🔍 Primera medida de primera partida', {
+        medida: JSON.stringify(partidas[0].medidas[0]),
+        galeriaCompartida: partidas[0].medidas[0].galeriaCompartida,
+        grupoGaleria: partidas[0].medidas[0].grupoGaleria,
+        sistemaSkyline: partidas[0].medidas[0].sistemaSkyline
+      });
+    }
+
     const partidasNormalizadas = normalizarPartidas(partidas, { incluirPrecios: false });
     
     logger.info('Partidas después de normalizar', {
@@ -1676,6 +1714,17 @@ const guardarLevantamiento = async (req, res) => {
     proyecto.actualizado_por = req.usuario.id;
 
     await proyecto.save();
+
+    // Verificar que los campos especiales se guardaron
+    if (proyecto.levantamiento?.partidas?.[0]?.piezas?.[0]) {
+      logger.info('🔍 Verificando campos guardados en BD', {
+        primeraPartida: proyecto.levantamiento.partidas[0].ubicacion,
+        primeraPieza: JSON.stringify(proyecto.levantamiento.partidas[0].piezas[0]),
+        galeriaCompartida: proyecto.levantamiento.partidas[0].piezas[0].galeriaCompartida,
+        grupoGaleria: proyecto.levantamiento.partidas[0].piezas[0].grupoGaleria,
+        sistemaSkyline: proyecto.levantamiento.partidas[0].piezas[0].sistemaSkyline
+      });
+    }
 
     logger.info('Levantamiento guardado exitosamente', {
       proyectoId: id,

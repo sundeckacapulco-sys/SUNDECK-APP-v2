@@ -20,7 +20,14 @@ const PiezaCard = ({
   sistema,
   telaMarca,
   baseTabla,
-  observacionesTecnicas
+  observacionesTecnicas,
+  // Campos especiales
+  galeriaCompartida,
+  grupoGaleria,
+  sistemaSkyline,
+  motorCompartido,
+  grupoMotor,
+  piezasPorMotor
 }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -270,6 +277,55 @@ const PiezaCard = ({
                     <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)' }}>
                       {observacionesTecnicas}
                     </Typography>
+                  </Box>
+                </Grid>
+              )}
+
+              {/* Campos Especiales - Ancho completo */}
+              {(galeriaCompartida || sistemaSkyline || motorCompartido) && (
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {galeriaCompartida && (
+                      <Box sx={{ 
+                        bgcolor: '#bfdbfe', 
+                        px: 1.5, 
+                        py: 0.5, 
+                        borderRadius: '6px',
+                        border: '1px solid #3b82f6'
+                      }}>
+                        <Typography variant="caption" sx={{ color: '#1e40af', fontWeight: 600 }}>
+                          🔗 Galería Compartida - Grupo {grupoGaleria || 'A'}
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {sistemaSkyline && (
+                      <Box sx={{ 
+                        bgcolor: '#fef3c7', 
+                        px: 1.5, 
+                        py: 0.5, 
+                        borderRadius: '6px',
+                        border: '1px solid #fbbf24'
+                      }}>
+                        <Typography variant="caption" sx={{ color: '#92400e', fontWeight: 600 }}>
+                          ⭐ Sistema Skyline
+                        </Typography>
+                      </Box>
+                    )}
+                    
+                    {motorCompartido && (
+                      <Box sx={{ 
+                        bgcolor: '#dbeafe', 
+                        px: 1.5, 
+                        py: 0.5, 
+                        borderRadius: '6px',
+                        border: '1px solid #3b82f6'
+                      }}>
+                        <Typography variant="caption" sx={{ color: '#1e40af', fontWeight: 600 }}>
+                          🔌 Motor Compartido - Grupo {grupoMotor || 'M1'} ({piezasPorMotor || 1} piezas)
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
                 </Grid>
               )}

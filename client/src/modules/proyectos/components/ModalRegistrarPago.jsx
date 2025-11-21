@@ -55,7 +55,9 @@ const ModalRegistrarPago = ({
     correoCliente: '',
     constanciaFiscal: null,
     requiereFactura: false,
-    tipoEntrega: 'normal' // normal o expres
+    tipoEntrega: 'normal', // normal, expres o personalizado
+    tiempoEntregaCantidad: '',
+    tiempoEntregaUnidad: 'dias' // dias u horas
   });
 
   const [archivoNombre, setArchivoNombre] = useState('');
@@ -152,6 +154,14 @@ const ModalRegistrarPago = ({
       return;
     }
 
+    // Validar campos de entrega personalizada
+    if (formData.tipoEntrega === 'personalizado') {
+      if (!formData.tiempoEntregaCantidad || formData.tiempoEntregaCantidad <= 0) {
+        setError('Ingresa la cantidad de tiempo para entrega personalizada');
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -177,6 +187,8 @@ const ModalRegistrarPago = ({
         setTimeout(() => {
           onSuccess && onSuccess();
           onClose();
+          // Recargar la página para reflejar cambios en el indicador de progreso
+          window.location.reload();
         }, 1500);
       }
     } catch (err) {
@@ -394,7 +406,7 @@ const ModalRegistrarPago = ({
               </Grid>
 
               {/* Tipo de Entrega */}
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={formData.tipoEntrega === 'personalizado' ? 4 : 6}>
                 <FormControl fullWidth>
                   <InputLabel>Tipo de Entrega</InputLabel>
                   <Select
@@ -414,9 +426,52 @@ const ModalRegistrarPago = ({
                         Exprés (7 días hábiles)
                       </Box>
                     </MenuItem>
+                    <MenuItem value="personalizado">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <span style={{ fontSize: '20px' }}>⏱️</span>
+                        Personalizado
+                      </Box>
+                    </MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
+
+              {/* Campos adicionales para entrega personalizada */}
+              {formData.tipoEntrega === 'personalizado' && (
+                <>
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Cantidad"
+                      value={formData.tiempoEntregaCantidad}
+                      onChange={(e) => handleChange('tiempoEntregaCantidad', e.target.value)}
+                      inputProps={{ min: 1 }}
+                      placeholder="Ej: 24, 48, 72"
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <FormControl fullWidth>
+                      <InputLabel>Unidad</InputLabel>
+                      <Select
+                        value={formData.tiempoEntregaUnidad}
+                        onChange={(e) => handleChange('tiempoEntregaUnidad', e.target.value)}
+                        label="Unidad"
+                      >
+                        <MenuItem value="horas">Horas</MenuItem>
+                        <MenuItem value="dias">Días</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  {formData.tiempoEntregaCantidad && (
+                    <Grid item xs={12}>
+                      <Alert severity="info" icon="⏱️">
+                        <strong>Tiempo de entrega:</strong> {formData.tiempoEntregaCantidad} {formData.tiempoEntregaUnidad}
+                      </Alert>
+                    </Grid>
+                  )}
+                </>
+              )}
 
               {/* Referencia */}
               <Grid item xs={12}>
