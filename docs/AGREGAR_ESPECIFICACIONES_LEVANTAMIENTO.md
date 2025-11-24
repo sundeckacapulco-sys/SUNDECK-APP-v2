@@ -61,6 +61,13 @@ Esta guía documenta el proceso completo para agregar una nueva especificación 
 // Dentro de levantamiento.partidas[].piezas[]
 {
   // ... otros campos existentes ...
+
+  // ✅ NUEVO CAMPO: Ancho de Tela
+  anchoTela: {
+    type: Number,
+    default: null,
+    description: '📏 Ancho real del rollo/tela utilizado (ej. 2.00, 2.50, 2.80, 3.00)'
+  },
   
   // NUEVO CAMPO: Motor Compartido
   motorCompartido: {
@@ -102,6 +109,9 @@ function normalizarPartidas(partidas, opciones = {}) {
   const piezasNormalizadas = piezas.map(pieza => {
     return {
       // ... campos existentes ...
+
+      // ✅ NUEVO CAMPO: Ancho de Tela
+      anchoTela: pieza.anchoTela != null ? roundNumber(pieza.anchoTela, 3) : null,
       
       // NUEVOS CAMPOS: Motor Compartido
       motorCompartido: Boolean(pieza.motorCompartido),
@@ -146,6 +156,9 @@ function construirRegistroMedidas(partidas, metadata) {
     medidas: partida.piezas.map(pieza => ({
       // ... campos existentes ...
       
+      // ✅ NUEVO CAMPO: Ancho de Tela
+      anchoTela: pieza.anchoTela,
+      
       // NUEVOS CAMPOS: Motor Compartido
       motorCompartido: pieza.motorCompartido || false,
       grupoMotor: pieza.grupoMotor || null,
@@ -172,6 +185,9 @@ static obtenerPiezasConDetallesTecnicos(proyecto) {
       piezas.push({
         // ... campos existentes ...
         
+        // ✅ NUEVO CAMPO: Ancho de Tela
+        anchoTela: producto.anchoTela,
+        
         // NUEVOS CAMPOS: Motor Compartido
         motorCompartido: Boolean(producto.motorCompartido || medidas.motorCompartido),
         grupoMotor: producto.grupoMotor || medidas.grupoMotor || null,
@@ -186,6 +202,9 @@ static obtenerPiezasConDetallesTecnicos(proyecto) {
       partida.piezas?.forEach(pieza => {
         piezasArray.push({
           // ... campos existentes ...
+          
+          // ✅ NUEVO CAMPO: Ancho de Tela
+          anchoTela: pieza.anchoTela,
           
           // NUEVOS CAMPOS: Motor Compartido
           motorCompartido: Boolean(pieza.motorCompartido),
@@ -218,6 +237,9 @@ const specs = [
   pieza.motorizado ? 'Motorizado' : 'Manual',
   // ... otros campos ...
   
+  // ✅ NUEVO INDICADOR: Ancho de Tela
+  pieza.anchoTela ? `Ancho Tela: ${pieza.anchoTela}m` : null,
+  
   // NUEVOS INDICADORES
   pieza.galeriaCompartida ? `[GAL-${pieza.grupoGaleria || 'A'}]` : null,
   pieza.sistemaSkyline ? '[SKYLINE]' : null,
@@ -232,7 +254,10 @@ const especificaciones = [
   `Sistema: ${pieza.sistema || 'N/A'}`,
   `Control: ${pieza.control || 'N/A'}`,
   // ... otros campos ...
-  `Traslape: ${pieza.traslape || 'N/A'}`
+  `Traslape: ${pieza.traslape || 'N/A'}`,
+  
+  // ✅ NUEVO CAMPO: Ancho de Tela
+  pieza.anchoTela ? `Ancho Tela: ${pieza.anchoTela}m` : null
 ];
 
 // Agregar información de galería compartida si aplica
@@ -268,7 +293,7 @@ if (pieza.motorCompartido) {
 
 **Estructura del campo:**
 ```jsx
-{/* Motor Compartido */}
+{/* Ancho de Tela */}
 <Grid item xs={12}>
   <Box sx={{ 
     display: 'flex', 
@@ -279,97 +304,31 @@ if (pieza.motorCompartido) {
     borderRadius: 1, 
     border: '1px solid #3b82f6' 
   }}>
-    {/* Checkbox principal */}
-    <input
-      type="checkbox"
-      checked={medida.motorCompartido || false}
+    {/* Label con icono */}
+    <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e40af' }}>
+      📏 Ancho de Tela
+    </Typography>
+    
+    {/* Input numérico */}
+    <TextField
+      type="number"
+      label="Ancho de Tela (m)"
+      size="small"
+      value={medida.anchoTela || 0}
       onChange={(e) => {
         const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
         nuevasMedidas[index] = { 
           ...nuevasMedidas[index], 
-          motorCompartido: e.target.checked,
-          grupoMotor: e.target.checked ? (nuevasMedidas[index].grupoMotor || 'M1') : null,
-          piezasPorMotor: e.target.checked ? (nuevasMedidas[index].piezasPorMotor || 1) : 1
+          anchoTela: parseFloat(e.target.value) || 0 
         };
         piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
       }}
-      style={{ width: 18, height: 18, cursor: 'pointer' }}
+      inputProps={{ min: 0, max: 10 }}
+      sx={{ width: 140 }}
     />
-    
-    {/* Label con icono */}
-    <Typography variant="body2" sx={{ fontWeight: 600, color: '#1e40af' }}>
-      🔌 Motor Compartido
-    </Typography>
-    
-    {/* Campos condicionales cuando está activado */}
-    {medida.motorCompartido && (
-      <>
-        {/* Select de grupo */}
-        <FormControl size="small" sx={{ minWidth: 100 }}>
-          <InputLabel>Grupo</InputLabel>
-          <Select
-            value={medida.grupoMotor || 'M1'}
-            label="Grupo"
-            onChange={(e) => {
-              const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
-              nuevasMedidas[index] = { ...nuevasMedidas[index], grupoMotor: e.target.value };
-              piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
-            }}
-          >
-            <MenuItem value="M1">M1</MenuItem>
-            <MenuItem value="M2">M2</MenuItem>
-            <MenuItem value="M3">M3</MenuItem>
-            <MenuItem value="M4">M4</MenuItem>
-            <MenuItem value="M5">M5</MenuItem>
-          </Select>
-        </FormControl>
-        
-        {/* Input numérico */}
-        <TextField
-          type="number"
-          label="Piezas por motor"
-          size="small"
-          value={medida.piezasPorMotor || 1}
-          onChange={(e) => {
-            const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
-            nuevasMedidas[index] = { 
-              ...nuevasMedidas[index], 
-              piezasPorMotor: parseInt(e.target.value) || 1 
-            };
-            piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
-          }}
-          inputProps={{ min: 1, max: 10 }}
-          sx={{ width: 140 }}
-        />
-        
-        {/* Indicador en vivo */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, bgcolor: 'white', px: 1, py: 0.5, borderRadius: 1 }}>
-          <Typography variant="caption" sx={{ color: '#1e40af' }}>
-            ℹ️ Grupo {medida.grupoMotor || 'M1'}: {(() => {
-              const grupo = medida.grupoMotor || 'M1';
-              const medidasDelGrupo = (piezasManager.piezaForm.medidas || []).filter(
-                m => m.motorCompartido && m.grupoMotor === grupo
-              );
-              return `${medidasDelGrupo.length} pieza${medidasDelGrupo.length !== 1 ? 's' : ''}`;
-            })()}
-          </Typography>
-        </Box>
-      </>
-    )}
   </Box>
 </Grid>
 ```
-
-**⚠️ Importante:**
-- **Ubicación exacta:** Buscar el comentario `{/* Sistema Skyline */}` y agregar después del cierre de su `</Grid>`
-- **Grid item:** Usar `xs={12}` para ocupar todo el ancho
-- **Color distintivo:** Cada tipo de campo especial tiene su propio color:
-  - Galería Compartida: Azul claro (`#bfdbfe`)
-  - Sistema Skyline: Amarillo (`#fef3c7`)
-  - Motor Compartido: Azul (`#dbeafe`)
-- **Icono único:** Usar emoji distintivo (🔌 para motor)
-- **Campos condicionales:** Solo mostrar select y input cuando el checkbox está activado
-- **Contador en vivo:** Calcular y mostrar cuántas piezas comparten el mismo grupo
 
 #### **6.2 Preparar datos antes de enviar (Línea ~315)**
 
@@ -380,6 +339,9 @@ const partidas = piezasManager.piezas.map(pieza => {
       ...medida,
       area: (parseFloat(medida.ancho) || 0) * (parseFloat(medida.alto) || 0),
       rotada: medida.rotada || medida.detalleTecnico === 'rotada' || false,
+      
+      // ✅ NUEVO CAMPO: Ancho de Tela
+      anchoTela: medida.anchoTela ? parseFloat(medida.anchoTela) : null,
       
       // Campos especiales existentes
       galeriaCompartida: medida.galeriaCompartida || false,

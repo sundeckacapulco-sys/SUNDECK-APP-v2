@@ -225,6 +225,11 @@ const proyectoSchema = new mongoose.Schema({
         caida: String,
         galeria: String,
         telaMarca: String,
+        anchoTela: {
+          type: Number,
+          default: null,
+          description: '📏 Ancho real del rollo/tela utilizado (ej. 2.00, 2.50, 2.80, 3.00)'
+        },
         baseTabla: String,
         operacion: String,
         detalle: String,

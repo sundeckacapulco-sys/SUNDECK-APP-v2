@@ -331,6 +331,7 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
             ...medida,
             area: (parseFloat(medida.ancho) || 0) * (parseFloat(medida.alto) || 0),
             rotada: medida.rotada || medida.detalleTecnico === 'rotada' || false,
+            anchoTela: medida.anchoTela ? parseFloat(medida.anchoTela) : null,
             // Incluir campos de galería compartida y sistema Skyline
             galeriaCompartida: medida.galeriaCompartida || false,
             grupoGaleria: medida.grupoGaleria || null,
@@ -1371,6 +1372,29 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                                 piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
                               }}
                               placeholder="Marca o tela"
+                            />
+                          </Grid>
+
+                          {/* Ancho de Tela */}
+                          <Grid item xs={6} sm={4}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              type="number"
+                              label="Ancho de Tela (m)"
+                              value={medida.anchoTela ?? ''}
+                              onChange={(e) => {
+                                const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                const valor = e.target.value;
+                                nuevasMedidas[index] = { 
+                                  ...nuevasMedidas[index], 
+                                  anchoTela: valor === '' ? '' : parseFloat(valor) 
+                                };
+                                piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                              }}
+                              inputProps={{ step: 0.1, min: 0 }}
+                              helperText="Ingresa el ancho real del rollo (2.00, 2.50, 2.80, 3.00). Si lo omites se usarán anchos estándar."
+                              placeholder="Ej. 2.50"
                             />
                           </Grid>
 

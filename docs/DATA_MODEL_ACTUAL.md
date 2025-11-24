@@ -429,6 +429,15 @@ if (pieza.rotada) {
 
 ---
 
+## ✅ FIRMA DEL DATA CONTRACT
+
+- **Estado:** Confirmado como versión oficial del modelo de datos vigente.
+- **Revisión:** 24 Nov 2025 — verificada contra `server/models/Proyecto.js` y servicios asociados.
+- **Responsables:** Equipo Desarrollo CRM Sundeck + Agente Cascade.
+- **Acción requerida:** Cualquier cambio estructural debe actualizar este documento en el mismo PR.
+
+---
+
 **Última actualización:** 20 Nov 2025  
 **Mantenido por:** Equipo Sundeck  
 **Versión:** 2.0 (Post-Fase 4)

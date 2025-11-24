@@ -163,6 +163,22 @@ prospecto: {
 - Página 1, después de "PIEZAS A FABRICAR" (línea ~263)
 - Método: `dibujarSeccionOptimizacionCortes(doc, datos)`
 
+### 🔴 PRÓXIMA SESIÓN: CONSOLIDAR PDFs (1-2 horas)
+
+**Objetivo:** Crear **UN SOLO servicio definitivo** combinando lo mejor de los 3 servicios actuales.
+
+**Documentación de referencia:**
+- 📄 `docs/PROXIMA_SESION_CONSOLIDAR_PDF.md` (plan detallado)
+- 💾 Memoria del sistema (resumen persistente)
+- 📋 Este `CONTINUAR_AQUI.md` actualizado
+
+**Lo mejor de cada servicio ya identificado:**
+1. ✅ Checklist de empaque y formato profesional — `pdfOrdenFabricacionService.js`
+2. ✅ Despiece inteligente + stock de almacén — `pdfListaPedidoV3Service.js`
+3. ✅ Lógica de compra (metros vs rollo) — `ordenProduccionService.js`
+
+**Resultado esperado:** Servicio único `pdfListaPedidoFinalService.js` con 3 páginas (Material consolidado, Despiece inteligente, Almacén/Garantías/Checklist).
+
 ---
 
 ## 🎯 SESIÓN 19 NOV 2025 - NUEVA LÓGICA DE COMPRA DE TELAS (5:58 PM - 6:18 PM)

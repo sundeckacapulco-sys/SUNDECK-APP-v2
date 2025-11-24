@@ -226,6 +226,7 @@ const normalizarPartidas = (partidas = [], { incluirPrecios = false } = {}) => {
         caida: pieza.caida || pieza.orientacion || '',
         galeria: pieza.galeria || '',
         telaMarca: pieza.telaMarca || '',
+        anchoTela: pieza.anchoTela != null ? roundNumber(pieza.anchoTela, 3) : null,
         baseTabla: pieza.baseTabla || '',
         operacion: pieza.operacion || pieza.modoOperacion || '',
         detalle: pieza.detalle || pieza.detalleTecnico || '',
@@ -386,6 +387,7 @@ const construirRegistroMedidas = (
         ancho: medida.ancho,
         alto: medida.alto,
         area: roundNumber((medida.ancho || 0) * (medida.alto || 0)),  // ✅ CALCULAR ÁREA
+        anchoTela: medida.anchoTela,
         producto: partida.producto,
         productoLabel: partida.producto,
         modeloCodigo: medida.modeloCodigo,
