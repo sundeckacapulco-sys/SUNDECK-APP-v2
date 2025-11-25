@@ -1,86 +1,31 @@
 const express = require('express');
-const { auth, verificarPermiso } = require('../middleware/auth');
-const { filtrarProyectosPorRol } = require('../middleware/filtroProyectos');
-const {
-  crearDesdeCotzacion,
-  obtenerProyectos,
-  obtenerProyectoPorId,
-  cambiarEstado,
-  agregarNota,
-  registrarPago,
-  asignarResponsable,
-  obtenerEstadisticas,
-  actualizarProducto
-} = require('../controllers/proyectoPedidoController');
-
+const logger = require('../config/logger');
 const router = express.Router();
 
-// ===== RUTAS PRINCIPALES =====
+/**
+ * 🚫 RUTA OBSOLETA (LEGACY)
+ * Bloqueada permanentemente el 25 Nov 2025 como parte de la Fase 4.
+ * Esta ruta causaba divergencia de datos al mantener un flujo paralelo de proyectos.
+ * 
+ * Nueva implementación:
+ * - Usar endpoints de /api/proyectos para toda la gestión de proyectos.
+ * - Usar modelo unificado server/models/Proyecto.js
+ */
 
-// GET /api/proyecto-pedido - Obtener todos los proyectos con filtros
-router.get('/', 
-  auth, 
-  verificarPermiso('proyectos', 'leer'),
-  filtrarProyectosPorRol,
-  obtenerProyectos
-);
+router.use((req, res) => {
+  logger.warn('Intento de acceso a ruta obsoleta: proyectoPedido', {
+    method: req.method,
+    url: req.originalUrl,
+    usuario: req.user?.id || 'anonimo',
+    ip: req.ip
+  });
 
-// GET /api/proyecto-pedido/estadisticas - Obtener estadísticas generales
-router.get('/estadisticas', 
-  auth, 
-  verificarPermiso('proyectos', 'leer'), 
-  obtenerEstadisticas
-);
-
-// GET /api/proyecto-pedido/:id - Obtener proyecto específico por ID
-router.get('/:id', 
-  auth, 
-  verificarPermiso('proyectos', 'leer'), 
-  obtenerProyectoPorId
-);
-
-// POST /api/proyecto-pedido/desde-cotizacion/:cotizacionId - Crear proyecto desde cotización
-router.post('/desde-cotizacion/:cotizacionId', 
-  auth, 
-  verificarPermiso('proyectos', 'crear'), 
-  crearDesdeCotzacion
-);
-
-// ===== RUTAS DE GESTIÓN =====
-
-// PATCH /api/proyecto-pedido/:id/estado - Cambiar estado del proyecto
-router.patch('/:id/estado', 
-  auth, 
-  verificarPermiso('proyectos', 'editar'), 
-  cambiarEstado
-);
-
-// POST /api/proyecto-pedido/:id/notas - Agregar nota al proyecto
-router.post('/:id/notas', 
-  auth, 
-  verificarPermiso('proyectos', 'editar'), 
-  agregarNota
-);
-
-// POST /api/proyecto-pedido/:id/pagos - Registrar pago
-router.post('/:id/pagos', 
-  auth, 
-  verificarPermiso('proyectos', 'editar'), 
-  registrarPago
-);
-
-// PATCH /api/proyecto-pedido/:id/responsables - Asignar responsable
-router.patch('/:id/responsables', 
-  auth, 
-  verificarPermiso('proyectos', 'editar'), 
-  asignarResponsable
-);
-
-// PATCH /api/proyecto-pedido/:id/productos/:productoIndex - Actualizar producto individual
-router.patch('/:id/productos/:productoIndex', 
-  auth, 
-  verificarPermiso('proyectos', 'editar'), 
-  actualizarProducto
-);
+  return res.status(410).json({
+    error: 'Ruta obsoleta (410 Gone)',
+    mensaje: 'El endpoint /api/proyecto-pedido ha sido desactivado permanentemente.',
+    recomendacion: 'Utilice los endpoints de /api/proyectos para gestionar proyectos unificados.',
+    fecha_bloqueo: '2025-11-25'
+  });
+});
 
 module.exports = router;
