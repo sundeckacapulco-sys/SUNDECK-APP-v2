@@ -68,15 +68,12 @@ router.get('/', auth, async (req, res) => {
             }
           ],
           
-          // Monto total de ventas (CORREGIDO)
+          // Monto total de ventas (CORRECCIÓN DEFINITIVA)
           montos: [
-            {
-              $match: { 'cotizacionActual.totales.total': { $exists: true, $gt: 0 } }
-            },
             {
               $group: {
                 _id: null,
-                montoTotal: { $sum: '$cotizacionActual.totales.total' }
+                montoTotal: { $sum: { $ifNull: ['$cotizacionActual.totales.total', 0] } }
               }
             }
           ],
@@ -186,13 +183,12 @@ router.get('/', auth, async (req, res) => {
             { $sort: { 'instalacion.ejecucion.checkIn.fecha': -1 } }
           ],
           
-          // Cierres mensuales (últimos 6 meses)
+          // Cierres mensuales (últimos 6 meses - CORREGIDO)
           cierresMensuales: [
             {
               $match: {
                 estadoComercial: 'convertido',
                 createdAt: { $gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) },
-                'cotizacionActual.totales.total': { $exists: true, $gt: 0 }
               }
             },
             {
@@ -202,8 +198,8 @@ router.get('/', auth, async (req, res) => {
                   month: { $month: '$createdAt' }
                 },
                 totalVentas: { $sum: 1 },
-                montoTotal: { $sum: '$cotizacionActual.totales.total' },
-                promedioTicket: { $avg: '$cotizacionActual.totales.total' }
+                montoTotal: { $sum: { $ifNull: ['$cotizacionActual.totales.total', 0] } },
+                promedioTicket: { $avg: { $ifNull: ['$cotizacionActual.totales.total', 0] } }
               }
             },
             {
