@@ -33,70 +33,83 @@ Corrección del cálculo de `montoTotal` en `dashboardUnificado.js`. Ahora utili
 2. Si es 0, usa `cotizacionActual.totales.total`.
 **FECHA:** 25 Nov 2025
 
-### ✅ PROY-000: Bloqueo de Rutas Legacy (Index)
-**DESCRIPCION:**
-Se bloquearon rutas obsoletas en `server/index.js` para evitar divergencia de datos.
-- Bloqueada: `/api/dashboard` (Legacy) -> Usar `/api/dashboard/unificado`
-- Comentario explicativo agregado en rutas de prospectos.
+### ✅ PROY-001: Bloqueo de Rutas Legacy (ProyectoPedido)
+**DESCRIPCION:** 
+Se documentaron y bloquearon definitivamente las rutas legacy en `server/routes/proyectoPedido.js` usando un middleware que devuelve 410 Gone.
 **FECHA:** 25 Nov 2025
 
 ---
 
 ## 🚨 Prioridad Alta: Tarea Actual
 
-### PROY-001
+### EXP-001: Consolidación de Exportaciones
 **DESCRIPCION:** 
-Documentar y bloquear definitivamente las rutas legacy en `server/routes/proyectoPedido.js`. Aunque se retiró del index, el archivo sigue existiendo y podría ser importado o usado incorrectamente. Se reemplazará su contenido con un middleware que devuelva un error 410 Gone explícito.
+Eliminar rutas de exportación duplicadas y dispersas en `server/routes/proyectos.js` que ya han sido centralizadas y mejoradas en `server/controllers/exportacionController.js` (accesibles vía `/api/exportacion`). Esto reduce deuda técnica y asegura que solo se use la lógica de "fuente única de verdad" para generar documentos.
 
 **ARCHIVO:** 
-`server/routes/proyectoPedido.js`
+`server/routes/proyectos.js`
 
-**CODIGO_A_REEMPLAZAR:**
-*(Todo el contenido del archivo)*
+**CODIGO_A_ELIMINAR:**
+Se deben eliminar los siguientes bloques de código que manejan exportaciones de PDF y Excel de forma redundante:
 
-**CODIGO_NUEVO:**
+1. **GET /:id/pdf (Líneas aprox 303-339):**
 ```javascript
-const express = require('express');
-const logger = require('../config/logger');
-const router = express.Router();
-
-/**
- * 🚫 RUTA OBSOLETA (LEGACY)
- * Bloqueada permanentemente el 25 Nov 2025 como parte de la Fase 4.
- * Esta ruta causaba divergencia de datos al mantener un flujo paralelo de proyectos.
- * 
- * Nueva implementación:
- * - Usar endpoints de /api/proyectos para toda la gestión de proyectos.
- * - Usar modelo unificado server/models/Proyecto.js
- */
-
-router.use((req, res) => {
-  logger.warn('Intento de acceso a ruta obsoleta: proyectoPedido', {
-    method: req.method,
-    url: req.originalUrl,
-    usuario: req.user?.id || 'anonimo',
-    ip: req.ip
-  });
-
-  return res.status(410).json({
-    error: 'Ruta obsoleta (410 Gone)',
-    mensaje: 'El endpoint /api/proyecto-pedido ha sido desactivado permanentemente.',
-    recomendacion: 'Utilice los endpoints de /api/proyectos para gestionar proyectos unificados.',
-    fecha_bloqueo: '2025-11-25'
-  });
-});
-
-module.exports = router;
+// GET /api/proyectos/:id/pdf - Generar PDF del proyecto
+router.get('/:id/pdf', 
+  auth, 
+  verificarPermiso('proyectos', 'leer'), 
+  async (req, res) => {
+    // ... lógica antigua ...
+  }
+);
 ```
 
-**COMANDO_VERIFICACION:** 
+2. **GET /:id/excel (Líneas aprox 341-366):**
+```javascript
+// GET /api/proyectos/:id/excel - Generar Excel del proyecto
+router.get('/:id/excel', 
+  auth, 
+  verificarPermiso('proyectos', 'leer'), 
+  async (req, res) => {
+    // ... lógica antigua ...
+  }
+);
+```
+
+3. **POST /:id/pdf (Líneas aprox 375-399):**
+```javascript
+// POST /api/proyectos/:id/pdf - Generar PDF del proyecto
+router.post('/:id/pdf', 
+  // ... lógica antigua ...
+);
+```
+
+4. **POST /:id/excel (Líneas aprox 401-460):**
+```javascript
+// POST /api/proyectos/:id/excel - Generar Excel del proyecto
+router.post('/:id/excel', 
+  // ... lógica antigua ...
+);
+```
+
+**NOTA:** Mantener la ruta `router.get('/:id/generar-pdf', ...)` (línea 209) y `router.get('/:id/generar-excel', ...)` (línea 216) SOLO si apuntan a controladores diferentes que sean necesarios. Si también son redundantes, confirmar antes de borrar. Por seguridad, en este paso nos enfocaremos en borrar las rutas explícitas `/pdf` y `/excel`.
+
+**COMANDOS_VERIFICACION:** 
+
+1. **Verificar que ruta antigua ya no existe (404):**
 ```bash
-# Intentar acceder a la ruta bloqueada (debe devolver 410)
-curl -I -X GET http://localhost:5001/api/proyecto-pedido
+curl -I -X GET http://localhost:5001/api/proyectos/12345/pdf
 ```
+*Resultado esperado: HTTP/1.1 404 Not Found*
+
+2. **Verificar que ruta unificada responde (400 si ID inválido, o 200):**
+```bash
+curl -I -X GET http://localhost:5001/api/exportacion/proyectos/12345/pdf
+```
+*(Asumiendo que la ruta de exportación está montada en /api/exportacion/proyectos/:id/pdf - Verificar montaje en index.js si falla)*
 
 **RESULTADO_ESPERADO:** 
-Código de estado HTTP **410 Gone**.
+Limpieza de aproximadamente 150 líneas de código redundante en `proyectos.js`.
 
 ---
 
