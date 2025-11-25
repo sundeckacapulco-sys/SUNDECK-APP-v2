@@ -68,23 +68,15 @@ router.get('/', auth, async (req, res) => {
             }
           ],
           
-          // Monto total de ventas
+          // Monto total de ventas (CORREGIDO)
           montos: [
+            {
+              $match: { 'cotizacionActual.totales.total': { $exists: true, $gt: 0 } }
+            },
             {
               $group: {
                 _id: null,
-                montoTotal: { 
-                  $sum: {
-                    $cond: [
-                      { $and: [
-                        { $isArray: '$cotizaciones' },
-                        { $gt: [{ $size: '$cotizaciones' }, 0] }
-                      ]},
-                      { $arrayElemAt: ['$cotizaciones.total', 0] },
-                      0
-                    ]
-                  }
-                }
+                montoTotal: { $sum: '$cotizacionActual.totales.total' }
               }
             }
           ],
@@ -199,7 +191,8 @@ router.get('/', auth, async (req, res) => {
             {
               $match: {
                 estadoComercial: 'convertido',
-                createdAt: { $gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) }
+                createdAt: { $gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) },
+                'cotizacionActual.totales.total': { $exists: true, $gt: 0 }
               }
             },
             {
@@ -209,30 +202,8 @@ router.get('/', auth, async (req, res) => {
                   month: { $month: '$createdAt' }
                 },
                 totalVentas: { $sum: 1 },
-                montoTotal: {
-                  $sum: {
-                    $cond: [
-                      { $and: [
-                        { $isArray: '$cotizaciones' },
-                        { $gt: [{ $size: '$cotizaciones' }, 0] }
-                      ]},
-                      { $arrayElemAt: ['$cotizaciones.total', 0] },
-                      0
-                    ]
-                  }
-                },
-                promedioTicket: {
-                  $avg: {
-                    $cond: [
-                      { $and: [
-                        { $isArray: '$cotizaciones' },
-                        { $gt: [{ $size: '$cotizaciones' }, 0] }
-                      ]},
-                      { $arrayElemAt: ['$cotizaciones.total', 0] },
-                      0
-                    ]
-                  }
-                }
+                montoTotal: { $sum: '$cotizacionActual.totales.total' },
+                promedioTicket: { $avg: '$cotizacionActual.totales.total' }
               }
             },
             {
