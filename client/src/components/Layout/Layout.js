@@ -72,6 +72,7 @@ const menuItems = [
     ]
   },
   { text: 'KPIs y Ventas', icon: <Assessment />, path: '/kpis' },
+  { text: 'Almacén', icon: <Inventory />, path: '/almacen', badge: 'NUEVO' },
   { text: 'Catálogo Productos', icon: <Inventory />, path: '/productos' },
   { text: 'Plantillas WhatsApp', icon: <WhatsApp />, path: '/admin/plantillas-whatsapp' }
 ];

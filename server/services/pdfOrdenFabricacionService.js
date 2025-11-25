@@ -84,8 +84,42 @@ class PDFOrdenProduccionService {
 
     try {
       // 1. Optimización de Tubos
-      const cortesTubos = piezas.map(p => p.ancho);
-      const optimizacionTubos = await OptimizadorCortesService.optimizarCortesConSobrantes(cortesTubos, 'Tubo', 'T38');
+      const gruposTubos = {};
+      piezas.forEach(p => {
+        // Buscar el material "Tubo" en el BOM de la pieza
+        const tuboMaterial = p.materiales?.find(m => m.tipo === 'Tubo');
+        
+        if (tuboMaterial) {
+          const codigo = tuboMaterial.codigo || 'T-GENERICO';
+          const descripcion = tuboMaterial.descripcion || 'Tubo Genérico';
+          
+          if (!gruposTubos[codigo]) {
+            gruposTubos[codigo] = {
+              codigo,
+              descripcion,
+              cortes: []
+            };
+          }
+          gruposTubos[codigo].cortes.push(p.ancho);
+        }
+      });
+
+      const optimizacionTubos = [];
+      console.log('DEBUG: Grupos de tubos encontrados:', Object.keys(gruposTubos));
+      for (const key in gruposTubos) {
+        const grupo = gruposTubos[key];
+        console.log(`DEBUG: Procesando grupo ${key} con ${grupo.cortes.length} cortes`);
+        const resultado = await OptimizadorCortesService.optimizarCortesConSobrantes(
+          grupo.cortes, 
+          'Tubo', 
+          grupo.codigo
+        );
+        
+        optimizacionTubos.push({
+          titulo: grupo.descripcion || grupo.codigo,
+          datos: resultado
+        });
+      }
 
       // 2. Resumen de Telas
       const telasMap = new Map();
@@ -127,33 +161,50 @@ class PDFOrdenProduccionService {
     doc.fontSize(7).font('Helvetica').fillColor('#666').text('Este plan minimiza el desperdicio utilizando sobrantes de almacén.', 50, doc.y);
     doc.moveDown(1);
 
-    if (optimizacionTubos && optimizacionTubos.barras.length > 0) {
-      doc.fontSize(9).font('Helvetica-Bold').text('Tubos:', 50, doc.y);
-      doc.moveDown(0.5);
+    if (optimizacionTubos && optimizacionTubos.length > 0) {
       
-      doc.fontSize(8).font('Helvetica');
-      optimizacionTubos.barras.forEach(barra => {
-        let origen = 'Barra Nueva';
-        if (barra.tipo === 'sobrante') {
-          origen = `Sobrante ID: ${barra.etiqueta || barra.sobranteId.toString().slice(-6)}`;
-        }
+      optimizacionTubos.forEach(grupo => {
+        // Verificar espacio para el grupo
+        if (doc.y > 650) { doc.addPage(); doc.y = 50; }
+
+        doc.fontSize(9).font('Helvetica-Bold').fillColor('#000').text(`• ${grupo.titulo || 'Grupo de Tubos'}:`, 50, doc.y);
+        doc.moveDown(0.3);
         
-        const cortesStr = barra.cortes.map(c => `${c}m`).join(' + ');
-        const eficiencia = barra.eficiencia ? ` | Eficiencia: ${barra.eficiencia}%` : '';
+        const optimizacion = grupo.datos;
+        
+        if (optimizacion.barras && optimizacion.barras.length > 0) {
+          doc.fontSize(8).font('Helvetica');
+          optimizacion.barras.forEach(barra => {
+            let origen = 'Barra Nueva';
+            if (barra.tipo === 'sobrante') {
+              origen = `Sobrante ID: ${barra.etiqueta || barra.sobranteId?.toString().slice(-6) || 'N/A'}`;
+            }
+            
+            const cortesStr = barra.cortes.map(c => `${c}m`).join(' + ');
+            const eficiencia = barra.eficiencia ? ` | Eficiencia: ${barra.eficiencia}%` : '';
 
-        doc.text(`• ${origen}: Cortar [${cortesStr}]. Sobrante: ${barra.sobrante.toFixed(2)}m${eficiencia}`, 60, doc.y, { width: 480 });
-        doc.moveDown(0.4);
+            doc.text(`   - ${origen}: Cortar [${cortesStr}]. Sobrante: ${barra.sobrante.toFixed(2)}m${eficiencia}`, 60, doc.y, { width: 480 });
+            doc.moveDown(0.2);
+          });
+
+          doc.moveDown(0.2);
+          const resumen = optimizacion.resumen;
+          doc.fontSize(7).font('Helvetica-Oblique').fillColor('#444');
+          doc.text(`     Resumen: ${resumen.barrasNuevas} nuevas | ${resumen.sobrantesReutilizados} reutilizados | Efic: ${resumen.eficienciaGlobal}%`, 60, doc.y);
+          doc.fillColor('#000');
+          doc.moveDown(0.8);
+        } else {
+          doc.fontSize(8).font('Helvetica-Oblique').text('   No se requieren cortes para este material.', 60, doc.y);
+          doc.moveDown(0.8);
+        }
       });
-
-      doc.moveDown(0.5);
-      const resumen = optimizacionTubos.resumen;
-      doc.fontSize(8).font('Helvetica-Bold').fillColor('#333');
-      doc.text(`Resumen Tubos: ${resumen.barrasNuevas} barras nuevas | ${resumen.sobrantesReutilizados} sobrantes reutilizados | Eficiencia Global: ${resumen.eficienciaGlobal}%`, 60, doc.y);
-      doc.fillColor('#000');
+    } else {
+      doc.fontSize(8).font('Helvetica-Oblique').text('No hay tubos para optimizar.', 50, doc.y);
       doc.moveDown(1);
     }
 
     if (resumenTelas && resumenTelas.length > 0) {
+      if (doc.y > 650) { doc.addPage(); doc.y = 50; }
       doc.fontSize(9).font('Helvetica-Bold').text('Telas (Resumen):', 50, doc.y);
       doc.moveDown(0.5);
       

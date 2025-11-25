@@ -1,10 +1,35 @@
 const Almacen = require('../models/Almacen');
 const MovimientoAlmacen = require('../models/MovimientoAlmacen');
+const SobranteMaterial = require('../models/SobranteMaterial');
+const CalculadoraMaterialesService = require('../services/calculadoraMaterialesService');
 const logger = require('../config/logger');
 
-/**
- * Controller para gestión de almacén
- */
+// ...
+
+// Simular consumo (Prueba Rápida)
+exports.simularConsumo = async (req, res) => {
+  try {
+    const datosPieza = req.body;
+    
+    const resultado = await CalculadoraMaterialesService.simularConsumo(datosPieza);
+    
+    res.json({
+      success: true,
+      data: resultado
+    });
+    
+  } catch (error) {
+    logger.error('Error simulando consumo', {
+      controller: 'almacenController',
+      error: error.message
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error simulando consumo',
+      error: error.message
+    });
+  }
+};
 
 // Obtener todos los materiales del inventario
 exports.obtenerInventario = async (req, res) => {
@@ -51,6 +76,37 @@ exports.obtenerInventario = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error obteniendo inventario',
+      error: error.message
+    });
+  }
+};
+
+// Obtener sobrantes
+exports.obtenerSobrantes = async (req, res) => {
+  try {
+    const { tipo, estado } = req.query;
+    
+    let query = {};
+    if (tipo) query.tipo = tipo;
+    query.estado = estado || 'disponible';
+
+    const sobrantes = await SobranteMaterial.find(query)
+      .sort({ longitud: 1 }); // Menor a mayor longitud (para optimizar uso)
+    
+    res.json({
+      success: true,
+      data: sobrantes,
+      total: sobrantes.length
+    });
+    
+  } catch (error) {
+    logger.error('Error obteniendo sobrantes', {
+      controller: 'almacenController',
+      error: error.message
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error obteniendo sobrantes',
       error: error.message
     });
   }
@@ -146,6 +202,15 @@ exports.crearMaterial = async (req, res) => {
       controller: 'almacenController',
       error: error.message
     });
+
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'El código del material ya existe',
+        error: 'DuplicateKey'
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Error creando material',
@@ -191,6 +256,15 @@ exports.actualizarMaterial = async (req, res) => {
       controller: 'almacenController',
       error: error.message
     });
+
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'El código del material ya existe',
+        error: 'DuplicateKey'
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Error actualizando material',

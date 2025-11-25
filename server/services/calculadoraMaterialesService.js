@@ -1,3 +1,5 @@
+const Almacen = require('../models/Almacen');
+const SobranteMaterial = require('../models/SobranteMaterial');
 const ConfiguracionMateriales = require('../models/ConfiguracionMateriales');
 const logger = require('../config/logger');
 
@@ -15,6 +17,140 @@ const ROTACION_MAX_CON_TERMOSELLO = 3.5; // m
  * Calcula materiales basándose en configuraciones dinámicas
  */
 class CalculadoraMaterialesService {
+
+  /**
+   * Simular Consumo (Prueba Rápida)
+   * @param {object} datosPieza - Datos de la pieza a simular
+   * @returns {Promise<object>} Resultado de la simulación
+   */
+  static async simularConsumo(datosPieza) {
+    try {
+      // 1. Calcular materiales teóricos
+      const materiales = await this.calcularMaterialesPieza(datosPieza);
+      const tela = materiales.find(m => m.tipo === 'Tela');
+      
+      if (!tela) {
+        throw new Error('No se pudo calcular la tela para esta pieza');
+      }
+
+      const anchoRollo = datosPieza.anchoRollo || 2.50; // Default 2.50 si no se especifica
+      const consumoML = tela.cantidad;
+      const anchoPieza = Number(datosPieza.ancho);
+      const altoPieza = Number(datosPieza.alto);
+      
+      // 2. Verificar Stock y Sobrantes
+      const resultado = {
+        pieza: {
+          ancho: anchoPieza,
+          alto: altoPieza,
+          descripcion: datosPieza.descripcion || 'Pieza simulada'
+        },
+        consumo: {
+          ml: consumoML,
+          rolloBase: anchoRollo,
+          descripcion: tela.descripcion
+        },
+        stock: {
+          disponible: false,
+          mensaje: 'No hay stock suficiente',
+          origen: 'Ninguno'
+        },
+        desperdicio: {
+          ml: 0,
+          porcentaje: 0,
+          mensaje: ''
+        },
+        recomendacion: {
+          aplicarDescuento: false,
+          porcentaje: 0,
+          mensaje: ''
+        }
+      };
+
+      // Buscar sobrantes compatibles
+      // Buscar un sobrante que cubra el consumo requerido (con un pequeño margen de 0.05m)
+      const sobrante = await SobranteMaterial.findOne({
+        tipo: 'Tela',
+        longitud: { $gte: consumoML },
+        estado: 'disponible'
+        // Aquí se podría filtrar por código/color si viniera en los datos
+      }).sort({ longitud: 1 }); // El más pequeño que sirva
+
+      if (sobrante) {
+        const desperdicioSobrante = sobrante.longitud - consumoML;
+        resultado.stock = {
+          disponible: true,
+          mensaje: `Usar sobrante ID: ${sobrante.etiqueta || sobrante._id}`,
+          origen: 'Sobrante',
+          detalle: sobrante
+        };
+        resultado.desperdicio = {
+          ml: desperdicioSobrante,
+          porcentaje: (desperdicioSobrante / sobrante.longitud) * 100,
+          mensaje: `Sobrante original: ${sobrante.longitud}m. Nuevo sobrante: ${desperdicioSobrante.toFixed(2)}m`
+        };
+        
+        // Lógica de Descuento por Sobrante
+        if (desperdicioSobrante < 0.5) { // Menos de 50cm de desperdicio del sobrante
+          resultado.recomendacion = {
+            aplicarDescuento: true,
+            porcentaje: 10,
+            mensaje: 'Recomendación Comercial: Esta pieza aprovecha un sobrante casi exacto. Conviene ofrecer un 10% de descuento.'
+          };
+        } else {
+           resultado.recomendacion = {
+            aplicarDescuento: true,
+            porcentaje: 5,
+            mensaje: 'Recomendación Comercial: Se utiliza material de sobrantes. Posible descuento del 5%.'
+          };
+        }
+
+      } else {
+        // Verificar en Rollos Nuevos (Almacén)
+        // Buscar rollos de tela que coincidan (simulado por ahora genérico "Tela")
+        const stockNuevo = await Almacen.findOne({ 
+          tipo: 'Tela', 
+          cantidad: { $gte: consumoML } 
+        });
+
+        if (stockNuevo) {
+           resultado.stock = {
+            disponible: true,
+            mensaje: 'Disponible en rollos nuevos',
+            origen: 'Almacén',
+            detalle: { descripcion: stockNuevo.descripcion, cantidad: stockNuevo.cantidad }
+          };
+          
+          // Desperdicio sobre el ANCHO del rollo (no ML)
+          // Si el ancho del rollo es 2.50 y la pieza usa 1.20, sobra 1.30 de ancho x Largo
+          const desperdicioAncho = Math.max(anchoRollo - anchoPieza, 0);
+          const areaDesperdicio = desperdicioAncho * consumoML;
+          const areaTotalConsumida = anchoRollo * consumoML;
+          const porcentajeDesperdicio = (areaDesperdicio / areaTotalConsumida) * 100;
+
+          resultado.desperdicio = {
+             ml: 0, // En ML se consume lo que se pide
+             porcentaje: porcentajeDesperdicio,
+             mensaje: `Se utiliza ancho ${anchoPieza}m de rollo ${anchoRollo}m. Desperdicio lateral: ${desperdicioAncho.toFixed(2)}m (${porcentajeDesperdicio.toFixed(1)}%)`
+          };
+
+          if (porcentajeDesperdicio < 5) {
+             resultado.recomendacion = {
+              aplicarDescuento: true,
+              porcentaje: 5,
+              mensaje: 'Recomendación Comercial: Aprovechamiento de ancho casi total. Posible descuento 5%.'
+            };
+          }
+        }
+      }
+
+      return resultado;
+
+    } catch (error) {
+      logger.error('Error en simulación de consumo', { error: error.message });
+      throw error;
+    }
+  }
   
   /**
    * Calcular materiales para una pieza usando configuración

@@ -5,12 +5,41 @@
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
-const OrdenProduccionService = require('../services/ordenProduccionService');
-const PDFOrdenFabricacionService = require('../services/pdfOrdenFabricacionService');
-const logger = require('../config/logger');
+const OrdenProduccionService = require('../../services/ordenProduccionService');
+const PDFOrdenFabricacionService = require('../../services/pdfOrdenFabricacionService');
+const OptimizadorCortesService = require('../../services/optimizadorCortesService');
+const logger = require('../../config/logger');
 
 async function generarPDFTest() {
   try {
+    // MONKEY PATCH: Simular Almacén Vacío
+    // El usuario requiere cálculo "REAL" asumiendo que NO HAY NADA en almacén
+    console.log('🔧 Configurando simulación: ALMACÉN VACÍO (Ignorando sobrantes)...');
+    
+    const originalOptimizar = OptimizadorCortesService.optimizarCortesConSobrantes;
+    OptimizadorCortesService.optimizarCortesConSobrantes = async function(cortes, tipoMaterial, codigo, longitudBarra) {
+      console.log(`   [Simulación] Optimizando ${cortes.length} cortes sin buscar en almacén...`);
+      
+      // Usar lógica base que solo calcula con barras nuevas
+      const resultadoBase = OptimizadorCortesService.optimizarCortes(cortes, longitudBarra);
+      
+      // Adaptar estructura de respuesta
+      resultadoBase.barras.forEach(b => { 
+        b.tipo = 'nueva'; 
+        b.observaciones = 'Material nuevo (Simulación Almacén Vacío)'; 
+      });
+      resultadoBase.sobrantesUsados = [];
+      
+      // Ajustar resumen
+      resultadoBase.resumen.sobrantesReutilizados = 0;
+      resultadoBase.resumen.cortesEnSobrantes = 0;
+      resultadoBase.resumen.cortesEnBarrasNuevas = cortes.length;
+      resultadoBase.resumen.barrasNuevas = resultadoBase.barras.length;
+      resultadoBase.resumen.ahorroMaterial = 0;
+      
+      return resultadoBase;
+    };
+
     await mongoose.connect('mongodb://localhost:27017/sundeck-crm');
     logger.info('Conectado a MongoDB');
     

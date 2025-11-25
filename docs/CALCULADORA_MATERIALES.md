@@ -1,450 +1,116 @@
-# 🧮 CALCULADORA DE MATERIALES INTELIGENTE
+# 🧮 CALCULADORA DE MATERIALES INTELIGENTE v2.0
 
-**Fecha:** 13 Noviembre 2025 - 5:35 PM  
-**Estado:** ✅ IMPLEMENTADO  
-**Integración:** Automática con Orden de Producción PDF
+**Fecha:** 25 Noviembre 2025 - 4:00 PM  
+**Estado:** ✅ COMPLETADO (Fase 1, 2 y 3)  
+**Integración:** PDF, Almacén, Frontend Admin, Prueba Rápida
 
 ---
 
 ## 📋 DESCRIPCIÓN
 
-Sistema configurable para calcular materiales (BOM) basado en reglas dinámicas almacenadas en base de datos. Se integra automáticamente con la generación de Orden de Producción PDF.
+Sistema configurable para calcular materiales (BOM) basado en reglas dinámicas almacenadas en base de datos. Se integra automáticamente con la generación de Orden de Producción PDF y con el inventario de Almacén para descuentos automáticos.
 
 ---
 
-## 🎯 CARACTERÍSTICAS
+## 🎯 NUEVAS CARACTERÍSTICAS (v2.0)
 
-### ✅ Configuración Dinámica
-- Reglas de cálculo por producto/sistema
-- Fórmulas JavaScript personalizables
-- Condiciones de aplicación
-- Sin necesidad de modificar código
+### ✅ Prueba Rápida (Simulador)
+- **Interfaz:** Botón "Prueba Rápida" en la calculadora.
+- **Función:** Simula el consumo de una pieza sin crear proyecto.
+- **Inteligencia:**
+  - Verifica stock real en Almacén.
+  - Prioriza el uso de **Sobrantes** (Retazos) compatibles.
+  - Calcula desperdicio real y porcentaje de aprovechamiento.
+  - Sugiere **Descuentos Comerciales** si el desperdicio es bajo.
 
-### ✅ Cálculo Inteligente
-- Evalúa fórmulas matemáticas
-- Aplica condiciones lógicas
-- Fallback a cálculo por defecto
-- Logging completo
+### ✅ Gestión de Sistemas Dinámica
+- **UI por Acordeón:** Organización jerárquica (Sistema > Configuraciones).
+- **Creación Flexible:** Permite crear nuevos Sistemas (ej. "Motores 2025") escribiendo el nombre directamente, sin código.
+- **Reglas Visibles:** Panel para editar reglas de selección de Tubos y Mecanismos (antes ocultas).
 
-### ✅ Integración Automática
-- Se ejecuta al generar PDF
-- Calcula materiales por pieza
-- Consolida totales
-- Transparente para el usuario
+### ✅ Reglas Oficiales Roller Shade
+- Implementación de fórmulas exactas para Telas (con/sin galería, rotadas).
+- Cortes de Tubos y Contrapesos.
+- Selección de Accesorios (Cadenas, Tapas).
 
 ---
 
-## 🏗️ ARQUITECTURA
+## 🏗️ ARQUITECTURA ACTUALIZADA
 
 ### Modelo: ConfiguracionMateriales
 
+Se agregaron campos para reglas de selección:
+
 ```javascript
 {
-  nombre: "Configuración Genérica",
-  producto: "screen_5",      // Opcional
-  sistema: "Enrollable",
-  materiales: [
-    {
-      tipo: "Tela",
-      descripcion: "Tela estándar",
-      unidad: "m²",
-      formula: "area * 1.1",   // 10% merma
-      condicion: "",           // Opcional
-      precioUnitario: 150,
-      observaciones: "Incluye 10% de merma",
-      activo: true
-    }
-  ],
-  activo: true
+  nombre: "Configuración Oficial Roller Shade",
+  sistema: "Roller Shade",
+  reglasSeleccion: {
+    tubos: [
+      { condicion: "ancho > 2.50", diametro: "T70", codigo: "T70" }
+    ],
+    mecanismos: [...],
+    kits: [...]
+  },
+  materiales: [ ... ],
+  anchosRollo: [2.50, 3.00],
+  alturaMaxRotacion: 2.80
 }
 ```
 
 ### Servicio: CalculadoraMaterialesService
 
-**Métodos principales:**
-- `calcularMaterialesPieza(pieza)` - Calcula materiales para una pieza
-- `obtenerConfiguracion(producto, sistema)` - Busca configuración aplicable
-- `evaluarFormula(formula, pieza)` - Evalúa expresión matemática
-- `evaluarCondicion(condicion, pieza)` - Evalúa condición lógica
-- `calcularPorDefecto(pieza)` - Fallback si no hay configuración
+**Nuevos Métodos:**
+- `simularConsumo(datosPieza)`: Lógica de prueba rápida + consulta a Almacén.
+- `aplicarReglasTelaEnrollables(pieza)`: Lógica compleja de rotación y holguras.
 
 ---
 
-## 📐 FÓRMULAS DISPONIBLES
+## 📐 REGLAS IMPLEMENTADAS (ROLLER SHADE)
 
-### Variables Disponibles
+### 1. Telas
+| Tipo | Condición | Fórmula |
+|------|-----------|---------|
+| Estándar | `!galeria` | `alto + 0.25` |
+| Con Galería | `galeria` | `alto + 0.50` |
+| Rotada | `rotada && !galeria` | `ancho - 0.03` |
+| Rotada | `rotada && !galeria` | `ancho - 0.03` |
 
-```javascript
-{
-  ancho: 3.28,           // metros
-  alto: 2.56,            // metros
-  area: 8.3968,          // m²
-  motorizado: true,      // boolean
-  galeria: "galeria",    // string
-  sistema: "Enrollable"  // string
-}
-```
+### 2. Perfiles
+| Tipo | Fórmula |
+|------|---------|
+| Tubo | `ancho - 0.03` |
+| Contrapeso | `ancho - 0.03` |
 
-### Ejemplos de Fórmulas
-
-```javascript
-// Tela con merma
-"area * 1.1"
-
-// Tubo con margen
-"ancho + 0.10"
-
-// Soportes según ancho
-"ancho <= 1.5 ? 2 : ancho <= 3.0 ? 3 : 4"
-
-// Redondeo hacia arriba
-"Math.ceil(ancho / 1.5)"
-
-// Cálculo complejo
-"(ancho + alto) * 2 + 0.5"
-```
-
-### Ejemplos de Condiciones
-
-```javascript
-// Solo si es motorizado
-"motorizado === true"
-
-// Solo para anchos grandes
-"ancho > 2.5"
-
-// Solo si tiene galería
-"galeria !== 'sin_galeria'"
-
-// Combinación
-"motorizado === true && ancho > 2.0"
-```
+### 3. Accesorios
+| Tipo | Fórmula | Condición |
+|------|---------|-----------|
+| Cadena | `alto - 0.40` | Manual |
+| Tapas | `1` (juego) | Siempre |
 
 ---
 
-## 🚀 USO
+## 🚀 USO DEL SISTEMA
 
-### 1. Inicializar Configuración
+### 1. Prueba Rápida (Ventas)
+1. Abrir Calculadora de Materiales.
+2. Clic en **"🚀 Prueba Rápida"**.
+3. Ingresar Ancho y Alto.
+4. Resultado inmediato:
+   - *"✅ Stock Disponible"* o *"⚠️ Usar Sobrante #123"*
+   - *"📉 Desperdicio: 2%"*
+   - *"🏷️ Sugerencia: Aplicar 10% descuento"*
 
-```bash
-node server/scripts/inicializarCalculadora.js
-```
+### 2. Administración de Reglas (Admin/Gerencia)
+1. Buscar el Sistema en la lista de Acordeones.
+2. Editar la Configuración.
+3. Modificar fórmulas en la tabla de Materiales.
+4. Desplegar "Reglas de Selección" para ajustar lógica de tubos.
 
-Esto crea la configuración genérica inicial.
-
-### 2. Generar Orden de Producción
-
-El cálculo se ejecuta automáticamente al generar el PDF:
-
-```javascript
-// En el frontend
-descargarOrdenProduccion(proyectoId)
-
-// En el backend (automático)
-ordenProduccionService.obtenerDatosOrdenProduccion(proyectoId)
-  ↓
-calculadoraMaterialesService.calcularMaterialesPieza(pieza)
-  ↓
-Materiales calculados según configuración
-```
-
-### 3. Personalizar Configuración
-
-**Opción A: Desde MongoDB Compass**
-1. Abrir colección `configuracionmateriales`
-2. Editar documento
-3. Modificar fórmulas/condiciones
-4. Guardar
-
-**Opción B: Desde código**
-```javascript
-const ConfiguracionMateriales = require('./models/ConfiguracionMateriales');
-
-// Crear nueva configuración
-const config = new ConfiguracionMateriales({
-  nombre: "Screen 5% Motorizado",
-  producto: "screen_5",
-  sistema: "Enrollable",
-  materiales: [
-    {
-      tipo: "Tela",
-      descripcion: "Screen 5%",
-      unidad: "m²",
-      formula: "area * 1.15", // 15% merma para screen
-      activo: true
-    },
-    {
-      tipo: "Motor",
-      descripcion: "Motor Somfy",
-      unidad: "pza",
-      formula: "1",
-      condicion: "motorizado === true",
-      precioUnitario: 2500,
-      activo: true
-    }
-  ]
-});
-
-await config.save();
-```
-
----
-
-## 🔍 BÚSQUEDA DE CONFIGURACIÓN
-
-El sistema busca en este orden:
-
-1. **Configuración específica:** `producto` + `sistema`
-2. **Configuración por sistema:** solo `sistema`
-3. **Configuración genérica:** nombre "Configuración Genérica"
-4. **Fallback:** Cálculo por defecto en código
-
----
-
-## 📊 TIPOS DE MATERIALES
-
-```javascript
-enum TipoMaterial {
-  'Tela',
-  'Tubo',
-  'Soportes',
-  'Mecanismo',
-  'Motor',
-  'Galería',
-  'Herrajes',
-  'Accesorios'
-}
-```
-
----
-
-## 📏 UNIDADES DISPONIBLES
-
-```javascript
-enum Unidad {
-  'ml',    // Metro lineal
-  'm²',    // Metro cuadrado
-  'pza',   // Pieza
-  'kit',   // Kit
-  'juego'  // Juego
-}
-```
-
----
-
-## 🧪 EJEMPLO COMPLETO
-
-### Configuración
-
-```javascript
-{
-  nombre: "Blackout Motorizado",
-  producto: "blackout",
-  sistema: "Enrollable",
-  materiales: [
-    {
-      tipo: "Tela",
-      descripcion: "Blackout premium",
-      unidad: "m²",
-      formula: "area * 1.12",
-      observaciones: "12% merma para blackout",
-      precioUnitario: 180,
-      activo: true
-    },
-    {
-      tipo: "Tubo",
-      descripcion: "Tubo reforzado",
-      unidad: "ml",
-      formula: "ancho + 0.15",
-      observaciones: "15cm adicional para blackout",
-      precioUnitario: 95,
-      activo: true
-    },
-    {
-      tipo: "Motor",
-      descripcion: "Motor Somfy RTS",
-      unidad: "pza",
-      formula: "1",
-      condicion: "motorizado === true",
-      observaciones: "Incluye control remoto",
-      precioUnitario: 2800,
-      activo: true
-    },
-    {
-      tipo: "Soportes",
-      descripcion: "Soporte reforzado",
-      unidad: "pza",
-      formula: "Math.ceil(ancho / 1.2)",
-      observaciones: "Cada 1.2m para blackout",
-      precioUnitario: 120,
-      activo: true
-    }
-  ],
-  activo: true
-}
-```
-
-### Pieza de Entrada
-
-```javascript
-{
-  ancho: 4.28,
-  alto: 2.8,
-  area: 11.984,
-  motorizado: true,
-  galeria: "sin_galeria",
-  sistema: "Enrollable",
-  producto: "blackout"
-}
-```
-
-### Resultado
-
-```javascript
-[
-  {
-    tipo: "Tela",
-    descripcion: "Blackout premium",
-    cantidad: 13.42,  // 11.984 * 1.12
-    unidad: "m²",
-    observaciones: "12% merma para blackout",
-    precioUnitario: 180
-  },
-  {
-    tipo: "Tubo",
-    descripcion: "Tubo reforzado",
-    cantidad: 4.43,  // 4.28 + 0.15
-    unidad: "ml",
-    observaciones: "15cm adicional para blackout",
-    precioUnitario: 95
-  },
-  {
-    tipo: "Motor",
-    descripcion: "Motor Somfy RTS",
-    cantidad: 1,
-    unidad: "pza",
-    observaciones: "Incluye control remoto",
-    precioUnitario: 2800
-  },
-  {
-    tipo: "Soportes",
-    descripcion: "Soporte reforzado",
-    cantidad: 4,  // Math.ceil(4.28 / 1.2)
-    unidad: "pza",
-    observaciones: "Cada 1.2m para blackout",
-    precioUnitario: 120
-  }
-]
-```
-
----
-
-## 🔒 SEGURIDAD
-
-### Evaluación de Fórmulas
-
-- Solo variables permitidas disponibles
-- No acceso a funciones globales peligrosas
-- Manejo de errores con fallback
-- Logging de todas las evaluaciones
-
-### Validaciones
-
-- Fórmulas deben ser expresiones válidas
-- Condiciones deben retornar boolean
-- Resultados deben ser números
-- Unidades deben ser del enum
-
----
-
-## 📈 VENTAJAS
-
-### Para el Negocio
-- ✅ Cálculos precisos y consistentes
-- ✅ Fácil actualización sin código
-- ✅ Adaptable a nuevos productos
-- ✅ Trazabilidad completa
-
-### Para Desarrollo
-- ✅ Sin hardcoding de fórmulas
-- ✅ Fácil mantenimiento
-- ✅ Extensible
-- ✅ Testeable
-
-### Para Operaciones
-- ✅ Configuración visual (MongoDB Compass)
-- ✅ Cambios inmediatos
-- ✅ Histórico de configuraciones
-- ✅ Rollback fácil
-
----
-
-## 🛠️ MANTENIMIENTO
-
-### Agregar Nuevo Producto
-
-```javascript
-const config = new ConfiguracionMateriales({
-  nombre: "Sunscreen 3%",
-  producto: "sunscreen_3",
-  sistema: "Enrollable",
-  materiales: [
-    // ... definir materiales
-  ]
-});
-await config.save();
-```
-
-### Modificar Fórmula
-
-```javascript
-await ConfiguracionMateriales.updateOne(
-  { nombre: "Configuración Genérica", "materiales.tipo": "Tela" },
-  { $set: { "materiales.$.formula": "area * 1.15" } }
-);
-```
-
-### Desactivar Material
-
-```javascript
-await ConfiguracionMateriales.updateOne(
-  { nombre: "Configuración Genérica", "materiales.tipo": "Galería" },
-  { $set: { "materiales.$.activo": false } }
-);
-```
-
----
-
-## 📝 LOGGING
-
-Todos los cálculos se registran:
-
-```javascript
-logger.info('Calculando materiales para pieza', {
-  servicio: 'calculadoraMaterialesService',
-  producto: 'blackout',
-  sistema: 'Enrollable',
-  ancho: 4.28,
-  alto: 2.8
-});
-
-logger.info('Materiales calculados exitosamente', {
-  servicio: 'calculadoraMaterialesService',
-  totalMateriales: 4
-});
-```
-
----
-
-## 🚀 PRÓXIMAS MEJORAS
-
-1. **API REST** para gestionar configuraciones
-2. **UI de administración** para editar fórmulas
-3. **Validador de fórmulas** antes de guardar
-4. **Simulador** para probar configuraciones
-5. **Importar/Exportar** configuraciones
-6. **Versionado** de configuraciones
-7. **Cálculo de costos** automático
+### 3. Agregar Nuevo Sistema
+1. Clic en "Nueva Configuración".
+2. En "Sistema", escribir el nombre nuevo (ej. "Toldos 2026").
+3. Guardar. El sistema crea automáticamente el grupo.
 
 ---
 
@@ -454,13 +120,14 @@ logger.info('Materiales calculados exitosamente', {
 - ✅ Servicio implementado
 - ✅ Integración con PDF
 - ✅ Configuración inicial
-- ✅ Script de inicialización
-- ✅ Documentación completa
-- ⏳ API REST (pendiente)
-- ⏳ UI Admin (pendiente)
+- ✅ **API REST (COMPLETADO)**
+- ✅ **UI Admin (COMPLETADO)**
+- ✅ **Simulador / Prueba Rápida (COMPLETADO)**
+- ✅ **Reglas Oficiales Roller (COMPLETADO)**
+- ✅ **Gestión Dinámica de Sistemas (COMPLETADO)**
 
 ---
 
-**Versión:** 1.0  
-**Fecha:** 13 Noviembre 2025  
+**Versión:** 2.0  
+**Fecha:** 25 Noviembre 2025  
 **Autor:** Equipo Sundeck

@@ -11,6 +11,7 @@ import DashboardKPIs from './components/KPIs/DashboardKPIs';
 import DashboardFabricacion from './components/Fabricacion/DashboardFabricacion.jsx';
 import DashboardInstalaciones from './components/Dashboards/DashboardInstalaciones';
 import CalculadoraMateriales from './modules/calculadora/CalculadoraMateriales';
+import PanelAlmacen from './modules/almacen/PanelAlmacen';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 // Sistema Unificado - Único flujo de trabajo
 import DashboardComercial from './modules/proyectos/DashboardComercial';
@@ -70,6 +71,7 @@ function App() {
           
           {/* Módulos auxiliares */}
           <Route path="/productos" element={<CatalogoProductos />} />
+          <Route path="/almacen" element={<PanelAlmacen />} />
           <Route path="/kpis" element={<DashboardKPIs />} />
           <Route path="/fabricacion" element={<DashboardFabricacion />} />
           <Route path="/calculadora" element={<CalculadoraMateriales />} />

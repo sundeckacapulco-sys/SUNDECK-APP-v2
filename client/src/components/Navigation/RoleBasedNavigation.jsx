@@ -18,7 +18,8 @@ import {
   AttachMoney as MoneyIcon,
   Assessment as AssessmentIcon,
   Settings as SettingsIcon,
-  WhatsApp as WhatsAppIcon
+  WhatsApp as WhatsAppIcon,
+  Inventory as InventoryIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 

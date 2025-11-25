@@ -22,6 +22,10 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Autocomplete,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   Switch,
   FormControlLabel,
   Chip,
@@ -37,13 +41,16 @@ import {
   PlayArrow as TestIcon,
   Save as SaveIcon,
   Close as CloseIcon,
-  Calculate as CalculateIcon
+  Calculate as CalculateIcon,
+  Speed as SpeedIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import axiosConfig from '../../config/axios';
 import ReglasSeleccionForm from './components/ReglasSeleccionForm';
 import ColoresForm from './components/ColoresForm';
 import OptimizacionForm from './components/OptimizacionForm';
 import MaterialFormFields from './components/MaterialFormFields';
+import PruebaRapidaDialog from './components/PruebaRapidaDialog';
 
 const TIPOS_MATERIAL = [
   'Tela', 'Tubo', 'Cofre', 'Barra de Giro', 'Contrapeso', 
@@ -51,7 +58,6 @@ const TIPOS_MATERIAL = [
   'Tapas', 'Insertos', 'Cinta', 'Galería', 'Herrajes', 'Accesorios', 'Kit'
 ];
 const UNIDADES = ['ml', 'm²', 'pza', 'kit', 'juego'];
-const SISTEMAS = ['Roller Shade', 'Sheer Elegance', 'Toldos Contempo'];
 
 const CalculadoraMateriales = () => {
   const [configuraciones, setConfiguraciones] = useState([]);
@@ -64,6 +70,7 @@ const CalculadoraMateriales = () => {
   const [dialogoConfig, setDialogoConfig] = useState(false);
   const [dialogoMaterial, setDialogoMaterial] = useState(false);
   const [dialogoPrueba, setDialogoPrueba] = useState(false);
+  const [dialogoPruebaRapida, setDialogoPruebaRapida] = useState(false);
   
   // Formularios
   const [formConfig, setFormConfig] = useState({
@@ -84,6 +91,16 @@ const CalculadoraMateriales = () => {
     reglasEspeciales: [],
     coloresDisponibles: []
   });
+
+  // Agrupar configuraciones por sistema
+  const sistemasAgrupados = configuraciones.reduce((acc, config) => {
+    const sistema = config.sistema || 'Sin Sistema';
+    if (!acc[sistema]) acc[sistema] = [];
+    acc[sistema].push(config);
+    return acc;
+  }, {});
+
+  const sistemasDisponibles = Object.keys(sistemasAgrupados).sort();
   
   const [formMaterial, setFormMaterial] = useState({
     tipo: 'Tela',
@@ -268,18 +285,28 @@ const CalculadoraMateriales = () => {
             Configura fórmulas dinámicas para calcular materiales automáticamente
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => {
-            setConfigSeleccionada(null);
-            setFormConfig({ nombre: '', producto: '', sistema: 'Enrollable', activo: true });
-            setDialogoConfig(true);
-          }}
-          sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } }}
-        >
-          Nueva Configuración
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<SpeedIcon />}
+            onClick={() => setDialogoPruebaRapida(true)}
+            color="primary"
+          >
+            Prueba Rápida
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setConfigSeleccionada(null);
+              setFormConfig({ nombre: '', producto: '', sistema: 'Enrollable', activo: true });
+              setDialogoConfig(true);
+            }}
+            sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } }}
+          >
+            Nueva Configuración
+          </Button>
+        </Box>
       </Box>
 
       {/* Alertas */}
@@ -294,101 +321,111 @@ const CalculadoraMateriales = () => {
         </Alert>
       )}
 
-      {/* Lista de Configuraciones */}
-      {configuraciones.map(config => (
-        <Card key={config._id} sx={{ mb: 2 }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Box>
-                <Typography variant="h6">
-                  {config.nombre}
-                  {!config.activo && <Chip label="Inactivo" size="small" sx={{ ml: 1 }} />}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Sistema: {config.sistema} {config.producto && `| Producto: ${config.producto}`}
-                </Typography>
-              </Box>
-              <Box>
-                <IconButton onClick={() => {
-                  setConfigSeleccionada(config);
-                  setFormConfig(config);
-                  setDialogoConfig(true);
-                }}>
-                  <EditIcon />
-                </IconButton>
-                <IconButton onClick={() => handleEliminarConfig(config._id)} color="error">
-                  <DeleteIcon />
-                </IconButton>
-              </Box>
-            </Box>
+      {/* Lista de Configuraciones por Sistema */}
+      {sistemasDisponibles.map(sistema => (
+        <Accordion key={sistema} defaultExpanded={true} sx={{ mb: 2 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{sistema}</Typography>
+            <Chip label={sistemasAgrupados[sistema].length} size="small" sx={{ ml: 2 }} />
+          </AccordionSummary>
+          <AccordionDetails>
+            {sistemasAgrupados[sistema].map(config => (
+              <Card key={config._id} sx={{ mb: 2, bgcolor: '#fafafa' }}>
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontSize: '1.1rem' }}>
+                        {config.nombre}
+                        {!config.activo && <Chip label="Inactivo" size="small" sx={{ ml: 1 }} />}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Producto: {config.producto || 'Genérico'}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <IconButton onClick={() => {
+                        setConfigSeleccionada(config);
+                        setFormConfig(config);
+                        setDialogoConfig(true);
+                      }}>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton onClick={() => handleEliminarConfig(config._id)} color="error">
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
 
-            <Divider sx={{ my: 2 }} />
+                  <Divider sx={{ my: 2 }} />
 
-            {/* Materiales */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Typography variant="subtitle2">
-                Materiales ({config.materiales?.length || 0})
-              </Typography>
-              <Button
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={() => handleAbrirDialogoMaterial(config)}
-              >
-                Agregar Material
-              </Button>
-            </Box>
+                  {/* Materiales */}
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="subtitle2">
+                      Materiales ({config.materiales?.length || 0})
+                    </Typography>
+                    <Button
+                      size="small"
+                      startIcon={<AddIcon />}
+                      onClick={() => handleAbrirDialogoMaterial(config)}
+                    >
+                      Agregar Material
+                    </Button>
+                  </Box>
 
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Tipo</TableCell>
-                    <TableCell>Descripción</TableCell>
-                    <TableCell>Fórmula</TableCell>
-                    <TableCell>Unidad</TableCell>
-                    <TableCell>Condición</TableCell>
-                    <TableCell>Estado</TableCell>
-                    <TableCell align="right">Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {config.materiales?.map((material, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{material.tipo}</TableCell>
-                      <TableCell>{material.descripcion}</TableCell>
-                      <TableCell>
-                        <code style={{ fontSize: '0.85em', bgcolor: '#f5f5f5', padding: '2px 4px' }}>
-                          {material.formula}
-                        </code>
-                      </TableCell>
-                      <TableCell>{material.unidad}</TableCell>
-                      <TableCell>
-                        {material.condicion ? (
-                          <code style={{ fontSize: '0.75em' }}>{material.condicion}</code>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={material.activo ? 'Activo' : 'Inactivo'}
-                          size="small"
-                          color={material.activo ? 'success' : 'default'}
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        <IconButton size="small" onClick={() => handleAbrirDialogoMaterial(config, material)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => handleEliminarMaterial(config, material._id)} color="error">
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Tipo</TableCell>
+                          <TableCell>Descripción</TableCell>
+                          <TableCell>Fórmula</TableCell>
+                          <TableCell>Unidad</TableCell>
+                          <TableCell>Condición</TableCell>
+                          <TableCell>Estado</TableCell>
+                          <TableCell align="right">Acciones</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {config.materiales?.map((material, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{material.tipo}</TableCell>
+                            <TableCell>{material.descripcion}</TableCell>
+                            <TableCell>
+                              <code style={{ fontSize: '0.85em', bgcolor: '#f5f5f5', padding: '2px 4px' }}>
+                                {material.formula}
+                              </code>
+                            </TableCell>
+                            <TableCell>{material.unidad}</TableCell>
+                            <TableCell>
+                              {material.condicion ? (
+                                <code style={{ fontSize: '0.75em' }}>{material.condicion}</code>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={material.activo ? 'Activo' : 'Inactivo'}
+                                size="small"
+                                color={material.activo ? 'success' : 'default'}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <IconButton size="small" onClick={() => handleAbrirDialogoMaterial(config, material)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton size="small" onClick={() => handleEliminarMaterial(config, material._id)} color="error">
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+            ))}
+          </AccordionDetails>
+        </Accordion>
       ))}
 
       {/* Diálogo Configuración */}
@@ -413,13 +450,25 @@ const CalculadoraMateriales = () => {
             margin="normal"
             helperText="Ej: screen_5, blackout, sunscreen"
           />
-          <TextField
-            fullWidth
-            label="Sistema"
+          <Autocomplete
+            freeSolo
+            options={sistemasDisponibles}
             value={formConfig.sistema}
-            onChange={(e) => setFormConfig({ ...formConfig, sistema: e.target.value })}
-            margin="normal"
-            required
+            onChange={(event, newValue) => {
+              setFormConfig({ ...formConfig, sistema: newValue });
+            }}
+            onInputChange={(event, newInputValue) => {
+              setFormConfig({ ...formConfig, sistema: newInputValue });
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Sistema"
+                margin="normal"
+                required
+                helperText="Selecciona un sistema existente o escribe uno nuevo para crear un grupo"
+              />
+            )}
           />
           <FormControlLabel
             control={
@@ -429,6 +478,13 @@ const CalculadoraMateriales = () => {
               />
             }
             label="Activo"
+          />
+          
+          <Divider sx={{ my: 2 }} />
+          
+          <ReglasSeleccionForm
+            reglasSeleccion={formConfig.reglasSeleccion}
+            onChange={(nuevasReglas) => setFormConfig({ ...formConfig, reglasSeleccion: nuevasReglas })}
           />
         </DialogContent>
         <DialogActions>
@@ -606,6 +662,12 @@ const CalculadoraMateriales = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Diálogo Prueba Rápida */}
+      <PruebaRapidaDialog 
+        open={dialogoPruebaRapida} 
+        onClose={() => setDialogoPruebaRapida(false)} 
+      />
     </Box>
   );
 };
