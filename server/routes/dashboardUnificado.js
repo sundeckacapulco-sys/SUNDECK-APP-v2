@@ -239,7 +239,7 @@ router.get('/', auth, async (req, res) => {
                     '-',
                     {
                       $cond: [
-                        { $lt: ['$month', 10] },
+                        { $lt: ['$_id.month', 10] },
                         { $concat: ['0', { $toString: '$_id.month' }] },
                         { $toString: '$_id.month' }
                       ]
@@ -259,8 +259,6 @@ router.get('/', auth, async (req, res) => {
 
     // Formatear respuesta
     const data = resultado[0];
-    
-    // Convertir pipeline a objeto
     const pipelineObj = {};
     (data.pipeline || []).forEach(item => {
       pipelineObj[item._id] = item.count;

@@ -1,11 +1,20 @@
+const path = require('path');
+const dotenvPath = path.join(__dirname, '../.env');
+const result = require('dotenv').config({ path: dotenvPath });
+
+if (result.error) {
+  console.error('❌ Error cargando .env:', result.error);
+} else {
+  console.log('✅ .env cargado desde:', dotenvPath);
+  console.log('🔑 JWT_SECRET status:', process.env.JWT_SECRET ? 'DEFINIDO' : 'UNDEFINED');
+}
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
 const fs = require('fs');
-require('dotenv').config();
 
 // Logger estructurado
 const logger = require('./config/logger');
@@ -121,7 +130,7 @@ app.use('/api', metricsMiddleware);
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/metrics', require('./routes/metrics'));
-// app.use('/api/prospectos', require('./routes/prospectos')); // ❌ LEGACY - Desactivado 6 Nov 2025
+// app.use('/api/prospectos', require('./routes/prospectos')); // ❌ LEGACY - Desactivado 6 Nov 2025 (Usar versión unificada si existe)
 app.use('/api/prospectos', require('./routes/prospectos')); // ✅ NUEVO - Prospectos Unificados 6 Nov 2025
 app.use('/api/cotizaciones', require('./routes/cotizaciones'));
 app.use('/api/pedidos', require('./routes/pedidos'));
@@ -130,7 +139,7 @@ app.use('/api/fabricacion', require('./routes/fabricacion'));
 app.use('/api/instalaciones', require('./routes/instalaciones'));
 app.use('/api/kpis-instalaciones', require('./routes/kpisInstalaciones'));
 app.use('/api/postventa', require('./routes/postventa'));
-app.use('/api/dashboard', require('./routes/dashboard')); // ⚠️ LEGACY - Usar /api/dashboard/unificado
+// app.use('/api/dashboard', require('./routes/dashboard')); // ❌ LEGACY - RUTA BLOQUEADA - Usar /api/dashboard/unificado
 app.use('/api/dashboard/unificado', require('./routes/dashboardUnificado')); // ✅ NUEVO - Sin legacy
 app.use('/api/asistencia', require('./routes/asistencia')); // ✅ NUEVO - Check-in/out con geolocalización
 app.use('/api/usuarios', require('./routes/usuarios'));
