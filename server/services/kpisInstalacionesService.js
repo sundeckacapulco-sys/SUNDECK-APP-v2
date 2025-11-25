@@ -1,10 +1,11 @@
 /**
- * Servicio de KPIs para Instalaciones
+ * Servicio de KPIs para Instalaciones - CORREGIDO
  * 
  * Métricas específicas para el seguimiento y optimización de instalaciones
+ * REFACTORIZADO para usar el modelo unificado `Proyecto` como única fuente de verdad.
  */
 
-const Instalacion = require('../models/Instalacion');
+const Proyecto = require('../models/Proyecto');
 const mongoose = require('mongoose');
 const logger = require('../config/logger');
 
@@ -19,22 +20,13 @@ class KPIsInstalacionesService {
       const inicioMes = fechaInicio || new Date(hoy.getFullYear(), hoy.getMonth(), 1);
       const finMes = fechaFin || new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
 
-      logger.info('Calculando KPIs de instalaciones', {
+      logger.info('Calculando KPIs de instalaciones desde modelo unificado', {
         servicio: 'kpisInstalaciones',
         metodo: 'obtenerDashboardInstalaciones',
         periodo: `${inicioMes.toISOString().split('T')[0]} - ${finMes.toISOString().split('T')[0]}`
       });
 
-      // Ejecutar todas las métricas en paralelo
-      const [
-        metricasGenerales,
-        metricasTiempo,
-        metricasCalidad,
-        metricasProductividad,
-        metricasCuadrillas,
-        tendenciasSemanales,
-        alertasOperativas
-      ] = await Promise.all([
+      const [metricasGenerales, metricasTiempo, metricasCalidad, metricasProductividad, metricasCuadrillas, tendenciasSemanales, alertasOperativas] = await Promise.all([
         this.calcularMetricasGenerales(inicioMes, finMes),
         this.calcularMetricasTiempo(inicioMes, finMes),
         this.calcularMetricasCalidad(inicioMes, finMes),
@@ -52,11 +44,12 @@ class KPIsInstalacionesService {
         cuadrillas: metricasCuadrillas,
         tendencias: tendenciasSemanales,
         alertas: alertasOperativas,
-        fechaActualizacion: new Date()
+        fechaActualizacion: new Date(),
+        fuente: 'Modelo Unificado Proyecto'
       };
 
     } catch (error) {
-      logger.error('Error calculando KPIs de instalaciones', {
+      logger.error('Error calculando KPIs de instalaciones (unificado)', {
         servicio: 'kpisInstalaciones',
         metodo: 'obtenerDashboardInstalaciones',
         error: error.message,
@@ -71,39 +64,24 @@ class KPIsInstalacionesService {
    */
   async calcularMetricasGenerales(fechaInicio, fechaFin) {
     const pipeline = [
-      {
-        $match: {
-          fechaProgramada: { $gte: fechaInicio, $lte: fechaFin }
-        }
-      },
-      {
-        $group: {
-          _id: '$estado',
+      { $match: { 'instalacion.fechaProgramada': { $exists: true, $ne: null } } },
+      { $match: { 'instalacion.fechaProgramada': { $gte: fechaInicio, $lte: fechaFin } } },
+      { $group: {
+          _id: '$instalacion.estado',
           cantidad: { $sum: 1 },
-          tiempoPromedio: { $avg: '$tiempoEstimado' }
+          tiempoPromedio: { $avg: '$instalacion.tiempoEstimado' }
         }
       }
     ];
 
-    const resultados = await Instalacion.aggregate(pipeline);
+    const resultados = await Proyecto.aggregate(pipeline);
     
-    const metricas = {
-      totalInstalaciones: 0,
-      programadas: 0,
-      enProceso: 0,
-      completadas: 0,
-      canceladas: 0,
-      pausadas: 0,
-      tasaCompletitud: 0,
-      tasaCancelacion: 0
-    };
-
+    const metricas = { totalInstalaciones: 0, programadas: 0, enProceso: 0, completadas: 0, canceladas: 0, pausadas: 0, tasaCompletitud: 0, tasaCancelacion: 0 };
     resultados.forEach(item => {
       metricas.totalInstalaciones += item.cantidad;
       metricas[item._id] = item.cantidad;
     });
 
-    // Calcular tasas
     if (metricas.totalInstalaciones > 0) {
       metricas.tasaCompletitud = Math.round((metricas.completadas / metricas.totalInstalaciones) * 100);
       metricas.tasaCancelacion = Math.round((metricas.canceladas / metricas.totalInstalaciones) * 100);
@@ -117,76 +95,45 @@ class KPIsInstalacionesService {
    */
   async calcularMetricasTiempo(fechaInicio, fechaFin) {
     const pipeline = [
-      {
-        $match: {
-          fechaProgramada: { $gte: fechaInicio, $lte: fechaFin },
-          estado: { $in: ['completada', 'en_proceso'] }
-        }
-      },
-      {
-        $project: {
-          tiempoEstimado: 1,
-          tiempoReal: '$tiempos.tiempoReal',
-          fechaProgramada: 1,
-          fechaRealizada: 1,
-          estado: 1,
-          // Calcular si fue puntual (dentro de 30 min de tolerancia)
+      { $match: { 'instalacion.fechaProgramada': { $gte: fechaInicio, $lte: fechaFin }, 'instalacion.estado': { $in: ['completada', 'en_proceso'] } } },
+      { $project: {
+          instalacion: '$instalacion',
           esPuntual: {
             $cond: {
-              if: { $and: [
-                { $ne: ['$fechaRealizada', null] },
-                { $lte: [
-                  { $abs: { $subtract: ['$fechaRealizada', '$fechaProgramada'] } },
-                  1800000 // 30 minutos en milisegundos
-                ]}
-              ]},
-              then: 1,
-              else: 0
+              if: { $and: [ { $ne: ['$instalacion.fechaRealizada', null] }, { $lte: [ { $abs: { $subtract: ['$instalacion.fechaRealizada', '$instalacion.fechaProgramada'] } }, 1800000 ] } ] },
+              then: 1, else: 0
             }
           },
-          // Calcular variación de tiempo
           variacionTiempo: {
             $cond: {
-              if: { $and: [
-                { $ne: ['$tiempos.tiempoReal', null] },
-                { $ne: ['$tiempoEstimado', null] }
-              ]},
-              then: { $subtract: ['$tiempos.tiempoReal', '$tiempoEstimado'] },
-              else: 0
+              if: { $and: [ { $ne: ['$instalacion.tiempos.tiempoReal', null] }, { $ne: ['$instalacion.tiempoEstimado', null] } ] },
+              then: { $subtract: ['$instalacion.tiempos.tiempoReal', '$instalacion.tiempoEstimado'] }, else: 0
             }
           }
         }
       },
-      {
-        $group: {
+      { $group: {
           _id: null,
           totalInstalaciones: { $sum: 1 },
           instalacionesPuntuales: { $sum: '$esPuntual' },
-          tiempoEstimadoPromedio: { $avg: '$tiempoEstimado' },
-          tiempoRealPromedio: { $avg: '$tiempoReal' },
+          tiempoEstimadoPromedio: { $avg: '$instalacion.tiempoEstimado' },
+          tiempoRealPromedio: { $avg: '$instalacion.tiempos.tiempoReal' },
           variacionTiempoPromedio: { $avg: '$variacionTiempo' },
-          instalacionesATiempo: {
-            $sum: {
-              $cond: [{ $lte: ['$variacionTiempo', 0.5] }, 1, 0] // Dentro de 30 min
-            }
-          }
+          instalacionesATiempo: { $sum: { $cond: [{ $lte: ['$variacionTiempo', 0.5] }, 1, 0] } }
         }
       }
     ];
 
-    const resultado = await Instalacion.aggregate(pipeline);
+    const resultado = await Proyecto.aggregate(pipeline);
     const datos = resultado[0] || {};
 
     return {
       tiempoEstimadoPromedio: Math.round((datos.tiempoEstimadoPromedio || 0) * 10) / 10,
       tiempoRealPromedio: Math.round((datos.tiempoRealPromedio || 0) * 10) / 10,
       variacionTiempoPromedio: Math.round((datos.variacionTiempoPromedio || 0) * 10) / 10,
-      tasaPuntualidad: datos.totalInstalaciones > 0 ? 
-        Math.round((datos.instalacionesPuntuales / datos.totalInstalaciones) * 100) : 0,
-      tasaTiempoEstimado: datos.totalInstalaciones > 0 ? 
-        Math.round((datos.instalacionesATiempo / datos.totalInstalaciones) * 100) : 0,
-      eficienciaTemporal: datos.tiempoEstimadoPromedio > 0 ? 
-        Math.round((datos.tiempoEstimadoPromedio / (datos.tiempoRealPromedio || datos.tiempoEstimadoPromedio)) * 100) : 100
+      tasaPuntualidad: datos.totalInstalaciones > 0 ? Math.round((datos.instalacionesPuntuales / datos.totalInstalaciones) * 100) : 0,
+      tasaTiempoEstimado: datos.totalInstalaciones > 0 ? Math.round((datos.instalacionesATiempo / datos.totalInstalaciones) * 100) : 0,
+      eficienciaTemporal: datos.tiempoEstimadoPromedio > 0 ? Math.round((datos.tiempoEstimadoPromedio / (datos.tiempoRealPromedio || datos.tiempoEstimadoPromedio)) * 100) : 100
     };
   }
 
@@ -195,67 +142,32 @@ class KPIsInstalacionesService {
    */
   async calcularMetricasCalidad(fechaInicio, fechaFin) {
     const pipeline = [
-      {
-        $match: {
-          fechaProgramada: { $gte: fechaInicio, $lte: fechaFin },
-          estado: 'completada'
+      { $match: { 'instalacion.fechaProgramada': { $gte: fechaInicio, $lte: fechaFin }, 'instalacion.estado': 'completada' } },
+      { $project: {
+          checklistCompletitud: { $cond: { if: { $gt: [{ $size: '$instalacion.checklist' }, 0] }, then: { $divide: [ { $size: { $filter: { input: '$instalacion.checklist', cond: { $eq: ['$$this.completado', true] } } } }, { $size: '$instalacion.checklist' } ] }, else: 0 } },
+          tieneProblemas: { $cond: { if: { $gt: [{ $size: { $ifNull: ['$instalacion.incidencias', []] } }, 0] }, then: 1, else: 0 } },
+          satisfaccionCliente: '$instalacion.satisfaccionCliente.calificacion'
         }
       },
-      {
-        $project: {
-          // Calidad del trabajo (basado en checklist completado)
-          checklistCompletitud: {
-            $cond: {
-              if: { $gt: [{ $size: '$checklist' }, 0] },
-              then: {
-                $divide: [
-                  { $size: { $filter: { input: '$checklist', cond: { $eq: ['$$this.completado', true] } } } },
-                  { $size: '$checklist' }
-                ]
-              },
-              else: 0
-            }
-          },
-          // Problemas reportados
-          tieneProblemas: {
-            $cond: {
-              if: { $gt: [{ $size: { $ifNull: ['$incidencias', []] } }, 0] },
-              then: 1,
-              else: 0
-            }
-          },
-          // Satisfacción del cliente (si existe)
-          satisfaccionCliente: '$satisfaccionCliente.calificacion'
-        }
-      },
-      {
-        $group: {
+      { $group: {
           _id: null,
           totalCompletadas: { $sum: 1 },
           checklistPromedioCompletitud: { $avg: '$checklistCompletitud' },
           instalacionesConProblemas: { $sum: '$tieneProblemas' },
           satisfaccionPromedio: { $avg: '$satisfaccionCliente' },
-          instalacionesSinProblemas: {
-            $sum: { $cond: [{ $eq: ['$tieneProblemas', 0] }, 1, 0] }
-          }
+          instalacionesSinProblemas: { $sum: { $cond: [{ $eq: ['$tieneProblemas', 0] }, 1, 0] } }
         }
       }
     ];
 
-    const resultado = await Instalacion.aggregate(pipeline);
+    const resultado = await Proyecto.aggregate(pipeline);
     const datos = resultado[0] || {};
 
     return {
       calidadPromedio: Math.round((datos.checklistPromedioCompletitud || 0) * 100),
-      tasaSinProblemas: datos.totalCompletadas > 0 ? 
-        Math.round((datos.instalacionesSinProblemas / datos.totalCompletadas) * 100) : 100,
+      tasaSinProblemas: datos.totalCompletadas > 0 ? Math.round((datos.instalacionesSinProblemas / datos.totalCompletadas) * 100) : 100,
       satisfaccionCliente: Math.round((datos.satisfaccionPromedio || 0) * 10) / 10,
-      instalacionesConIncidencias: datos.instalacionesConProblemas || 0,
-      indiceCalidadGeneral: this.calcularIndiceCalidad({
-        checklistCompletitud: datos.checklistPromedioCompletitud || 0,
-        tasaSinProblemas: datos.instalacionesSinProblemas / (datos.totalCompletadas || 1),
-        satisfaccionCliente: datos.satisfaccionPromedio || 0
-      })
+      instalacionesConIncidencias: datos.instalacionesConProblemas || 0
     };
   }
 
@@ -264,62 +176,31 @@ class KPIsInstalacionesService {
    */
   async calcularMetricasProductividad(fechaInicio, fechaFin) {
     const pipeline = [
-      {
-        $match: {
-          fechaProgramada: { $gte: fechaInicio, $lte: fechaFin }
-        }
-      },
-      {
-        $project: {
-          estado: 1,
-          tiempoEstimado: 1,
-          numeroInstaladores: { $size: { $ifNull: ['$instaladores', []] } },
-          fechaProgramada: 1,
-          // Calcular días de la semana
-          diaSemana: { $dayOfWeek: '$fechaProgramada' },
-          // Calcular productividad por instalador
-          productividadPorInstalador: {
-            $cond: {
-              if: { $gt: [{ $size: { $ifNull: ['$instaladores', []] } }, 0] },
-              then: { $divide: ['$tiempoEstimado', { $size: '$instaladores' }] },
-              else: 0
-            }
-          }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalInstalaciones: { $sum: 1 },
-          horasTotalesEstimadas: { $sum: '$tiempoEstimado' },
-          instaladoresPromedioPorInstalacion: { $avg: '$numeroInstaladores' },
-          productividadPromedioPorInstalador: { $avg: '$productividadPorInstalador' },
-          // Distribución por día de la semana
-          instalacionesLunes: { $sum: { $cond: [{ $eq: ['$diaSemana', 2] }, 1, 0] } },
-          instalacionesMartes: { $sum: { $cond: [{ $eq: ['$diaSemana', 3] }, 1, 0] } },
-          instalacionesMiercoles: { $sum: { $cond: [{ $eq: ['$diaSemana', 4] }, 1, 0] } },
-          instalacionesJueves: { $sum: { $cond: [{ $eq: ['$diaSemana', 5] }, 1, 0] } },
-          instalacionesViernes: { $sum: { $cond: [{ $eq: ['$diaSemana', 6] }, 1, 0] } },
-          instalacionesSabado: { $sum: { $cond: [{ $eq: ['$diaSemana', 7] }, 1, 0] } }
-        }
-      }
+        { $match: { 'instalacion.fechaProgramada': { $gte: fechaInicio, $lte: fechaFin } } },
+        { $project: {
+            instalacion: '$instalacion',
+            diaSemana: { $dayOfWeek: '$instalacion.fechaProgramada' },
+            productividadPorInstalador: { $cond: { if: { $gt: [{ $size: { $ifNull: ['$instalacion.instaladores', []] } }, 0] }, then: { $divide: ['$instalacion.tiempoEstimado', { $size: '$instalacion.instaladores' }] }, else: 0 } }
+        } },
+        { $group: {
+            _id: null,
+            totalInstalaciones: { $sum: 1 },
+            horasTotalesEstimadas: { $sum: '$instalacion.tiempoEstimado' },
+            instaladoresPromedioPorInstalacion: { $avg: { $size: { $ifNull: ['$instalacion.instaladores', []] } } },
+            productividadPromedioPorInstalador: { $avg: '$productividadPorInstalador' },
+            instalacionesLunes: { $sum: { $cond: [{ $eq: ['$diaSemana', 2] }, 1, 0] } },
+            instalacionesMartes: { $sum: { $cond: [{ $eq: ['$diaSemana', 3] }, 1, 0] } },
+            instalacionesMiercoles: { $sum: { $cond: [{ $eq: ['$diaSemana', 4] }, 1, 0] } },
+            instalacionesJueves: { $sum: { $cond: [{ $eq: ['$diaSemana', 5] }, 1, 0] } },
+            instalacionesViernes: { $sum: { $cond: [{ $eq: ['$diaSemana', 6] }, 1, 0] } },
+            instalacionesSabado: { $sum: { $cond: [{ $eq: ['$diaSemana', 7] }, 1, 0] } }
+        } }
     ];
 
-    const resultado = await Instalacion.aggregate(pipeline);
+    const resultado = await Proyecto.aggregate(pipeline);
     const datos = resultado[0] || {};
-
-    // Calcular días más productivos
-    const distribucionSemanal = {
-      'Lunes': datos.instalacionesLunes || 0,
-      'Martes': datos.instalacionesMartes || 0,
-      'Miércoles': datos.instalacionesMiercoles || 0,
-      'Jueves': datos.instalacionesJueves || 0,
-      'Viernes': datos.instalacionesViernes || 0,
-      'Sábado': datos.instalacionesSabado || 0
-    };
-
-    const diaMasProductivo = Object.entries(distribucionSemanal)
-      .sort(([,a], [,b]) => b - a)[0][0];
+    const distribucionSemanal = { 'Lunes': datos.instalacionesLunes || 0, 'Martes': datos.instalacionesMartes || 0, 'Miércoles': datos.instalacionesMiercoles || 0, 'Jueves': datos.instalacionesJueves || 0, 'Viernes': datos.instalacionesViernes || 0, 'Sábado': datos.instalacionesSabado || 0 };
+    const diaMasProductivo = Object.keys(distribucionSemanal).length > 0 ? Object.entries(distribucionSemanal).sort(([,a], [,b]) => b - a)[0][0] : 'N/A';
 
     return {
       instalacionesPorDia: Math.round((datos.totalInstalaciones || 0) / 30 * 10) / 10,
@@ -327,8 +208,7 @@ class KPIsInstalacionesService {
       instaladoresPromedio: Math.round((datos.instaladoresPromedioPorInstalacion || 0) * 10) / 10,
       productividadPorInstalador: Math.round((datos.productividadPromedioPorInstalador || 0) * 10) / 10,
       diaMasProductivo,
-      distribucionSemanal,
-      eficienciaOperativa: this.calcularEficienciaOperativa(datos)
+      distribucionSemanal
     };
   }
 
@@ -337,80 +217,38 @@ class KPIsInstalacionesService {
    */
   async calcularMetricasCuadrillas(fechaInicio, fechaFin) {
     const pipeline = [
-      {
-        $match: {
-          fechaProgramada: { $gte: fechaInicio, $lte: fechaFin },
-          'instaladores.0': { $exists: true }
-        }
-      },
-      {
-        $unwind: '$instaladores'
-      },
-      {
-        $lookup: {
-          from: 'usuarios',
-          localField: 'instaladores.usuario',
-          foreignField: '_id',
-          as: 'instaladorInfo'
-        }
-      },
-      {
-        $unwind: '$instaladorInfo'
-      },
-      {
-        $group: {
+      { $match: { 'instalacion.fechaProgramada': { $gte: fechaInicio, $lte: fechaFin }, 'instalacion.instaladores.0': { $exists: true } } },
+      { $unwind: '$instalacion.instaladores' },
+      { $lookup: { from: 'usuarios', localField: 'instalacion.instaladores.usuario', foreignField: '_id', as: 'instaladorInfo' } },
+      { $unwind: '$instaladorInfo' },
+      { $group: {
           _id: '$instaladorInfo._id',
           nombre: { $first: '$instaladorInfo.nombre' },
           apellido: { $first: '$instaladorInfo.apellido' },
           totalInstalaciones: { $sum: 1 },
-          instalacionesCompletadas: {
-            $sum: { $cond: [{ $eq: ['$estado', 'completada'] }, 1, 0] }
-          },
-          horasTrabajadas: { $sum: '$tiempoEstimado' },
-          esResponsable: {
-            $sum: { $cond: [{ $eq: ['$instaladores.rol', 'responsable'] }, 1, 0] }
-          }
+          instalacionesCompletadas: { $sum: { $cond: [{ $eq: ['$instalacion.estado', 'completada'] }, 1, 0] } },
+          horasTrabajadas: { $sum: '$instalacion.tiempoEstimado' },
+          esResponsable: { $sum: { $cond: [{ $eq: ['$instalacion.instaladores.rol', 'responsable'] }, 1, 0] } }
         }
       },
-      {
-        $project: {
+      { $project: {
           nombre: { $concat: ['$nombre', ' ', '$apellido'] },
           totalInstalaciones: 1,
           instalacionesCompletadas: 1,
           horasTrabajadas: 1,
-          tasaCompletitud: {
-            $cond: {
-              if: { $gt: ['$totalInstalaciones', 0] },
-              then: { $multiply: [{ $divide: ['$instalacionesCompletadas', '$totalInstalaciones'] }, 100] },
-              else: 0
-            }
-          },
+          tasaCompletitud: { $cond: { if: { $gt: ['$totalInstalaciones', 0] }, then: { $multiply: [{ $divide: ['$instalacionesCompletadas', '$totalInstalaciones'] }, 100] }, else: 0 } },
           esLider: { $gt: ['$esResponsable', 0] },
-          productividad: {
-            $cond: {
-              if: { $gt: ['$horasTrabajadas', 0] },
-              then: { $divide: ['$instalacionesCompletadas', '$horasTrabajadas'] },
-              else: 0
-            }
-          }
+          productividad: { $cond: { if: { $gt: ['$horasTrabajadas', 0] }, then: { $divide: ['$instalacionesCompletadas', '$horasTrabajadas'] }, else: 0 } }
         }
       },
-      {
-        $sort: { instalacionesCompletadas: -1 }
-      },
-      {
-        $limit: 10
-      }
+      { $sort: { instalacionesCompletadas: -1 } },
+      { $limit: 10 }
     ];
 
-    const cuadrillas = await Instalacion.aggregate(pipeline);
+    const cuadrillas = await Proyecto.aggregate(pipeline);
 
     return {
-      topInstaladores: cuadrillas.map(instalador => ({
-        ...instalador,
-        tasaCompletitud: Math.round(instalador.tasaCompletitud),
-        productividad: Math.round(instalador.productividad * 100) / 100
-      })),
+      topInstaladores: cuadrillas.map(instalador => ({ ...instalador, tasaCompletitud: Math.round(instalador.tasaCompletitud), productividad: Math.round(instalador.productividad * 100) / 100 })),
       totalInstaladores: cuadrillas.length,
       mejorInstalador: cuadrillas[0] || null
     };
@@ -421,39 +259,20 @@ class KPIsInstalacionesService {
    */
   async calcularTendenciasSemanales(fechaInicio, fechaFin) {
     const pipeline = [
-      {
-        $match: {
-          fechaProgramada: { $gte: fechaInicio, $lte: fechaFin }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            semana: { $week: '$fechaProgramada' },
-            año: { $year: '$fechaProgramada' }
-          },
+      { $match: { 'instalacion.fechaProgramada': { $gte: fechaInicio, $lte: fechaFin } } },
+      { $group: {
+          _id: { semana: { $week: '$instalacion.fechaProgramada' }, año: { $year: '$instalacion.fechaProgramada' } },
           instalaciones: { $sum: 1 },
-          completadas: {
-            $sum: { $cond: [{ $eq: ['$estado', 'completada'] }, 1, 0] }
-          },
-          tiempoPromedio: { $avg: '$tiempoEstimado' }
+          completadas: { $sum: { $cond: [{ $eq: ['$instalacion.estado', 'completada'] }, 1, 0] } },
+          tiempoPromedio: { $avg: '$instalacion.tiempoEstimado' }
         }
       },
-      {
-        $sort: { '_id.año': 1, '_id.semana': 1 }
-      }
+      { $sort: { '_id.año': 1, '_id.semana': 1 } }
     ];
 
-    const tendencias = await Instalacion.aggregate(pipeline);
+    const tendencias = await Proyecto.aggregate(pipeline);
 
-    return tendencias.map(item => ({
-      semana: `S${item._id.semana}/${item._id.año}`,
-      instalaciones: item.instalaciones,
-      completadas: item.completadas,
-      tasaCompletitud: item.instalaciones > 0 ? 
-        Math.round((item.completadas / item.instalaciones) * 100) : 0,
-      tiempoPromedio: Math.round(item.tiempoPromedio * 10) / 10
-    }));
+    return tendencias.map(item => ({ semana: `S${item._id.semana}/${item._id.año}`, instalaciones: item.instalaciones, completadas: item.completadas, tasaCompletitud: item.instalaciones > 0 ? Math.round((item.completadas / item.instalaciones) * 100) : 0, tiempoPromedio: Math.round(item.tiempoPromedio * 10) / 10 }));
   }
 
   /**
@@ -461,88 +280,18 @@ class KPIsInstalacionesService {
    */
   async generarAlertasOperativas() {
     const hoy = new Date();
-    const mañana = new Date();
-    mañana.setDate(mañana.getDate() + 1);
-
-    const [
-      instalacionesHoy,
-      instalacionesAtrasadas,
-      instalacionesSinCuadrilla
-    ] = await Promise.all([
-      Instalacion.countDocuments({
-        fechaProgramada: {
-          $gte: new Date(hoy.setHours(0, 0, 0, 0)),
-          $lt: new Date(hoy.setHours(23, 59, 59, 999))
-        },
-        estado: { $in: ['programada', 'en_proceso'] }
-      }),
-      Instalacion.countDocuments({
-        fechaProgramada: { $lt: hoy },
-        estado: { $in: ['programada', 'en_proceso'] }
-      }),
-      Instalacion.countDocuments({
-        estado: 'programada',
-        $or: [
-          { instaladores: { $size: 0 } },
-          { instaladores: { $exists: false } }
-        ]
-      })
+    const [instalacionesHoy, instalacionesAtrasadas, instalacionesSinCuadrilla] = await Promise.all([
+      Proyecto.countDocuments({ 'instalacion.fechaProgramada': { $gte: new Date(hoy.setHours(0, 0, 0, 0)), $lt: new Date(hoy.setHours(23, 59, 59, 999)) }, 'instalacion.estado': { $in: ['programada', 'en_proceso'] } }),
+      Proyecto.countDocuments({ 'instalacion.fechaProgramada': { $lt: hoy }, 'instalacion.estado': { $in: ['programada', 'en_proceso'] } }),
+      Proyecto.countDocuments({ 'instalacion.estado': 'programada', $or: [ { 'instalacion.instaladores': { $size: 0 } }, { 'instalacion.instaladores': { $exists: false } } ] })
     ]);
 
     const alertas = [];
-
-    if (instalacionesHoy > 0) {
-      alertas.push({
-        tipo: 'info',
-        titulo: 'Instalaciones de Hoy',
-        mensaje: `${instalacionesHoy} instalaciones programadas para hoy`,
-        prioridad: 'media'
-      });
-    }
-
-    if (instalacionesAtrasadas > 0) {
-      alertas.push({
-        tipo: 'warning',
-        titulo: 'Instalaciones Atrasadas',
-        mensaje: `${instalacionesAtrasadas} instalaciones pendientes de fechas pasadas`,
-        prioridad: 'alta'
-      });
-    }
-
-    if (instalacionesSinCuadrilla > 0) {
-      alertas.push({
-        tipo: 'error',
-        titulo: 'Sin Cuadrilla Asignada',
-        mensaje: `${instalacionesSinCuadrilla} instalaciones sin cuadrilla asignada`,
-        prioridad: 'alta'
-      });
-    }
+    if (instalacionesHoy > 0) alertas.push({ tipo: 'info', titulo: 'Instalaciones de Hoy', mensaje: `${instalacionesHoy} instalaciones programadas para hoy`, prioridad: 'media' });
+    if (instalacionesAtrasadas > 0) alertas.push({ tipo: 'warning', titulo: 'Instalaciones Atrasadas', mensaje: `${instalacionesAtrasadas} instalaciones pendientes de fechas pasadas`, prioridad: 'alta' });
+    if (instalacionesSinCuadrilla > 0) alertas.push({ tipo: 'error', titulo: 'Sin Cuadrilla Asignada', mensaje: `${instalacionesSinCuadrilla} instalaciones sin cuadrilla asignada`, prioridad: 'alta' });
 
     return alertas;
-  }
-
-  // ===== MÉTODOS AUXILIARES =====
-
-  calcularIndiceCalidad({ checklistCompletitud, tasaSinProblemas, satisfaccionCliente }) {
-    const pesoChecklist = 0.4;
-    const pesoProblemas = 0.3;
-    const pesoSatisfaccion = 0.3;
-
-    const indice = (
-      (checklistCompletitud * pesoChecklist) +
-      (tasaSinProblemas * pesoProblemas) +
-      ((satisfaccionCliente / 5) * pesoSatisfaccion)
-    ) * 100;
-
-    return Math.round(indice);
-  }
-
-  calcularEficienciaOperativa(datos) {
-    const factorVolumen = Math.min((datos.totalInstalaciones || 0) / 50, 1); // Normalizar a 50 instalaciones/mes
-    const factorTiempo = Math.min((datos.horasTotalesEstimadas || 0) / 200, 1); // Normalizar a 200 horas/mes
-    const factorRecursos = 1 / Math.max((datos.instaladoresPromedioPorInstalacion || 1), 1);
-
-    return Math.round((factorVolumen + factorTiempo + factorRecursos) / 3 * 100);
   }
 }
 
