@@ -11,7 +11,7 @@ const Usuario = require('../models/Usuario');
 const PlantillaWhatsApp = require('../models/PlantillaWhatsApp');
 const Cotizacion = require('../models/Cotizacion');
 const Pedido = require('../models/Pedido');
-const OrdenDeFabricacion = require('../models/OrdenDeFabricacion');
+const OrdenFabricacion = require('../models/OrdenFabricacion'); // CORREGIDO
 const Instalacion = require('../models/Instalacion');
 const Postventa = require('../models/Postventa');
 const Producto = require('../models/Producto');
@@ -77,7 +77,7 @@ router.post('/import/full', auth, verificarPermiso('admin', 'crear'), async (req
       { model: Recordatorio, name: 'recordatorios' },
       { model: Cotizacion, name: 'cotizaciones' },
       { model: Pedido, name: 'pedidos' },
-      { model: OrdenDeFabricacion, name: 'ordenesDeFabricacion' },
+      { model: OrdenFabricacion, name: 'ordenesDeFabricacion' },
       { model: Instalacion, name: 'instalaciones' },
       { model: Postventa, name: 'postventas' },
     ];
@@ -144,7 +144,7 @@ router.get('/system-info', auth, verificarPermiso('admin', 'leer'), async (req, 
             Usuario.countDocuments({}),
             Cotizacion.countDocuments({}),
             Pedido.countDocuments({}),
-            OrdenDeFabricacion.countDocuments({}),
+            OrdenFabricacion.countDocuments({}),
             Instalacion.countDocuments({}),
             Postventa.countDocuments({}),
             Producto.countDocuments({}),
