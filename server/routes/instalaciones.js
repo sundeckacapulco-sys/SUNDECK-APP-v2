@@ -1,6 +1,6 @@
 const express = require('express');
 const Instalacion = require('../models/Instalacion');
-const Fabricacion = require('../models/Fabricacion.legacy');
+// const Fabricacion = require('../models/Fabricacion.legacy');
 const Pedido = require('../models/Pedido');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const ValidacionTecnicaService = require('../services/validacionTecnicaService');
@@ -75,7 +75,7 @@ router.get('/', auth, verificarPermiso('instalaciones', 'leer'), async (req, res
 
     const instalaciones = await Instalacion.find(filtros)
       .populate('pedido')
-      .populate('fabricacion')
+      // .populate('fabricacion') // Comentado temporalmente por ausencia de modelo legacy
       .populate('instaladores.usuario', 'nombre apellido')
       .sort({ fechaProgramada: 1 });
 
@@ -210,7 +210,9 @@ router.post('/', auth, verificarPermiso('instalaciones', 'crear'), async (req, r
   }
 });
 
+/*
 // Crear instalación desde fabricación completada
+// ESTA RUTA ESTÁ DESACTIVADA PORQUE DEPENDE DEL MODELO `Fabricacion.legacy`
 router.post('/desde-fabricacion/:fabricacionId', auth, verificarPermiso('instalaciones', 'crear'), async (req, res) => {
   try {
     logger.info('Creando instalación desde fabricación', {
@@ -420,6 +422,7 @@ router.post('/desde-fabricacion/:fabricacionId', auth, verificarPermiso('instala
     });
   }
 });
+*/
 
 // Generar orden de instalación técnica completa
 router.get('/:id/orden-tecnica', auth, verificarPermiso('instalaciones', 'leer'), async (req, res) => {
@@ -427,9 +430,9 @@ router.get('/:id/orden-tecnica', auth, verificarPermiso('instalaciones', 'leer')
     const { id } = req.params;
     
     const instalacion = await Instalacion.findById(id)
-      .populate('pedido')
-      .populate('fabricacion');
-    
+      .populate('pedido');
+      // .populate('fabricacion'); // Comentado temporalmente
+
     if (!instalacion) {
       return res.status(404).json({ message: 'Instalación no encontrada' });
     }
