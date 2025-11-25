@@ -139,7 +139,7 @@ app.use('/api/productos', require('./routes/productos'));
 app.use('/api/reportes', require('./routes/reportes'));
 app.use('/api/plantillas', require('./routes/plantillas'));
 app.use('/api/plantillas-whatsapp', require('./routes/plantillasWhatsApp'));
-app.use('/api/ai', require('./routes/ai'));
+// app.use('/api/ai', require('./routes/ai')); // RUTA OBSOLETA - Funcionalidad reemplazada por scheduler.
 app.use('/api/etapas', require('./routes/etapas'));
 app.use('/api/proyectos', require('./routes/proyectos'));
 app.use('/api/proyectos', require('./routes/pagos')); // ✅ NUEVO - Gestión de Pagos y Comprobantes
@@ -150,8 +150,8 @@ app.use('/api/alertas', require('./routes/alertas'));
 app.use('/api/calculadora', require('./routes/calculadora')); // ✅ NUEVO - Calculadora de Materiales
 app.use('/api/almacen', require('./routes/almacen')); // ✅ NUEVO - Gestión de Almacén e Inventario
 app.use('/api/etiquetas', require('./routes/etiquetas')); // ✅ NUEVO - Etiquetas de Producción con QR
-app.use('/api/storage', require('./routes/storage'));
-app.use('/api/backup', require('./routes/backup'));
+app.use('./routes/storage', require('./routes/storage'));
+app.use('./routes/backup', require('./routes/backup'));
 app.use('/api/fix', require('./routes/fix')); // Ruta temporal para correcciones
 
 // Servir archivos estáticos desde uploads con CORS
