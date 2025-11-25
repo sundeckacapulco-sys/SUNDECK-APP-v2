@@ -7,16 +7,18 @@ const router = express.Router();
 
 // Obtener dashboard completo de KPIs de instalaciones
 router.get('/dashboard', async (req, res) => {
+  // Mover la declaración aquí para que esté disponible en todo el scope
+  const { fecha_inicio, fecha_fin } = req.query;
+
   try {
     logger.info('Solicitando dashboard de KPIs de instalaciones', {
       ruta: 'kpisInstalaciones',
       endpoint: '/dashboard',
       usuarioId: req.usuario?._id?.toString(),
+      // Ahora estas variables existen
       fechaInicio: fecha_inicio,
       fechaFin: fecha_fin
     });
-    
-    const { fecha_inicio, fecha_fin } = req.query;
     
     let fechaInicio = null;
     let fechaFin = null;
@@ -33,10 +35,7 @@ router.get('/dashboard', async (req, res) => {
     
     logger.info('Dashboard de instalaciones generado', {
       ruta: 'kpisInstalaciones',
-      endpoint: '/dashboard',
-      usuarioId: req.usuario?._id?.toString(),
-      fechaInicio: fecha_inicio,
-      fechaFin: fecha_fin
+      endpoint: '/dashboard'
     });
     res.json(dashboard);
     
@@ -44,7 +43,7 @@ router.get('/dashboard', async (req, res) => {
     logger.error('Error obteniendo dashboard de instalaciones', {
       ruta: 'kpisInstalaciones',
       endpoint: '/dashboard',
-      usuarioId: req.usuario?._id?.toString(),
+      // Y también aquí
       fechaInicio: fecha_inicio,
       fechaFin: fecha_fin,
       error: error.message,
@@ -59,9 +58,8 @@ router.get('/dashboard', async (req, res) => {
 
 // Obtener métricas específicas de tiempo
 router.get('/metricas-tiempo', async (req, res) => {
+  const { fecha_inicio, fecha_fin } = req.query;
   try {
-    const { fecha_inicio, fecha_fin } = req.query;
-    
     let fechaInicio = null;
     let fechaFin = null;
     
@@ -79,7 +77,6 @@ router.get('/metricas-tiempo', async (req, res) => {
     logger.error('Error obteniendo métricas de tiempo de instalaciones', {
       ruta: 'kpisInstalaciones',
       endpoint: '/metricas-tiempo',
-      usuarioId: req.usuario?._id?.toString(),
       fechaInicio: fecha_inicio,
       fechaFin: fecha_fin,
       error: error.message,
@@ -94,9 +91,8 @@ router.get('/metricas-tiempo', async (req, res) => {
 
 // Obtener métricas de calidad
 router.get('/metricas-calidad', async (req, res) => {
+  const { fecha_inicio, fecha_fin } = req.query;
   try {
-    const { fecha_inicio, fecha_fin } = req.query;
-    
     let fechaInicio = null;
     let fechaFin = null;
     
@@ -114,7 +110,6 @@ router.get('/metricas-calidad', async (req, res) => {
     logger.error('Error obteniendo métricas de calidad de instalaciones', {
       ruta: 'kpisInstalaciones',
       endpoint: '/metricas-calidad',
-      usuarioId: req.usuario?._id?.toString(),
       fechaInicio: fecha_inicio,
       fechaFin: fecha_fin,
       error: error.message,
@@ -129,9 +124,8 @@ router.get('/metricas-calidad', async (req, res) => {
 
 // Obtener métricas de productividad
 router.get('/metricas-productividad', async (req, res) => {
+  const { fecha_inicio, fecha_fin } = req.query;
   try {
-    const { fecha_inicio, fecha_fin } = req.query;
-    
     let fechaInicio = null;
     let fechaFin = null;
     
@@ -149,7 +143,6 @@ router.get('/metricas-productividad', async (req, res) => {
     logger.error('Error obteniendo métricas de productividad de instalaciones', {
       ruta: 'kpisInstalaciones',
       endpoint: '/metricas-productividad',
-      usuarioId: req.usuario?._id?.toString(),
       fechaInicio: fecha_inicio,
       fechaFin: fecha_fin,
       error: error.message,
@@ -164,9 +157,8 @@ router.get('/metricas-productividad', async (req, res) => {
 
 // Obtener métricas por cuadrilla
 router.get('/metricas-cuadrillas', async (req, res) => {
+  const { fecha_inicio, fecha_fin } = req.query;
   try {
-    const { fecha_inicio, fecha_fin } = req.query;
-    
     let fechaInicio = null;
     let fechaFin = null;
     
@@ -184,7 +176,6 @@ router.get('/metricas-cuadrillas', async (req, res) => {
     logger.error('Error obteniendo métricas por cuadrilla', {
       ruta: 'kpisInstalaciones',
       endpoint: '/metricas-cuadrillas',
-      usuarioId: req.usuario?._id?.toString(),
       fechaInicio: fecha_inicio,
       fechaFin: fecha_fin,
       error: error.message,
@@ -207,7 +198,6 @@ router.get('/alertas', async (req, res) => {
     logger.error('Error obteniendo alertas operativas de instalaciones', {
       ruta: 'kpisInstalaciones',
       endpoint: '/alertas',
-      usuarioId: req.usuario?._id?.toString(),
       error: error.message,
       stack: error.stack
     });
