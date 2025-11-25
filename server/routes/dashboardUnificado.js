@@ -73,7 +73,16 @@ router.get('/', auth, async (req, res) => {
             {
               $group: {
                 _id: null,
-                montoTotal: { $sum: { $ifNull: ['$cotizacionActual.totales.total', 0] } }
+                // Priorizar el total del proyecto (fuente de verdad), fallback a cotización
+                montoTotal: { 
+                  $sum: { 
+                    $cond: {
+                      if: { $gt: [{ $ifNull: ['$total', 0] }, 0] },
+                      then: '$total',
+                      else: { $ifNull: ['$cotizacionActual.totales.total', 0] }
+                    }
+                  } 
+                }
               }
             }
           ],
@@ -198,8 +207,24 @@ router.get('/', auth, async (req, res) => {
                   month: { $month: '$createdAt' }
                 },
                 totalVentas: { $sum: 1 },
-                montoTotal: { $sum: { $ifNull: ['$cotizacionActual.totales.total', 0] } },
-                promedioTicket: { $avg: { $ifNull: ['$cotizacionActual.totales.total', 0] } }
+                montoTotal: {
+                  $sum: {
+                    $cond: {
+                      if: { $gt: [{ $ifNull: ['$total', 0] }, 0] },
+                      then: '$total',
+                      else: { $ifNull: ['$cotizacionActual.totales.total', 0] }
+                    }
+                  }
+                },
+                promedioTicket: {
+                  $avg: {
+                    $cond: {
+                      if: { $gt: [{ $ifNull: ['$total', 0] }, 0] },
+                      then: '$total',
+                      else: { $ifNull: ['$cotizacionActual.totales.total', 0] }
+                    }
+                  }
+                }
               }
             },
             {
@@ -214,7 +239,7 @@ router.get('/', auth, async (req, res) => {
                     '-',
                     {
                       $cond: [
-                        { $lt: ['$_id.month', 10] },
+                        { $lt: ['$month', 10] },
                         { $concat: ['0', { $toString: '$_id.month' }] },
                         { $toString: '$_id.month' }
                       ]
