@@ -124,25 +124,13 @@ const kpiSchema = new mongoose.Schema({
 kpiSchema.index({ fecha: -1, periodo: 1 });
 kpiSchema.index({ 'porVendedor.vendedor': 1, fecha: -1 });
 
-// Método para calcular KPIs automáticamente (actualizado con adaptador legacy)
+// Método para calcular KPIs automáticamente (actualizado para eliminar dependencias legacy)
 kpiSchema.statics.calcularKPIs = async function(fechaInicio, fechaFin, periodo = 'mensual') {
   const Proyecto = mongoose.model('Proyecto');
   const Pedido = mongoose.model('Pedido');
-  const ProyectoPedido = mongoose.model('ProyectoPedido'); // Temporal durante transición
+  // const ProyectoPedido = mongoose.model('ProyectoPedido'); // Dependencia legacy eliminada
   
-  // Verificar si existen registros legacy recientes
-  const legacyCount = await ProyectoPedido.countDocuments({
-    createdAt: { $gte: fechaInicio }
-  });
-  
-  if (legacyCount > 0) {
-    logger.warn('KPI: Detectados registros legacy en el período', {
-      cantidad: legacyCount,
-      fechaInicio,
-      fechaFin,
-      recomendacion: 'Ejecutar migración completa'
-    });
-  }
+  const legacyCount = 0; // Forzado a 0, ya no se consulta
   
   // Obtener datos de TODAS las fuentes durante transición
   const proyectos = await Proyecto.find({
@@ -153,19 +141,13 @@ kpiSchema.statics.calcularKPIs = async function(fechaInicio, fechaFin, periodo =
     fechaPedido: { $gte: fechaInicio, $lte: fechaFin }
   }).lean();
   
-  // TEMPORAL: Incluir legacy solo si existen
-  let proyectosLegacy = [];
-  if (legacyCount > 0) {
-    proyectosLegacy = await ProyectoPedido.find({
-      createdAt: { $gte: fechaInicio, $lte: fechaFin }
-    }).lean();
-  }
+  const proyectosLegacy = []; // Forzado a array vacío
   
   // Normalizar datos de todas las fuentes
   const datosNormalizados = [
     ...proyectos.map(p => this.normalizarProyecto(p)),
-    ...pedidos.map(p => this.normalizarPedido(p)),
-    ...proyectosLegacy.map(p => this.normalizarLegacy(p))
+    ...pedidos.map(p => this.normalizarPedido(p))
+    // ...proyectosLegacy.map(p => this.normalizarLegacy(p)) // Línea eliminada
   ];
   
   // Calcular métricas básicas sobre datos normalizados
@@ -193,11 +175,10 @@ kpiSchema.statics.calcularKPIs = async function(fechaInicio, fechaFin, periodo =
     proyectosCancelados: datosNormalizados.filter(p => p.estado === 'cancelado').length
   };
   
-  logger.info('KPIs calculados desde fuentes unificadas', {
+  logger.info('KPIs calculados desde fuentes modernas', {
     totalRegistros: datosNormalizados.length,
     proyectos: proyectos.length,
     pedidos: pedidos.length,
-    legacy: proyectosLegacy.length,
     ventasCerradas: metricas.ventasCerradas,
     montoVentas: metricas.montoVentas
   });
@@ -275,15 +256,7 @@ kpiSchema.statics.normalizarPedido = function(pedido) {
   };
 };
 
-kpiSchema.statics.normalizarLegacy = function(legacy) {
-  return {
-    id: legacy._id,
-    tipo: 'legacy',
-    estado: legacy.estado,
-    montoTotal: legacy.pagos?.montoTotal || 0,
-    fechaCreacion: legacy.createdAt,
-    fuente: 'ProyectoPedido.legacy'
-  };
-};
+// Función de normalización legacy eliminada ya que el modelo no existe
+// kpiSchema.statics.normalizarLegacy = function(legacy) { ... };
 
 module.exports = mongoose.model('KPI', kpiSchema);

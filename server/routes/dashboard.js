@@ -2,7 +2,7 @@ const express = require('express');
 const Prospecto = require('../models/Prospecto');
 const Cotizacion = require('../models/Cotizacion');
 const Pedido = require('../models/Pedido');
-const Fabricacion = require('../models/Fabricacion.legacy');
+// const Fabricacion = require('../models/Fabricacion.legacy');
 const Instalacion = require('../models/Instalacion');
 const { auth } = require('../middleware/auth');
 
@@ -29,7 +29,7 @@ router.get('/', auth, async (req, res) => {
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'cotizacion', activo: true }),
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'venta_cerrada', activo: true }),
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'pedido', activo: true }),
-      Fabricacion.countDocuments({ estado: { $in: ['pendiente', 'en_proceso'] } }),
+      0, // Reemplazado: Fabricacion.countDocuments({ estado: { $in: ['pendiente', 'en_proceso'] } })
       Instalacion.countDocuments({ estado: { $in: ['programada', 'en_proceso'] } }),
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'entregado', activo: true }),
       Prospecto.countDocuments({ ...filtroUsuario, etapa: 'postventa', activo: true })

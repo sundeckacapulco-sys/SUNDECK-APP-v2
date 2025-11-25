@@ -2,8 +2,12 @@ const express = require('express');
 const { auth, verificarPermiso } = require('../middleware/auth');
 const KPI = require('../models/KPI');
 const ProspectoNoConvertido = require('../models/ProspectoNoConvertido');
-const ProyectoPedido = require('../models/ProyectoPedido.legacy');
+// const ProyectoPedido = require('../models/ProyectoPedido.legacy'); // Modelo no disponible, rutas dependientes desactivadas
 const router = express.Router();
+const logger = require('../config/logger');
+
+const notImplementedStatus = 501;
+const disabledMessage = { message: 'Ruta de KPI legacy desactivada. Pendiente de migración a nuevos modelos.' };
 
 // GET /api/kpis/dashboard - Dashboard principal de KPIs
 router.get('/dashboard', auth, verificarPermiso('reportes', 'leer'), async (req, res) => {
@@ -67,72 +71,15 @@ router.get('/dashboard', auth, verificarPermiso('reportes', 'leer'), async (req,
   }
 });
 
-// GET /api/kpis/conversion - Análisis detallado de conversión
+// GET /api/kpis/conversion - Análisis detallado de conversión (RUTA DESACTIVADA)
 router.get('/conversion', auth, verificarPermiso('reportes', 'leer'), async (req, res) => {
-  try {
-    const { fechaInicio, fechaFin, vendedor, tipoProducto } = req.query;
-    
-    let filtro = {};
-    if (fechaInicio && fechaFin) {
-      filtro.fechaCreacion = {
-        $gte: new Date(fechaInicio),
-        $lte: new Date(fechaFin)
-      };
-    }
-    
-    // Pipeline de agregación para análisis de conversión
-    const pipeline = [
-      { $match: filtro },
-      {
-        $group: {
-          _id: '$estado',
-          cantidad: { $sum: 1 },
-          montoTotal: { $sum: '$precios.total' },
-          tiempoPromedio: { $avg: '$tiempos.cicloCompleto' }
-        }
-      },
-      {
-        $sort: { cantidad: -1 }
-      }
-    ];
-    
-    const conversionPorEtapa = await ProyectoPedido.aggregate(pipeline);
-    
-    // Análisis de embudo de conversión
-    const embudo = {
-      prospectos: conversionPorEtapa.reduce((sum, etapa) => sum + etapa.cantidad, 0),
-      levantamientos: conversionPorEtapa.filter(e => !['levantamiento'].includes(e._id)).reduce((sum, etapa) => sum + etapa.cantidad, 0),
-      cotizaciones: conversionPorEtapa.filter(e => ['cotizacion', 'aprobado', 'confirmado', 'en_fabricacion', 'fabricado', 'en_instalacion', 'completado'].includes(e._id)).reduce((sum, etapa) => sum + etapa.cantidad, 0),
-      ventas: conversionPorEtapa.filter(e => ['confirmado', 'en_fabricacion', 'fabricado', 'en_instalacion', 'completado'].includes(e._id)).reduce((sum, etapa) => sum + etapa.cantidad, 0),
-      completados: conversionPorEtapa.filter(e => e._id === 'completado').reduce((sum, etapa) => sum + etapa.cantidad, 0)
-    };
-    
-    // Calcular tasas de conversión del embudo
-    const tasasEmbudo = {
-      prospectoALevantamiento: embudo.prospectos > 0 ? (embudo.levantamientos / embudo.prospectos) * 100 : 0,
-      levantamientoACotizacion: embudo.levantamientos > 0 ? (embudo.cotizaciones / embudo.levantamientos) * 100 : 0,
-      cotizacionAVenta: embudo.cotizaciones > 0 ? (embudo.ventas / embudo.cotizaciones) * 100 : 0,
-      ventaACompletado: embudo.ventas > 0 ? (embudo.completados / embudo.ventas) * 100 : 0
-    };
-    
-    res.json({
-      conversionPorEtapa,
-      embudo,
-      tasasEmbudo,
-      resumen: {
-        conversionGeneral: embudo.prospectos > 0 ? (embudo.completados / embudo.prospectos) * 100 : 0,
-        puntosCriticos: {
-          mayorPerdida: Object.entries(tasasEmbudo).reduce((min, [etapa, tasa]) => 
-            tasa < min.tasa ? { etapa, tasa } : min, 
-            { etapa: '', tasa: 100 }
-          )
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Error obteniendo análisis de conversión:', error);
-    res.status(500).json({ message: 'Error obteniendo análisis de conversión', error: error.message });
-  }
+  logger.warn('Acceso a ruta de KPI legacy desactivada (GET /conversion)', { ruta: 'routes/kpis' });
+  res.json({
+    conversionPorEtapa: [],
+    embudo: { prospectos: 0, levantamientos: 0, cotizaciones: 0, ventas: 0, completados: 0 },
+    tasasEmbudo: { prospectoALevantamiento: 0, levantamientoACotizacion: 0, cotizacionAVenta: 0, ventaACompletado: 0 },
+    resumen: { conversionGeneral: 0, puntosCriticos: { etapa: 'N/A', tasa: 0 } }
+  });
 });
 
 // GET /api/kpis/perdidas - Análisis detallado de pérdidas
@@ -150,73 +97,35 @@ router.get('/perdidas', auth, verificarPermiso('reportes', 'leer'), async (req, 
     if (razon) filtro['razonPerdida.tipo'] = razon;
     if (etapa) filtro.etapaPerdida = etapa;
     
-    // Análisis de razones de pérdida
-    const razonesAnalisis = await ProspectoNoConvertido.analizarPerdidas(
-      filtro.fechaPerdida?.$gte || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
-      filtro.fechaPerdida?.$lte || new Date()
-    );
-    
-    // Pérdidas por etapa
-    const perdidasPorEtapa = await ProspectoNoConvertido.aggregate([
-      { $match: filtro },
-      {
-        $group: {
-          _id: '$etapaPerdida',
-          cantidad: { $sum: 1 },
-          montoTotal: { $sum: '$montoEstimado' },
-          scorePromedioRecuperacion: { $avg: '$scoreRecuperacion' }
-        }
-      },
-      { $sort: { cantidad: -1 } }
-    ]);
-    
-    // Pérdidas por vendedor
-    const perdidasPorVendedor = await ProspectoNoConvertido.aggregate([
-      { $match: filtro },
-      {
-        $group: {
-          _id: '$vendedorAsignado',
-          cantidad: { $sum: 1 },
-          montoTotal: { $sum: '$montoEstimado' }
-        }
-      },
-      {
-        $lookup: {
-          from: 'usuarios',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'vendedor'
-        }
-      },
-      { $sort: { cantidad: -1 } }
-    ]);
-    
-    // Tendencia de pérdidas (últimos 6 meses)
-    const tendenciaPerdidas = await ProspectoNoConvertido.aggregate([
-      {
-        $match: {
-          fechaPerdida: {
-            $gte: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000)
-          }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            año: { $year: '$fechaPerdida' },
-            mes: { $month: '$fechaPerdida' }
-          },
-          cantidad: { $sum: 1 },
-          montoTotal: { $sum: '$montoEstimado' }
-        }
-      },
-      { $sort: { '_id.año': 1, '_id.mes': 1 } }
+    const opcionesFecha = {
+      $gte: filtro.fechaPerdida?.$gte || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+      $lte: filtro.fechaPerdida?.$lte || new Date()
+    };
+
+    const [razonesAnalisis, perdidasPorEtapa, perdidasPorVendedor, tendenciaPerdidas] = await Promise.all([
+      ProspectoNoConvertido.analizarPerdidas(opcionesFecha.$gte, opcionesFecha.$lte),
+      ProspectoNoConvertido.aggregate([
+        { $match: filtro },
+        { $group: { _id: '$etapaPerdida', cantidad: { $sum: 1 }, montoTotal: { $sum: '$montoEstimado' }, scorePromedioRecuperacion: { $avg: '$scoreRecuperacion' } } },
+        { $sort: { cantidad: -1 } }
+      ]),
+      ProspectoNoConvertido.aggregate([
+        { $match: filtro },
+        { $group: { _id: '$vendedorAsignado', cantidad: { $sum: 1 }, montoTotal: { $sum: '$montoEstimado' } } },
+        { $lookup: { from: 'usuarios', localField: '_id', foreignField: '_id', as: 'vendedor' } },
+        { $sort: { cantidad: -1 } }
+      ]),
+      ProspectoNoConvertido.aggregate([
+        { $match: { fechaPerdida: { $gte: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000) } } },
+        { $group: { _id: { año: { $year: '$fechaPerdida' }, mes: { $month: '$fechaPerdida' } }, cantidad: { $sum: 1 }, montoTotal: { $sum: '$montoEstimado' } } },
+        { $sort: { '_id.año': 1, '_id.mes': 1 } }
+      ])
     ]);
     
     res.json({
       razonesAnalisis,
       perdidasPorEtapa,
-      perdidasPorVendedor,
+      perdidasPorVendedor: perdidasPorVendedor.map(v => ({...v, vendedor: v.vendedor[0]})),
       tendenciaPerdidas,
       resumen: {
         totalPerdidas: razonesAnalisis.reduce((sum, r) => sum + r.cantidad, 0),
@@ -230,6 +139,7 @@ router.get('/perdidas', auth, verificarPermiso('reportes', 'leer'), async (req, 
     res.status(500).json({ message: 'Error obteniendo análisis de pérdidas', error: error.message });
   }
 });
+
 
 // GET /api/kpis/recuperables - Prospectos recuperables con priorización
 router.get('/recuperables', auth, verificarPermiso('ventas', 'leer'), async (req, res) => {
@@ -317,59 +227,10 @@ router.post('/calcular', auth, verificarPermiso('admin', 'crear'), async (req, r
   }
 });
 
-// POST /api/kpis/perdidas/:proyectoId - Registrar prospecto como perdido
+// POST /api/kpis/perdidas/:proyectoId - Registrar prospecto como perdido (RUTA DESACTIVADA)
 router.post('/perdidas/:proyectoId', auth, verificarPermiso('ventas', 'editar'), async (req, res) => {
-  try {
-    const { proyectoId } = req.params;
-    const { razonPerdida, descripcion, competidor, precioCompetidor } = req.body;
-    
-    const proyecto = await ProyectoPedido.findById(proyectoId);
-    if (!proyecto) {
-      return res.status(404).json({ message: 'Proyecto no encontrado' });
-    }
-    
-    // Crear registro de prospecto no convertido
-    const prospectoNoConvertido = new ProspectoNoConvertido({
-      proyecto: proyectoId,
-      cliente: proyecto.cliente,
-      tipoProducto: proyecto.tipoProyecto || 'otro',
-      descripcionProyecto: proyecto.descripcion,
-      montoEstimado: proyecto.precios?.total || 0,
-      etapaPerdida: proyecto.estado,
-      razonPerdida: {
-        tipo: razonPerdida,
-        descripcion,
-        competidor,
-        precioCompetidor
-      },
-      vendedorAsignado: req.user.id,
-      creadoPor: req.user.id,
-      tiempos: {
-        diasEnProceso: Math.floor((new Date() - proyecto.fechaCreacion) / (1000 * 60 * 60 * 24))
-      }
-    });
-    
-    await prospectoNoConvertido.save();
-    
-    // Actualizar estado del proyecto
-    proyecto.estado = 'cancelado';
-    proyecto.historial.push({
-      fecha: new Date(),
-      tipo: 'cancelacion',
-      descripcion: `Proyecto cancelado - Razón: ${razonPerdida}`,
-      usuario: req.user.id
-    });
-    
-    await proyecto.save();
-    
-    res.json({
-      message: 'Prospecto registrado como perdido',
-      prospectoNoConvertido
-    });
-  } catch (error) {
-    console.error('Error registrando prospecto perdido:', error);
-    res.status(500).json({ message: 'Error registrando prospecto perdido', error: error.message });
-  }
+  logger.warn('Acceso a ruta de KPI legacy desactivada (POST /perdidas/:proyectoId)', { ruta: 'routes/kpis', proyectoId: req.params.proyectoId });
+  res.status(notImplementedStatus).json(disabledMessage);
 });
 
 // PUT /api/kpis/recuperacion/:id - Actualizar intento de recuperación
@@ -383,24 +244,16 @@ router.put('/recuperacion/:id', auth, verificarPermiso('ventas', 'editar'), asyn
       return res.status(404).json({ message: 'Prospecto no encontrado' });
     }
     
-    // Agregar intento de recuperación
     prospecto.intentosRecuperacion.push({
-      metodo,
-      descripcion,
-      resultado,
-      proximoSeguimiento: proximoSeguimiento ? new Date(proximoSeguimiento) : undefined,
-      usuario: req.user.id
+      metodo, descripcion, resultado, proximoSeguimiento: proximoSeguimiento ? new Date(proximoSeguimiento) : undefined, usuario: req.user.id
     });
     
-    // Actualizar estado según resultado
     if (resultado === 'recuperado') {
       prospecto.estadoRecuperacion = 'recuperado';
       prospecto.alertas.alertaActiva = false;
     } else if (resultado === 'interesado' || resultado === 'reagendado') {
       prospecto.estadoRecuperacion = 'en_seguimiento';
-      if (proximoSeguimiento) {
-        prospecto.alertas.proximoSeguimiento = new Date(proximoSeguimiento);
-      }
+      if (proximoSeguimiento) prospecto.alertas.proximoSeguimiento = new Date(proximoSeguimiento);
     } else if (resultado === 'rechazado') {
       prospecto.estadoRecuperacion = 'perdido_definitivo';
       prospecto.alertas.alertaActiva = false;
@@ -408,34 +261,25 @@ router.put('/recuperacion/:id', auth, verificarPermiso('ventas', 'editar'), asyn
     
     await prospecto.save();
     
-    res.json({
-      message: 'Intento de recuperación registrado',
-      prospecto
-    });
+    res.json({ message: 'Intento de recuperación registrado', prospecto });
   } catch (error) {
     console.error('Error actualizando recuperación:', error);
     res.status(500).json({ message: 'Error actualizando recuperación', error: error.message });
   }
 });
 
+
 // GET /api/kpis/prospectos - KPIs del módulo de prospectos unificados
 router.get('/prospectos', auth, async (req, res) => {
   try {
-    const Proyecto = require('../models/Proyecto');
+    const Proyecto = require('../models/Proyecto'); // Importación local para claridad
     
     const { asesor } = req.query;
     const filtroBase = { tipo: 'prospecto' };
     if (asesor) filtroBase.asesorComercial = asesor;
     
     // Conteos por estado
-    const [
-      total,
-      enSeguimiento,
-      cotizados,
-      sinRespuesta,
-      convertidos,
-      perdidos
-    ] = await Promise.all([
+    const [total, enSeguimiento, cotizados, sinRespuesta, convertidos, perdidos] = await Promise.all([
       Proyecto.countDocuments(filtroBase),
       Proyecto.countDocuments({ ...filtroBase, estadoComercial: 'en seguimiento' }),
       Proyecto.countDocuments({ ...filtroBase, estadoComercial: 'cotizado' }),
@@ -444,62 +288,33 @@ router.get('/prospectos', auth, async (req, res) => {
       Proyecto.countDocuments({ ...filtroBase, estadoComercial: 'perdido' })
     ]);
     
-    // Tasa de conversión
     const conversionRate = total > 0 ? ((convertidos / total) * 100).toFixed(2) : 0;
     
-    // Prospectos inactivos (más de 5 días sin nota)
-    const limite = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
+    const limiteInactividad = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
     const inactivos = await Proyecto.countDocuments({
       ...filtroBase,
       estadoComercial: { $in: ['en seguimiento', 'cotizado'] },
-      $or: [
-        { ultimaNota: { $lt: limite } },
-        { ultimaNota: null }
-      ]
+      $or: [{ ultimaNota: { $lt: limiteInactividad } }, { ultimaNota: null }]
     });
     
-    // Prospectos por fuente
     const porFuente = await Proyecto.aggregate([
       { $match: filtroBase },
-      { $group: { 
-        _id: '$origenComercial.fuente', 
-        count: { $sum: 1 } 
-      }},
+      { $group: { _id: '$origenComercial.fuente', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
     
-    // Prospectos por asesor (top 5)
     const porAsesor = await Proyecto.aggregate([
-      { $match: filtroBase },
-      { $group: { 
-        _id: '$asesorComercial', 
-        count: { $sum: 1 },
-        convertidos: {
-          $sum: { $cond: [{ $eq: ['$estadoComercial', 'convertido'] }, 1, 0] }
-        }
-      }},
+      { $match: { ...filtroBase, asesorComercial: { $exists: true, $ne: null } } },
+      { $group: { _id: '$asesorComercial', count: { $sum: 1 }, convertidos: { $sum: { $cond: [{ $eq: ['$estadoComercial', 'convertido'] }, 1, 0] } } } },
       { $sort: { count: -1 } },
       { $limit: 5 },
-      {
-        $lookup: {
-          from: 'usuarios',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'asesor'
-        }
-      },
+      { $lookup: { from: 'usuarios', localField: '_id', foreignField: '_id', as: 'asesor' } },
       { $unwind: { path: '$asesor', preserveNullAndEmptyArrays: true } }
     ]);
     
     res.json({
       total,
-      porEstado: {
-        enSeguimiento,
-        cotizados,
-        sinRespuesta,
-        convertidos,
-        perdidos
-      },
+      porEstado: { enSeguimiento, cotizados, sinRespuesta, convertidos, perdidos },
       conversionRate: parseFloat(conversionRate),
       inactivos,
       porFuente,
@@ -512,10 +327,7 @@ router.get('/prospectos', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error obteniendo KPIs de prospectos:', error);
-    res.status(500).json({ 
-      message: 'Error obteniendo KPIs de prospectos', 
-      error: error.message 
-    });
+    res.status(500).json({ message: 'Error obteniendo KPIs de prospectos', error: error.message });
   }
 });
 
