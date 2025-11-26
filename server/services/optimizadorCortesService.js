@@ -269,6 +269,148 @@ class OptimizadorCortesService {
   }
 
   /**
+   * Optimiza cortes de tela agrupando por ancho y altura (Grupos A, B, C...)
+   * REGLA OFICIAL: Misma tela + Mismo ancho rollo + Misma altura (±2cm)
+   * @param {Array} piezas - Array de objetos {ancho, alto}
+   * @param {number} anchoRollo - Ancho del rollo de tela (ej. 2.50)
+   * @param {number} margenAlto - Margen adicional al alto para el corte (default 0)
+   * @returns {object} Plan de cortes de tela
+   */
+  static optimizarCortesTela(piezas, anchoRollo, margenAlto = 0) {
+    // 1. Ordenar por ancho descendente (First Fit Decreasing)
+    const piezasOrdenadas = [...piezas].sort((a, b) => b.ancho - a.ancho);
+    
+    const grupos = [];
+    const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'; // Para nombrar grupos
+
+    piezasOrdenadas.forEach(pieza => {
+      let asignado = false;
+      
+      // 2. Intentar asignar a un grupo existente
+      for (const grupo of grupos) {
+        // Regla 1: Misma altura efectiva (±2cm de tolerancia)
+        const diferenciaAltura = Math.abs(grupo.alto - pieza.alto);
+        const mismaAltura = diferenciaAltura <= 0.02;
+        
+        // Regla 2: Cabe en el ancho del rollo (Suma de anchos <= Ancho Rollo)
+        // Nota: Se podría considerar un pequeño margen entre lienzos si fuera necesario, aquí asumimos 0
+        const cabeAncho = (grupo.anchoAcumulado + pieza.ancho) <= anchoRollo;
+
+        if (mismaAltura && cabeAncho) {
+          grupo.piezas.push(pieza);
+          grupo.anchoAcumulado += pieza.ancho;
+          
+          // Actualizar alto del grupo si esta pieza es más alta (dentro de la tolerancia)
+          // para asegurar que el corte cubra la pieza más alta
+          if (pieza.alto > grupo.alto) {
+             grupo.alto = pieza.alto;
+             grupo.longitudCorte = grupo.alto + margenAlto;
+          }
+          asignado = true;
+          break;
+        }
+      }
+
+      // 3. Si no cabe en ninguno, crear nuevo grupo
+      if (!asignado) {
+        grupos.push({
+          letra: '', // Se asigna al final
+          anchoRollo,
+          alto: pieza.alto, // Altura base del grupo
+          longitudCorte: pieza.alto + margenAlto, // Altura + Hem/Margen
+          piezas: [pieza],
+          anchoAcumulado: pieza.ancho
+        });
+      }
+    });
+
+    // Asignar letras secuenciales a los grupos (A, B, C...)
+    grupos.forEach((g, index) => {
+      const letraBase = letras[index % letras.length];
+      const sufijo = Math.floor(index / letras.length) > 0 ? Math.floor(index / letras.length) : '';
+      g.letra = letraBase + sufijo;
+    });
+
+    // Calcular totales
+    const totalMetrosLineales = grupos.reduce((sum, g) => sum + g.longitudCorte, 0);
+    
+    return {
+      grupos,
+      totalMetrosLineales: Number(totalMetrosLineales.toFixed(2)),
+      totalGrupos: grupos.length
+    };
+  }
+
+  /**
+   * Calcula telas necesarias para producción agrupando por tipo y ancho de rollo
+   * @param {Array} piezasConTela - Array de piezas con metadata de tela
+   * @returns {object} Resumen de telas optimizado
+   */
+  static calcularTelasParaProduccion(piezasConTela) {
+    const resumenPorTela = {};
+    
+    // Agrupar piezas por código de tela Y ancho de rollo
+    // Clave: "CODIGO|ANCHO"
+    const piezasPorGrupo = {};
+    
+    piezasConTela.forEach(pieza => {
+      if (!pieza.tela) return; 
+
+      const codigoTela = pieza.tela.codigo || 'GENERICO';
+      // Obtener anchos disponibles (default 2.50 si no hay)
+      const anchosDisponibles = pieza.tela.anchosRollo && pieza.tela.anchosRollo.length > 0 
+        ? pieza.tela.anchosRollo 
+        : [2.50];
+      
+      // Seleccionar el mejor ancho de rollo para esta pieza
+      // 1. Buscar el menor ancho que sea suficiente para la pieza
+      let anchoRollo = anchosDisponibles.sort((a,b) => a-b).find(w => w >= pieza.ancho);
+      
+      // 2. Si la pieza es más ancha que el rollo más grande, usar el más grande (requerirá rotación o unión)
+      if (!anchoRollo) {
+        anchoRollo = anchosDisponibles[anchosDisponibles.length - 1];
+      }
+
+      const key = `${codigoTela}|${anchoRollo}`;
+      
+      if (!piezasPorGrupo[key]) {
+        piezasPorGrupo[key] = {
+            descripcion: pieza.tela.descripcion,
+            codigoTela,
+            anchoRollo,
+            piezas: []
+        };
+      }
+      
+      const cantidad = pieza.cantidad || 1;
+      for (let i = 0; i < cantidad; i++) {
+        piezasPorGrupo[key].piezas.push({
+            ancho: pieza.ancho,
+            alto: pieza.alto,
+            ubicacion: pieza.ubicacion
+        });
+      }
+    });
+    
+    // Optimizar cada grupo
+    Object.keys(piezasPorGrupo).forEach(key => {
+        const data = piezasPorGrupo[key];
+        const optimizacion = this.optimizarCortesTela(data.piezas, data.anchoRollo);
+        
+        // Estructura del resultado por grupo único
+        resumenPorTela[key] = {
+            descripcion: data.descripcion,
+            codigo: data.codigoTela,
+            anchoRollo: data.anchoRollo,
+            optimizacion,
+            totalMetros: optimizacion.totalMetrosLineales
+        };
+    });
+    
+    return resumenPorTela;
+  }
+
+  /**
    * Optimiza cortes para minimizar desperdicios (Bin Packing Problem)
    * Agrupa cortinas inteligentemente en barras de 5.80m
    * SIN usar sobrantes (método base)
@@ -388,150 +530,191 @@ class OptimizadorCortesService {
   }
   
   /**
-   * Calcula todos los materiales para una pieza usando configuración de BD
-   * v2.0: 100% dinámico desde base de datos
+   * Calcula todos los materiales para una pieza usando REGLAS DE NEGOCIO ESTRICTAS (v1.2)
    * @param {object} pieza - Datos de la pieza
    * @returns {Promise<Array>} Lista de materiales calculados
    */
   static async calcularMaterialesPieza(pieza) {
-    const { ancho, alto, motorizado = false, sistema = 'Roller Shade', producto } = pieza;
+    let { ancho, alto, motorizado = false, sistema = 'Roller Shade', galeria, rotada = false } = pieza;
+    const materiales = [];
     
     try {
-      // PASO 1: Buscar configuración en BD (solo por sistema)
-      const configuracion = await ConfiguracionMateriales.findOne({ 
-        sistema
-      }).lean();
-      
-      if (!configuracion) {
-        logger.warn('No se encontró configuración para el sistema', { sistema });
-        return [];
+      // 0. AUTO-ROTACIÓN INTELIGENTE
+      // Si es Roller o Toldo, y el ancho > 3.00m pero alto <= 2.80m, ROTAR AUTOMÁTICAMENTE.
+      if (sistema !== 'Sheer Elegance' && !rotada) {
+         if (ancho > 3.00 && alto <= 2.80) {
+             rotada = true;
+             // Actualizamos la variable local para el resto del cálculo
+         }
       }
-      
-      // PASO 2: Decidir si rotar la pieza
-      // Respetar el campo rotada de la pieza (viene del proyecto)
-      // Si no está definido, NO rotar por defecto
-      const rotada = pieza.rotada || false;
-      
-      const galeria = pieza.galeria || false;
-      const color = pieza.color || '';
-      
-      const variables = {
-        ancho,
-        alto,
-        area: ancho * alto,
-        motorizado,
-        esManual: !motorizado,
-        rotada,
-        galeria,
-        color,
-        Math,
-        Number
-      };
-      
-      // PASO 3: Seleccionar componentes según reglas
-      const tubo = this.seleccionarTubo(configuracion, variables);
-      const mecanismo = this.seleccionarMecanismo(configuracion, variables);
-      
-      // PASO 4: Calcular optimización de cortes
-      const longitudEstandar = configuracion.optimizacion?.longitudEstandar || 5.80;
-      const optimizacion = this.calcularCortesOptimos(ancho, longitudEstandar);
-      
-      // PASO 5: Calcular materiales evaluando fórmulas
-      const materiales = [];
-      
-      // Función helper para evaluar con contexto
-      const evalWithContext = (expression) => {
-        return Function('"use strict"; const {ancho, alto, area, motorizado, esManual, rotada, galeria, color, Math, Number} = this; return (' + expression + ')').call(variables);
-      };
-      
-      if (configuracion.materiales && Array.isArray(configuracion.materiales)) {
-        configuracion.materiales.forEach(materialConfig => {
-          // Verificar condición si existe
-          if (materialConfig.condicion) {
-            try {
-              const cumpleCondicion = evalWithContext(materialConfig.condicion);
-              if (!cumpleCondicion) return; // Skip este material
-            } catch (e) {
-              logger.warn('Error evaluando condición', { condicion: materialConfig.condicion, error: e.message });
-              return;
-            }
-          }
-          
-          // Evaluar fórmula (usar formulaRotada si está rotada y existe)
-          try {
-            let formulaAUsar = materialConfig.formula;
-            
-            // Si la pieza está rotada y existe formulaRotada, usarla
-            if (rotada && materialConfig.formulaRotada) {
-              formulaAUsar = materialConfig.formulaRotada;
-            }
-            
-            const cantidad = evalWithContext(formulaAUsar);
-            
-            materiales.push({
-              tipo: materialConfig.tipo,
-              codigo: materialConfig.codigo || materialConfig.tipo.toUpperCase(),
-              descripcion: materialConfig.descripcion,
-              cantidad: Number(cantidad) || 0,
-              unidad: materialConfig.unidad,
-              observaciones: materialConfig.observaciones || '',
-              rotada: rotada && (materialConfig.tipo === 'Tela' || materialConfig.tipo === 'Tela Sheer')
-            });
-          } catch (e) {
-            logger.warn('Error evaluando fórmula', { formula: materialConfig.formula, error: e.message });
-          }
-        });
+
+      // 1. SELECCIÓN Y CÁLCULO DE TUBO
+      let diametro = '38mm';
+      let codigoTubo = 'T38';
+      let descripcionTubo = 'Tubo 38mm';
+      let corteTubo = 0;
+
+      // Reglas de Selección de Tubo
+      if (sistema === 'Roller Shade') {
+        corteTubo = ancho - 0.005; // Regla: Ancho - 5mm
+        
+        if (motorizado) {
+          if (ancho < 2.50) { diametro = '35mm'; codigoTubo = 'T35'; }
+          else if (ancho <= 3.00) { diametro = '50mm'; codigoTubo = 'T50'; }
+          else if (ancho <= 4.00) { diametro = '70mm'; codigoTubo = 'T70'; }
+          else { diametro = '79mm'; codigoTubo = 'T79'; }
+        } else {
+          if (ancho <= 2.50) { diametro = '38mm'; codigoTubo = 'T38-M'; }
+          else if (ancho <= 3.00) { diametro = '50mm'; codigoTubo = 'T50-M'; }
+          else { /* > 3.00 Requiere Motor */ diametro = '50mm'; codigoTubo = 'T50-M'; } 
+        }
+      } else if (sistema === 'Sheer Elegance') {
+        corteTubo = ancho - 0.005;
+        if (motorizado) {
+           diametro = ancho <= 2.50 ? '35mm' : '50mm';
+           codigoTubo = ancho <= 2.50 ? 'TUB-35-MOT' : 'TUB-50-MOT';
+        } else {
+           diametro = ancho <= 2.50 ? '38mm' : '50mm';
+           codigoTubo = ancho <= 2.50 ? 'TUB-38-MAN' : 'TUB-50-MAN';
+        }
+      } else if (sistema === 'Toldos Contempo') {
+        corteTubo = ancho - 0.12; // Regla: Ancho - 12cm
+        codigoTubo = 'TUB-TOLDO';
+        diametro = 'Especial Toldo';
       }
-      
-      // PASO 6: Enriquecer con información de selección y optimización
-      const materialesEnriquecidos = materiales.map(material => {
-        const materialEnriquecido = { ...material };
-        
-        // Enriquecer tubos
-        if (material.tipo === 'Tubo') {
-          materialEnriquecido.descripcion = `${tubo.descripcion}`;
-          materialEnriquecido.codigo = tubo.codigo;
-          materialEnriquecido.diametro = tubo.diametro;
-          materialEnriquecido.observaciones = `${optimizacion.cortesCompletos} cortes por tubo. Desperdicio: ${optimizacion.desperdicioPorc}%`;
-          materialEnriquecido.metadata = {
-            ...optimizacion,
-            diametro: tubo.diametro
-          };
-        }
-        
-        // Enriquecer mecanismos
-        if (material.tipo === 'Mecanismo' || material.tipo === 'Motor') {
-          materialEnriquecido.descripcion = mecanismo.descripcion;
-          materialEnriquecido.codigo = mecanismo.codigo;
-          materialEnriquecido.incluye = mecanismo.incluye;
-          if (mecanismo.obligatorio) {
-            materialEnriquecido.observaciones = '⚠️ OBLIGATORIO';
-          }
-          materialEnriquecido.metadata = {
-            esMotor: mecanismo.esMotor,
-            obligatorio: mecanismo.obligatorio
-          };
-        }
-        
-        return materialEnriquecido;
+
+      materiales.push({
+        tipo: 'Tubo',
+        codigo: codigoTubo,
+        descripcion: `Tubo ${diametro} (${sistema})`,
+        cantidad: Number(corteTubo.toFixed(3)),
+        unidad: 'ml',
+        diametro: diametro,
+        observaciones: `Corte exacto: ${corteTubo.toFixed(3)}m`
       });
+
+      // 2. CÁLCULO DE TELA
+      let cantidadTela = 0;
+      let formulaTela = '';
       
-      logger.info('Materiales calculados desde BD', {
-        servicio: 'optimizadorCortesService',
-        sistema,
-        producto,
-        ancho,
-        alto,
-        motorizado,
-        tubo: tubo.codigo,
-        mecanismo: mecanismo.codigo,
-        totalMateriales: materialesEnriquecidos.length
+      // Reglas de Tela
+      if (sistema === 'Sheer Elegance') {
+        // Regla Sheer: (Alto * 2) + 0.35
+        cantidadTela = (alto * 2) + 0.35;
+        formulaTela = '(Alto x 2) + 0.35m';
+      } else if (sistema === 'Toldos Contempo') {
+        if (rotada) {
+           cantidadTela = ancho + 0.03;
+           formulaTela = 'Rotada: Ancho + 0.03m';
+        } else {
+           cantidadTela = alto + 0.25;
+           formulaTela = 'Normal: Alto + 0.25m';
+        }
+      } else {
+        // Roller Shade
+        if (rotada) {
+           cantidadTela = ancho + 0.03;
+           formulaTela = 'Rotada: Ancho + 0.03m';
+        } else {
+           // Normal
+           const margenBase = 0.25;
+           const margenGaleria = (galeria && galeria !== 'Sin galería' && galeria !== 'No especificado') ? 0.25 : 0;
+           cantidadTela = alto + margenBase + margenGaleria;
+           formulaTela = margenGaleria > 0 ? `Alto + 0.50m (0.25 Enrolle + 0.25 Galería)` : `Alto + 0.25m (Enrolle)`;
+        }
+      }
+
+      // Anchos de rollo (Simulado - Idealmente vendría del producto/BD)
+      const anchosRollo = [2.50, 3.00]; 
+
+      materiales.push({
+        tipo: 'Tela',
+        codigo: 'TELA-GEN', // Debería venir del producto
+        descripcion: pieza.telaMarca || 'Tela',
+        cantidad: Number(cantidadTela.toFixed(3)),
+        unidad: 'ml',
+        observaciones: formulaTela,
+        rotada: rotada,
+        anchosRollo: anchosRollo
       });
+
+      // 3. CONTRAPESO
+      let tipoContrapeso = 'Ovalado';
+      let corteContrapeso = 0;
       
-      return materialesEnriquecidos;
+      if (sistema === 'Toldos Contempo') {
+         corteContrapeso = ancho - 0.12;
+         tipoContrapeso = 'Perfil Contrapeso Toldo';
+      } else if (galeria && galeria !== 'Sin galería' && galeria !== 'No especificado') {
+         // Regla Galería: Contrapeso Elegance exacto al ancho
+         tipoContrapeso = 'Elegance';
+         corteContrapeso = ancho;
+      } else {
+         // Estándar
+         tipoContrapeso = 'Ovalado';
+         corteContrapeso = ancho - 0.030; // Ancho - 3cm
+         if (sistema === 'Sheer Elegance') corteContrapeso = ancho - 0.030; // Mismo para sheer
+      }
+
+      materiales.push({
+        tipo: 'Contrapeso',
+        codigo: `CP-${tipoContrapeso.toUpperCase()}`,
+        descripcion: `Contrapeso ${tipoContrapeso}`,
+        cantidad: Number(corteContrapeso.toFixed(3)),
+        unidad: 'ml',
+        observaciones: `Corte: ${corteContrapeso.toFixed(3)}m`
+      });
+
+      // 4. GALERÍA (MADERA)
+      if (galeria && galeria !== 'Sin galería' && galeria !== 'No especificado') {
+         // Regla Madera: Barras de 2.40m estándar.
+         // Si ancho <= 2.40 -> 1 pieza. Si > 2.40 -> 2 piezas.
+         const piezasMadera = ancho <= 2.40 ? 1 : 2;
+         
+         materiales.push({
+            tipo: 'Madera',
+            codigo: 'MAD-GAL-240',
+            descripcion: 'Madera para Galería (2.40m)',
+            cantidad: piezasMadera,
+            unidad: 'pza',
+            observaciones: ancho > 2.40 ? 'Se requieren 2 piezas unidas' : '1 pieza'
+         });
+         
+         // Tela extra ya se sumó arriba
+      }
+
+      // 5. MECANISMOS Y ACCESORIOS
+      if (motorizado) {
+         materiales.push({
+            tipo: 'Motor',
+            codigo: 'MOT-TUB',
+            descripcion: 'Motor Tubular',
+            cantidad: 1,
+            unidad: 'pza',
+            metadata: { esMotor: true }
+         });
+      } else {
+         // Manual
+         let tipoMec = 'Generico';
+         if (sistema === 'Roller Shade') {
+            tipoMec = ancho <= 2.50 ? 'SL-16' : 'R-24';
+         } else if (sistema === 'Sheer Elegance') {
+            tipoMec = 'SL-16';
+         }
+         
+         materiales.push({
+            tipo: 'Mecanismo',
+            codigo: `MEC-${tipoMec}`,
+            descripcion: `Mecanismo Manual ${tipoMec}`,
+            cantidad: 1,
+            unidad: 'kit'
+         });
+      }
+
+      return materiales;
       
     } catch (error) {
-      logger.error('Error calculando materiales', {
+      logger.error('Error calculando materiales (Reglas v1.2)', {
         servicio: 'optimizadorCortesService',
         error: error.message,
         stack: error.stack,
@@ -554,12 +737,56 @@ class OptimizadorCortesService {
       }))
     );
     
+    // EXTRAER PIEZAS DE TELA PARA OPTIMIZACIÓN
+    const piezasParaTela = [];
+    materialesPorPieza.forEach(mp => {
+      // Filtrar solo materiales tipo Tela
+      const telas = mp.materiales.filter(m => m.tipo === 'Tela' || m.tipo === 'Tela Sheer');
+      
+      telas.forEach(tela => {
+        // Usar la información calculada en calcularMaterialesPieza
+        // La 'cantidad' calculada YA incluye los márgenes correctos (0.25, 0.50, 0.03, etc.)
+        const altoParaCorte = tela.cantidad;
+        const esRotada = tela.rotada === true;
+        
+        // Definir ancho efectivo para agrupación (lo que ocupa en el rollo)
+        let anchoEfectivo;
+        
+        if (esRotada) {
+           // Si se rotó, el ancho en el rollo es el ALTO original de la pieza
+           anchoEfectivo = mp.pieza.alto;
+        } else {
+           // Si no, es el ANCHO original
+           anchoEfectivo = mp.pieza.ancho;
+        }
+
+        piezasParaTela.push({
+           ancho: anchoEfectivo,
+           alto: altoParaCorte, // Alto = Largo de corte calculado
+           cantidad: 1, 
+           ubicacion: mp.pieza.ubicacion,
+           rotada: esRotada,
+           anchoOriginal: mp.pieza.ancho,
+           altoOriginal: mp.pieza.alto,
+           margenAplicado: 0, // Ya incluido en 'alto'
+           tela: {
+             codigo: tela.codigo,
+             descripcion: tela.descripcion,
+             anchosRollo: tela.anchosRollo
+           }
+        });
+      });
+    });
+
+    const resumenTelas = this.calcularTelasParaProduccion(piezasParaTela);
+    
     const resumenTubos = this.calcularTubosParaProduccion(
       piezas.map(p => ({ ancho: p.ancho, cantidad: 1 }))
     );
     
     return {
       materialesPorPieza,
+      resumenTelas,
       resumenTubos,
       recomendaciones: this.generarRecomendaciones(piezas)
     };

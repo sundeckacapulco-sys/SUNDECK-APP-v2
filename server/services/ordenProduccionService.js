@@ -168,6 +168,7 @@ class OrdenProduccionService {
         // Optimización de cortes y tubos
         optimizacion: {
           resumenTubos: reporteOptimizacion.resumenTubos,
+          resumenTelas: reporteOptimizacion.resumenTelas,
           recomendaciones: reporteOptimizacion.recomendaciones
         },
 

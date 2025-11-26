@@ -77,13 +77,27 @@ class PDFOrdenProduccionService {
    * @returns {Promise<object>} Un objeto con los planes de optimización.
    */
   static async prepararDatosOptimizacion(datosOrden) {
+    // Si ya viene pre-calculado (v2.0), usarlo y adaptarlo
+    if (datosOrden.optimizacion) {
+      const optimizacionTubos = datosOrden.optimizacion.resumenTubos?.resumenPorTipo 
+        ? Object.values(datosOrden.optimizacion.resumenTubos.resumenPorTipo).map(t => ({
+             titulo: `${t.tubo.descripcion} (${t.tubo.codigo})`,
+             datos: t.optimizacion
+          })) 
+        : [];
+        
+      const resumenTelas = datosOrden.optimizacion.resumenTelas || {};
+      
+      return { optimizacionTubos, resumenTelas };
+    }
+
     const { piezas } = datosOrden;
     if (!piezas || piezas.length === 0) {
       return { optimizacionTubos: null, resumenTelas: [] };
     }
 
     try {
-      // 1. Optimización de Tubos
+      // 1. Optimización de Tubos (Fallback Legacy)
       const gruposTubos = {};
       piezas.forEach(p => {
         // Buscar el material "Tubo" en el BOM de la pieza
@@ -105,10 +119,8 @@ class PDFOrdenProduccionService {
       });
 
       const optimizacionTubos = [];
-      console.log('DEBUG: Grupos de tubos encontrados:', Object.keys(gruposTubos));
       for (const key in gruposTubos) {
         const grupo = gruposTubos[key];
-        console.log(`DEBUG: Procesando grupo ${key} con ${grupo.cortes.length} cortes`);
         const resultado = await OptimizadorCortesService.optimizarCortesConSobrantes(
           grupo.cortes, 
           'Tubo', 
@@ -121,13 +133,13 @@ class PDFOrdenProduccionService {
         });
       }
 
-      // 2. Resumen de Telas
+      // 2. Resumen de Telas (Fallback Legacy)
       const telasMap = new Map();
       piezas.forEach(p => {
         const key = `${p.telaMarca || 'Tela Genérica'}-${p.color || 'Sin Color'}`;
         const area = (p.ancho * p.alto);
         if (telasMap.has(key)) {
-          telasMap.set(key, { ...telasMap.get(key), areaTotal: telasMap.get(key).areaTotal + area, piezas: telasMap.get(key).piezas + 1 });
+          telasMap.set(key, { descripcion: key, areaTotal: telasMap.get(key).areaTotal + area, piezas: telasMap.get(key).piezas + 1 });
         } else {
           telasMap.set(key, { descripcion: key, areaTotal: area, piezas: 1 });
         }
@@ -203,16 +215,119 @@ class PDFOrdenProduccionService {
       doc.moveDown(1);
     }
 
-    if (resumenTelas && resumenTelas.length > 0) {
-      if (doc.y > 650) { doc.addPage(); doc.y = 50; }
-      doc.fontSize(9).font('Helvetica-Bold').text('Telas (Resumen):', 50, doc.y);
-      doc.moveDown(0.5);
+    // OPTIMIZACIÓN DE TELAS (Grupos A, B, C...)
+    if (resumenTelas) {
+      const telasArray = Array.isArray(resumenTelas) ? resumenTelas : Object.values(resumenTelas);
       
-      doc.fontSize(8).font('Helvetica');
-      resumenTelas.forEach(tela => {
-        doc.text(`• ${tela.descripcion}: ${tela.areaTotal.toFixed(2)} m² (para ${tela.piezas} piezas)`, 60, doc.y);
-        doc.moveDown(0.4);
-      });
+      if (telasArray.length > 0) {
+        if (doc.y > 600) { doc.addPage(); doc.y = 50; }
+        
+        doc.fontSize(10).font('Helvetica-Bold').fillColor('#000').text('OPTIMIZACIÓN DE TELAS (GRUPOS DE CORTE)', 50, doc.y);
+        doc.moveDown(0.5);
+        
+        telasArray.forEach(tela => {
+          // Verificar si tiene optimización avanzada (Grupos)
+          if (tela.optimizacion && tela.optimizacion.grupos) {
+             if (doc.y > 650) { doc.addPage(); doc.y = 50; }
+             
+             const rolloInfo = tela.anchoRollo ? `(Rollo ${tela.anchoRollo}m)` : '';
+             doc.fontSize(9).font('Helvetica-Bold').fillColor('#000').text(`• ${tela.descripcion || tela.codigo} ${rolloInfo}:`, 50, doc.y);
+             doc.moveDown(0.3);
+             
+             // COLUMN LAYOUT LOGIC
+             let startY = doc.y;
+             let currentX = 60; // Left column X
+             let currentColumn = 0; // 0 = Left, 1 = Right
+             const rightColX = 320;
+             const pageBottom = 700;
+             let leftColBottom = startY;
+             let rightColBottom = startY;
+
+             tela.optimizacion.grupos.forEach(grupo => {
+                // Estimate group height (Header + Items)
+                const itemHeight = 10; // Approx
+                const groupHeight = 20 + (grupo.piezas.length * itemHeight);
+
+                // Check if fits in current column
+                if (doc.y + groupHeight > pageBottom) {
+                    if (currentColumn === 0) {
+                        // Switch to Right Column
+                        currentColumn = 1;
+                        currentX = rightColX;
+                        doc.y = startY;
+                    } else {
+                        // New Page (Reset to Left)
+                        doc.addPage();
+                        doc.y = 50;
+                        startY = 50;
+                        currentColumn = 0;
+                        currentX = 60;
+                        leftColBottom = 50;
+                        rightColBottom = 50;
+                    }
+                }
+
+                // Encabezado del Grupo (A, B...)
+                const tituloGrupo = `GRUPO ${grupo.letra} – Corte único vertical: ${grupo.longitudCorte.toFixed(2)} ml`;
+                doc.fontSize(8).font('Helvetica-Bold').fillColor('#333').text(tituloGrupo, currentX, doc.y);
+                
+                // Detalles del grupo
+                doc.fontSize(7).font('Helvetica').fillColor('#555').text(`   Lienzos incluidos (Ancho acumulado: ${grupo.anchoAcumulado.toFixed(2)}m):`, currentX, doc.y);
+                
+                grupo.piezas.forEach(p => {
+                   const ubicacion = p.ubicacion ? `(${p.ubicacion})` : '';
+                   
+                   const anchoDisplay = (p.anchoOriginal || p.ancho).toFixed(2);
+                   const altoDisplay = (p.altoOriginal || p.alto).toFixed(2);
+                   const infoRotacion = p.rotada ? ' [ROTADA ↻]' : '';
+                   const anchoUtil = p.rotada ? ` | Ancho útil: ${(p.ancho).toFixed(2)}m` : '';
+                   
+                   // Formato explícito para evitar confusión: Ancho: X | Alto: Y
+                   doc.text(`   - Ancho: ${anchoDisplay}m | Alto: ${altoDisplay}m${infoRotacion} ${ubicacion}${anchoUtil}`, currentX + 10, doc.y);
+                });
+                doc.moveDown(0.4);
+                
+                // Track bottom of columns
+                if (currentColumn === 0) leftColBottom = doc.y;
+                else rightColBottom = doc.y;
+             });
+             
+             // Print Total in Right Column
+             // ... (código existente de total) ...
+             doc.y = rightColBottom > startY ? rightColBottom : (leftColBottom > startY ? leftColBottom : startY); 
+             doc.y = rightColBottom + 10;
+             doc.fontSize(8).font('Helvetica-Bold').fillColor('#000').text(`   Total Metros Lineales: ${tela.totalMetros} ml`, rightColX, doc.y);
+             doc.moveDown(0.8);
+             rightColBottom = doc.y;
+
+             // Prepare Y for next fabric
+             doc.y = Math.max(leftColBottom, rightColBottom) + 10;
+
+          } else {
+             // Fallback
+             doc.fontSize(8).font('Helvetica').text(`• ${tela.descripcion || tela.codigo}: ${tela.areaTotal?.toFixed(2) || 0} m² (para ${tela.piezas} piezas)`, 60, doc.y);
+             doc.moveDown(0.4);
+          }
+        });
+      }
+    }
+
+    // 3. RECOMENDACIONES DE OPTIMIZACIÓN
+    const recomendaciones = datos.recomendaciones || [];
+    if (recomendaciones.length > 0) {
+       if (doc.y > 650) { doc.addPage(); doc.y = 50; }
+       doc.moveDown(1);
+       this.dibujarSeccion(doc, 'SUGERENCIAS INTELIGENTES');
+       
+       recomendaciones.forEach(rec => {
+          const color = rec.tipo === 'OBLIGATORIO' ? '#CC0000' : '#FF6600';
+          doc.fontSize(8).font('Helvetica-Bold').fillColor(color).text(`[${rec.tipo}]`, 60, doc.y, { continued: true });
+          doc.font('Helvetica').fillColor('#000').text(` ${rec.mensaje}`);
+          if (rec.sugerencia) {
+             doc.fontSize(7).font('Helvetica-Oblique').fillColor('#555').text(`   💡 Sugerencia: ${rec.sugerencia}`, 70, doc.y);
+          }
+          doc.moveDown(0.5);
+       });
     }
   }
 
