@@ -205,14 +205,25 @@ router.post('/probar',
       const { formula, condicion, pieza } = req.body;
 
       // Evaluar fórmula
-      const { ancho, alto, area, motorizado, galeria, sistema } = pieza;
+      // Asegurar que todas las variables del contexto estén disponibles
+      const { ancho, alto, area, motorizado, galeria, sistema, color, rotada, modeloControl, tipoMando, ladoControl } = pieza;
+      const esManual = !motorizado;
       const Math = global.Math;
+      const Number = global.Number;
       
       let resultado = null;
       let error = null;
       
+      // Contexto para eval
+      const context = { ancho, alto, area, motorizado, esManual, rotada, galeria, sistema, color, modeloControl, tipoMando, ladoControl, Math, Number };
+      
+      // Función helper para evaluar con contexto seguro
+      const evalWithContext = (code) => {
+        return Function('"use strict"; const {ancho, alto, area, motorizado, esManual, rotada, galeria, sistema, color, modeloControl, tipoMando, ladoControl, Math, Number} = this; return (' + code + ')').call(context);
+      };
+
       try {
-        resultado = eval(formula);
+        resultado = evalWithContext(formula);
       } catch (e) {
         error = e.message;
       }
@@ -221,7 +232,7 @@ router.post('/probar',
       let cumpleCondicion = true;
       if (condicion) {
         try {
-          cumpleCondicion = eval(condicion);
+          cumpleCondicion = evalWithContext(condicion);
         } catch (e) {
           error = error ? `${error}; Condición: ${e.message}` : `Condición: ${e.message}`;
         }

@@ -638,6 +638,7 @@ const LevantamientoTab = ({ proyecto, onActualizar }) => {
                                     modeloCodigo={pieza.modeloCodigo}
                                     galeria={medidaIndiv.galeria}
                                     tipoControl={medidaIndiv.tipoControl}
+                                    tipoMando={medidaIndiv.tipoMando} // Nuevo prop
                                     caida={medidaIndiv.caida}
                                     tipoInstalacion={medidaIndiv.tipoInstalacion}
                                     tipoFijacion={medidaIndiv.tipoFijacion}

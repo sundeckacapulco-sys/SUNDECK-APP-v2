@@ -73,19 +73,18 @@ Se agregaron campos para reglas de selección:
 |------|-----------|---------|
 | Estándar | `!galeria` | `alto + 0.25` |
 | Con Galería | `galeria` | `alto + 0.50` |
-| Rotada | `rotada && !galeria` | `ancho - 0.03` |
-| Rotada | `rotada && !galeria` | `ancho - 0.03` |
+| Rotada | `rotada` | `ancho + 0.03` |
 
 ### 2. Perfiles
 | Tipo | Fórmula |
 |------|---------|
-| Tubo | `ancho - 0.03` |
-| Contrapeso | `ancho - 0.03` |
+| Tubo | `ancho - 0.005` |
+| Contrapeso | `ancho - 0.030` |
 
 ### 3. Accesorios
 | Tipo | Fórmula | Condición |
 |------|---------|-----------|
-| Cadena | `alto - 0.40` | Manual |
+| Cadena | `(alto - 0.80) * 2` | Manual |
 | Tapas | `1` (juego) | Siempre |
 
 ---

@@ -332,6 +332,7 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
             area: (parseFloat(medida.ancho) || 0) * (parseFloat(medida.alto) || 0),
             rotada: medida.rotada || medida.detalleTecnico === 'rotada' || false,
             anchoTela: medida.anchoTela ? parseFloat(medida.anchoTela) : null,
+            tipoMando: medida.tipoMando, // Preservar tipoMando en medidas individuales
             // Incluir campos de galería compartida y sistema Skyline
             galeriaCompartida: medida.galeriaCompartida || false,
             grupoGaleria: medida.grupoGaleria || null,
@@ -379,6 +380,7 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
           // Incluir especificaciones técnicas si existen
           galeria: pieza.galeria,
           tipoControl: pieza.tipoControl,
+          tipoMando: pieza.tipoMando, // Nuevo campo para Monocanal/Multicanal
           caida: pieza.caida,
           tipoInstalacion: pieza.tipoInstalacion,
           tipoFijacion: pieza.tipoFijacion,
@@ -1249,6 +1251,30 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                               </Select>
                             </FormControl>
                           </Grid>
+
+                          {/* Tipo de Mando (Solo si es motorizado) */}
+                          {medida.modoOperacion === 'motorizado' && (
+                            <Grid item xs={6} sm={4}>
+                              <FormControl fullWidth size="small">
+                                <InputLabel>Tipo de Mando</InputLabel>
+                                <Select
+                                  value={medida.tipoMando || ''}
+                                  label="Tipo de Mando"
+                                  onChange={(e) => {
+                                    const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                    nuevasMedidas[index] = { ...nuevasMedidas[index], tipoMando: e.target.value };
+                                    piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                  }}
+                                >
+                                  <MenuItem value="">Seleccionar</MenuItem>
+                                  <MenuItem value="Monocanal">Monocanal (1 Canal)</MenuItem>
+                                  <MenuItem value="Multicanal">Multicanal (15 Canales)</MenuItem>
+                                  <MenuItem value="Pared">Switch de Pared</MenuItem>
+                                  <MenuItem value="App">App / Smartphone</MenuItem>
+                                </Select>
+                              </FormControl>
+                            </Grid>
+                          )}
 
                           {/* Detalle Técnico */}
                           <Grid item xs={6} sm={4}>

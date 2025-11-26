@@ -221,6 +221,7 @@ const normalizarPartidas = (partidas = [], { incluirPrecios = false } = {}) => {
           ? pieza.sistema.filter(Boolean).join(', ')
           : (pieza.sistema || ''),
         control: pieza.control || pieza.tipoControl || '',
+        tipoMando: pieza.tipoMando || '', // Nuevo campo para Monocanal/Multicanal
         instalacion: pieza.instalacion || pieza.tipoInstalacion || '',
         fijacion: pieza.fijacion || pieza.tipoFijacion || '',
         caida: pieza.caida || pieza.orientacion || '',
@@ -394,6 +395,7 @@ const construirRegistroMedidas = (
         color: medida.color,
         galeria: medida.galeria,
         tipoControl: medida.control,
+        tipoMando: medida.tipoMando, // Nuevo campo
         caida: medida.caida,
         tipoInstalacion: medida.instalacion,
         tipoFijacion: medida.fijacion,

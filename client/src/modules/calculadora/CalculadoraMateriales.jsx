@@ -502,16 +502,25 @@ const CalculadoraMateriales = () => {
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={6}>
               <FormControl fullWidth>
-                <InputLabel>Tipo</InputLabel>
-                <Select
+                <Autocomplete
+                  freeSolo
+                  options={TIPOS_MATERIAL}
                   value={formMaterial.tipo}
-                  onChange={(e) => setFormMaterial({ ...formMaterial, tipo: e.target.value })}
-                  label="Tipo"
-                >
-                  {TIPOS_MATERIAL.map(tipo => (
-                    <MenuItem key={tipo} value={tipo}>{tipo}</MenuItem>
-                  ))}
-                </Select>
+                  onChange={(event, newValue) => {
+                    setFormMaterial({ ...formMaterial, tipo: newValue });
+                  }}
+                  onInputChange={(event, newInputValue) => {
+                    setFormMaterial({ ...formMaterial, tipo: newInputValue });
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Tipo"
+                      required
+                      helperText="Selecciona o escribe uno nuevo"
+                    />
+                  )}
+                />
               </FormControl>
             </Grid>
             <Grid item xs={6}>

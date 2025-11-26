@@ -530,191 +530,126 @@ class OptimizadorCortesService {
   }
   
   /**
-   * Calcula todos los materiales para una pieza usando REGLAS DE NEGOCIO ESTRICTAS (v1.2)
+   * Calcula todos los materiales para una pieza usando configuración de BD (v2.0)
    * @param {object} pieza - Datos de la pieza
    * @returns {Promise<Array>} Lista de materiales calculados
    */
   static async calcularMaterialesPieza(pieza) {
-    let { ancho, alto, motorizado = false, sistema = 'Roller Shade', galeria, rotada = false } = pieza;
-    const materiales = [];
+    let { ancho, alto, motorizado = false, sistema = 'Roller Shade', galeria, rotada = false, color = '', modeloControl, tipoMando, ladoControl } = pieza;
     
     try {
-      // 0. AUTO-ROTACIÓN INTELIGENTE
+      // 0. AUTO-ROTACIÓN INTELIGENTE (Pre-procesamiento)
       // Si es Roller o Toldo, y el ancho > 3.00m pero alto <= 2.80m, ROTAR AUTOMÁTICAMENTE.
+      // Esto cambia el estado "rotada" que se usará en las reglas de BD.
       if (sistema !== 'Sheer Elegance' && !rotada) {
          if (ancho > 3.00 && alto <= 2.80) {
              rotada = true;
-             // Actualizamos la variable local para el resto del cálculo
+             // logger.info(`Pieza auto-rotada por dimensiones: ${ancho}x${alto}`);
          }
       }
 
-      // 1. SELECCIÓN Y CÁLCULO DE TUBO
-      let diametro = '38mm';
-      let codigoTubo = 'T38';
-      let descripcionTubo = 'Tubo 38mm';
-      let corteTubo = 0;
-
-      // Reglas de Selección de Tubo
-      if (sistema === 'Roller Shade') {
-        corteTubo = ancho - 0.005; // Regla: Ancho - 5mm
-        
-        if (motorizado) {
-          if (ancho < 2.50) { diametro = '35mm'; codigoTubo = 'T35'; }
-          else if (ancho <= 3.00) { diametro = '50mm'; codigoTubo = 'T50'; }
-          else if (ancho <= 4.00) { diametro = '70mm'; codigoTubo = 'T70'; }
-          else { diametro = '79mm'; codigoTubo = 'T79'; }
-        } else {
-          if (ancho <= 2.50) { diametro = '38mm'; codigoTubo = 'T38-M'; }
-          else if (ancho <= 3.00) { diametro = '50mm'; codigoTubo = 'T50-M'; }
-          else { /* > 3.00 Requiere Motor */ diametro = '50mm'; codigoTubo = 'T50-M'; } 
-        }
-      } else if (sistema === 'Sheer Elegance') {
-        corteTubo = ancho - 0.005;
-        if (motorizado) {
-           diametro = ancho <= 2.50 ? '35mm' : '50mm';
-           codigoTubo = ancho <= 2.50 ? 'TUB-35-MOT' : 'TUB-50-MOT';
-        } else {
-           diametro = ancho <= 2.50 ? '38mm' : '50mm';
-           codigoTubo = ancho <= 2.50 ? 'TUB-38-MAN' : 'TUB-50-MAN';
-        }
-      } else if (sistema === 'Toldos Contempo') {
-        corteTubo = ancho - 0.12; // Regla: Ancho - 12cm
-        codigoTubo = 'TUB-TOLDO';
-        diametro = 'Especial Toldo';
-      }
-
-      materiales.push({
-        tipo: 'Tubo',
-        codigo: codigoTubo,
-        descripcion: `Tubo ${diametro} (${sistema})`,
-        cantidad: Number(corteTubo.toFixed(3)),
-        unidad: 'ml',
-        diametro: diametro,
-        observaciones: `Corte exacto: ${corteTubo.toFixed(3)}m`
-      });
-
-      // 2. CÁLCULO DE TELA
-      let cantidadTela = 0;
-      let formulaTela = '';
+      // 1. CARGAR CONFIGURACIÓN DE BD
+      const configuracion = await ConfiguracionMateriales.findOne({ sistema }).lean();
       
-      // Reglas de Tela
-      if (sistema === 'Sheer Elegance') {
-        // Regla Sheer: (Alto * 2) + 0.35
-        cantidadTela = (alto * 2) + 0.35;
-        formulaTela = '(Alto x 2) + 0.35m';
-      } else if (sistema === 'Toldos Contempo') {
-        if (rotada) {
-           cantidadTela = ancho + 0.03;
-           formulaTela = 'Rotada: Ancho + 0.03m';
-        } else {
-           cantidadTela = alto + 0.25;
-           formulaTela = 'Normal: Alto + 0.25m';
-        }
-      } else {
-        // Roller Shade
-        if (rotada) {
-           cantidadTela = ancho + 0.03;
-           formulaTela = 'Rotada: Ancho + 0.03m';
-        } else {
-           // Normal
-           const margenBase = 0.25;
-           const margenGaleria = (galeria && galeria !== 'Sin galería' && galeria !== 'No especificado') ? 0.25 : 0;
-           cantidadTela = alto + margenBase + margenGaleria;
-           formulaTela = margenGaleria > 0 ? `Alto + 0.50m (0.25 Enrolle + 0.25 Galería)` : `Alto + 0.25m (Enrolle)`;
-        }
+      if (!configuracion) {
+        logger.warn(`No se encontró configuración para sistema: ${sistema}.`, { ancho, alto });
+        return [];
       }
-
-      // Anchos de rollo (Simulado - Idealmente vendría del producto/BD)
-      const anchosRollo = [2.50, 3.00]; 
-
-      materiales.push({
-        tipo: 'Tela',
-        codigo: 'TELA-GEN', // Debería venir del producto
-        descripcion: pieza.telaMarca || 'Tela',
-        cantidad: Number(cantidadTela.toFixed(3)),
-        unidad: 'ml',
-        observaciones: formulaTela,
-        rotada: rotada,
-        anchosRollo: anchosRollo
-      });
-
-      // 3. CONTRAPESO
-      let tipoContrapeso = 'Ovalado';
-      let corteContrapeso = 0;
       
-      if (sistema === 'Toldos Contempo') {
-         corteContrapeso = ancho - 0.12;
-         tipoContrapeso = 'Perfil Contrapeso Toldo';
-      } else if (galeria && galeria !== 'Sin galería' && galeria !== 'No especificado') {
-         // Regla Galería: Contrapeso Elegance exacto al ancho
-         tipoContrapeso = 'Elegance';
-         corteContrapeso = ancho;
-      } else {
-         // Estándar
-         tipoContrapeso = 'Ovalado';
-         corteContrapeso = ancho - 0.030; // Ancho - 3cm
-         if (sistema === 'Sheer Elegance') corteContrapeso = ancho - 0.030; // Mismo para sheer
-      }
+      const variables = {
+        ancho,
+        alto,
+        area: ancho * alto,
+        motorizado,
+        esManual: !motorizado,
+        rotada,
+        galeria,
+        color,
+        modeloControl,
+        tipoMando, // Monocanal, Multicanal...
+        ladoControl, // Izquierda, Derecha...
+        sistema,
+        Math,
+        Number
+      };
+      
+      // 2. SELECCIÓN DE TUBO Y MECANISMO
+      const tubo = this.seleccionarTubo(configuracion, variables);
+      const mecanismo = this.seleccionarMecanismo(configuracion, variables);
+      
+      // 3. EVALUAR MATERIALES
+      const materiales = [];
+      
+      const evalWithContext = (expression) => {
+        // Contexto seguro para evaluación
+        return Function('"use strict"; const {ancho, alto, area, motorizado, esManual, rotada, galeria, sistema, color, modeloControl, tipoMando, ladoControl, Math, Number} = this; return (' + expression + ')').call(variables);
+      };
 
-      materiales.push({
-        tipo: 'Contrapeso',
-        codigo: `CP-${tipoContrapeso.toUpperCase()}`,
-        descripcion: `Contrapeso ${tipoContrapeso}`,
-        cantidad: Number(corteContrapeso.toFixed(3)),
-        unidad: 'ml',
-        observaciones: `Corte: ${corteContrapeso.toFixed(3)}m`
-      });
+      if (configuracion.materiales && Array.isArray(configuracion.materiales)) {
+         configuracion.materiales.forEach(matConfig => {
+             // Verificar condición
+             if (matConfig.condicion) {
+                 try {
+                     const cumple = evalWithContext(matConfig.condicion);
+                     if (!cumple) return;
+                 } catch (e) {
+                     logger.warn(`Error evaluando condición material ${matConfig.tipo}: ${e.message}`);
+                     return;
+                 }
+             }
 
-      // 4. GALERÍA (MADERA)
-      if (galeria && galeria !== 'Sin galería' && galeria !== 'No especificado') {
-         // Regla Madera: Barras de 2.40m estándar.
-         // Si ancho <= 2.40 -> 1 pieza. Si > 2.40 -> 2 piezas.
-         const piezasMadera = ancho <= 2.40 ? 1 : 2;
-         
-         materiales.push({
-            tipo: 'Madera',
-            codigo: 'MAD-GAL-240',
-            descripcion: 'Madera para Galería (2.40m)',
-            cantidad: piezasMadera,
-            unidad: 'pza',
-            observaciones: ancho > 2.40 ? 'Se requieren 2 piezas unidas' : '1 pieza'
-         });
-         
-         // Tela extra ya se sumó arriba
-      }
+             // Calcular cantidad
+             let cantidad = 0;
+             try {
+                 let formula = matConfig.formula;
+                 // Soporte para fórmula rotada específica si existiera en el esquema futuro
+                 if (rotada && matConfig.formulaRotada) {
+                     formula = matConfig.formulaRotada;
+                 }
+                 cantidad = evalWithContext(formula);
+             } catch (e) {
+                 logger.error(`Error evaluando fórmula material ${matConfig.tipo}: ${e.message}`);
+             }
 
-      // 5. MECANISMOS Y ACCESORIOS
-      if (motorizado) {
-         materiales.push({
-            tipo: 'Motor',
-            codigo: 'MOT-TUB',
-            descripcion: 'Motor Tubular',
-            cantidad: 1,
-            unidad: 'pza',
-            metadata: { esMotor: true }
-         });
-      } else {
-         // Manual
-         let tipoMec = 'Generico';
-         if (sistema === 'Roller Shade') {
-            tipoMec = ancho <= 2.50 ? 'SL-16' : 'R-24';
-         } else if (sistema === 'Sheer Elegance') {
-            tipoMec = 'SL-16';
-         }
-         
-         materiales.push({
-            tipo: 'Mecanismo',
-            codigo: `MEC-${tipoMec}`,
-            descripcion: `Mecanismo Manual ${tipoMec}`,
-            cantidad: 1,
-            unidad: 'kit'
+             // Agregar material
+             const material = {
+                 tipo: matConfig.tipo,
+                 codigo: matConfig.codigo || matConfig.tipo.toUpperCase(),
+                 descripcion: matConfig.descripcion,
+                 cantidad: Number(cantidad) || 0,
+                 unidad: matConfig.unidad,
+                 observaciones: matConfig.observaciones,
+                 rotada: rotada && (matConfig.tipo === 'Tela' || matConfig.tipo === 'Tela Sheer'),
+                 anchosRollo: matConfig.anchosRollo
+             };
+
+             // Enriquecer con selección de Tubo
+             if (material.tipo === 'Tubo' && tubo) {
+                 material.codigo = tubo.codigo || material.codigo;
+                 material.descripcion = tubo.descripcion || material.descripcion;
+                 material.diametro = tubo.diametro;
+             }
+             
+             // Enriquecer con selección de Mecanismo
+             if ((material.tipo === 'Mecanismo' || material.tipo === 'Motor') && mecanismo) {
+                 // Solo sobrescribir si es genérico o coincide el tipo
+                 if (material.tipo === 'Motor' && mecanismo.esMotor) {
+                     material.codigo = mecanismo.codigo;
+                     material.descripcion = mecanismo.descripcion;
+                 } else if (material.tipo === 'Mecanismo' && !mecanismo.esMotor) {
+                     material.codigo = mecanismo.codigo;
+                     material.descripcion = mecanismo.descripcion;
+                 }
+             }
+
+             materiales.push(material);
          });
       }
 
       return materiales;
-      
+
     } catch (error) {
-      logger.error('Error calculando materiales (Reglas v1.2)', {
+      logger.error('Error calculando materiales (Dinámico)', {
         servicio: 'optimizadorCortesService',
         error: error.message,
         stack: error.stack,

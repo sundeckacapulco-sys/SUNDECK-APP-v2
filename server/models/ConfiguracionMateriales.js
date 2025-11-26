@@ -21,7 +21,6 @@ const configuracionMaterialesSchema = new mongoose.Schema({
   sistema: {
     type: String, // Enrollable, Panel, Sheer, etc.
     required: true,
-    enum: ['Roller Shade', 'Sheer Elegance', 'Toldos Contempo'],
     default: 'Roller Shade'
   },
   
@@ -95,11 +94,7 @@ const configuracionMaterialesSchema = new mongoose.Schema({
     tipo: {
       type: String,
       required: true,
-      enum: [
-        'Tela', 'Tubo', 'Cofre', 'Barra de Giro', 'Contrapeso', 
-        'Soportes', 'Mecanismo', 'Motor', 'Cadena', 'Cable',
-        'Tapas', 'Insertos', 'Cinta', 'Galería', 'Herrajes', 'Accesorios', 'Kit'
-      ]
+      // enum: ['Tela', 'Tubo', 'Cofre', 'Barra de Giro', 'Contrapeso', ...] // Restricción eliminada
     },
     
     descripcion: {
@@ -110,7 +105,7 @@ const configuracionMaterialesSchema = new mongoose.Schema({
     unidad: {
       type: String,
       required: true,
-      enum: ['ml', 'm²', 'pza', 'kit', 'juego']
+      // enum: ['ml', 'm²', 'pza', 'kit', 'juego'] // Restricción eliminada para flexibilidad
     },
     
     // Fórmula de cálculo (JavaScript expression)

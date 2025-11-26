@@ -12,6 +12,7 @@ const PiezaCard = ({
   modeloCodigo,
   galeria,
   tipoControl,
+  tipoMando, // Nuevo prop
   caida,
   tipoInstalacion,
   tipoFijacion,
@@ -36,7 +37,7 @@ const PiezaCard = ({
   };
 
   // Verificar si hay especificaciones técnicas
-  const tieneEspecificaciones = galeria || tipoControl || caida || 
+  const tieneEspecificaciones = galeria || tipoControl || tipoMando || caida || 
     tipoInstalacion || tipoFijacion || modoOperacion || detalleTecnico || 
     sistema || telaMarca || baseTabla || observacionesTecnicas;
 
@@ -183,16 +184,26 @@ const PiezaCard = ({
               )}
 
               {/* Columna 2: Control y Operación */}
-              {(tipoControl || caida || modoOperacion || sistema) && (
+              {(tipoControl || tipoMando || caida || modoOperacion || sistema) && (
                 <Grid item xs={12} md={4}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {tipoControl && (
                       <Box>
                         <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600, display: 'block' }}>
-                          Control
+                          Lado Control
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)', textTransform: 'capitalize' }}>
                           {tipoControl}
+                        </Typography>
+                      </Box>
+                    )}
+                    {tipoMando && (
+                      <Box>
+                        <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600, display: 'block' }}>
+                          Tipo Mando
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)', textTransform: 'capitalize' }}>
+                          {tipoMando}
                         </Typography>
                       </Box>
                     )}

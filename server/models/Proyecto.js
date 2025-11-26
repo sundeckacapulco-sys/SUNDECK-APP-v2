@@ -220,6 +220,11 @@ const proyectoSchema = new mongoose.Schema({
         m2: Number,
         sistema: String,
         control: String,
+        tipoMando: {
+          type: String,
+          default: null,
+          description: '🎮 Tipo de mando para motorización (Monocanal, Multicanal, Pared, App)'
+        },
         instalacion: String,
         fijacion: String,
         caida: String,

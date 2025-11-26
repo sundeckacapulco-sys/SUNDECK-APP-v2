@@ -380,7 +380,16 @@ class PDFOrdenProduccionService {
       doc.fontSize(8).font('Helvetica').text(`${pieza.sistema}`, 300, y);
       doc.moveDown(0.3);
       doc.fontSize(7).font('Helvetica');
-      const specs = [`${pieza.ancho}×${pieza.alto}m`, pieza.motorizado ? 'Motorizado' : 'Manual', pieza.control ? `Control: ${pieza.control}` : null, pieza.color ? `Color: ${pieza.color}` : null, pieza.galeriaCompartida ? `[GAL-${pieza.grupoGaleria || 'A'}]` : null, pieza.sistemaSkyline ? '[SKYLINE]' : null, pieza.motorCompartido ? `[MOTOR-${pieza.grupoMotor || 'M1'}]` : null].filter(Boolean).join(' | ');
+      const specs = [
+        `${pieza.ancho}×${pieza.alto}m`, 
+        pieza.motorizado ? 'Motorizado' : 'Manual', 
+        pieza.control ? `Control: ${pieza.control}` : null, 
+        pieza.tipoMando ? `Mando: ${pieza.tipoMando}` : null, // Nuevo campo
+        pieza.color ? `Color: ${pieza.color}` : null, 
+        pieza.galeriaCompartida ? `[GAL-${pieza.grupoGaleria || 'A'}]` : null, 
+        pieza.sistemaSkyline ? '[SKYLINE]' : null, 
+        pieza.motorCompartido ? `[MOTOR-${pieza.grupoMotor || 'M1'}]` : null
+      ].filter(Boolean).join(' | ');
       doc.text(specs, 60, doc.y);
       doc.moveDown(0.5);
       doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();

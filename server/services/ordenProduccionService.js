@@ -277,6 +277,9 @@ class OrdenProduccionService {
             // Mapear sistema desde producto/modelo
             let sistema = pieza.sistema || partida.sistema;
             
+            // Datos de Motorización de la Partida
+            const motorizacion = partida.motorizacion || {};
+            
             if (!sistema || sistema === 'Enrollable' || sistema === 'No especificado') {
               const producto = (partida.producto || pieza.producto || '').toLowerCase();
               const modelo = (partida.modelo || pieza.modelo || '').toLowerCase();
@@ -324,6 +327,11 @@ class OrdenProduccionService {
               color: pieza.color || partida.color || 'No especificado',
               cantidad: 1,
               
+              // Motorización detallada
+              modeloControl: motorizacion.modeloControl || 'No especificado',
+              tipoMando: pieza.tipoMando || motorizacion.tipoMando || 'No especificado', // Monocanal, Multicanal, etc.
+              ladoControl: pieza.tipoControl || 'No especificado', // Izquierda, Derecha
+
               // CAMPOS ESPECIALES: Galería Compartida y Sistema Skyline
               galeriaCompartida: Boolean(pieza.galeriaCompartida),
               grupoGaleria: pieza.grupoGaleria || null,
