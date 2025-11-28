@@ -1110,6 +1110,26 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                             </FormControl>
                           </Grid>
 
+                          {/* Tipo de Contrapeso */}
+                          <Grid item xs={12} sm={4}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Tipo Contrapeso</InputLabel>
+                              <Select
+                                value={medida.tipoContrapeso || 'Ovalado'}
+                                label="Tipo Contrapeso"
+                                onChange={(e) => {
+                                  const nuevasMedidas = [...(piezasManager.piezaForm.medidas || [])];
+                                  nuevasMedidas[index] = { ...nuevasMedidas[index], tipoContrapeso: e.target.value };
+                                  piezasManager.setPiezaForm(prev => ({ ...prev, medidas: nuevasMedidas }));
+                                }}
+                              >
+                                <MenuItem value="Ovalado">Ovalado</MenuItem>
+                                <MenuItem value="Plano">Plano</MenuItem>
+                                <MenuItem value="Forrado">Forrado</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </Grid>
+
                           {/* Sistema Skyline */}
                           <Grid item xs={12} sm={4}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: '#fef3c7', borderRadius: 1, border: '1px solid #fbbf24' }}>

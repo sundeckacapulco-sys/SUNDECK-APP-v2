@@ -1,8 +1,213 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
-**Fecha de última sesión:** 20 Noviembre 2025  
-**Hora de finalización:** 7:27 PM  
-**Estado del proyecto:** ✅ PDF | ✅ PAGOS | ✅ AUDITORÍA | ✅ ORDEN PRODUCCIÓN | ✅ PDFs FABRICACIÓN | ✅ LISTA PEDIDO V3.1 | 🔒 CANDADO ROTACIÓN | ✅ **MOTOR COMPARTIDO** | 📋 **DATA CONTRACT** | 🔴 **CONSOLIDAR PDFs PEDIDO** | 📐 **OPTIMIZACIÓN CORTES** | 🔄 CALCULADORA v1.2 | ⏳ ALMACÉN
+**Fecha de última sesión:** 28 Noviembre 2025  
+**Hora de finalización:** 11:10 AM  
+**Estado del proyecto:** ✅ PDF | ✅ PAGOS | ✅ AUDITORÍA | ✅ ORDEN PRODUCCIÓN | ✅ PDFs FABRICACIÓN | ✅ LISTA PEDIDO V3.1 | 🔒 CANDADO ROTACIÓN | ✅ **MOTOR COMPARTIDO** | 📋 **DATA CONTRACT** | 🔴 **CONSOLIDAR PDFs PEDIDO** | ✅ **OPTIMIZACIÓN CORTES** | 🔄 CALCULADORA v1.2 | ✅ **ALMACÉN + SOBRANTES** | ✅ **ETIQUETAS v2** | ✅ **MADERA GALERÍA** | 📋 **FLUJO ALMACÉN**
+
+---
+
+## 🎯 SESIÓN 28 NOV 2025 - PDF FABRICACIÓN + MADERA + FLUJO ALMACÉN (8:58 AM - 11:10 AM)
+
+**Duración:** 2 horas 12 minutos  
+**Estado:** ✅ PDF MEJORADO | ✅ CHECKLIST INSTALADOR | ✅ OPTIMIZACIÓN MADERA | 📋 FLUJO ALMACÉN DOCUMENTADO  
+**Archivos creados:** 2 | **Archivos modificados:** 2
+
+### ✅ COMPLETADO
+
+**1. PDF Orden de Fabricación - Mejoras:**
+
+- ✅ **Página Detalle por Pieza** mejorada:
+  - Producto/modelo agregado
+  - Lado de control (MOTOR IZQ/DER, Manual IZQ/DER)
+  - Galería SÍ/NO
+  - Espacio único al final para anotaciones del armador (sin cuadro, líneas libres)
+
+- ✅ **Página Final: Checklist de Entrega para Instalación** (OBLIGATORIA):
+  - 10 items de verificación con checkboxes grandes
+  - Cantidades dinámicas (total persianas, motores, etc.)
+  - Indicadores "No aplica" cuando corresponde
+  - Espacio para observaciones del instalador (4 líneas)
+  - Espacio para observaciones del taller (4 líneas)
+  - Sin firmas, sin tablas, formato limpio
+
+**Items del Checklist:**
+1. □ Todas las persianas del proyecto incluidas
+2. □ Galerías incluidas (si aplica)
+3. □ Soportes completos
+4. □ Mecanismos correctos (manual/motor)
+5. □ Motores incluidos (si aplica)
+6. □ Controles incluidos (monocanal/multicanal)
+7. □ Tapas laterales
+8. □ Tornillería y taquetes completos
+9. □ Etiquetas colocadas en cada persiana
+10. □ Empaque correcto y en buen estado
+
+**2. Optimización de Cortes de Madera (Galería):**
+
+**Reglas implementadas:**
+| Parámetro | Valor |
+|-----------|-------|
+| Tabla estándar | 2.40m |
+| Sobrante mínimo útil | 0.50m (menor es desperdicio) |
+| Unión de tablas | Permitida cuando ancho > 2.40m |
+
+**Métodos creados en `optimizadorCortesService.js`:**
+- `optimizarCortesMadera(piezasConGaleria, sobrantesDisponibles)` - Optimización grupal
+- `calcularCorteMaderaSingle(anchoRequerido)` - Cálculo individual
+- `_calcularCortesUnion(anchoTotal, longitudTabla)` - Helper para uniones
+
+**Ejemplos de funcionamiento:**
+```
+Ancho 1.80m → 1 tabla, sobrante 60cm (útil ✅)
+Ancho 2.10m → 1 tabla, sobrante 30cm (desperdicio ❌)
+Ancho 4.00m → 2 tablas unidas (2.40m + 1.60m), sobrante 80cm (útil ✅)
+```
+
+**3. Flujo de Almacén de Materiales (DOCUMENTADO):**
+
+**Tipo:** Híbrido (Reserva + Confirmación Manual)
+
+**3 Etapas:**
+1. **Generar Orden** → Reserva materiales automáticamente
+2. **Confirmar Uso** → Botón en taller descuenta del almacén
+3. **Registrar Sobrantes** → Al terminar, ingresa sobrantes reales
+
+**Estados de material:**
+- `disponible` - Listo para usar
+- `reservado` - Asignado a una orden
+- `usado` - Ya consumido
+
+**Documentación:** `docs/FLUJO_ALMACEN_MATERIALES.md`
+
+### 📊 Métricas de Hoy
+
+- Archivos creados: 2 (`FLUJO_ALMACEN_MATERIALES.md`, `testOptimizacionMadera.js`)
+- Archivos modificados: 2 (`pdfOrdenFabricacionService.js`, `optimizadorCortesService.js`)
+- Líneas agregadas: ~400
+- Features: 3 (Checklist instalador, Madera optimizada, Flujo almacén)
+
+### 🎯 PRÓXIMA SESIÓN - PENDIENTES
+
+**Prioridad Alta (Flujo Almacén):**
+1. ⏳ Agregar campo `estado` a modelo SobranteMaterial
+2. ⏳ Crear endpoints de reserva/confirmar/liberar
+3. ⏳ UI en FabricacionTab: sección "Materiales del Almacén"
+4. ⏳ Botón "Confirmar Uso de Material"
+5. ⏳ Modal "Registrar Sobrantes"
+
+**Prioridad Media:**
+6. ⏳ Integrar madera en PDF de fabricación
+7. ⏳ Corregir warnings de condiciones (tipoContrapeso)
+8. ⏳ Consolidar PDFs de pedido
+
+**Documentación de referencia:**
+- `docs/FLUJO_ALMACEN_MATERIALES.md` - Flujo completo híbrido
+- `docs/ALMACEN_SOBRANTES.md` - Sistema de sobrantes
+- `docs/CAMBIOS_PDF_ORDEN_TALLER.md` - Guía de PDFs
+
+---
+
+## 🎯 SESIÓN 27 NOV 2025 - SOBRANTES + ALMACÉN + ETIQUETAS (8:30 AM - 9:45 AM)
+
+**Duración:** 1 hora 15 minutos  
+**Estado:** ✅ SISTEMA SOBRANTES | ✅ ALMACÉN INICIALIZADO | ✅ ETIQUETAS HORIZONTALES  
+**Archivos creados:** 5 | **Archivos modificados:** 6
+
+### ✅ COMPLETADO
+
+**1. Sistema de Sobrantes de Materiales:**
+
+**Reglas de negocio implementadas:**
+- ✅ Longitud mínima útil: **60cm (0.60m)** - menor se desecha
+- ✅ Sin límite máximo - rollos pueden llegar de diferentes tamaños
+- ✅ Tipos permitidos: Tubo, Contrapeso, Tela
+- ✅ Alerta cuando hay **10+ sobrantes** del mismo tipo
+
+**Archivos creados:**
+- `server/services/sobrantesService.js` (200+ líneas)
+- `server/routes/sobrantes.js` (150+ líneas)
+- `server/scripts/inicializarMaterialesAlmacen.js` (100+ líneas)
+- `docs/ALMACEN_SOBRANTES.md` (300+ líneas)
+
+**API de Sobrantes:**
+```
+GET    /api/sobrantes              - Listar sobrantes
+GET    /api/sobrantes/resumen      - Resumen agrupado
+GET    /api/sobrantes/buscar       - Buscar para reutilizar
+POST   /api/sobrantes              - Registrar sobrante
+POST   /api/sobrantes/orden        - Registrar de una orden
+POST   /api/sobrantes/:id/usar     - Usar un sobrante
+POST   /api/sobrantes/descartar    - Descartar múltiples
+```
+
+**2. Códigos de Materiales en Almacén:**
+
+| Código | Descripción |
+|--------|-------------|
+| TUB-38/50/70/79 | Tubos Aluminio |
+| CP-PLANO-STD/NEG | Contrapeso Plano |
+| CP-REDONDO-STD/NEG | Contrapeso Redondo |
+| TEL-SCREEN-5-BLA | Tela Screen 5% Blanco |
+| TEL-BLACKOUT-BLA | Tela Blackout Blanco |
+
+**3. Integración con Optimizador de Cortes:**
+- ✅ `extraerSobrantesDeOptimizacion()` - Extrae sobrantes >= 60cm
+- ✅ `generarReporteConSobrantes()` - Reporte con sobrantes identificados
+
+**4. Etiquetas de Producción v2 (Horizontales):**
+
+**Formato nuevo:**
+```
+┌──────────┬───────────────────────────────────────────────────────────────┐
+│    1     │   1.50 x 2.20m          ← NEGRITA GRANDE                      │
+│   ───    │   Screen 5% Blanco                                            │
+│   REC    │   Arq. Hector Huerta                                          │
+│   PPAL   │   MOTOR IZQ  |  Techo/Taquete                                 │
+│  de 6    │   GALERÍA + TABLA       ← ROJO si aplica                      │
+└──────────┴───────────────────────────────────────────────────────────────┘
+```
+
+**Características:**
+- ✅ Formato horizontal 250x80 puntos (para empaque enrollado)
+- ✅ Número de partida MUY GRANDE a la izquierda
+- ✅ Ubicación abreviada (REC PPAL, SALA COM, etc.)
+- ✅ Medidas en NEGRITA grande
+- ✅ MOTOR IZQ/DER o CADENA IZQ/DER (lado de control)
+- ✅ GALERÍA + TABLA en rojo cuando aplica
+- ✅ Sin QR (optimizado para espacio)
+- ✅ Línea punteada para cortar
+- ✅ 8 etiquetas por página
+
+**Archivos modificados:**
+- `server/models/Proyecto.js` - Método `generarEtiquetasProduccion()` + `_abreviarUbicacion()`
+- `server/services/pdfOrdenFabricacionService.js` - `generarPaginaEtiquetas()` + `abreviarUbicacion()`
+- `server/controllers/proyectoController.js` - Endpoint simplificado sin QR
+- `server/services/optimizadorCortesService.js` - Métodos de sobrantes
+- `server/index.js` - Ruta `/api/sobrantes`
+
+### 📊 Métricas de Hoy
+
+- Archivos creados: 5
+- Archivos modificados: 6
+- Líneas agregadas: ~800
+- Documentos creados: 1 (`ALMACEN_SOBRANTES.md`)
+- Features implementados: 3 (Sobrantes, Almacén, Etiquetas v2)
+
+### 🎯 PRÓXIMA SESIÓN - PENDIENTES
+
+**Prioridad Alta:**
+1. ⏳ UI para encargado de taller (registrar materiales que llegan)
+2. ⏳ Integración automática de sobrantes después de producción
+3. ⏳ Corregir warnings de condiciones (tipoContrapeso, Control Multicanal)
+
+**Prioridad Media:**
+4. ⏳ Consolidar PDFs de pedido (3 servicios → 1)
+5. ⏳ Validar DATA CONTRACT
+6. ⏳ Tests unitarios para sobrantesService
+
+**Documentación de referencia:**
+- `docs/ALMACEN_SOBRANTES.md` - Sistema completo de sobrantes
+- `docs/CAMBIOS_PDF_ORDEN_TALLER.md` - Guía de modificación de PDFs
 
 ---
 

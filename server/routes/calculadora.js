@@ -115,6 +115,12 @@ router.put('/configuraciones/:id',
   verificarPermiso('configuracion', 'actualizar'),
   async (req, res) => {
     try {
+      logger.info('Actualizando configuración', {
+        id: req.params.id,
+        materialesRecibidos: req.body.materiales?.length || 0,
+        usuario: req.usuario?.email
+      });
+      
       const config = await ConfiguracionMateriales.findByIdAndUpdate(
         req.params.id,
         {

@@ -24,7 +24,7 @@ const dashboardCache = new NodeCache({
 const qrCodeGenerator = require('../utils/qrcodeGenerator');
 const notificacionService = require('../services/notificacionService');
 const OrdenProduccionService = require('../services/ordenProduccionService');
-const PDFListaPedidoV2Service = require('../services/pdfListaPedidoV2Service');
+const PDFListaPedidoV3Service = require('../services/pdfListaPedidoV3Service');
 
 const toNumber = (value, defaultValue = 0) => {
   if (value === null || value === undefined || value === '') {
@@ -222,6 +222,7 @@ const normalizarPartidas = (partidas = [], { incluirPrecios = false } = {}) => {
           : (pieza.sistema || ''),
         control: pieza.control || pieza.tipoControl || '',
         tipoMando: pieza.tipoMando || '', // Nuevo campo para Monocanal/Multicanal
+        tipoContrapeso: pieza.tipoContrapeso || pieza.contrapeso || 'Ovalado', // Integración de Contrapeso
         instalacion: pieza.instalacion || pieza.tipoInstalacion || '',
         fijacion: pieza.fijacion || pieza.tipoFijacion || '',
         caida: pieza.caida || pieza.orientacion || '',
@@ -396,6 +397,7 @@ const construirRegistroMedidas = (
         galeria: medida.galeria,
         tipoControl: medida.control,
         tipoMando: medida.tipoMando, // Nuevo campo
+        tipoContrapeso: medida.tipoContrapeso, // Integración de Contrapeso
         caida: medida.caida,
         tipoInstalacion: medida.instalacion,
         tipoFijacion: medida.fijacion,
@@ -1244,17 +1246,18 @@ const generarEtiquetasProduccion = async (req, res) => {
       });
     }
 
+    // Generar etiquetas sin QR (optimizado para espacio)
+    // El número de partida es el identificador principal para matching en instalación
     const etiquetas = proyecto.generarEtiquetasProduccion();
-    const etiquetasConQr = await Promise.all(
-      etiquetas.map(async etiqueta => ({
-        ...etiqueta,
-        codigoQR: await qrCodeGenerator.toDataURL(etiqueta.codigoQR)
-      }))
-    );
 
     res.json({
       success: true,
-      data: etiquetasConQr
+      data: etiquetas,
+      resumen: {
+        totalPartidas: etiquetas.length,
+        proyecto: proyecto.numero,
+        cliente: proyecto.cliente.nombre
+      }
     });
   } catch (error) {
     logger.logError(error, {
@@ -2372,7 +2375,7 @@ const generarListaPedidoV2 = async (req, res) => {
     const { datosOrden, listaOptimizada } = resultado;
 
     // Generar PDF
-    const pdfBuffer = await PDFListaPedidoV2Service.generarPDF(datosOrden, listaOptimizada);
+    const pdfBuffer = await PDFListaPedidoV3Service.generarPDF(datosOrden);
 
     // Enviar PDF
     res.setHeader('Content-Type', 'application/pdf');

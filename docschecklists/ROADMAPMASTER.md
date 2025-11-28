@@ -156,7 +156,7 @@ Dejar lista la arquitectura modular y multicanal sin incurrir en costos de infra
 
 ---
 
-## 🏗️ Extensión de Producto — “Sundeck CRM SaaS Path”
+## 🏗️ Extensión de Producto — "Sundeck CRM SaaS Path"
 
 **Propósito:**  
 Transformar progresivamente el CRM actual en un producto vendible por membresía, sin aumentar costos de infraestructura.
@@ -171,7 +171,113 @@ Transformar progresivamente el CRM actual en un producto vendible por membresía
 **Notas**
 - Mantener arquitectura actual local y sin dependencias externas.  
 - Cada nivel debe ser compatible con la versión personal.  
-- Preparar documentación de despliegue simplificado (`setup_local.md`) para ofrecer licencias a colegas.  
+- Preparar documentación de despliegue simplificado (`setup_local.md`) para ofrecer licencias a colegas.
+
+---
+
+## 📦 Catálogo de Módulos Rentables
+
+**Modelo de negocio:** Renta por módulos. El cliente paga solo por lo que usa.
+
+### Módulo BASE (Obligatorio)
+| Componente | Descripción |
+|------------|-------------|
+| Autenticación | Login, usuarios, roles básicos |
+| Dashboard | Vista principal personalizable |
+| Configuración | Datos de empresa, preferencias |
+| **Precio sugerido** | Incluido en cualquier plan |
+
+### Módulo PROYECTOS
+| Componente | Descripción |
+|------------|-------------|
+| Cotizaciones | Crear, editar, enviar cotizaciones |
+| Proyectos | Gestión de proyectos/pedidos |
+| Clientes | Base de datos de clientes |
+| Estados | Seguimiento de flujo (Cotizado → Aprobado → etc.) |
+| PDFs | Generación de cotizaciones PDF |
+| **Dependencias** | Módulo BASE |
+| **Archivos clave** | `Proyecto.js`, `Cotizacion.js`, `proyectoController.js` |
+
+### Módulo FABRICACIÓN
+| Componente | Descripción |
+|------------|-------------|
+| Órdenes de producción | Generar órdenes para taller |
+| Etiquetas | Etiquetas de producción con QR |
+| Optimización de cortes | Tubos, contrapesos, telas |
+| Optimización de madera | Galerías con uniones |
+| PDFs de taller | Orden completa para fabricación |
+| Checklist instalador | Verificación de entrega |
+| **Dependencias** | Módulo BASE, Módulo PROYECTOS |
+| **Archivos clave** | `pdfOrdenFabricacionService.js`, `optimizadorCortesService.js`, `fabricacionController.js` |
+
+### Módulo ALMACÉN
+| Componente | Descripción |
+|------------|-------------|
+| Inventario | Stock de materiales |
+| Sobrantes/Retazos | Gestión de sobrantes útiles |
+| Entradas/Salidas | Registro de movimientos |
+| Reservas | Reservar material para órdenes |
+| Alertas | Notificaciones de stock bajo |
+| **Dependencias** | Módulo BASE |
+| **Archivos clave** | `SobranteMaterial.js`, `sobrantesService.js`, `sobrantes.js` |
+
+### Módulo INSTALACIONES
+| Componente | Descripción |
+|------------|-------------|
+| Calendario | Programación de instalaciones |
+| Rutas | Optimización de rutas diarias |
+| Cuadrillas | Asignación de equipos |
+| Checklist | Verificación en campo |
+| **Dependencias** | Módulo BASE, Módulo PROYECTOS |
+| **Archivos clave** | `InstalacionesInteligentesService.js`, `instalaciones.js` |
+
+### Módulo FINANZAS (Futuro)
+| Componente | Descripción |
+|------------|-------------|
+| Pagos | Registro de pagos y abonos |
+| Cobranza | Seguimiento de cuentas por cobrar |
+| Reportes | Estados financieros básicos |
+| **Dependencias** | Módulo BASE, Módulo PROYECTOS |
+
+### Módulo REPORTES/KPIs (Futuro)
+| Componente | Descripción |
+|------------|-------------|
+| Dashboards | Métricas visuales avanzadas |
+| Producción | Análisis de tiempos y eficiencia |
+| Rentabilidad | Análisis de márgenes por proyecto |
+| **Dependencias** | Módulo BASE + módulos de datos |
+
+---
+
+## 🎯 Paquetes Sugeridos para Renta
+
+| Paquete | Módulos incluidos | Caso de uso |
+|---------|-------------------|-------------|
+| **Básico** | BASE + PROYECTOS | Solo cotizaciones y seguimiento |
+| **Taller** | BASE + ALMACÉN + FABRICACIÓN | Solo producción y materiales |
+| **Completo** | Todos los módulos | Operación integral |
+| **Personalizado** | A elegir | Según necesidad del cliente |
+
+---
+
+## 🔧 Preparación Técnica para Módulos
+
+### Checklist por implementar (Nivel 2):
+- [ ] Agregar `tenantId` a todos los modelos
+- [ ] Crear modelo `Tenant` (empresa cliente)
+- [ ] Crear modelo `ModuloContratado` (módulos activos por tenant)
+- [ ] Middleware de verificación de módulo en rutas
+- [ ] Menú dinámico según módulos contratados
+- [ ] Panel admin para gestionar tenants
+
+### Estado actual de modularidad:
+| Área | Estado | Notas |
+|------|--------|-------|
+| Modelos | ✅ Separados | Cada entidad en su archivo |
+| Rutas | ✅ Separadas | `/api/proyectos`, `/api/sobrantes`, etc. |
+| Servicios | ✅ Independientes | Lógica encapsulada |
+| Frontend | ⚠️ Parcial | Requiere menú dinámico |
+| Base de datos | ⚠️ Sin tenantId | Pendiente Nivel 2 |  
 
 ---
 

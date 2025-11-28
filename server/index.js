@@ -158,6 +158,7 @@ app.use('/api/kpis', require('./routes/kpis')); // ✅ NUEVO - KPIs y Métricas 
 app.use('/api/alertas', require('./routes/alertas'));
 app.use('/api/calculadora', require('./routes/calculadora')); // ✅ NUEVO - Calculadora de Materiales
 app.use('/api/almacen', require('./routes/almacen')); // ✅ NUEVO - Gestión de Almacén e Inventario
+app.use('/api/sobrantes', require('./routes/sobrantes')); // ✅ NUEVO - Gestión de Sobrantes de Materiales
 app.use('/api/etiquetas', require('./routes/etiquetas')); // ✅ NUEVO - Etiquetas de Producción con QR
 app.use('./routes/storage', require('./routes/storage'));
 app.use('./routes/backup', require('./routes/backup'));
