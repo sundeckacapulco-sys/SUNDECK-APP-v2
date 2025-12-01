@@ -120,7 +120,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/sundeck-c
 })
 .then(() => {
   logger.info('Conectado a MongoDB exitosamente');
-  registrarListeners();
+  // registrarListeners(); // 🛑 DESACTIVADO TEMPORALMENTE PARA DEBUG
 })
 .catch(err => logger.error('Error conectando a MongoDB', { error: err.message, stack: err.stack }));
 
@@ -151,7 +151,7 @@ app.use('/api/plantillas-whatsapp', require('./routes/plantillasWhatsApp'));
 // app.use('/api/ai', require('./routes/ai')); // RUTA OBSOLETA - Funcionalidad reemplazada por scheduler.
 app.use('/api/etapas', require('./routes/etapas'));
 app.use('/api/proyectos', require('./routes/proyectos'));
-app.use('/api/proyectos', require('./routes/pagos')); // ✅ NUEVO - Gestión de Pagos y Comprobantes
+app.use('/api/pagos', require('./routes/pagos')); // ✅ CORREGIDO - Gestión de Pagos y Comprobantes
 app.use('/api/proyecto-pedido', require('./routes/proyectoPedido')); // ✅ NUEVO - Modelo Unificado
 app.use('/api/exportacion', require('./routes/exportacion')); // ✅ REACTIVADO - Proyecto Unificado
 app.use('/api/kpis', require('./routes/kpis')); // ✅ NUEVO - KPIs y Métricas de Ventas
@@ -160,8 +160,8 @@ app.use('/api/calculadora', require('./routes/calculadora')); // ✅ NUEVO - Cal
 app.use('/api/almacen', require('./routes/almacen')); // ✅ NUEVO - Gestión de Almacén e Inventario
 app.use('/api/sobrantes', require('./routes/sobrantes')); // ✅ NUEVO - Gestión de Sobrantes de Materiales
 app.use('/api/etiquetas', require('./routes/etiquetas')); // ✅ NUEVO - Etiquetas de Producción con QR
-app.use('./routes/storage', require('./routes/storage'));
-app.use('./routes/backup', require('./routes/backup'));
+app.use('/api/storage', require('./routes/storage')); // ✅ CORREGIDO
+app.use('/api/backup', require('./routes/backup')); // ✅ CORREGIDO
 app.use('/api/fix', require('./routes/fix')); // Ruta temporal para correcciones
 
 // Servir archivos estáticos desde uploads con CORS
@@ -246,11 +246,11 @@ app.listen(PORT, () => {
   });
 
   // Iniciar scheduler de automatización inteligente
-  const scheduler = require('./jobs/scheduler');
-  scheduler.start();
+  // const scheduler = require('./jobs/scheduler'); // 🛑 DESACTIVADO TEMPORALMENTE PARA DEBUG
+  // scheduler.start(); // 🛑 DESACTIVADO TEMPORALMENTE PARA DEBUG
   
-  logger.info('Scheduler de automatización iniciado', {
-    service: 'scheduler',
-    status: scheduler.getStatus()
-  });
+  // logger.info('Scheduler de automatización iniciado', { // 🛑 DESACTIVADO TEMPORALMENTE PARA DEBUG
+  //   service: 'scheduler',
+  //   status: scheduler.getStatus()
+  // });
 });
