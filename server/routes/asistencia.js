@@ -23,42 +23,44 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 
 // POST /api/asistencia/check-in/:proyectoId
 router.post('/check-in/:proyectoId', authOptional, async (req, res) => {
-  try {
-    console.log('🔍 Check-in iniciado:', {
-      proyectoId: req.params.proyectoId,
-      body: req.body,
-      usuario: req.usuario?.nombre || 'Sin autenticar'
-    });
+  const { proyectoId } = req.params;
+  logger.info('Intento de check-in', {
+    script: '/routes/asistencia.js',
+    proyectoId,
+    usuario: req.usuario?.nombre || 'Sin autenticar',
+    body: req.body
+  });
 
-    const { proyectoId } = req.params;
+  try {
     const { ubicacion, foto, observaciones } = req.body;
 
     // Validaciones
     if (!ubicacion || !ubicacion.lat || !ubicacion.lng) {
-      console.log('❌ Validación fallida: ubicación incompleta');
+      logger.warn('Validación fallida: ubicación incompleta', { proyectoId });
       return res.status(400).json({ 
         message: 'Se requiere la ubicación (latitud y longitud)' 
       });
     }
 
-    console.log('🔍 Buscando proyecto:', proyectoId);
+    logger.info('Buscando proyecto para check-in', { proyectoId });
     // Buscar proyecto
     const proyecto = await Proyecto.findById(proyectoId);
     if (!proyecto) {
-      console.log('❌ Proyecto no encontrado');
+      logger.warn('Proyecto no encontrado para check-in', { proyectoId });
       return res.status(404).json({ message: 'Proyecto no encontrado' });
     }
-    console.log('✅ Proyecto encontrado:', proyecto.numero);
+    logger.info('Proyecto encontrado', { proyectoId, numero: proyecto.numero });
 
     // Verificar que no haya check-in previo sin check-out
     if (proyecto.instalacion?.ejecucion?.checkIn?.fecha && 
         !proyecto.instalacion?.ejecucion?.checkOut?.fecha) {
+      logger.warn('Intento de check-in duplicado', { proyectoId });
       return res.status(400).json({ 
         message: 'Ya existe un check-in activo. Debe hacer check-out primero.' 
       });
     }
 
-    console.log('🔍 Calculando distancia al sitio...');
+    logger.info('Calculando distancia al sitio', { proyectoId });
     // Calcular distancia al sitio del cliente
     let distanciaAlSitio = null;
     let enSitio = false;
@@ -72,9 +74,9 @@ router.post('/check-in/:proyectoId', authOptional, async (req, res) => {
         proyecto.cliente.direccion.coordenadas.lng
       );
       enSitio = distanciaAlSitio <= 100; // Dentro de 100 metros
-      console.log('📍 Distancia calculada:', distanciaAlSitio, 'metros');
+      logger.info('Distancia calculada', { proyectoId, distancia: distanciaAlSitio, enSitio });
     } else {
-      console.log('⚠️ No hay coordenadas del cliente para calcular distancia');
+      logger.warn('No hay coordenadas del cliente para calcular distancia', { proyectoId });
     }
 
     const ahora = new Date();
@@ -84,7 +86,7 @@ router.post('/check-in/:proyectoId', authOptional, async (req, res) => {
       hour12: false 
     });
 
-    console.log('🔍 Preparando estructura de instalación...');
+    logger.info('Preparando estructura de instalación para check-in', { proyectoId });
     // Registrar check-in
     if (!proyecto.instalacion) {
       proyecto.instalacion = {};
@@ -136,18 +138,9 @@ router.post('/check-in/:proyectoId', authOptional, async (req, res) => {
       proyecto.actualizado_por = req.usuario._id;
     }
     
-    console.log('💾 Guardando proyecto con check-in...');
+    logger.info('Guardando proyecto con check-in', { proyectoId });
     await proyecto.save();
-    console.log('✅ Proyecto guardado exitosamente');
-
-    logger.info('Check-in registrado exitosamente', {
-      proyectoId,
-      usuario: req.usuario?.nombre || 'Usuario desconocido',
-      ubicacion: `${ubicacion.lat}, ${ubicacion.lng}`,
-      distanciaAlSitio,
-      enSitio,
-      hora: horaActual
-    });
+    logger.info('Proyecto guardado exitosamente con check-in', { proyectoId });
 
     res.json({
       message: 'Check-in registrado exitosamente',
@@ -159,7 +152,6 @@ router.post('/check-in/:proyectoId', authOptional, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ ERROR EN CHECK-IN:', error);
     logger.error('Error en check-in', {
       error: error.message,
       stack: error.stack,
@@ -176,12 +168,20 @@ router.post('/check-in/:proyectoId', authOptional, async (req, res) => {
 
 // POST /api/asistencia/check-out/:proyectoId
 router.post('/check-out/:proyectoId', auth, async (req, res) => {
+  const { proyectoId } = req.params;
+  logger.info('Intento de check-out', {
+    script: '/routes/asistencia.js',
+    proyectoId,
+    usuario: req.usuario.nombre,
+    body: req.body
+  });
+
   try {
-    const { proyectoId } = req.params;
     const { ubicacion, foto, observaciones, trabajoCompletado } = req.body;
 
     // Validaciones
     if (!ubicacion || !ubicacion.lat || !ubicacion.lng) {
+      logger.warn('Validación fallida: ubicación incompleta para check-out', { proyectoId });
       return res.status(400).json({ 
         message: 'Se requiere la ubicación (latitud y longitud)' 
       });
@@ -190,11 +190,13 @@ router.post('/check-out/:proyectoId', auth, async (req, res) => {
     // Buscar proyecto
     const proyecto = await Proyecto.findById(proyectoId);
     if (!proyecto) {
+      logger.warn('Proyecto no encontrado para check-out', { proyectoId });
       return res.status(404).json({ message: 'Proyecto no encontrado' });
     }
 
     // Verificar que exista check-in
     if (!proyecto.instalacion?.ejecucion?.checkIn?.fecha) {
+      logger.warn('Intento de check-out sin check-in previo', { proyectoId });
       return res.status(400).json({ 
         message: 'No existe check-in registrado. Debe hacer check-in primero.' 
       });
@@ -202,6 +204,7 @@ router.post('/check-out/:proyectoId', auth, async (req, res) => {
 
     // Verificar que no haya check-out previo
     if (proyecto.instalacion?.ejecucion?.checkOut?.fecha) {
+      logger.warn('Intento de check-out duplicado', { proyectoId });
       return res.status(400).json({ 
         message: 'Ya existe un check-out registrado para este check-in.' 
       });
@@ -311,6 +314,7 @@ router.get('/estado/:proyectoId', auth, async (req, res) => {
       .select('instalacion.ejecucion.checkIn instalacion.ejecucion.checkOut instalacion.ejecucion.metricas instalacion.programacion');
 
     if (!proyecto) {
+      logger.warn('Proyecto no encontrado al obtener estado de asistencia', { proyectoId });
       return res.status(404).json({ message: 'Proyecto no encontrado' });
     }
 
@@ -372,6 +376,11 @@ router.get('/reporte-diario/:fecha', auth, async (req, res) => {
       eficientes: reporte.filter(r => r.metricas?.fueronEficientes).length,
       promedioTiempo: reporte.reduce((sum, r) => sum + (r.metricas?.tiempoEnSitio || 0), 0) / reporte.length || 0
     };
+
+    logger.info('Reporte diario de asistencia generado', {
+      fecha,
+      totalRegistros: stats.total
+    });
 
     res.json({
       fecha,
