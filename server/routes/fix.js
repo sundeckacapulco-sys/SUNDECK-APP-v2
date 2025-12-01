@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const fixCotizaciones = require('../scripts/fixCotizaciones');
+const fixCotizaciones = require('../scripts/migraciones/fixCotizaciones');
 const logger = require('../config/logger');
 
 // Endpoint temporal para corregir cotizaciones

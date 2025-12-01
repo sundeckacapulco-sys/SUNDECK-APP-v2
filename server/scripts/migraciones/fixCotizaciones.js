@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const Cotizacion = require('../models/Cotizacion');
-const logger = require('../config/logger');
+const Cotizacion = require('../../models/Cotizacion');
+const logger = require('../../config/logger');
 
 async function fixCotizaciones() {
   try {

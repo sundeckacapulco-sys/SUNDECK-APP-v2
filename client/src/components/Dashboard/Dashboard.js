@@ -96,7 +96,20 @@ const Dashboard = () => {
     );
   }
 
-  const { pipeline, metricas, seguimientosPendientes, actividadReciente, citasHoy, supervisionEnVivo, cierresMensuales } = dashboardData;
+  // Valores por defecto para evitar errores cuando el backend devuelve datos vacíos
+  const pipeline = dashboardData.pipeline || {
+    nuevos: 0, contactados: 0, citasAgendadas: 0, cotizados: 0,
+    ventasCerradas: 0, pedidos: 0, fabricacion: 0, instalacion: 0, entregados: 0
+  };
+  const metricas = dashboardData.metricas || {
+    montoVentas: 0, tasaConversion: 0, prospectosTotales: 0,
+    cotizacionesPendientes: 0, pedidosEnProceso: 0
+  };
+  const seguimientosPendientes = dashboardData.seguimientosPendientes || [];
+  const actividadReciente = dashboardData.actividadReciente || [];
+  const citasHoy = dashboardData.citasHoy || [];
+  const supervisionEnVivo = dashboardData.supervisionEnVivo || [];
+  const cierresMensuales = dashboardData.cierresMensuales || [];
 
   // 🎨 Paleta de colores SUNDECK - Profesional y armónica
   const COLORS_SUNDECK = {
