@@ -53,6 +53,10 @@ class PDFOrdenProduccionService {
         doc.addPage();
         this.generarPaginaDetallePiezas(doc, datosCompletos);
         
+        // PÁGINA FINAL (OBLIGATORIA): CHECKLIST DE ENTREGA PARA INSTALACIÓN
+        doc.addPage();
+        this.generarPaginaChecklistInstalador(doc, datosCompletos);
+        
         doc.end();
         
         logger.info('PDF de orden con optimización generado', {
@@ -88,7 +92,23 @@ class PDFOrdenProduccionService {
         
       const resumenTelas = datosOrden.optimizacion.resumenTelas || {};
       
-      return { optimizacionTubos, resumenTelas };
+      // Calcular madera y escuadras aunque venga pre-calculado
+      const piezasConGaleria = (datosOrden.piezas || [])
+        .filter(p => p.galeria || p.conGaleria || p.llevaGaleria)
+        .map(p => ({
+          numero: p.numero,
+          ubicacion: p.ubicacion,
+          ancho: p.ancho
+        }));
+      
+      let optimizacionMadera = null;
+      let calculoEscuadras = null;
+      if (piezasConGaleria.length > 0) {
+        optimizacionMadera = OptimizadorCortesService.optimizarCortesMadera(piezasConGaleria, []);
+        calculoEscuadras = OptimizadorCortesService.calcularEscuadrasMultiple(piezasConGaleria);
+      }
+      
+      return { optimizacionTubos, resumenTelas, optimizacionMadera, calculoEscuadras };
     }
 
     const { piezas } = datosOrden;
@@ -146,7 +166,21 @@ class PDFOrdenProduccionService {
       });
       const resumenTelas = Array.from(telasMap.values());
 
-      return { optimizacionTubos, resumenTelas };
+      // 3. Optimización de Madera (Galerías)
+      const piezasConGaleria = piezas
+        .filter(p => p.galeria || p.conGaleria || p.llevaGaleria)
+        .map(p => ({
+          numero: p.numero,
+          ubicacion: p.ubicacion,
+          ancho: p.ancho
+        }));
+      
+      let optimizacionMadera = null;
+      if (piezasConGaleria.length > 0) {
+        optimizacionMadera = OptimizadorCortesService.optimizarCortesMadera(piezasConGaleria, []);
+      }
+
+      return { optimizacionTubos, resumenTelas, optimizacionMadera };
 
     } catch (error) {
       logger.error('Error preparando datos de optimización para PDF', {
@@ -154,7 +188,7 @@ class PDFOrdenProduccionService {
         error: error.message,
         stack: error.stack
       });
-      return { optimizacionTubos: null, resumenTelas: [] };
+      return { optimizacionTubos: null, resumenTelas: [], optimizacionMadera: null };
     }
   }
   
@@ -271,20 +305,49 @@ class PDFOrdenProduccionService {
                 const tituloGrupo = `GRUPO ${grupo.letra} – Corte único vertical: ${grupo.longitudCorte.toFixed(2)} ml`;
                 doc.fontSize(8).font('Helvetica-Bold').fillColor('#333').text(tituloGrupo, currentX, doc.y);
                 
-                // Detalles del grupo
-                doc.fontSize(7).font('Helvetica').fillColor('#555').text(`   Lienzos incluidos (Ancho acumulado: ${grupo.anchoAcumulado.toFixed(2)}m):`, currentX, doc.y);
+                // Detalles del grupo con sobrante
+                const sobranteInfo = grupo.sobranteAncho >= 0.30 
+                  ? ` >> Sobrante: ${grupo.sobranteAncho.toFixed(2)}m (almacén)`
+                  : '';
+                doc.fontSize(7).font('Helvetica').fillColor('#555').text(`   Lienzos incluidos (Ancho acumulado: ${grupo.anchoAcumulado.toFixed(2)}m):${sobranteInfo}`, currentX, doc.y);
                 
                 grupo.piezas.forEach(p => {
                    const ubicacion = p.ubicacion ? `(${p.ubicacion})` : '';
                    
-                   const anchoDisplay = (p.anchoOriginal || p.ancho).toFixed(2);
-                   const altoDisplay = (p.altoOriginal || p.alto).toFixed(2);
-                   const infoRotacion = p.rotada ? ' [ROTADA ↻]' : '';
-                   const anchoUtil = p.rotada ? ` | Ancho útil: ${(p.ancho).toFixed(2)}m` : '';
+                   // CORRECCIÓN: Siempre mostrar dimensiones originales (Ancho x Alto) del levantamiento
+                   // Si la pieza fue rotada, el optimizador puede haber intercambiado ancho/alto.
+                   // Debemos buscar las originales o inferirlas.
+                   let displayAncho = p.ancho;
+                   let displayAlto = p.alto;
+
+                   if (p.anchoOriginal && p.altoOriginal) {
+                       displayAncho = p.anchoOriginal;
+                       displayAlto = p.altoOriginal;
+                   } 
                    
-                   // Formato explícito para evitar confusión: Ancho: X | Alto: Y
-                   doc.text(`   - Ancho: ${anchoDisplay}m | Alto: ${altoDisplay}m${infoRotacion} ${ubicacion}${anchoUtil}`, currentX + 10, doc.y);
+                   // CORRECCIÓN V4: Formato explícito para taller
+                   // Mostrar cuánto CORTAR (Largo) y las medidas originales de referencia.
+                   // Esto elimina la confusión de si Ancho es Alto o viceversa.
+                   
+                   const largoCorte = p.alto; // En el optimizador, 'alto' es la dimensión longitudinal (corte)
+                   const anchoOcupado = p.ancho; // En el optimizador, 'ancho' es lo que ocupa en el rollo
+                   
+                   const medidasOriginales = `${(p.anchoOriginal || 0).toFixed(2)}m(A) x ${(p.altoOriginal || 0).toFixed(2)}m(H)`;
+                   const infoRotacion = p.rotada ? ' [ROTADA ↻]' : '';
+                   
+                   // Formato: CORTAR: X.XXm | (Ref: Ancho x Alto)
+                   doc.text(`   - CORTAR: ${largoCorte.toFixed(2)}m | Ref: ${medidasOriginales}${infoRotacion} ${ubicacion}`, currentX + 10, doc.y);
                 });
+                
+                // Mostrar observaciones si hay diferencias de altura
+                if (grupo.requiereRecorte && grupo.observaciones && grupo.observaciones.length > 0) {
+                  doc.fontSize(7).font('Helvetica-Bold').fillColor('#CC6600');
+                  grupo.observaciones.forEach(obs => {
+                    doc.text(`      ⚠ ${obs.ubicacion}: ${obs.mensaje}`, currentX + 10, doc.y);
+                  });
+                  doc.fillColor('#000').font('Helvetica');
+                }
+                
                 doc.moveDown(0.4);
                 
                 // Track bottom of columns
@@ -312,7 +375,50 @@ class PDFOrdenProduccionService {
       }
     }
 
-    // 3. RECOMENDACIONES DE OPTIMIZACIÓN
+    // 3. OPTIMIZACIÓN DE MADERA (GALERÍAS)
+    const { optimizacionMadera } = datos;
+    if (optimizacionMadera && optimizacionMadera.planCortes && optimizacionMadera.planCortes.length > 0) {
+      if (doc.y > 550) { doc.addPage(); doc.y = 50; }
+      
+      doc.moveDown(0.5);
+      doc.fontSize(10).font('Helvetica-Bold').fillColor('#000').text('OPTIMIZACION DE MADERA (GALERIAS)', 50, doc.y);
+      doc.moveDown(0.3);
+      doc.fontSize(7).font('Helvetica').fillColor('#666').text(`Tabla estandar: ${optimizacionMadera.configuracion.longitudTabla}m | Sobrante minimo util: ${optimizacionMadera.configuracion.sobranteMinimoUtil}m`, 50, doc.y);
+      doc.fillColor('#000');
+      doc.moveDown(0.5);
+      
+      // Resumen rápido
+      const resMadera = optimizacionMadera.resumen;
+      doc.fontSize(8).font('Helvetica-Bold').text(`Resumen: ${resMadera.tablasNuevasRequeridas} tabla(s) nueva(s) | ${resMadera.piezasConUnion} union(es) | Sobrantes utiles: ${resMadera.totalSobrantesUtiles.toFixed(2)}m`, 60, doc.y);
+      doc.moveDown(0.5);
+      
+      // Detalle por pieza
+      doc.fontSize(8).font('Helvetica');
+      optimizacionMadera.planCortes.forEach(corte => {
+        if (doc.y > 700) { doc.addPage(); doc.y = 50; }
+        
+        const unionTag = corte.esUnion ? ' [UNION]' : '';
+        const fuentesStr = corte.fuentes.map(f => {
+          if (f.tipo === 'sobrante') return `Sobrante ${f.longitud.toFixed(2)}m`;
+          return `Tabla nueva`;
+        }).join(' + ');
+        
+        let sobranteInfo = '';
+        if (corte.sobrante) {
+          const longRedondeada = Math.round(corte.sobrante.longitud * 100) / 100;
+          sobranteInfo = corte.sobrante.util 
+            ? ` >> Sobrante util: ${longRedondeada.toFixed(2)}m`
+            : ` >> Desperdicio: ${longRedondeada.toFixed(2)}m`;
+        }
+        
+        doc.text(`   - Pieza #${corte.pieza} (${corte.ubicacion}): ${corte.anchoRequerido.toFixed(2)}m${unionTag} << ${fuentesStr}${sobranteInfo}`, 60, doc.y);
+        doc.moveDown(0.3);
+      });
+      
+      doc.moveDown(0.5);
+    }
+
+    // 4. RECOMENDACIONES DE OPTIMIZACIÓN
     const recomendaciones = datos.recomendaciones || [];
     if (recomendaciones.length > 0) {
        if (doc.y > 650) { doc.addPage(); doc.y = 50; }
@@ -384,7 +490,10 @@ class PDFOrdenProduccionService {
         `${pieza.ancho}×${pieza.alto}m`, 
         pieza.motorizado ? 'Motorizado' : 'Manual', 
         pieza.control ? `Control: ${pieza.control}` : null, 
-        pieza.tipoMando ? `Mando: ${pieza.tipoMando}` : null, // Nuevo campo
+        pieza.tipoMando ? `Mando: ${pieza.tipoMando}` : null, 
+        pieza.producto ? `Producto: ${pieza.producto}` : null, // Producto
+        pieza.modelo ? `Modelo: ${pieza.modelo}` : (pieza.modeloCodigo ? `Modelo: ${pieza.modeloCodigo}` : null), // Modelo
+        pieza.tipoContrapeso ? `CP: ${pieza.tipoContrapeso}` : null, 
         pieza.color ? `Color: ${pieza.color}` : null, 
         pieza.galeriaCompartida ? `[GAL-${pieza.grupoGaleria || 'A'}]` : null, 
         pieza.sistemaSkyline ? '[SKYLINE]' : null, 
@@ -408,43 +517,251 @@ class PDFOrdenProduccionService {
     const { proyecto, piezas } = datos;
     doc.fontSize(16).font('Helvetica-Bold').text('ETIQUETAS DE PRODUCCIÓN', { align: 'center' });
     doc.moveDown(0.3);
-    doc.fontSize(10).font('Helvetica').text(`Orden: ${proyecto.numero}`, { align: 'center' });
+    doc.fontSize(10).font('Helvetica').text(`Orden: ${proyecto.numero} | Cortar por línea punteada`, { align: 'center' });
     doc.moveDown(1);
-    const etiquetaWidth = 250, etiquetaHeight = 120, marginX = 50, marginY = doc.y, spacingX = 20, spacingY = 15;
+    
+    // Formato horizontal: 250x80 puntos - 2 por fila
+    const etiquetaWidth = 250;
+    const etiquetaHeight = 80;
+    const marginX = 50;
+    let marginY = doc.y;
+    const spacingX = 12;
+    const spacingY = 10;
+    const colIzqWidth = 55; // Ancho columna izquierda (número grande)
     
     piezas.forEach((pieza, index) => {
-      const col = index % 2, row = Math.floor(index / 2);
-      const x = marginX + (col * (etiquetaWidth + spacingX)), y = marginY + (row * (etiquetaHeight + spacingY));
-      if (y + etiquetaHeight > 700) { doc.addPage(); doc.y = 50; return; }
-      doc.save().dash(3, { space: 3 }).rect(x, y, etiquetaWidth, etiquetaHeight).stroke().undash().restore();
-      let currentY = y + 8;
-      doc.fontSize(9).font('Helvetica-Bold').text(`ORDEN: ${proyecto.numero}`, x + 10, currentY); currentY += 14;
-      doc.fontSize(8).font('Helvetica-Bold').fillColor('#0066CC').text(`PIEZA ${pieza.numero} de ${piezas.length}`, x + 10, currentY).fillColor('#000'); currentY += 12;
-      doc.fontSize(7).font('Helvetica');
-      doc.text(`Ubicación: ${pieza.ubicacion}`, x + 10, currentY); currentY += 10;
-      doc.text(`Producto: ${pieza.producto || 'N/A'} ${pieza.color || ''}`, x + 10, currentY); currentY += 10;
-      doc.text(`Dimensiones: ${pieza.ancho}m × ${pieza.alto}m`, x + 10, currentY);
-      const qrSize = 60, qrX = x + etiquetaWidth - qrSize - 10, qrY = y + 10;
-      doc.rect(qrX, qrY, qrSize, qrSize).stroke();
-      doc.fontSize(6).fillColor('#999').text('QR', qrX + 25, qrY + 25).fillColor('#000');
+      const col = index % 2;
+      const row = Math.floor(index / 2) % 4; // 4 filas por página
+      
+      // Nueva página si es necesario
+      if (index > 0 && index % 8 === 0) {
+        doc.addPage();
+        marginY = 80;
+      }
+      
+      const x = marginX + (col * (etiquetaWidth + spacingX));
+      const y = marginY + (row * (etiquetaHeight + spacingY));
+      
+      // Borde punteado para cortar
+      doc.save()
+        .dash(3, { space: 3 })
+        .rect(x, y, etiquetaWidth, etiquetaHeight)
+        .stroke()
+        .undash()
+        .restore();
+      
+      // Línea divisoria vertical entre columnas
+      doc.save()
+        .moveTo(x + colIzqWidth, y + 5)
+        .lineTo(x + colIzqWidth, y + etiquetaHeight - 5)
+        .stroke()
+        .restore();
+      
+      // === COLUMNA IZQUIERDA: Número grande + ubicación ===
+      const colIzqX = x + 5;
+      
+      // Número de partida MUY GRANDE
+      doc.fontSize(28)
+        .font('Helvetica-Bold')
+        .text(String(pieza.numero), colIzqX, y + 8, { width: colIzqWidth - 10, align: 'center' });
+      
+      // "de X" pequeño
+      doc.fontSize(8)
+        .font('Helvetica')
+        .text(`de ${piezas.length}`, colIzqX, y + 38, { width: colIzqWidth - 10, align: 'center' });
+      
+      // Ubicación abreviada
+      const ubicacionAbrev = this.abreviarUbicacion(pieza.ubicacion || '');
+      doc.fontSize(7)
+        .font('Helvetica-Bold')
+        .text(ubicacionAbrev, colIzqX, y + 50, { width: colIzqWidth - 10, align: 'center' });
+      
+      // === COLUMNA DERECHA: Medidas + detalles ===
+      const colDerX = x + colIzqWidth + 8;
+      const colDerWidth = etiquetaWidth - colIzqWidth - 15;
+      let lineY = y + 6;
+      
+      // MEDIDAS EN NEGRITA GRANDE
+      const medidas = `${pieza.ancho || 0} × ${pieza.alto || 0}m`;
+      doc.fontSize(12)
+        .font('Helvetica-Bold')
+        .text(medidas, colDerX, lineY, { width: colDerWidth });
+      lineY += 14;
+      
+      // Tela/Color
+      const tela = pieza.telaMarca || pieza.tela || pieza.color || '';
+      doc.fontSize(8)
+        .font('Helvetica')
+        .text(tela, colDerX, lineY, { width: colDerWidth });
+      lineY += 10;
+      
+      // Cliente
+      doc.fontSize(7)
+        .text(proyecto.cliente?.nombre || '', colDerX, lineY, { width: colDerWidth });
+      lineY += 9;
+      
+      // Control (motorizado con lado, o cadena con lado)
+      let control = '';
+      const lado = pieza.ladoCadena || pieza.ladoControl || pieza.ladoMotor || pieza.tipoControl || '';
+      const ladoAbrev = lado.toLowerCase().includes('izq') ? 'IZQ' : 
+                       lado.toLowerCase().includes('der') ? 'DER' : 
+                       lado ? lado.toUpperCase() : '';
+      
+      if (pieza.motorizado) {
+        // Motorizado siempre indica lado del motor para conexiones
+        control = ladoAbrev ? `MOTOR ${ladoAbrev}` : 'MOTORIZADO';
+      } else {
+        // Cadena con lado
+        control = ladoAbrev ? `CADENA ${ladoAbrev}` : '';
+      }
+      
+      // Galería y Tabla
+      const tieneGaleria = pieza.galeria || pieza.conGaleria || pieza.llevaGaleria;
+      const tieneTabla = tieneGaleria || pieza.tabla || pieza.conTabla || pieza.llevaTabla;
+      
+      let extras = [];
+      if (tieneGaleria) {
+        extras.push('GALERIA');
+        // Calcular escuadras para esta pieza
+        const escuadras = OptimizadorCortesService.calcularEscuadras(pieza.ancho || 0);
+        extras.push(`${escuadras.total} ESC`);
+      }
+      if (tieneTabla && !tieneGaleria) extras.push('TABLA');
+      
+      const instalacion = `${pieza.tipoInstalacion || ''} ${pieza.tipoFijacion || ''}`.trim();
+      
+      // Línea de control + instalación
+      doc.fontSize(7)
+        .text(`${control}  |  ${instalacion}`, colDerX, lineY, { width: colDerWidth });
+      lineY += 9;
+      
+      // Línea de extras (galería/tabla) si hay
+      if (extras.length > 0) {
+        doc.fontSize(7)
+          .font('Helvetica-Bold')
+          .fillColor('#CC0000')
+          .text(extras.join(' + '), colDerX, lineY, { width: colDerWidth })
+          .fillColor('#000')
+          .font('Helvetica');
+        lineY += 9;
+      }
+      
+      // Observaciones (si hay espacio y hay texto)
+      const obs = pieza.observacionesTecnicas || pieza.observaciones || '';
+      if (obs && lineY < y + etiquetaHeight - 10) {
+        doc.fontSize(6)
+          .fillColor('#666')
+          .text(obs.substring(0, 40), colDerX, lineY, { width: colDerWidth })
+          .fillColor('#000');
+      }
+      
+      // Número de orden pequeño en esquina inferior derecha
+      doc.fontSize(5)
+        .fillColor('#999')
+        .text(proyecto.numero, x + etiquetaWidth - 60, y + etiquetaHeight - 10, { width: 55, align: 'right' })
+        .fillColor('#000');
     });
+  }
+  
+  // Helper para abreviar ubicaciones
+  static abreviarUbicacion(ubicacion) {
+    if (!ubicacion) return '';
+    
+    const abreviaturas = {
+      'recamara': 'REC', 'recámara': 'REC',
+      'habitacion': 'HAB', 'habitación': 'HAB',
+      'principal': 'PPAL', 'secundaria': 'SEC',
+      'sala': 'SALA', 'comedor': 'COM',
+      'cocina': 'COC', 'baño': 'BAÑO',
+      'estudio': 'EST', 'oficina': 'OFIC',
+      'terraza': 'TERR', 'balcon': 'BALC',
+      'ventana': 'VENT', 'puerta': 'PTA',
+      'izquierda': 'IZQ', 'derecha': 'DER'
+    };
+    
+    let resultado = ubicacion.toUpperCase();
+    Object.entries(abreviaturas).forEach(([palabra, abrev]) => {
+      resultado = resultado.replace(new RegExp(palabra, 'gi'), abrev);
+    });
+    
+    return resultado.length > 10 ? resultado.substring(0, 10) : resultado;
   }
 
   static generarPaginaDetallePiezas(doc, datos) {
+    const { proyecto, piezas } = datos;
+    
     doc.fontSize(14).font('Helvetica-Bold').text('DETALLE DE FABRICACIÓN POR PIEZA', { align: 'center' });
+    doc.moveDown(0.3);
+    doc.fontSize(9).font('Helvetica').text(`Orden: ${proyecto.numero}`, { align: 'center' });
     doc.moveDown(0.8);
-    datos.piezas.forEach((pieza, index) => {
-      if (doc.y > 620) { doc.addPage(); doc.y = 50; }
-      doc.fontSize(12).font('Helvetica-Bold').text(`PIEZA #${pieza.numero}`, 50, doc.y);
-      doc.fontSize(10).font('Helvetica').text(`${pieza.ubicacion}`, 150, doc.y - 12);
-      doc.moveDown(0.5);
-      doc.fontSize(9).font('Helvetica-Bold').text(`Medidas: ${pieza.ancho} × ${pieza.alto}m`, 60, doc.y);
-      doc.moveDown(0.5);
-      // ... (resto de la lógica de detalle)
-      doc.moveDown(0.5);
-      doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-      doc.moveDown(0.5);
+    
+    const marginLeft = 50;
+    
+    // === LISTADO DE PIEZAS (compacto) ===
+    piezas.forEach((pieza, index) => {
+      // Verificar si necesita nueva página
+      if (doc.y > 620) { 
+        doc.addPage(); 
+        doc.y = 50;
+      }
+      
+      const startY = doc.y;
+      const col2X = 300;
+      
+      // Encabezado de pieza
+      doc.rect(marginLeft, startY, 500, 18).fill('#f0f0f0');
+      doc.fillColor('#000').fontSize(10).font('Helvetica-Bold')
+        .text(`#${pieza.numero}`, marginLeft + 5, startY + 4);
+      doc.fontSize(9).font('Helvetica')
+        .text(`${pieza.ubicacion || ''}`, marginLeft + 35, startY + 5);
+      doc.fontSize(10).font('Helvetica-Bold')
+        .text(`${pieza.ancho} × ${pieza.alto}m`, col2X + 120, startY + 4);
+      
+      let y = startY + 22;
+      
+      // Especificaciones en una línea compacta
+      const tieneGaleria = pieza.galeria || pieza.conGaleria || pieza.llevaGaleria;
+      const producto = pieza.producto || pieza.sistema || 'Enrollable';
+      const tela = `${pieza.tela || ''} ${pieza.color || ''}`.trim() || '-';
+      
+      // Lado de control (IZQ/DER)
+      const lado = pieza.ladoCadena || pieza.ladoControl || pieza.ladoMotor || '';
+      const ladoAbrev = lado.toLowerCase().includes('izq') ? 'IZQ' : 
+                       lado.toLowerCase().includes('der') ? 'DER' : '';
+      const control = pieza.motorizado ? `MOTOR ${ladoAbrev}`.trim() : `Manual ${ladoAbrev}`.trim();
+      
+      doc.fontSize(8).font('Helvetica');
+      doc.text(`${producto}  |  Tela: ${tela}  |  Control: ${control}  |  Galería: ${tieneGaleria ? 'SÍ' : 'NO'}  |  Inst: ${pieza.tipoInstalacion || '-'}`, marginLeft, y);
+      
+      y += 12;
+      doc.moveTo(marginLeft, y).lineTo(550, y).stroke();
+      doc.y = y + 5;
     });
+    
+    // === ESPACIO ÚNICO PARA ANOTACIONES DEL ARMADOR (al final) ===
+    doc.moveDown(1);
+    
+    // Si queda poco espacio, agregar nueva página
+    if (doc.y > 500) {
+      doc.addPage();
+      doc.y = 50;
+    }
+    
+    let y = doc.y;
+    
+    doc.fontSize(11).font('Helvetica-Bold').text('ANOTACIONES DEL ARMADOR', marginLeft, y);
+    doc.fontSize(8).font('Helvetica').fillColor('#666').text('(Cálculos de corte, observaciones de fabricación)', marginLeft, y + 14);
+    doc.fillColor('#000');
+    y += 35;
+    
+    // Líneas para escribir (sin cuadro, espacio libre)
+    doc.strokeColor('#ccc');
+    for (let i = 0; i < 8; i++) {
+      doc.moveTo(marginLeft, y + (i * 22)).lineTo(marginLeft + 500, y + (i * 22)).stroke();
+    }
+    doc.strokeColor('#000');
+    
+    doc.y = y + 180;
   }
   
   static dibujarSeccion(doc, titulo) {
@@ -453,6 +770,149 @@ class PDFOrdenProduccionService {
     doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
     doc.moveDown(0.5);
     doc.fillColor('#000000');
+  }
+  
+  /**
+   * PÁGINA FINAL OBLIGATORIA: Checklist de Entrega para Instalación
+   * Checklist superficial para confirmar que el instalador recibe todos los elementos
+   * NO incluye materiales internos de fabricación (insertos, cinta doble cara, etc.)
+   */
+  static generarPaginaChecklistInstalador(doc, datos) {
+    const { proyecto, piezas } = datos;
+    
+    // Título principal
+    doc.fontSize(18).font('Helvetica-Bold').text('CHECKLIST DE ENTREGA PARA INSTALACIÓN', { align: 'center' });
+    doc.moveDown(0.5);
+    
+    // Subtítulo con número de orden
+    doc.fontSize(11).font('Helvetica').text(`Orden: ${proyecto.numero}`, { align: 'center' });
+    doc.moveDown(1.5);
+    
+    // Calcular datos para el checklist
+    const totalPersianas = piezas.length;
+    const piezasConGaleria = piezas.filter(p => p.galeria || p.conGaleria || p.llevaGaleria);
+    const tieneGalerias = piezasConGaleria.length > 0;
+    const tieneMotores = piezas.some(p => p.motorizado);
+    const cantidadMotores = piezas.filter(p => p.motorizado).length;
+    const cantidadManuales = piezas.filter(p => !p.motorizado).length;
+    
+    // Calcular total de escuadras
+    let totalEscuadras = 0;
+    if (tieneGalerias) {
+      piezasConGaleria.forEach(p => {
+        const esc = OptimizadorCortesService.calcularEscuadras(p.ancho || 0);
+        totalEscuadras += esc.total;
+      });
+    }
+    
+    // Configuración de checkbox
+    const checkboxSize = 14;
+    const marginLeft = 60;
+    const textOffset = 25;
+    let y = doc.y;
+    
+    // Función para dibujar checkbox
+    const dibujarCheckbox = (yPos, texto, nota = '') => {
+      // Cuadro del checkbox
+      doc.rect(marginLeft, yPos, checkboxSize, checkboxSize).stroke();
+      
+      // Texto principal
+      doc.fontSize(11).font('Helvetica').text(texto, marginLeft + textOffset, yPos + 2);
+      
+      // Nota adicional si existe
+      if (nota) {
+        doc.fontSize(9).fillColor('#666').text(nota, marginLeft + textOffset, yPos + 16).fillColor('#000');
+        return 35; // Altura con nota
+      }
+      return 25; // Altura sin nota
+    };
+    
+    // Lista de items del checklist
+    const items = [
+      { 
+        texto: `Todas las persianas del proyecto incluidas`, 
+        nota: `(Total: ${totalPersianas} persianas)` 
+      },
+      { 
+        texto: `Galerías incluidas`, 
+        nota: tieneGalerias ? `(Total: ${piezasConGaleria.length} galería(s))` : '(No aplica en este proyecto)' 
+      },
+      { 
+        texto: `Escuadras para galerías`, 
+        nota: tieneGalerias ? `(Total: ${totalEscuadras} escuadras)` : '(No aplica en este proyecto)' 
+      },
+      { 
+        texto: `Soportes completos`, 
+        nota: '(Cantidad correcta por persiana)' 
+      },
+      { 
+        texto: `Mecanismos correctos`, 
+        nota: `(${cantidadManuales > 0 ? cantidadManuales + ' manual(es)' : ''}${cantidadManuales > 0 && cantidadMotores > 0 ? ' / ' : ''}${cantidadMotores > 0 ? cantidadMotores + ' motorizado(s)' : ''})` 
+      },
+      { 
+        texto: `Motores incluidos`, 
+        nota: tieneMotores ? `(Total: ${cantidadMotores} motor(es))` : '(No aplica en este proyecto)' 
+      },
+      { 
+        texto: `Controles incluidos`, 
+        nota: tieneMotores ? '(Monocanal o multicanal según especificación)' : '(No aplica - proyecto manual)' 
+      },
+      { 
+        texto: `Tapas laterales`, 
+        nota: '(Persiana y/o galería según corresponda)' 
+      },
+      { 
+        texto: `Tornillería y taquetes completos`, 
+        nota: '' 
+      },
+      { 
+        texto: `Etiquetas colocadas en cada persiana`, 
+        nota: '' 
+      },
+      { 
+        texto: `Empaque correcto y en buen estado`, 
+        nota: '' 
+      }
+    ];
+    
+    // Dibujar cada item
+    items.forEach(item => {
+      const altura = dibujarCheckbox(y, item.texto, item.nota);
+      y += altura;
+    });
+    
+    // Espaciado antes de observaciones
+    y += 30;
+    
+    // OBSERVACIONES DEL INSTALADOR
+    doc.fontSize(12).font('Helvetica-Bold').text('OBSERVACIONES DEL INSTALADOR', marginLeft, y);
+    y += 20;
+    
+    // Líneas para escribir (4 líneas)
+    for (let i = 0; i < 4; i++) {
+      doc.moveTo(marginLeft, y).lineTo(550, y).stroke();
+      y += 25;
+    }
+    
+    y += 20;
+    
+    // OBSERVACIONES DEL TALLER
+    doc.fontSize(12).font('Helvetica-Bold').text('OBSERVACIONES DEL TALLER', marginLeft, y);
+    y += 20;
+    
+    // Líneas para escribir (4 líneas)
+    for (let i = 0; i < 4; i++) {
+      doc.moveTo(marginLeft, y).lineTo(550, y).stroke();
+      y += 25;
+    }
+    
+    // Pie de página
+    doc.fontSize(8).fillColor('#999').text(
+      'Este checklist confirma la entrega de elementos visibles para instalación. No incluye materiales internos de fabricación.',
+      marginLeft, 
+      700,
+      { width: 490, align: 'center' }
+    ).fillColor('#000');
   }
 }
 

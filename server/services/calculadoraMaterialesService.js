@@ -638,6 +638,7 @@ class CalculadoraMaterialesService {
     const alto = Number(pieza.alto) || 0;
     const area = pieza.area ?? (ancho * alto);
     return {
+      ...pieza,
       Math: global.Math,
       Number: global.Number,
       ancho,
@@ -647,6 +648,7 @@ class CalculadoraMaterialesService {
       galeria: pieza.galeria,
       sistema: pieza.sistema,
       producto: pieza.producto,
+      tipoContrapeso: pieza.tipoContrapeso || null, // Evitar ReferenceError en pruebas
       rotada: Boolean(pieza.rotada),
       rotacionForzada: Boolean(pieza.rotacionForzada),
       rotacionPermitida: Boolean(pieza.rotacionPermitida),

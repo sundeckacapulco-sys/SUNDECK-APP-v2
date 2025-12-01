@@ -225,6 +225,11 @@ const proyectoSchema = new mongoose.Schema({
           default: null,
           description: '🎮 Tipo de mando para motorización (Monocanal, Multicanal, Pared, App)'
         },
+        tipoContrapeso: {
+          type: String,
+          default: 'Ovalado',
+          description: '⚖️ Tipo de contrapeso (Ovalado, Plano, Forrado)'
+        },
         instalacion: String,
         fijacion: String,
         caida: String,
@@ -1100,53 +1105,166 @@ proyectoSchema.methods.toExportData = function() {
 
 // ===== MÉTODOS INTELIGENTES DE PRODUCCIÓN E INSTALACIÓN =====
 
+// Helper: Abreviar ubicación para etiquetas compactas
+proyectoSchema.methods._abreviarUbicacion = function(ubicacion) {
+  if (!ubicacion) return '';
+  
+  const abreviaturas = {
+    'recamara': 'REC',
+    'recámara': 'REC',
+    'habitacion': 'HAB',
+    'habitación': 'HAB',
+    'principal': 'PPAL',
+    'secundaria': 'SEC',
+    'secundario': 'SEC',
+    'sala': 'SALA',
+    'comedor': 'COM',
+    'cocina': 'COC',
+    'baño': 'BAÑO',
+    'bano': 'BAÑO',
+    'estudio': 'EST',
+    'oficina': 'OFIC',
+    'terraza': 'TERR',
+    'balcon': 'BALC',
+    'balcón': 'BALC',
+    'ventana': 'VENT',
+    'puerta': 'PTA',
+    'izquierda': 'IZQ',
+    'derecha': 'DER',
+    'centro': 'CENT',
+    'frente': 'FTE',
+    'fondo': 'FONDO'
+  };
+  
+  let resultado = ubicacion.toUpperCase();
+  
+  // Aplicar abreviaturas conocidas
+  Object.entries(abreviaturas).forEach(([palabra, abrev]) => {
+    const regex = new RegExp(palabra, 'gi');
+    resultado = resultado.replace(regex, abrev);
+  });
+  
+  // Limitar a 12 caracteres máximo (2 líneas de 6)
+  if (resultado.length > 12) {
+    resultado = resultado.substring(0, 12);
+  }
+  
+  // Dividir en 2 líneas si es largo
+  if (resultado.length > 6) {
+    const mitad = Math.ceil(resultado.length / 2);
+    return {
+      linea1: resultado.substring(0, mitad).trim(),
+      linea2: resultado.substring(mitad).trim()
+    };
+  }
+  
+  return { linea1: resultado, linea2: '' };
+};
+
 // Generar etiquetas de producción para empaques
+// Sin QR para optimizar espacio - el número de partida es el identificador principal
+// Formato: Rectangular horizontal (landscape) para lectura en empaque enrollado
 proyectoSchema.methods.generarEtiquetasProduccion = function() {
   const etiquetas = [];
   
-  // Generar etiqueta por cada producto
+  // Generar etiqueta por cada producto/partida
   if (this.productos && this.productos.length > 0) {
     this.productos.forEach((producto, index) => {
+      const numeroPartida = index + 1;
+      
       const etiqueta = {
+        // === FORMATO DE ETIQUETA ===
+        // Rectangular horizontal para empaque enrollado
+        formato: {
+          orientacion: 'horizontal',  // landscape
+          anchoMM: 100,               // 10cm de ancho
+          altoMM: 50,                 // 5cm de alto
+          margenMM: 3
+        },
+        
+        // === IDENTIFICACIÓN (número de partida grande y visible) ===
+        numeroPartida: numeroPartida,
+        partidaTexto: `PARTIDA ${numeroPartida}`,
+        totalPartidas: this.productos.length,
+        partidaCompleta: `${numeroPartida} de ${this.productos.length}`,
         numeroOrden: this.numero,
-        numeroPieza: `${index + 1}/${this.productos.length}`,
+        
+        // === CLIENTE ===
         cliente: {
           nombre: this.cliente.nombre,
           telefono: this.cliente.telefono,
-          direccion: this.cliente.direccion || ''
+          direccion: this.cliente.direccion?.calle 
+            ? `${this.cliente.direccion.calle}, ${this.cliente.direccion.colonia || ''}`
+            : '',
+          zona: this.cliente.zona || ''
         },
-        ubicacion: producto.ubicacion || producto.nombre,
+        
+        // === UBICACIÓN EN SITIO ===
+        ubicacion: producto.ubicacion || producto.nombre || `Pieza ${numeroPartida}`,
+        
+        // === ESPECIFICACIONES DEL PRODUCTO ===
         especificaciones: {
-          producto: producto.nombre,
+          producto: producto.nombre || producto.producto || '',
+          modelo: producto.modelo || '',
           medidas: {
             ancho: producto.ancho || producto.medidas?.ancho || 0,
             alto: producto.alto || producto.medidas?.alto || 0,
+            anchoTexto: `${(producto.ancho || producto.medidas?.ancho || 0).toFixed(2)}m`,
+            altoTexto: `${(producto.alto || producto.medidas?.alto || 0).toFixed(2)}m`,
             area: producto.area || producto.medidas?.area || 0
           },
           color: producto.color || '',
           tela: producto.telaMarca || producto.tela || '',
           sistema: producto.sistema || '',
           control: producto.tipoControl || producto.control || '',
-          motorizado: producto.motorizado || false
+          motorizado: producto.motorizado || false,
+          ladoCadena: producto.ladoCadena || producto.ladoControl || ''
         },
+        
+        // === DETALLES DE INSTALACIÓN (completos) ===
         instalacion: {
           tipo: producto.tipoInstalacion || '',
           fijacion: producto.tipoFijacion || '',
-          observaciones: producto.observacionesTecnicas || producto.observaciones || ''
+          alturaPiso: producto.alturaPiso || producto.alturaInstalacion || '',
+          requiereEscalera: producto.requiereEscalera || false,
+          requiereAndamio: producto.requiereAndamio || false,
+          superficieMontaje: producto.superficieMontaje || producto.tipoMuro || '',
+          accesoriosExtra: producto.accesoriosExtra || [],
+          observaciones: producto.observacionesTecnicas || producto.observaciones || '',
+          notasInstalador: producto.notasInstalador || ''
         },
+        
+        // === FECHAS ===
         fechaFabricacion: this.cronograma?.fechaFinFabricacionReal || new Date(),
-        fechaInstalacionProgramada: this.cronograma?.fechaInstalacionProgramada || null
+        fechaInstalacionProgramada: this.cronograma?.fechaInstalacionProgramada || null,
+        
+        // === PARA ORDEN DE INSTALACIÓN ===
+        // El número de partida es el identificador único para matching
+        identificadorInstalacion: `${this.numero}-P${numeroPartida}`,
+        
+        // === TEXTOS COMPACTOS PARA ETIQUETA HORIZONTAL ===
+        // Layout: [Izq: número grande + ubicación] | [Der: medidas + specs]
+        textoCompacto: {
+          // Columna izquierda (número grande + ubicación abreviada)
+          izquierda: {
+            numeroGrande: String(numeroPartida),  // MUY GRANDE (ej: "1")
+            totalPartidas: `de ${this.productos.length}`,
+            ubicacionAbrev: this._abreviarUbicacion(producto.ubicacion || producto.nombre || '')
+          },
+          // Columna derecha (medidas prominentes + detalles)
+          derecha: {
+            medidas: `${(producto.ancho || 0).toFixed(2)} x ${(producto.alto || 0).toFixed(2)}m`,  // NEGRITA
+            tela: producto.telaMarca || producto.tela || producto.color || '',
+            cliente: this.cliente.nombre,
+            control: producto.motorizado ? 'MOTORIZADO' : (producto.ladoCadena || producto.tipoControl || ''),
+            instalacion: `${producto.tipoInstalacion || ''} ${producto.tipoFijacion || ''}`.trim()
+          },
+          // Línea inferior (observaciones si hay)
+          observaciones: producto.observacionesTecnicas || producto.observaciones || '',
+          // Número de orden pequeño en esquina
+          ordenPequeno: this.numero
+        }
       };
-      
-      // Generar código QR con información del producto
-      const qrData = JSON.stringify({
-        proyecto: this.numero,
-        producto: index + 1,
-        cliente: this.cliente.telefono
-      });
-      
-      // El QR se generará de forma asíncrona en el endpoint
-      etiqueta.codigoQR = qrData;
       
       etiquetas.push(etiqueta);
     });

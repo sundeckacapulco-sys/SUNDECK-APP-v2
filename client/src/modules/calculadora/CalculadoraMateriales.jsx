@@ -233,8 +233,9 @@ const CalculadoraMateriales = () => {
       setDialogoMaterial(false);
       cargarConfiguraciones();
     } catch (error) {
-      setError('Error guardando material');
-      console.error(error);
+      const mensaje = error.response?.data?.message || error.message || 'Error desconocido';
+      setError(`Error guardando material: ${mensaje}`);
+      console.error('Error guardando material:', error.response?.data || error);
     }
   };
 
@@ -345,7 +346,15 @@ const CalculadoraMateriales = () => {
                     <Box>
                       <IconButton onClick={() => {
                         setConfigSeleccionada(config);
-                        setFormConfig(config);
+                        // Asegurar que reglasSeleccion tenga la estructura correcta
+                        setFormConfig({
+                          ...config,
+                          reglasSeleccion: {
+                            tubos: config.reglasSeleccion?.tubos || [],
+                            mecanismos: config.reglasSeleccion?.mecanismos || [],
+                            kits: config.reglasSeleccion?.kits || []
+                          }
+                        });
                         setDialogoConfig(true);
                       }}>
                         <EditIcon />
@@ -598,6 +607,128 @@ const CalculadoraMateriales = () => {
               />
             </Grid>
           </Grid>
+
+          {/* Reglas de Selección de Tubo - Solo visible cuando tipo es Tubo */}
+          {formMaterial.tipo === 'Tubo' && (
+            <Box sx={{ mt: 3, p: 2, bgcolor: '#fff3e0', borderRadius: 1, border: '1px solid #ff9800' }}>
+              <Typography variant="subtitle2" gutterBottom sx={{ color: '#e65100', fontWeight: 'bold' }}>
+                📐 Reglas de Selección de Tubo (por Ancho)
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                Define qué diámetro de tubo usar según el ancho de la persiana
+              </Typography>
+              
+              {(configSeleccionada?.reglasSeleccion?.tubos || []).map((regla, index) => (
+                <Grid container spacing={1} key={index} sx={{ mb: 1, alignItems: 'center' }}>
+                  <Grid item xs={4}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Condición"
+                      placeholder="ancho <= 2.50"
+                      value={regla.condicion || ''}
+                      onChange={(e) => {
+                        const nuevasReglas = [...(configSeleccionada.reglasSeleccion?.tubos || [])];
+                        nuevasReglas[index] = { ...nuevasReglas[index], condicion: e.target.value };
+                        setConfigSeleccionada({
+                          ...configSeleccionada,
+                          reglasSeleccion: { ...configSeleccionada.reglasSeleccion, tubos: nuevasReglas }
+                        });
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={2}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Diámetro"
+                      placeholder="38mm"
+                      value={regla.diametro || ''}
+                      onChange={(e) => {
+                        const nuevasReglas = [...(configSeleccionada.reglasSeleccion?.tubos || [])];
+                        nuevasReglas[index] = { ...nuevasReglas[index], diametro: e.target.value };
+                        setConfigSeleccionada({
+                          ...configSeleccionada,
+                          reglasSeleccion: { ...configSeleccionada.reglasSeleccion, tubos: nuevasReglas }
+                        });
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={2}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Código"
+                      placeholder="T38"
+                      value={regla.codigo || ''}
+                      onChange={(e) => {
+                        const nuevasReglas = [...(configSeleccionada.reglasSeleccion?.tubos || [])];
+                        nuevasReglas[index] = { ...nuevasReglas[index], codigo: e.target.value };
+                        setConfigSeleccionada({
+                          ...configSeleccionada,
+                          reglasSeleccion: { ...configSeleccionada.reglasSeleccion, tubos: nuevasReglas }
+                        });
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={3}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Descripción"
+                      value={regla.descripcion || ''}
+                      onChange={(e) => {
+                        const nuevasReglas = [...(configSeleccionada.reglasSeleccion?.tubos || [])];
+                        nuevasReglas[index] = { ...nuevasReglas[index], descripcion: e.target.value };
+                        setConfigSeleccionada({
+                          ...configSeleccionada,
+                          reglasSeleccion: { ...configSeleccionada.reglasSeleccion, tubos: nuevasReglas }
+                        });
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={1}>
+                    <IconButton 
+                      size="small" 
+                      color="error"
+                      onClick={() => {
+                        const nuevasReglas = (configSeleccionada.reglasSeleccion?.tubos || []).filter((_, i) => i !== index);
+                        setConfigSeleccionada({
+                          ...configSeleccionada,
+                          reglasSeleccion: { ...configSeleccionada.reglasSeleccion, tubos: nuevasReglas }
+                        });
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Grid>
+                </Grid>
+              ))}
+              
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  const nuevasReglas = [...(configSeleccionada?.reglasSeleccion?.tubos || []), {
+                    condicion: '',
+                    diametro: '',
+                    codigo: '',
+                    descripcion: ''
+                  }];
+                  setConfigSeleccionada({
+                    ...configSeleccionada,
+                    reglasSeleccion: { 
+                      ...(configSeleccionada?.reglasSeleccion || {}), 
+                      tubos: nuevasReglas 
+                    }
+                  });
+                }}
+                sx={{ mt: 1 }}
+              >
+                Agregar Regla de Tubo
+              </Button>
+            </Box>
+          )}
 
           {/* Probador de fórmula */}
           <Box sx={{ mt: 3, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>

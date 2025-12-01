@@ -27,35 +27,43 @@ class OptimizadorCortesService {
    * @returns {object} Información del tubo
    */
   static seleccionarTubo(configuracion, variables) {
-    const reglasTubos = configuracion.reglasSeleccion?.tubos || [];
+    // Buscar materiales de tipo "Tubo" con condiciones
+    const materialesTubo = (configuracion.materiales || []).filter(m => 
+      m.tipo === 'Tubo' && m.activo !== false
+    );
     
-    // Buscar la primera regla que cumpla la condición
-    for (const regla of reglasTubos) {
+    // Buscar el primer tubo que cumpla la condición
+    for (const tubo of materialesTubo) {
       try {
-        if (regla.condicion) {
+        if (tubo.condicion) {
           const condicionFn = new Function(
             ...Object.keys(variables),
-            `return ${regla.condicion}`
+            `return ${tubo.condicion}`
           );
           const cumple = condicionFn(...Object.values(variables));
           
           if (cumple) {
+            // Extraer diámetro de la descripción (ej: "Tubo 38 mm" -> "38mm")
+            const matchDiametro = tubo.descripcion?.match(/(\d+)\s*mm/i);
+            const diametro = matchDiametro ? `${matchDiametro[1]}mm` : '50mm';
+            
             return {
-              diametro: regla.diametro,
-              descripcion: regla.descripcion,
-              codigo: regla.codigo
+              diametro: diametro,
+              descripcion: tubo.descripcion,
+              codigo: tubo.codigo || `T${matchDiametro ? matchDiametro[1] : '50'}`
             };
           }
         }
       } catch (error) {
-        logger.error('Error evaluando regla de tubo', {
-          regla: regla.condicion,
+        logger.error('Error evaluando condición de tubo', {
+          tubo: tubo.descripcion,
+          condicion: tubo.condicion,
           error: error.message
         });
       }
     }
     
-    // Fallback si no hay reglas o ninguna cumple
+    // Fallback si no hay tubos o ninguno cumple
     return {
       diametro: '50mm',
       descripcion: 'Tubo 50mm (por defecto)',
@@ -277,38 +285,45 @@ class OptimizadorCortesService {
    * @returns {object} Plan de cortes de tela
    */
   static optimizarCortesTela(piezas, anchoRollo, margenAlto = 0) {
-    // 1. Ordenar por ancho descendente (First Fit Decreasing)
-    const piezasOrdenadas = [...piezas].sort((a, b) => b.ancho - a.ancho);
+    // 1. Ordenar por alto descendente (para agrupar eficientemente)
+    const piezasOrdenadas = [...piezas].sort((a, b) => b.alto - a.alto);
     
     const grupos = [];
     const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'; // Para nombrar grupos
+    
+    // Tolerancia máxima de diferencia de altura para agrupar (50cm)
+    // Si la diferencia es mayor, no vale la pena desperdiciar tela
+    const TOLERANCIA_ALTURA_MAX = 0.50;
 
     piezasOrdenadas.forEach(pieza => {
       let asignado = false;
+      let mejorGrupo = null;
+      let menorDesperdicio = Infinity;
       
-      // 2. Intentar asignar a un grupo existente
+      // 2. Buscar el mejor grupo donde quepa
       for (const grupo of grupos) {
-        // Regla 1: Misma altura efectiva (±2cm de tolerancia)
-        const diferenciaAltura = Math.abs(grupo.alto - pieza.alto);
-        const mismaAltura = diferenciaAltura <= 0.02;
-        
-        // Regla 2: Cabe en el ancho del rollo (Suma de anchos <= Ancho Rollo)
-        // Nota: Se podría considerar un pequeño margen entre lienzos si fuera necesario, aquí asumimos 0
+        // Regla 1: Cabe en el ancho del rollo
         const cabeAncho = (grupo.anchoAcumulado + pieza.ancho) <= anchoRollo;
-
-        if (mismaAltura && cabeAncho) {
-          grupo.piezas.push(pieza);
-          grupo.anchoAcumulado += pieza.ancho;
-          
-          // Actualizar alto del grupo si esta pieza es más alta (dentro de la tolerancia)
-          // para asegurar que el corte cubra la pieza más alta
-          if (pieza.alto > grupo.alto) {
-             grupo.alto = pieza.alto;
-             grupo.longitudCorte = grupo.alto + margenAlto;
-          }
-          asignado = true;
-          break;
+        
+        if (!cabeAncho) continue;
+        
+        // Regla 2: Diferencia de altura aceptable
+        const diferenciaAltura = grupo.alto - pieza.alto; // grupo.alto siempre >= pieza.alto por el orden
+        const alturaAceptable = diferenciaAltura <= TOLERANCIA_ALTURA_MAX;
+        
+        if (!alturaAceptable) continue;
+        
+        // Elegir el grupo con menor desperdicio de altura
+        if (diferenciaAltura < menorDesperdicio) {
+          menorDesperdicio = diferenciaAltura;
+          mejorGrupo = grupo;
         }
+      }
+      
+      if (mejorGrupo) {
+        mejorGrupo.piezas.push(pieza);
+        mejorGrupo.anchoAcumulado += pieza.ancho;
+        asignado = true;
       }
 
       // 3. Si no cabe en ninguno, crear nuevo grupo
@@ -316,7 +331,7 @@ class OptimizadorCortesService {
         grupos.push({
           letra: '', // Se asigna al final
           anchoRollo,
-          alto: pieza.alto, // Altura base del grupo
+          alto: pieza.alto, // Altura base del grupo (la más alta)
           longitudCorte: pieza.alto + margenAlto, // Altura + Hem/Margen
           piezas: [pieza],
           anchoAcumulado: pieza.ancho
@@ -324,11 +339,46 @@ class OptimizadorCortesService {
       }
     });
 
-    // Asignar letras secuenciales a los grupos (A, B, C...)
+    // Asignar letras secuenciales, calcular sobrantes y generar observaciones
+    const SOBRANTE_MINIMO_UTIL = 0.30; // 30cm mínimo para considerar útil
+    let sobrantesUtiles = [];
+    
     grupos.forEach((g, index) => {
       const letraBase = letras[index % letras.length];
       const sufijo = Math.floor(index / letras.length) > 0 ? Math.floor(index / letras.length) : '';
       g.letra = letraBase + sufijo;
+      
+      // Calcular sobrante de ancho del rollo
+      g.sobranteAncho = Number((g.anchoRollo - g.anchoAcumulado).toFixed(2));
+      
+      // Si el sobrante es útil, registrarlo para almacén
+      if (g.sobranteAncho >= SOBRANTE_MINIMO_UTIL) {
+        sobrantesUtiles.push({
+          grupo: g.letra,
+          ancho: g.sobranteAncho,
+          alto: g.longitudCorte,
+          anchoRollo: g.anchoRollo
+        });
+      }
+      
+      // Generar observaciones para el taller si hay diferencias de altura
+      g.observaciones = [];
+      if (g.piezas.length > 1) {
+        const alturaCorte = g.alto;
+        g.piezas.forEach(p => {
+          const diferencia = alturaCorte - p.alto;
+          if (diferencia > 0.02) { // Más de 2cm de diferencia
+            const difCm = Math.round(diferencia * 100);
+            g.observaciones.push({
+              ubicacion: p.ubicacion,
+              mensaje: `Recortar ${difCm}cm (alto real: ${p.alto.toFixed(2)}m)`
+            });
+          }
+        });
+      }
+      
+      // Flag para indicar si requiere atención especial
+      g.requiereRecorte = g.observaciones.length > 0;
     });
 
     // Calcular totales
@@ -337,7 +387,8 @@ class OptimizadorCortesService {
     return {
       grupos,
       totalMetrosLineales: Number(totalMetrosLineales.toFixed(2)),
-      totalGrupos: grupos.length
+      totalGrupos: grupos.length,
+      sobrantesUtiles
     };
   }
 
@@ -357,27 +408,37 @@ class OptimizadorCortesService {
       if (!pieza.tela) return; 
 
       const codigoTela = pieza.tela.codigo || 'GENERICO';
-      // Obtener anchos disponibles (default 2.50 si no hay)
+      const esRotada = pieza.rotada === true;
+      
+      // Obtener anchos disponibles (default [2.50, 3.00] para soportar rotación)
       const anchosDisponibles = pieza.tela.anchosRollo && pieza.tela.anchosRollo.length > 0 
         ? pieza.tela.anchosRollo 
-        : [2.50];
+        : [2.50, 3.00];
+      
+      // Para piezas rotadas, el requerimiento de ancho de rollo es el ALTO original + margen de enrolle
+      // El margen de enrolle es 0.25m (la tela debe enrollar en el tubo)
+      // Para piezas normales, es el ANCHO (sin margen adicional porque el ancho no enrolla)
+      const MARGEN_ENROLLE = 0.25;
+      const anchoRequerido = esRotada 
+        ? (pieza.altoOriginal || pieza.alto) + MARGEN_ENROLLE  // Alto + margen para enrolle
+        : pieza.ancho;
       
       // Seleccionar el mejor ancho de rollo para esta pieza
       // 1. Buscar el menor ancho que sea suficiente para la pieza
-      let anchoRollo = anchosDisponibles.sort((a,b) => a-b).find(w => w >= pieza.ancho);
+      let anchoRollo = anchosDisponibles.sort((a,b) => a-b).find(w => w >= anchoRequerido);
       
-      // 2. Si la pieza es más ancha que el rollo más grande, usar el más grande (requerirá rotación o unión)
+      // 2. Si la pieza es más ancha que el rollo más grande, usar el más grande
       if (!anchoRollo) {
         anchoRollo = anchosDisponibles[anchosDisponibles.length - 1];
       }
-
-      const key = `${codigoTela}|${anchoRollo}`;
+      const key = `${codigoTela}|${anchoRollo}|${esRotada ? 'ROTADA' : 'NORMAL'}`;
       
       if (!piezasPorGrupo[key]) {
         piezasPorGrupo[key] = {
             descripcion: pieza.tela.descripcion,
             codigoTela,
             anchoRollo,
+            esRotada,
             piezas: []
         };
       }
@@ -387,7 +448,13 @@ class OptimizadorCortesService {
         piezasPorGrupo[key].piezas.push({
             ancho: pieza.ancho,
             alto: pieza.alto,
-            ubicacion: pieza.ubicacion
+            ubicacion: pieza.ubicacion,
+            // Preservar datos originales para el reporte
+            anchoOriginal: pieza.anchoOriginal,
+            altoOriginal: pieza.altoOriginal,
+            rotada: pieza.rotada,
+            modelo: pieza.modelo,
+            color: pieza.color
         });
       }
     });
@@ -398,10 +465,16 @@ class OptimizadorCortesService {
         const optimizacion = this.optimizarCortesTela(data.piezas, data.anchoRollo);
         
         // Estructura del resultado por grupo único
+        // Agregar prefijo "Rotada" a la descripción si aplica
+        const descripcionFinal = data.esRotada 
+          ? `Rotada sin termosello [${data.descripcion}]`
+          : data.descripcion;
+        
         resumenPorTela[key] = {
-            descripcion: data.descripcion,
+            descripcion: descripcionFinal,
             codigo: data.codigoTela,
             anchoRollo: data.anchoRollo,
+            esRotada: data.esRotada,
             optimizacion,
             totalMetros: optimizacion.totalMetrosLineales
         };
@@ -478,10 +551,11 @@ class OptimizadorCortesService {
 
   /**
    * Calcula tubos necesarios para múltiples piezas CON OPTIMIZACIÓN
-   * @param {Array} piezas - Array de objetos con {ancho, cantidad}
+   * @param {Array} piezas - Array de objetos con {ancho, cantidad, motorizado, etc.}
+   * @param {object} configuracion - Configuración del sistema con materiales
    * @returns {object} Resumen de tubos necesarios optimizado
    */
-  static calcularTubosParaProduccion(piezas) {
+  static calcularTubosParaProduccion(piezas, configuracion = null) {
     const resumenPorTipo = {};
     let totalTubos = 0;
     
@@ -489,7 +563,18 @@ class OptimizadorCortesService {
     const piezasPorTipo = {};
     
     piezas.forEach(pieza => {
-      const tubo = this.seleccionarTubo(pieza.ancho);
+      // Construir variables para evaluación de condiciones
+      const variables = {
+        ancho: pieza.ancho,
+        alto: pieza.alto || 2.0,
+        motorizado: pieza.motorizado || false,
+        esManual: !pieza.motorizado,
+        area: pieza.ancho * (pieza.alto || 2.0)
+      };
+      
+      const tubo = configuracion 
+        ? this.seleccionarTubo(configuracion, variables)
+        : { diametro: '50mm', descripcion: 'Tubo 50mm (por defecto)', codigo: 'T50' };
       
       if (!piezasPorTipo[tubo.codigo]) {
         piezasPorTipo[tubo.codigo] = {
@@ -611,11 +696,33 @@ class OptimizadorCortesService {
                  logger.error(`Error evaluando fórmula material ${matConfig.tipo}: ${e.message}`);
              }
 
+             // Personalizar descripción y código para telas según producto/modelo específico de la pieza
+             let descripcion = matConfig.descripcion;
+             let codigo = matConfig.codigo || matConfig.tipo.toUpperCase();
+
+             if ((matConfig.tipo === 'Tela' || matConfig.tipo === 'Tela Sheer')) {
+                 // Construir identificador único: Producto + Modelo + Color
+                 const producto = pieza.producto && pieza.producto !== 'No especificado' ? pieza.producto : '';
+                 const modelo = pieza.modelo && pieza.modelo !== 'No especificado' ? pieza.modelo : (pieza.modeloCodigo || '');
+                 const color = pieza.color && pieza.color !== 'No especificado' ? pieza.color : '';
+                 
+                 // Crear variante descriptiva: "Producto Modelo (Color)"
+                 let variante = [producto, modelo].filter(Boolean).join(' ').trim();
+                 if (color) variante = variante ? `${variante} (${color})` : color;
+                 
+                 if (variante) {
+                    descripcion = `${descripcion} [${variante}]`;
+                    // Código único para agrupar: TELA-PRODUCTO-MODELO
+                    const codigoVariante = [producto, modelo].filter(Boolean).join('-').substring(0,15).replace(/[^a-zA-Z0-9-]/g, '').toUpperCase();
+                    if (codigoVariante) codigo = `${codigo}-${codigoVariante}`;
+                 }
+             }
+
              // Agregar material
              const material = {
                  tipo: matConfig.tipo,
-                 codigo: matConfig.codigo || matConfig.tipo.toUpperCase(),
-                 descripcion: matConfig.descripcion,
+                 codigo: codigo,
+                 descripcion: descripcion,
                  cantidad: Number(cantidad) || 0,
                  unidad: matConfig.unidad,
                  observaciones: matConfig.observaciones,
@@ -715,8 +822,18 @@ class OptimizadorCortesService {
 
     const resumenTelas = this.calcularTelasParaProduccion(piezasParaTela);
     
+    // Cargar configuración para selección de tubos
+    const sistema = piezas[0]?.sistema || 'Roller Shade';
+    const configuracion = await ConfiguracionMateriales.findOne({ sistema }).lean();
+    
     const resumenTubos = this.calcularTubosParaProduccion(
-      piezas.map(p => ({ ancho: p.ancho, cantidad: 1 }))
+      piezas.map(p => ({ 
+        ancho: p.ancho, 
+        alto: p.alto,
+        motorizado: p.motorizado || false,
+        cantidad: 1 
+      })),
+      configuracion
     );
     
     return {
@@ -848,6 +965,443 @@ class OptimizadorCortesService {
     });
     
     return recomendaciones;
+  }
+  
+  /**
+   * Extrae sobrantes de un resultado de optimización para registro en almacén
+   * Solo extrae sobrantes >= 60cm (0.60m) que son útiles para reutilizar
+   * @param {object} optimizacion - Resultado de optimizarCortes()
+   * @param {object} infoMaterial - Info del material (tipo, codigo, diametro, etc.)
+   * @returns {Array} Lista de sobrantes para registrar
+   */
+  static extraerSobrantesDeOptimizacion(optimizacion, infoMaterial) {
+    const LONGITUD_MINIMA_SOBRANTE = 0.60; // 60cm mínimo útil para almacenar
+    // Sin límite máximo - el encargado de taller decide
+    
+    const sobrantes = [];
+    
+    if (!optimizacion?.barras) return sobrantes;
+    
+    optimizacion.barras.forEach((barra, index) => {
+      // Solo considerar sobrantes >= 60cm (útiles para reutilizar)
+      if (barra.sobrante >= LONGITUD_MINIMA_SOBRANTE) {
+        sobrantes.push({
+          tipo: infoMaterial.tipo || 'Tubo',
+          codigo: infoMaterial.codigo,
+          descripcion: `Sobrante ${infoMaterial.descripcion || infoMaterial.tipo} - ${(barra.sobrante * 100).toFixed(0)}cm`,
+          longitud: Number(barra.sobrante.toFixed(3)),
+          diametro: infoMaterial.diametro,
+          color: infoMaterial.color,
+          subtipo: infoMaterial.subtipo,
+          barraOrigen: index + 1,
+          eficienciaBarra: barra.eficiencia
+        });
+      }
+    });
+    
+    return sobrantes;
+  }
+  
+  /**
+   * Genera reporte completo de optimización incluyendo sobrantes para almacén
+   * @param {Array} piezas - Piezas a optimizar
+   * @returns {Promise<object>} Reporte con sobrantes identificados
+   */
+  static async generarReporteConSobrantes(piezas) {
+    const reporte = await this.generarReporteOptimizacion(piezas);
+    
+    // Extraer sobrantes de tubos
+    const sobrantesParaAlmacen = [];
+    
+    if (reporte.resumenTubos?.resumenPorTipo) {
+      Object.entries(reporte.resumenTubos.resumenPorTipo).forEach(([codigo, datos]) => {
+        const sobrantesTubo = this.extraerSobrantesDeOptimizacion(
+          datos.optimizacion,
+          {
+            tipo: 'Tubo',
+            codigo: codigo,
+            descripcion: datos.tubo.descripcion,
+            diametro: datos.tubo.diametro
+          }
+        );
+        sobrantesParaAlmacen.push(...sobrantesTubo);
+      });
+    }
+    
+    // Agregar sobrantes al reporte
+    reporte.sobrantesParaAlmacen = {
+      items: sobrantesParaAlmacen,
+      total: sobrantesParaAlmacen.length,
+      longitudTotal: sobrantesParaAlmacen.reduce((sum, s) => sum + s.longitud, 0)
+    };
+    
+    return reporte;
+  }
+  
+  // ============================================================
+  // CÁLCULO DE ESCUADRAS (GALERÍA)
+  // ============================================================
+  
+  /**
+   * Distancia de escuadras laterales desde el borde (metros)
+   */
+  static ESCUADRA_DISTANCIA_BORDE = 0.15;
+  
+  /**
+   * Separación máxima entre escuadras intermedias (metros)
+   */
+  static ESCUADRA_SEPARACION_MAXIMA = 1.25;
+  
+  /**
+   * Calcula la cantidad de escuadras necesarias para una galería
+   * Reglas:
+   * - 2 escuadras fijas en los costados (a 15cm del borde)
+   * - Escuadras intermedias cada 1.25m máximo
+   * 
+   * @param {number} anchoGaleria - Ancho de la galería en metros
+   * @returns {object} { total, laterales, intermedias, posiciones }
+   */
+  static calcularEscuadras(anchoGaleria) {
+    const BORDE = this.ESCUADRA_DISTANCIA_BORDE;
+    const MAX_SEP = this.ESCUADRA_SEPARACION_MAXIMA;
+    
+    // Siempre 2 escuadras laterales
+    const laterales = 2;
+    
+    // Espacio interior (restando los 15cm de cada lado)
+    const espacioInterior = anchoGaleria - (BORDE * 2);
+    
+    // Escuadras intermedias necesarias
+    const intermedias = espacioInterior > MAX_SEP 
+      ? Math.floor(espacioInterior / MAX_SEP)
+      : 0;
+    
+    const total = laterales + intermedias;
+    
+    // Calcular posiciones para referencia
+    const posiciones = [BORDE]; // Primera a 15cm
+    if (intermedias > 0) {
+      const separacionReal = espacioInterior / (intermedias + 1);
+      for (let i = 1; i <= intermedias; i++) {
+        posiciones.push(BORDE + (separacionReal * i));
+      }
+    }
+    posiciones.push(anchoGaleria - BORDE); // Última a 15cm del final
+    
+    return {
+      total,
+      laterales,
+      intermedias,
+      espacioInterior: Math.round(espacioInterior * 100) / 100,
+      posiciones: posiciones.map(p => Math.round(p * 100) / 100)
+    };
+  }
+  
+  /**
+   * Calcula escuadras para múltiples piezas con galería
+   * @param {Array} piezasConGaleria - [{numero, ubicacion, ancho}]
+   * @returns {object} Resumen y detalle por pieza
+   */
+  static calcularEscuadrasMultiple(piezasConGaleria) {
+    const detalle = piezasConGaleria.map(pieza => ({
+      pieza: pieza.numero,
+      ubicacion: pieza.ubicacion,
+      ancho: pieza.ancho,
+      ...this.calcularEscuadras(pieza.ancho)
+    }));
+    
+    const totalEscuadras = detalle.reduce((sum, d) => sum + d.total, 0);
+    
+    return {
+      totalEscuadras,
+      totalPiezas: piezasConGaleria.length,
+      detalle
+    };
+  }
+  
+  // ============================================================
+  // OPTIMIZACIÓN DE MADERA (GALERÍA)
+  // ============================================================
+  
+  /**
+   * Longitud estándar de tabla de madera para galería (metros)
+   */
+  static LONGITUD_TABLA_ESTANDAR = 2.40;
+  
+  /**
+   * Sobrante mínimo útil de madera (metros) - menor es desperdicio
+   */
+  static SOBRANTE_MINIMO_UTIL_MADERA = 0.45;
+  
+  /**
+   * Optimiza cortes de madera para galerías
+   * Reglas:
+   * - Tabla estándar: 2.40m
+   * - Sobrante útil mínimo: 0.45m (menor es desperdicio)
+   * - Si ancho > 2.40m: se unen tablas
+   * - Prioriza usar sobrantes del almacén antes de tablas nuevas
+   * 
+   * @param {Array} piezasConGaleria - Piezas que llevan galería [{ancho, ubicacion, numero}]
+   * @param {Array} sobrantesDisponibles - Sobrantes de madera en almacén [{longitud, id}]
+   * @returns {object} Plan de cortes optimizado
+   */
+  static optimizarCortesMadera(piezasConGaleria, sobrantesDisponibles = []) {
+    const TABLA = this.LONGITUD_TABLA_ESTANDAR;
+    const MINIMO_UTIL = this.SOBRANTE_MINIMO_UTIL_MADERA;
+    
+    // Ordenar piezas por número para mostrar en orden lógico
+    const piezasOrdenadas = [...piezasConGaleria].sort((a, b) => a.numero - b.numero);
+    
+    // Clonar sobrantes disponibles para ir marcando los usados
+    let sobrantesLibres = sobrantesDisponibles
+      .filter(s => s.longitud >= MINIMO_UTIL)
+      .map(s => ({ ...s, usado: false }))
+      .sort((a, b) => a.longitud - b.longitud); // Menor a mayor para usar primero los más pequeños
+    
+    const planCortes = [];
+    const tablasNuevasRequeridas = [];
+    const sobrantesGenerados = [];
+    const sobrantesUsados = [];
+    let tablasNuevasCount = 0;
+    
+    for (const pieza of piezasOrdenadas) {
+      const anchoRequerido = pieza.ancho;
+      const corte = {
+        pieza: pieza.numero,
+        ubicacion: pieza.ubicacion,
+        anchoRequerido,
+        fuentes: [],
+        sobrante: null,
+        esUnion: false
+      };
+      
+      // CASO 1: Ancho <= 2.40m - Una sola tabla o sobrante
+      if (anchoRequerido <= TABLA) {
+        // Buscar sobrante que sirva
+        const sobranteUtil = sobrantesLibres.find(s => 
+          !s.usado && s.longitud >= anchoRequerido
+        );
+        
+        if (sobranteUtil) {
+          // Usar sobrante existente
+          sobranteUtil.usado = true;
+          sobrantesUsados.push({
+            id: sobranteUtil.id,
+            longitud: sobranteUtil.longitud,
+            usadoPara: anchoRequerido
+          });
+          
+          corte.fuentes.push({
+            tipo: 'sobrante',
+            id: sobranteUtil.id,
+            longitud: sobranteUtil.longitud,
+            corte: anchoRequerido
+          });
+          
+          const restante = sobranteUtil.longitud - anchoRequerido;
+          if (restante >= MINIMO_UTIL) {
+            corte.sobrante = { longitud: restante, util: true };
+            sobrantesGenerados.push({ longitud: restante, origen: `Pieza #${pieza.numero}` });
+          } else if (restante > 0) {
+            corte.sobrante = { longitud: restante, util: false, desperdicio: true };
+          }
+        } else {
+          // Usar tabla nueva
+          tablasNuevasCount++;
+          tablasNuevasRequeridas.push({
+            numero: tablasNuevasCount,
+            usadaPara: `Pieza #${pieza.numero}`,
+            corte: anchoRequerido
+          });
+          
+          corte.fuentes.push({
+            tipo: 'tabla_nueva',
+            numero: tablasNuevasCount,
+            longitud: TABLA,
+            corte: anchoRequerido
+          });
+          
+          const restante = TABLA - anchoRequerido;
+          if (restante >= MINIMO_UTIL) {
+            corte.sobrante = { longitud: restante, util: true };
+            sobrantesGenerados.push({ longitud: restante, origen: `Pieza #${pieza.numero}` });
+            // Agregar a sobrantes libres para siguiente pieza
+            sobrantesLibres.push({ longitud: restante, usado: false, id: `nuevo_${tablasNuevasCount}` });
+            sobrantesLibres.sort((a, b) => a.longitud - b.longitud);
+          } else if (restante > 0) {
+            corte.sobrante = { longitud: restante, util: false, desperdicio: true };
+          }
+        }
+      }
+      // CASO 2: Ancho > 2.40m - Unión de tablas
+      else {
+        corte.esUnion = true;
+        let restantePorCubrir = anchoRequerido;
+        
+        // Primero intentar con sobrantes grandes
+        const sobrantesGrandes = sobrantesLibres
+          .filter(s => !s.usado && s.longitud >= 1.00)
+          .sort((a, b) => b.longitud - a.longitud);
+        
+        for (const sobrante of sobrantesGrandes) {
+          if (restantePorCubrir <= 0) break;
+          if (sobrante.usado) continue;
+          
+          const usarLongitud = Math.min(sobrante.longitud, restantePorCubrir);
+          sobrante.usado = true;
+          sobrantesUsados.push({
+            id: sobrante.id,
+            longitud: sobrante.longitud,
+            usadoPara: usarLongitud
+          });
+          
+          corte.fuentes.push({
+            tipo: 'sobrante',
+            id: sobrante.id,
+            longitud: sobrante.longitud,
+            corte: usarLongitud
+          });
+          
+          restantePorCubrir -= usarLongitud;
+          
+          // Si queda sobrante útil
+          const restanteSobrante = sobrante.longitud - usarLongitud;
+          if (restanteSobrante >= MINIMO_UTIL) {
+            sobrantesGenerados.push({ longitud: restanteSobrante, origen: `Pieza #${pieza.numero} (unión)` });
+            sobrantesLibres.push({ longitud: restanteSobrante, usado: false, id: `resto_${sobrante.id}` });
+          }
+        }
+        
+        // Completar con tablas nuevas si falta
+        while (restantePorCubrir > 0) {
+          tablasNuevasCount++;
+          const usarDeTabla = Math.min(TABLA, restantePorCubrir);
+          
+          tablasNuevasRequeridas.push({
+            numero: tablasNuevasCount,
+            usadaPara: `Pieza #${pieza.numero} (unión)`,
+            corte: usarDeTabla
+          });
+          
+          corte.fuentes.push({
+            tipo: 'tabla_nueva',
+            numero: tablasNuevasCount,
+            longitud: TABLA,
+            corte: usarDeTabla
+          });
+          
+          restantePorCubrir -= usarDeTabla;
+          
+          // Sobrante de esta tabla (la última en la unión)
+          const restanteTabla = TABLA - usarDeTabla;
+          if (restanteTabla >= MINIMO_UTIL) {
+            corte.sobrante = { longitud: restanteTabla, util: true };
+            sobrantesGenerados.push({ longitud: restanteTabla, origen: `Pieza #${pieza.numero} (unión)` });
+            sobrantesLibres.push({ longitud: restanteTabla, usado: false, id: `nuevo_${tablasNuevasCount}` });
+            sobrantesLibres.sort((a, b) => a.longitud - b.longitud);
+          } else if (restanteTabla > 0) {
+            corte.sobrante = { longitud: restanteTabla, util: false, desperdicio: true };
+          }
+        }
+      }
+      
+      planCortes.push(corte);
+    }
+    
+    // Calcular totales
+    const totalDesperdicio = planCortes.reduce((sum, c) => {
+      if (c.sobrante && c.sobrante.desperdicio) {
+        return sum + c.sobrante.longitud;
+      }
+      return sum;
+    }, 0);
+    
+    const totalSobrantesUtiles = sobrantesGenerados.reduce((sum, s) => sum + s.longitud, 0);
+    
+    return {
+      planCortes,
+      resumen: {
+        totalPiezas: piezasConGaleria.length,
+        piezasConUnion: planCortes.filter(c => c.esUnion).length,
+        tablasNuevasRequeridas: tablasNuevasCount,
+        sobrantesUsadosDelAlmacen: sobrantesUsados.length,
+        sobrantesGeneradosParaAlmacen: sobrantesGenerados.length,
+        totalSobrantesUtiles: Math.round(totalSobrantesUtiles * 100) / 100,
+        totalDesperdicio: Math.round(totalDesperdicio * 100) / 100
+      },
+      tablasNuevas: tablasNuevasRequeridas,
+      sobrantesUsados,
+      sobrantesGenerados,
+      configuracion: {
+        longitudTabla: TABLA,
+        sobranteMinimoUtil: MINIMO_UTIL
+      }
+    };
+  }
+  
+  /**
+   * Calcula corte de madera para una sola pieza (sin optimización grupal)
+   * Útil para cotizaciones rápidas
+   * 
+   * @param {number} anchoRequerido - Ancho de la galería en metros
+   * @returns {object} Información del corte
+   */
+  static calcularCorteMaderaSingle(anchoRequerido) {
+    const TABLA = this.LONGITUD_TABLA_ESTANDAR;
+    const MINIMO_UTIL = this.SOBRANTE_MINIMO_UTIL_MADERA;
+    
+    if (anchoRequerido <= TABLA) {
+      const sobrante = TABLA - anchoRequerido;
+      return {
+        tablasRequeridas: 1,
+        esUnion: false,
+        sobrante: {
+          longitud: Math.round(sobrante * 100) / 100,
+          util: sobrante >= MINIMO_UTIL
+        },
+        descripcion: sobrante >= MINIMO_UTIL 
+          ? `1 tabla (sobrante útil: ${(sobrante * 100).toFixed(0)}cm)`
+          : `1 tabla (desperdicio: ${(sobrante * 100).toFixed(0)}cm)`
+      };
+    } else {
+      // Unión de tablas
+      const tablasNecesarias = Math.ceil(anchoRequerido / TABLA);
+      const totalMadera = tablasNecesarias * TABLA;
+      const sobrante = totalMadera - anchoRequerido;
+      
+      return {
+        tablasRequeridas: tablasNecesarias,
+        esUnion: true,
+        cortes: this._calcularCortesUnion(anchoRequerido, TABLA),
+        sobrante: {
+          longitud: Math.round(sobrante * 100) / 100,
+          util: sobrante >= MINIMO_UTIL
+        },
+        descripcion: `${tablasNecesarias} tablas unidas (sobrante: ${(sobrante * 100).toFixed(0)}cm)`
+      };
+    }
+  }
+  
+  /**
+   * Helper: Calcula cómo dividir los cortes en una unión
+   */
+  static _calcularCortesUnion(anchoTotal, longitudTabla) {
+    const cortes = [];
+    let restante = anchoTotal;
+    let tablaNum = 1;
+    
+    while (restante > 0) {
+      const corte = Math.min(longitudTabla, restante);
+      cortes.push({
+        tabla: tablaNum,
+        corte: Math.round(corte * 100) / 100,
+        completa: corte === longitudTabla
+      });
+      restante -= corte;
+      tablaNum++;
+    }
+    
+    return cortes;
   }
 }
 
