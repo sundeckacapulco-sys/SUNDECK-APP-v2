@@ -28,7 +28,13 @@ const PiezaCard = ({
   sistemaSkyline,
   motorCompartido,
   grupoMotor,
-  piezasPorMotor
+  piezasPorMotor,
+  // Sistema Día/Noche
+  tipoPiezaDiaNoche,
+  numeroPiezaOriginal,
+  // Área mínima cobrable
+  areaCobrable,
+  tieneAjusteMinimo
 }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -68,16 +74,39 @@ const PiezaCard = ({
         onClick={tieneEspecificaciones ? handleToggle : undefined}
       >
         <Box sx={{ flex: 1 }}>
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              fontWeight: 600, 
-              color: 'rgba(30, 41, 59, 1)', // slate-800
-              mb: 0.5
-            }}
-          >
-            🔹 Pieza {numero}: {ancho} × {alto} m ({(area || (ancho * alto) || 0).toFixed(2)} m²)
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                fontWeight: 600, 
+                color: 'rgba(30, 41, 59, 1)', // slate-800
+              }}
+            >
+              🔹 Pieza {numero}{numeroPiezaOriginal ? ` (Medida ${numeroPiezaOriginal})` : ''}: {ancho} × {alto} m 
+              {tieneAjusteMinimo ? (
+                <span style={{ color: '#f59e0b' }}>
+                  ({(area || (ancho * alto) || 0).toFixed(2)} m² → <strong>{(areaCobrable || 0).toFixed(2)} m²</strong> mín.)
+                </span>
+              ) : (
+                <span>({(area || (ancho * alto) || 0).toFixed(2)} m²)</span>
+              )}
+            </Typography>
+            {/* Indicador Sistema Día/Noche */}
+            {tipoPiezaDiaNoche && (
+              <Box sx={{ 
+                bgcolor: tipoPiezaDiaNoche === 'blackout' ? '#1e293b' : '#fef3c7',
+                color: tipoPiezaDiaNoche === 'blackout' ? '#fff' : '#92400e',
+                px: 1,
+                py: 0.25,
+                borderRadius: '4px',
+                border: tipoPiezaDiaNoche === 'blackout' ? '1px solid #334155' : '1px solid #f59e0b',
+                fontSize: '0.7rem',
+                fontWeight: 700
+              }}>
+                {tipoPiezaDiaNoche === 'blackout' ? '🌙 BLACKOUT' : '☀️ MALLA'}
+              </Box>
+            )}
+          </Box>
           
           <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
             <Typography variant="body2" sx={{ color: 'rgba(100, 116, 139, 1)' }}> {/* slate-500 */}

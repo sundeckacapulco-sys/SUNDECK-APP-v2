@@ -40,6 +40,7 @@ import usePiezasManager from '../../../components/Prospectos/hooks/usePiezasMana
 import { productosOptions, createEmptyPieza } from '../../../components/Prospectos/AgregarEtapaModal.constants';
 import axiosConfig from '../../../config/axios';
 import PiezaCard from './PiezaCard';
+import { calcularAreaCobrableSimple } from '../../../utils/calculoAreaMinima';
 
 const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, medidaEditando }) => {
   const [nombreLevantamiento, setNombreLevantamiento] = useState('');
@@ -284,14 +285,30 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
     }
   };
 
-  const calcularAreaPieza = (pieza) => {
+  /**
+   * Calcula el área cobrable de una pieza aplicando mínimo 1m por dimensión
+   * REGLA DE NEGOCIO: Si ancho o alto < 1m, se cobra como 1m
+   */
+  const calcularAreaPieza = (pieza, usarAreaCobrable = true) => {
     if (!pieza.medidas || pieza.medidas.length === 0) return 0;
     
     return pieza.medidas.reduce((total, medida) => {
+      // Si ya tiene areaCobrable calculada, usarla
+      if (usarAreaCobrable && medida.areaCobrable) {
+        return total + medida.areaCobrable;
+      }
       const ancho = parseFloat(medida.ancho) || 0;
       const alto = parseFloat(medida.alto) || 0;
-      return total + (ancho * alto);
+      // Aplicar mínimo 1m por dimensión
+      return total + (usarAreaCobrable ? calcularAreaCobrableSimple(ancho, alto) : (ancho * alto));
     }, 0);
+  };
+
+  /**
+   * Calcula el área real de una pieza (sin ajuste de mínimo)
+   */
+  const calcularAreaRealPieza = (pieza) => {
+    return calcularAreaPieza(pieza, false);
   };
 
   const handleGuardar = async () => {
@@ -584,9 +601,30 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                             fontSize: '0.75rem'
                           }}
                         />
+                        {/* Indicador Sistema Día/Noche */}
+                        {pieza.esSistemaDiaNoche && (
+                          <Chip
+                            label="🌓 Día/Noche"
+                            size="small"
+                            sx={{ 
+                              bgcolor: '#fef3c7', 
+                              color: '#92400e',
+                              fontWeight: 700,
+                              fontSize: '0.7rem',
+                              border: '1px solid #f59e0b'
+                            }}
+                          />
+                        )}
                       </Box>
                       <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600 }}>
-                        {pieza.cantidad || 1} {(pieza.cantidad || 1) === 1 ? 'pieza' : 'piezas'} • {calcularAreaPieza(pieza).toFixed(2)} m²
+                        {pieza.cantidad || 1} {(pieza.cantidad || 1) === 1 ? 'pieza' : 'piezas'} • 
+                        {calcularAreaRealPieza(pieza) !== calcularAreaPieza(pieza) ? (
+                          <span style={{ color: '#f59e0b' }}>
+                            {calcularAreaRealPieza(pieza).toFixed(2)} → <strong>{calcularAreaPieza(pieza).toFixed(2)} m²</strong>
+                          </span>
+                        ) : (
+                          `${calcularAreaPieza(pieza).toFixed(2)} m²`
+                        )}
                       </Typography>
                     </Box>
                   </AccordionSummary>
@@ -614,10 +652,21 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                             </Grid>
                             <Grid item xs={6} md={3}>
                               <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600, display: 'block' }}>
-                                Área Total
+                                Área Cobrable
                               </Typography>
                               <Typography variant="body2" sx={{ color: 'rgba(30, 41, 59, 1)', fontWeight: 600 }}>
-                                {calcularAreaPieza(pieza).toFixed(2)} m²
+                                {calcularAreaRealPieza(pieza) !== calcularAreaPieza(pieza) ? (
+                                  <span>
+                                    <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>{calcularAreaRealPieza(pieza).toFixed(2)}</span>
+                                    {' → '}
+                                    <span style={{ color: '#f59e0b', fontWeight: 700 }}>{calcularAreaPieza(pieza).toFixed(2)} m²</span>
+                                    <Typography variant="caption" sx={{ display: 'block', color: '#f59e0b', fontSize: '0.65rem' }}>
+                                      (mín. 1m por lado)
+                                    </Typography>
+                                  </span>
+                                ) : (
+                                  `${calcularAreaPieza(pieza).toFixed(2)} m²`
+                                )}
                               </Typography>
                             </Grid>
                             <Grid item xs={6} md={3}>
@@ -649,7 +698,14 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                             📏 Medidas Individuales y Especificaciones Técnicas
                           </Typography>
                           <Typography variant="caption" sx={{ color: 'rgba(100, 116, 139, 1)', fontWeight: 600 }}>
-                            {pieza.cantidad || pieza.medidas?.length || 0} {(pieza.cantidad || pieza.medidas?.length || 0) === 1 ? 'pieza' : 'piezas'} • {calcularAreaPieza(pieza).toFixed(2)} m² totales
+                            {pieza.cantidad || pieza.medidas?.length || 0} {(pieza.cantidad || pieza.medidas?.length || 0) === 1 ? 'pieza' : 'piezas'} • 
+                            {calcularAreaRealPieza(pieza) !== calcularAreaPieza(pieza) ? (
+                              <span style={{ color: '#f59e0b' }}>
+                                {calcularAreaRealPieza(pieza).toFixed(2)} → <strong>{calcularAreaPieza(pieza).toFixed(2)} m²</strong> (mín. 1m)
+                              </span>
+                            ) : (
+                              `${calcularAreaPieza(pieza).toFixed(2)} m² totales`
+                            )}
                           </Typography>
                         </Box>
                         {(pieza.medidas || []).map((medida, idx) => (
@@ -673,6 +729,10 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                             telaMarca={medida.telaMarca}
                             baseTabla={medida.baseTabla}
                             observacionesTecnicas={medida.observacionesTecnicas}
+                            tipoPiezaDiaNoche={medida.tipoPiezaDiaNoche}
+                            numeroPiezaOriginal={medida.numeroPiezaOriginal}
+                            areaCobrable={medida.areaCobrable}
+                            tieneAjusteMinimo={medida.tieneAjusteMinimo}
                           />
                         ))}
                       </Grid>
@@ -807,6 +867,31 @@ const AgregarMedidaPartidasModal = ({ open, onClose, proyecto, onActualizar, med
                     </Select>
                   </FormControl>
                 </Grid>
+
+                {/* ALERTA SISTEMA DÍA/NOCHE */}
+                {piezasManager.piezaForm.producto === 'dia_noche' && (
+                  <Grid item xs={12}>
+                    <Alert 
+                      severity="info" 
+                      sx={{ 
+                        bgcolor: '#fef3c7', 
+                        border: '2px solid #f59e0b',
+                        '& .MuiAlert-icon': { color: '#f59e0b' }
+                      }}
+                    >
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#92400e', mb: 0.5 }}>
+                        🌓 Sistema Día/Noche Detectado
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: '#78350f' }}>
+                        Por cada medida se generarán <strong>2 piezas automáticamente</strong>:
+                        <br />• <strong>1 Blackout</strong> (para oscurecer)
+                        <br />• <strong>1 Malla/Screen</strong> (para filtrar luz)
+                        <br />
+                        <em>Ejemplo: {piezasManager.piezaForm.cantidad || 1} medida{(piezasManager.piezaForm.cantidad || 1) > 1 ? 's' : ''} = {(piezasManager.piezaForm.cantidad || 1) * 2} piezas totales</em>
+                      </Typography>
+                    </Alert>
+                  </Grid>
+                )}
 
                 {/* Modelo/Código del Producto */}
                 <Grid item xs={12} sm={6}>
