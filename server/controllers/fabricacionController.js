@@ -6,6 +6,7 @@ const OrdenProduccionService = require('../services/ordenProduccionService');
 const AlmacenProduccionService = require('../services/almacenProduccionService');
 const OptimizadorCortesService = require('../services/optimizadorCortesService');
 const PDFOrdenFabricacionService = require('../services/pdfOrdenFabricacionService');
+const PDFListaPedidoV3Service = require('../services/pdfListaPedidoV3Service');
 const logger = require('../config/logger');
 const eventBus = require('../services/eventBusService');
 
@@ -482,9 +483,8 @@ async function descargarPDFListaPedido(req, res) {
     const datosOrden = await OrdenProduccionService.obtenerDatosOrdenProduccion(proyectoId);
     
     // Generar PDF de lista de pedido (solo materiales)
-    const pdfBuffer = await PDFOrdenFabricacionService.generarPDFListaPedido(
-      datosOrden,
-      datosOrden.listaPedido
+    const pdfBuffer = await PDFListaPedidoV3Service.generarPDF(
+      datosOrden
     );
     
     // Configurar headers para descarga
