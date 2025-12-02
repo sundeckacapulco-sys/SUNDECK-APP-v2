@@ -1,3 +1,5 @@
+const Pedido = require('../models/Pedido');
+const OrdenFabricacion = require('../models/OrdenFabricacion');
 const FabricacionService = require('../services/fabricacionService');
 const CotizacionMappingService = require('../services/cotizacionMappingService');
 const OrdenProduccionService = require('../services/ordenProduccionService');
