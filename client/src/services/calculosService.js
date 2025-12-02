@@ -1,3 +1,5 @@
+import { calcularAreaCobrableSimple } from '../utils/calculoAreaMinima';
+
 const toNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -10,22 +12,37 @@ const obtenerDetallesMedidas = (producto) => {
   return [];
 };
 
+/**
+ * Calcula el área de un producto aplicando la regla de mínimo 1m por dimensión
+ * REGLA DE NEGOCIO: Si ancho o alto < 1m, se cobra como 1m
+ */
 const calcularAreaProducto = (producto) => {
   const detalles = obtenerDetallesMedidas(producto);
   if (detalles.length > 0) {
-    return detalles.reduce((total, detalle) => total + toNumber(detalle.area), 0);
+    // Usar areaCobrable si existe, sino calcular con mínimo
+    return detalles.reduce((total, detalle) => {
+      if (detalle.areaCobrable) {
+        return total + toNumber(detalle.areaCobrable);
+      }
+      const ancho = toNumber(detalle.ancho);
+      const alto = toNumber(detalle.alto);
+      return total + calcularAreaCobrableSimple(ancho, alto);
+    }, 0);
   }
 
   const ancho = toNumber(producto?.medidas?.ancho);
   const alto = toNumber(producto?.medidas?.alto);
-  let area = toNumber(producto?.medidas?.area, ancho * alto);
-
-  if (!area || area <= 0) {
-    area = ancho * alto;
+  
+  // Usar areaCobrable si ya está calculada
+  if (producto?.medidas?.areaCobrable) {
+    return toNumber(producto.medidas.areaCobrable);
   }
+  
+  // Aplicar regla de mínimo 1m por dimensión
+  const areaCobrable = calcularAreaCobrableSimple(ancho, alto);
 
   const cantidad = toNumber(producto?.medidas?.cantidad, 1);
-  return area > 0 ? area : ancho * alto * Math.max(cantidad, 1);
+  return areaCobrable > 0 ? areaCobrable : calcularAreaCobrableSimple(ancho, alto) * Math.max(cantidad, 1);
 };
 
 const calcularExtrasProducto = (producto) => {
@@ -71,8 +88,25 @@ export const calcularTotales = (productos = [], comercial = {}) => {
     return total + subtotalCalculado + extras;
   }, 0);
 
+  // Área cobrable (con mínimo 1m por dimensión) - para cotización
   const totalArea = productosNormalizados.reduce((total, producto) => {
     return total + calcularAreaProducto(producto);
+  }, 0);
+
+  // Área real (sin ajuste) - para referencia
+  const totalAreaReal = productosNormalizados.reduce((total, producto) => {
+    const detalles = obtenerDetallesMedidas(producto);
+    if (detalles.length > 0) {
+      return detalles.reduce((sum, detalle) => {
+        const area = toNumber(detalle.area) || (toNumber(detalle.ancho) * toNumber(detalle.alto));
+        return sum + area;
+      }, total);
+    }
+    const ancho = toNumber(producto?.medidas?.ancho);
+    const alto = toNumber(producto?.medidas?.alto);
+    const area = toNumber(producto?.medidas?.area) || (ancho * alto);
+    const cantidad = toNumber(producto?.medidas?.cantidad, 1);
+    return total + (area * Math.max(cantidad, 1));
   }, 0);
 
   const totalPiezas = productosNormalizados.reduce((total, producto) => {
@@ -147,7 +181,8 @@ export const calcularTotales = (productos = [], comercial = {}) => {
       totalConIVA,
     },
     total: totalFinal,
-    totalArea,
+    totalArea,        // Área cobrable (con mínimo 1m)
+    totalAreaReal,    // Área real (sin ajuste)
     totalPiezas,
   };
 };

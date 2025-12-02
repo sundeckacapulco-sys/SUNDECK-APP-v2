@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { createEmptyPieza } from '../AgregarEtapaModal.constants';
+import { calcularAreaCobrable } from '../../../utils/calculoAreaMinima';
 
 const usePiezasManager = (params = {}) => {
   const {
@@ -85,26 +86,74 @@ const usePiezasManager = (params = {}) => {
     return productoSeleccionado ? productoSeleccionado.label : producto;
   }, [todosLosProductos]);
 
-  const calcularMedidasProcesadas = useCallback((medidas, cantidad, productoFallback, productoLabelFallback) => (
-    medidas.slice(0, cantidad).map((medida) => {
-      const ancho = parseFloat(medida.ancho) || 0;
-      const alto = parseFloat(medida.alto) || 0;
-      const area = unidad === 'cm' ? (ancho * alto) / 10000 : ancho * alto;
+  /**
+   * SISTEMA DÍA/NOCHE: Detecta si el producto es día/noche y duplica las medidas
+   * Por cada medida se generan 2 piezas: una Blackout y una Malla/Screen
+   */
+  const esSistemaDiaNoche = useCallback((producto) => {
+    return producto === 'dia_noche' || 
+           producto === 'Sistema Día/Noche' ||
+           (typeof producto === 'string' && producto.toLowerCase().includes('día/noche'));
+  }, []);
+
+  const calcularMedidasProcesadas = useCallback((medidas, cantidad, productoFallback, productoLabelFallback) => {
+    const medidasBase = medidas.slice(0, cantidad).map((medida) => {
+      const anchoRaw = parseFloat(medida.ancho) || 0;
+      const altoRaw = parseFloat(medida.alto) || 0;
+      
+      // Convertir a metros si está en cm
+      const anchoMetros = unidad === 'cm' ? anchoRaw / 100 : anchoRaw;
+      const altoMetros = unidad === 'cm' ? altoRaw / 100 : altoRaw;
+      
+      // REGLA DE NEGOCIO: Mínimo 1m por dimensión para cobro
+      const areaInfo = calcularAreaCobrable(anchoMetros, altoMetros);
 
       return {
         // CRÍTICO: Preservar TODOS los campos de la medida original
         ...medida,
         // Sobrescribir solo los campos calculados
-        ancho,
-        alto,
-        area,
+        ancho: anchoMetros,
+        alto: altoMetros,
+        area: areaInfo.areaReal,           // Área real para mostrar
+        areaCobrable: areaInfo.areaCobrable, // Área para cotizar (mín 1m por dimensión)
+        anchoAjustado: areaInfo.anchoAjustado,
+        altoAjustado: areaInfo.altoAjustado,
+        tieneAjusteMinimo: areaInfo.tieneAjuste,
         producto: medida.producto || productoFallback,
         productoLabel: medida.productoLabel || productoLabelFallback,
         color: medida.color || 'Blanco',
         precioM2: medida.precioM2 || ''
       };
-    })
-  ), [unidad]);
+    });
+
+    // SISTEMA DÍA/NOCHE: Duplicar cada medida para crear 2 piezas (Blackout + Malla)
+    if (esSistemaDiaNoche(productoFallback)) {
+      const medidasDuplicadas = [];
+      medidasBase.forEach((medida, index) => {
+        // Pieza 1: Blackout
+        medidasDuplicadas.push({
+          ...medida,
+          tipoPiezaDiaNoche: 'blackout',
+          observacionesTecnicas: `${medida.observacionesTecnicas || ''} [DÍA/NOCHE - BLACKOUT]`.trim(),
+          numeroPiezaOriginal: index + 1
+        });
+        // Pieza 2: Malla/Screen
+        medidasDuplicadas.push({
+          ...medida,
+          tipoPiezaDiaNoche: 'malla',
+          observacionesTecnicas: `${medida.observacionesTecnicas || ''} [DÍA/NOCHE - MALLA]`.trim(),
+          numeroPiezaOriginal: index + 1
+        });
+      });
+      console.log('🌓 Sistema Día/Noche detectado: Duplicando medidas', {
+        medidasOriginales: medidasBase.length,
+        medidasDuplicadas: medidasDuplicadas.length
+      });
+      return medidasDuplicadas;
+    }
+
+    return medidasBase;
+  }, [unidad, esSistemaDiaNoche]);
 
   const handleAgregarPieza = useCallback(() => {
     if (!piezaForm.ubicacion) {
@@ -131,13 +180,22 @@ const usePiezasManager = (params = {}) => {
       productoLabel
     );
 
+    // SISTEMA DÍA/NOCHE: Calcular cantidad real de piezas (duplicadas)
+    const esDiaNoche = esSistemaDiaNoche(piezaForm.producto);
+    const cantidadRealPiezas = esDiaNoche ? cantidad * 2 : cantidad;
+    const observacionDiaNoche = esDiaNoche 
+      ? ` [SISTEMA DÍA/NOCHE: ${cantidad} medida${cantidad > 1 ? 's' : ''} = ${cantidadRealPiezas} piezas (Blackout + Malla)]`
+      : '';
+
     const nuevaPartida = {
       ...piezaForm,
-      cantidad,
+      cantidad: cantidadRealPiezas, // Cantidad real incluyendo duplicados
+      cantidadMedidasOriginales: cantidad, // Guardar cantidad original para referencia
+      esSistemaDiaNoche: esDiaNoche,
       medidas: medidasProcesadas,
       precioM2: parseFloat(piezaForm.precioM2) || precioGeneral,
       productoLabel: productoLabel || piezaForm.productoLabel,
-      observaciones: `${piezaForm.observaciones ? `${piezaForm.observaciones} - ` : ''}Partida de ${cantidad} pieza${cantidad > 1 ? 's' : ''}`,
+      observaciones: `${piezaForm.observaciones ? `${piezaForm.observaciones} - ` : ''}Partida de ${cantidadRealPiezas} pieza${cantidadRealPiezas > 1 ? 's' : ''}${observacionDiaNoche}`,
       // MOTORIZACIÓN: Preservar todos los campos de motorización
       motorizado: piezaForm.motorizado || false,
       motorModelo: piezaForm.motorModelo || '',
@@ -168,11 +226,12 @@ const usePiezasManager = (params = {}) => {
         return nuevasPiezas;
       });
 
-      const mensaje = `✅ Se actualizó partida con ${cantidad} pieza${cantidad > 1 ? 's' : ''} en ${piezaForm.ubicacion}`;
+      const mensajeDiaNoche = esDiaNoche ? ` 🌓 (${cantidad} medida${cantidad > 1 ? 's' : ''} × 2 = ${cantidadRealPiezas} piezas Blackout+Malla)` : '';
+      const mensaje = `✅ Se actualizó partida con ${cantidadRealPiezas} pieza${cantidadRealPiezas > 1 ? 's' : ''} en ${piezaForm.ubicacion}${mensajeDiaNoche}`;
       setErrorLocal('');
       setTimeout(() => {
         setErrorLocal(mensaje);
-        setTimeout(() => setErrorLocal(''), 4000);
+        setTimeout(() => setErrorLocal(''), 5000);
       }, 100);
 
       setEditandoPieza(false);
@@ -180,11 +239,12 @@ const usePiezasManager = (params = {}) => {
     } else {
       setPiezas(prev => [...prev, nuevaPartida]);
 
-      const mensaje = `✅ Partida agregada: ${cantidad} pieza${cantidad > 1 ? 's' : ''} en ${piezaForm.ubicacion}. Puedes agregar más partidas o terminar.`;
+      const mensajeDiaNoche = esDiaNoche ? ` 🌓 Sistema Día/Noche: ${cantidad} medida${cantidad > 1 ? 's' : ''} × 2 = ${cantidadRealPiezas} piezas (Blackout + Malla)` : '';
+      const mensaje = `✅ Partida agregada: ${cantidadRealPiezas} pieza${cantidadRealPiezas > 1 ? 's' : ''} en ${piezaForm.ubicacion}.${mensajeDiaNoche} Puedes agregar más partidas o terminar.`;
       setErrorLocal('');
       setTimeout(() => {
         setErrorLocal(mensaje);
-        setTimeout(() => setErrorLocal(''), 4000);
+        setTimeout(() => setErrorLocal(''), 5000);
       }, 100);
     }
 
@@ -194,6 +254,7 @@ const usePiezasManager = (params = {}) => {
   }, [
     calcularMedidasProcesadas,
     editandoPieza,
+    esSistemaDiaNoche,
     indiceEditando,
     obtenerLabelProducto,
     piezaForm,
@@ -286,7 +347,9 @@ const usePiezasManager = (params = {}) => {
     handleAgregarPieza,
     handleEliminarPieza,
     handleEditarPieza,
-    handleCancelarEdicion
+    handleCancelarEdicion,
+    // Utilidades
+    esSistemaDiaNoche
   };
 };
 
