@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
+import { SupervisionActiva } from './SupervisionActiva'; // <-- IMPORTAMOS EL NUEVO COMPONENTE
 
 const KPICard = ({ titulo, valor, etiqueta, unidad, icon, color = '#334155' }) => (
   <Card elevation={0} sx={{ height: '100%', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
@@ -161,6 +162,9 @@ const Dashboard = () => {
           ))}
         </Grid>
       </Box>
+
+      {/* ---- SECCIÓN DE SUPERVISIÓN ACTIVA (HOY) ---- */}
+      <SupervisionActiva />
 
     </Box>
   );

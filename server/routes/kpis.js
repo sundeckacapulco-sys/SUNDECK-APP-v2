@@ -100,6 +100,72 @@ router.get('/dashboard', auth, verificarPermiso('reportes', 'leer'), async (req,
   }
 });
 
+// GET /api/kpis/operacionales-diarios - La Cabina de Supervisión Activa
+router.get('/operacionales-diarios', auth, verificarPermiso('reportes', 'leer'), async (req, res) => {
+  try {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    const [
+      nuevosProspectosHoy,
+      ordenesIniciadasHoy,
+      ordenesFinalizadasHoy,
+      instalacionesProgramadasHoy,
+      instalacionesCompletadasHoy,
+      instalacionesEnCurso
+    ] = await Promise.all([
+      // --- Actividad Comercial (Hoy) ---
+      Prospecto.countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } }),
+
+      // --- Fabricación (Hoy) ---
+      Pedido.countDocuments({ fechaInicioFabricacion: { $gte: todayStart, $lte: todayEnd } }),
+      Pedido.countDocuments({ fechaFinFabricacion: { $gte: todayStart, $lte: todayEnd } }),
+
+      // --- Instalaciones (Hoy) ---
+      Pedido.countDocuments({ fechaInstalacion: { $gte: todayStart, $lte: todayEnd } }),
+      Pedido.countDocuments({ estado: 'entregado', fechaEntrega: { $gte: todayStart, $lte: todayEnd } }),
+      Pedido.countDocuments({ estado: 'en_instalacion' })
+    ]);
+    
+    // NOTA: Visitas y Check-ins no se pueden calcular aún. Se necesita clarificar el modelo de datos de Visitas.
+
+    res.json({
+      meta: {
+        fecha: todayStart,
+        actualizado: new Date(),
+        fuente: 'Real-time (Pedido & Prospecto models)'
+      },
+      comercial: {
+        titulo: 'Actividad Comercial (Hoy)',
+        nuevosProspectosHoy: { valor: nuevosProspectosHoy, etiqueta: 'Nuevos Prospectos Hoy' },
+        visitasAgendadasHoy: { valor: 'N/A', etiqueta: 'Visitas Agendadas Hoy' },
+        checkInsRealizadosHoy: { valor: 'N/A', etiqueta: 'Check-ins Realizados' }
+      },
+      fabricacion: {
+        titulo: 'Fabricación en Taller (Hoy)',
+        ordenesIniciadasHoy: { valor: ordenesIniciadasHoy, etiqueta: 'Órdenes Iniciadas Hoy' },
+        ordenesFinalizadasHoy: { valor: ordenesFinalizadasHoy, etiqueta: 'Órdenes Finalizadas Hoy' }
+      },
+      instalaciones: {
+        titulo: 'Instalaciones en Ruta (Hoy)',
+        instalacionesProgramadasHoy: { valor: instalacionesProgramadasHoy, etiqueta: 'Instalaciones Programadas' },
+        instalacionesEnCurso: { valor: instalacionesEnCurso, etiqueta: 'Instalaciones en Curso' },
+        instalacionesCompletadasHoy: { valor: instalacionesCompletadasHoy, etiqueta: 'Instalaciones Completadas' }
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error generando los KPIs operacionales diarios', {
+      ruta: 'kpis.js',
+      accion: 'getOperacionalesDiarios',
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ message: 'Error obteniendo métricas operacionales', error: error.message });
+  }
+});
+
 
 // --- RUTAS LEGACY (Mantenidas para no romper otras partes, pero vacías) ---
 
