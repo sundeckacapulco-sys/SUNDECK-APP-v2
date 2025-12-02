@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
-import DashboardEjecutivo from './DashboardEjecutivo';
+// El DashboardEjecutivo se ha unificado en Dashboard.js
+import Dashboard from '../Dashboard/Dashboard';
 import DashboardVentas from './DashboardVentas';
 import DashboardTaller from './DashboardTaller';
 import DashboardInstalaciones from './DashboardInstalaciones';
@@ -25,11 +26,12 @@ const DashboardRouter = () => {
     );
   }
 
-  // Enrutamiento por rol
+  // Enrutamiento por rol. Todos los roles de gestión ahora apuntan al dashboard unificado.
   switch (user.rol) {
     case 'admin':
     case 'gerente':
-      return <DashboardEjecutivo />;
+    case 'coordinador':
+      return <Dashboard />;
     
     case 'vendedor':
       return <DashboardVentas />;
@@ -40,16 +42,9 @@ const DashboardRouter = () => {
     case 'instalador':
       return <DashboardInstalaciones />;
     
-    case 'coordinador':
-      // Los coordinadores pueden ver una vista combinada o ejecutiva simplificada
-      return <DashboardEjecutivo />;
-    
     default:
-      return (
-        <Alert severity="warning">
-          Rol no reconocido: {user.rol}. Contacta al administrador.
-        </Alert>
-      );
+      // Como fallback seguro, cualquier otro rol ve el dashboard principal
+      return <Dashboard />;
   }
 };
 
