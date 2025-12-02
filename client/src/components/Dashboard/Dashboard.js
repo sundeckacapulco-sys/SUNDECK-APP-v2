@@ -2,12 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
-  Card,
-  CardContent,
   Typography,
   CircularProgress,
   Alert,
-  Icon,
   Button
 } from '@mui/material';
 import {
@@ -24,24 +21,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
-import { SupervisionActiva } from './SupervisionActiva'; // <-- IMPORTAMOS EL NUEVO COMPONENTE
-
-const KPICard = ({ titulo, valor, etiqueta, unidad, icon, color = '#334155' }) => (
-  <Card elevation={0} sx={{ height: '100%', border: '1px solid #E2E8F0', borderRadius: '12px' }}>
-    <CardContent sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-        <Icon component={icon} sx={{ fontSize: 28, color, mr: 2 }} />
-        <Typography variant="h4" component="div" fontWeight="600" color="#0F172A">
-          {unidad === 'currency' ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(valor) : valor}
-          {unidad === '%' ? '%' : ''}
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="#64748B" sx={{ pl: '44px' }}>
-        {etiqueta}
-      </Typography>
-    </CardContent>
-  </Card>
-);
+import { SupervisionActiva } from './SupervisionActiva';
+import { KPICard } from './KPICard'; // <-- IMPORTAMOS LA TARJETA CENTRALIZADA
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
@@ -68,7 +49,6 @@ const Dashboard = () => {
       try {
         setLoading(true);
         setError('');
-        // ÚNICA LLAMADA A LA TORRE DE CONTROL
         const response = await axiosConfig.get('/kpis/dashboard');
         setData(response.data);
       } catch (err) {
@@ -121,47 +101,10 @@ const Dashboard = () => {
         </Button>
       </Box>
 
-      {/* ---- SECCIÓN COMERCIAL ---- */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-          <TrendingUpIcon sx={{ color: '#3b82f6', mr: 1 }}/> Pipeline Comercial
-        </Typography>
-        <Grid container spacing={2}>
-          {Object.values(data.comercial).filter(k => typeof k === 'object').map((kpi) => (
-            <Grid item xs={12} sm={6} md={3} key={kpi.etiqueta}>
-              <KPICard {...kpi} icon={iconMapping[kpi.etiqueta] || TrendingUpIcon} color="#3b82f6" />
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-
-      {/* ---- SECCIÓN OPERACIONES ---- */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-           <BuildIcon sx={{ color: '#8b5cf6', mr: 1 }}/> Taller e Instalaciones
-        </Typography>
-        <Grid container spacing={2}>
-          {Object.values(data.operaciones).filter(k => typeof k === 'object').map((kpi) => (
-            <Grid item xs={12} sm={6} md={3} key={kpi.etiqueta}>
-              <KPICard {...kpi} icon={iconMapping[kpi.etiqueta] || BuildIcon} color="#8b5cf6" />
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-
-      {/* ---- SECCIÓN FINANCIERO ---- */}
-      <Box>
-        <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
-          <MoneyIcon sx={{ color: '#10b981', mr: 1 }}/> Salud Financiera
-        </Typography>
-        <Grid container spacing={2}>
-          {Object.values(data.financiero).filter(k => typeof k === 'object').map((kpi) => (
-            <Grid item xs={12} sm={6} md={3} key={kpi.etiqueta}>
-              <KPICard {...kpi} icon={iconMapping[kpi.etiqueta] || MoneyIcon} color="#10b981" />
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
+      {/* Secciones de la Torre de Control */}
+      {renderSeccion(data.comercial, iconMapping, '#3b82f6', TrendingUpIcon)}
+      {renderSeccion(data.operaciones, iconMapping, '#8b5cf6', BuildIcon)}
+      {renderSeccion(data.financiero, iconMapping, '#10b981', MoneyIcon)}
 
       {/* ---- SECCIÓN DE SUPERVISIÓN ACTIVA (HOY) ---- */}
       <SupervisionActiva />
@@ -169,5 +112,20 @@ const Dashboard = () => {
     </Box>
   );
 };
+
+const renderSeccion = (seccionData, iconMapping, color, defaultIcon) => (
+  <Box sx={{ mb: 4 }}>
+    <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
+      {React.createElement(defaultIcon, { sx: { color, mr: 1 } })} {seccionData.titulo}
+    </Typography>
+    <Grid container spacing={3}>
+      {Object.values(seccionData).filter(k => typeof k === 'object').map((kpi) => (
+        <Grid item xs={12} sm={6} md={3} key={kpi.etiqueta}>
+          <KPICard {...kpi} icon={iconMapping[kpi.etiqueta] || defaultIcon} color={color} />
+        </Grid>
+      ))}
+    </Grid>
+  </Box>
+);
 
 export default Dashboard;

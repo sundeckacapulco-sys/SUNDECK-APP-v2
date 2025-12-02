@@ -1,24 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../services/api';
-import { StatCard } from './StatCard'; // Reutilizamos el componente de tarjeta
+import axiosConfig from '../../config/axios'; // <-- RUTA DE API CORREGIDA
+import { KPICard } from './KPICard'; // <-- COMPONENTE DE TARJETA CORREGIDO
 import { Grid, Typography, Box, CircularProgress, Alert } from '@mui/material';
+import {
+  Visibility as VisibilityIcon,
+  Storefront as StorefrontIcon,
+  Construction as ConstructionIcon,
+} from '@mui/icons-material';
 
-const SeccionKPI = ({ titulo, kpis, loading }) => (
+const SeccionKPI = ({ titulo, kpis, loading, icon, color }) => (
   <Box mb={4}>
-    <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-      {titulo}
+    <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center' }}>
+      {React.createElement(icon, { sx: { color, mr: 1 } })} {titulo}
     </Typography>
     <Grid container spacing={3}>
-      {Object.values(kpis).map((kpi, index) => (
-        <Grid item xs={12} sm={6} md={4} key={index}>
-          <StatCard
-            title={kpi.etiqueta}
-            value={loading ? <CircularProgress size={24} /> : kpi.valor}
-            unit={kpi.unidad}
-            loading={loading}
-          />
-        </Grid>
-      ))}
+      {Object.keys(kpis)
+        .filter(key => key !== 'titulo') // Excluimos el título de las tarjetas
+        .map((key, index) => {
+          const kpi = kpis[key];
+          return (
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <KPICard
+                etiqueta={kpi.etiqueta}
+                valor={kpi.valor}
+                unidad={kpi.unidad}
+                loading={loading}
+                icon={ConstructionIcon} // Ícono genérico por ahora
+                color={color}
+              />
+            </Grid>
+          );
+        })}
     </Grid>
   </Box>
 );
@@ -32,7 +44,7 @@ export const SupervisionActiva = () => {
     const fetchOperacionalesDiarios = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/kpis/operacionales-diarios');
+        const response = await axiosConfig.get('/kpis/operacionales-diarios');
         setData(response.data);
         setError(null);
       } catch (err) {
@@ -44,44 +56,50 @@ export const SupervisionActiva = () => {
     };
 
     fetchOperacionalesDiarios();
-
-    // Actualizar cada 5 minutos
     const intervalId = setInterval(fetchOperacionalesDiarios, 5 * 60 * 1000);
 
     return () => clearInterval(intervalId);
   }, []);
 
   if (error) {
-    return <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>;
+    return <Alert severity="error" sx={{ mt: 3, mx: 2 }}>{error}</Alert>;
   }
-
-  const kpisComercial = data?.comercial || {};
-  const kpisFabricacion = data?.fabricacion || {};
-  const kpisInstalaciones = data?.instalaciones || {};
 
   return (
     <Box mt={5}>
-      <Typography variant="h4" gutterBottom component="div" sx={{ mb: 3 }}>
-         िना Supervisión Activa (Hoy)
+      <Typography variant="h4" gutterBottom component="div" sx={{ mb: 3, fontWeight: 'bold', color: '#0F172A' }}>
+        Cabina de Supervisión Activa (Hoy)
       </Typography>
 
-      <SeccionKPI 
-        titulo={kpisComercial.titulo || 'Actividad Comercial'} 
-        kpis={kpisComercial} 
-        loading={loading} 
-      />
-      
-      <SeccionKPI 
-        titulo={kpisFabricacion.titulo || 'Fabricación en Taller'} 
-        kpis={kpisFabricacion} 
-        loading={loading} 
-      />
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
+      ) : data ? (
+        <>
+          <SeccionKPI 
+            titulo={data.comercial.titulo} 
+            kpis={data.comercial} 
+            loading={loading} 
+            icon={VisibilityIcon}
+            color="#2563eb"
+          />
+          
+          <SeccionKPI 
+            titulo={data.fabricacion.titulo}
+            kpis={data.fabricacion}
+            loading={loading}
+            icon={StorefrontIcon}
+            color="#7c3aed"
+          />
 
-      <SeccionKPI 
-        titulo={kpisInstalaciones.titulo || 'Instalaciones en Ruta'} 
-        kpis={kpisInstalaciones} 
-        loading={loading} 
-      />
+          <SeccionKPI 
+            titulo={data.instalaciones.titulo} 
+            kpis={data.instalaciones} 
+            loading={loading}
+            icon={ConstructionIcon}
+            color="#db2777"
+          />
+        </>
+      ) : null}
     </Box>
   );
 };
