@@ -117,25 +117,41 @@ const AnalisisHistorico = () => {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={4} lg={3}>
-          <Paper sx={{ p: 2 }}>
+          <Paper sx={{ p: 2, position: 'relative', zIndex: 10 }}>
             <Typography variant="h6" gutterBottom>Seleccionar Rango</Typography>
-            <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
-              <Chip label="7 Días" onClick={() => setDatePreset('7d')} size="small" />
-              <Chip label="30 Días" onClick={() => setDatePreset('30d')} size="small" />
-              <Chip label="Esta Semana" onClick={() => setDatePreset('this_week')} size="small" />
-              <Chip label="Este Mes" onClick={() => setDatePreset('this_month')} size="small" />
+            <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.5 }}>
+              <Chip label="7 Días" onClick={() => setDatePreset('7d')} size="small" clickable />
+              <Chip label="30 Días" onClick={() => setDatePreset('30d')} size="small" clickable />
+              <Chip label="Esta Semana" onClick={() => setDatePreset('this_week')} size="small" clickable />
+              <Chip label="Este Mes" onClick={() => setDatePreset('this_month')} size="small" clickable />
             </Stack>
-            <DateRangePicker
-              onChange={handleDateRangeChange}
-              showSelectionPreview={true}
-              moveRangeOnFirstSelection={false}
-              months={1}
-              ranges={dateRange}
-              direction="horizontal"
-              locale={es}
-              staticRanges={[]}
-              inputRanges={[]}
-            />
+            <Box sx={{ 
+              '& .rdrCalendarWrapper': { 
+                fontSize: '0.85rem',
+                width: '100%'
+              },
+              '& .rdrMonth': {
+                width: '100%'
+              },
+              '& .rdrDateRangePickerWrapper': {
+                flexDirection: 'column'
+              },
+              '& .rdrDefinedRangesWrapper': {
+                display: 'none'
+              }
+            }}>
+              <DateRangePicker
+                onChange={handleDateRangeChange}
+                showSelectionPreview={true}
+                moveRangeOnFirstSelection={false}
+                months={1}
+                ranges={dateRange}
+                direction="vertical"
+                locale={es}
+                staticRanges={[]}
+                inputRanges={[]}
+              />
+            </Box>
           </Paper>
         </Grid>
 
