@@ -133,6 +133,8 @@ const AnalisisHistorico = () => {
               ranges={dateRange}
               direction="horizontal"
               locale={es}
+              staticRanges={[]}
+              inputRanges={[]}
             />
           </Paper>
         </Grid>
