@@ -29,6 +29,8 @@ import KPIsInstalaciones from './modules/instalaciones/KPIsInstalaciones';
 import CotizacionDirecta from './components/Cotizaciones/CotizacionDirecta';
 import CotizacionForm from './components/Cotizaciones/CotizacionForm';
 import CotizacionViewer from './components/Cotizaciones/CotizacionViewer';
+// Reportería Histórica
+import AnalisisHistorico from './modules/reporteria/AnalisisHistorico';
 
 function App() {
   const { user, loading } = useAuth();
@@ -69,18 +71,18 @@ function App() {
           <Route path="/instalaciones/calendario" element={<CalendarioInstalaciones />} />
           <Route path="/instalaciones/kpis" element={<KPIsInstalaciones />} />
           
-          {/* Módulos auxiliares */}
+          {/* Módulos auxiliares y Reportería */}
           <Route path="/productos" element={<CatalogoProductos />} />
           <Route path="/almacen" element={<PanelAlmacen />} />
           <Route path="/kpis" element={<DashboardKPIs />} />
           <Route path="/fabricacion" element={<DashboardFabricacion />} />
           <Route path="/calculadora" element={<CalculadoraMateriales />} />
+          <Route path="/reporteria/historico" element={<AnalisisHistorico />} /> {/* <-- RUTA AÑADIDA */}
           <Route path="/admin/plantillas-whatsapp" element={<PlantillasWhatsAppAdmin />} />
           
           {/* Redirecciones del sistema anterior */}
           <Route path="/prospectos" element={<Navigate to="/proyectos" replace />} />
           <Route path="/prospectos/*" element={<Navigate to="/proyectos" replace />} />
-          {/* Nota: /cotizaciones/:id ahora funciona correctamente, solo redirigimos el listado */}
           <Route path="/cotizaciones" element={<Navigate to="/proyectos" replace />} />
           <Route path="/pedidos" element={<Navigate to="/proyectos" replace />} />
           <Route path="/pedidos/*" element={<Navigate to="/proyectos" replace />} />
