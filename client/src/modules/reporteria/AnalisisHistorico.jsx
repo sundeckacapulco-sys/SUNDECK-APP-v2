@@ -32,7 +32,7 @@ const GraficoLineaMultiple = ({ data, xAxisKey, lines, title }) => (
         <YAxis />
         <Tooltip />
         <Legend />
-        {lines.map(line => (
+        {lines?.map(line => (
           <Line key={line.key} type="monotone" dataKey={line.key} stroke={line.color} name={line.name} />
         ))}
       </LineChart>
@@ -103,12 +103,12 @@ const AnalisisHistorico = () => {
     setDateRange([{ startDate, endDate, key: 'selection' }]);
   };
 
-  const chartData = data?.seriesDeTiempo?.fechas.map((fecha, index) => ({
+  const chartData = data?.seriesDeTiempo?.fechas?.map((fecha, index) => ({
       fecha,
-      ventas: data.seriesDeTiempo.ventas[index],
-      prospectos: data.seriesDeTiempo.prospectos[index],
-      iniciadas: data.seriesDeTiempo.ordenesIniciadas[index],
-      finalizadas: data.seriesDeTiempo.ordenesFinalizadas[index],
+      ventas: data?.seriesDeTiempo?.ventas?.[index] || 0,
+      prospectos: data?.seriesDeTiempo?.prospectos?.[index] || 0,
+      iniciadas: data?.seriesDeTiempo?.ordenesIniciadas?.[index] || 0,
+      finalizadas: data?.seriesDeTiempo?.ordenesFinalizadas?.[index] || 0,
   })) || [];
 
   return (
@@ -179,7 +179,7 @@ const AnalisisHistorico = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {data.tablaDeDatos && data.tablaDeDatos.map((row) => (
+                        {data?.tablaDeDatos?.map((row) => (
                           <TableRow key={row.fecha}>
                             <TableCell>{row.fecha}</TableCell>
                             <TableCell align="right">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(row.ventas)}</TableCell>
