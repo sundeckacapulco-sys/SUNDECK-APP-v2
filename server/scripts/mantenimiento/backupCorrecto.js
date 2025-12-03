@@ -1,17 +1,17 @@
 /**
- * Backup de sundeck-crm antes de migración
+ * Backup de sundeck antes de migración
  */
 
 const mongoose = require('mongoose');
 const fs = require('fs').promises;
 const path = require('path');
 
-const MONGODB_URI = 'mongodb://localhost:27017/sundeck-crm';
+const MONGODB_URI = 'mongodb://localhost:27017/sundeck';
 const BACKUP_DIR = path.join(__dirname, '../../backup_pre_migracion');
 
 async function crearBackup() {
   try {
-    console.log('🔄 Conectando a MongoDB (sundeck-crm)...');
+    console.log('🔄 Conectando a MongoDB (sundeck)...');
     await mongoose.connect(MONGODB_URI);
     
     console.log('📁 Creando directorio de backup...');
@@ -45,7 +45,7 @@ async function crearBackup() {
     // Guardar metadata
     const metadata = {
       fecha: new Date().toISOString(),
-      database: 'sundeck-crm',
+      database: 'sundeck',
       colecciones: collections.length,
       documentos: totalDocs,
       tamanoBytes: backupSize,
