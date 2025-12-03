@@ -1,9 +1,8 @@
-
 const Pedido = require('../models/Pedido');
 const Prospecto = require('../models/Prospecto');
 const logger = require('../config/logger');
 
-// Lógica para /conversion
+// Lógica para /conversion (sin cambios, ya es seguro)
 exports.getConversion = async (req, res) => {
     try {
         const [prospectos, levantamientos, cotizaciones, ventas, completados] = await Promise.all([
@@ -22,26 +21,28 @@ exports.getConversion = async (req, res) => {
             tasasEmbudo: { levantamientoACotizacion, cotizacionAVenta }
         });
     } catch (error) {
-        logger.error('Error en getConversion', { error: error.message });
+        logger.error('Error en getConversion', { error: error.message, stack: error.stack });
         res.status(500).json({ message: 'Error obteniendo datos de conversión' });
     }
 };
 
-// Lógica para /perdidas
+// Lógica para /perdidas (CORREGIDA)
 exports.getPerdidas = async (req, res) => {
     try {
-        const perdidas = await Prospecto.find({ etapa: 'perdido' }).select('razonPerdida montoEstimado');
+        // Aseguramos que solo traemos prospectos que tienen el campo razonPerdida
+        const perdidas = await Prospecto.find({ etapa: 'perdido', razonPerdida: { $exists: true, $ne: null } }).select('razonPerdida montoEstimado');
 
         let montoTotalPerdido = 0;
         const razones = {};
-        const perdidasPorEtapa = {}; // Implementación futura
-
+        
         perdidas.forEach(p => {
             montoTotalPerdido += p.montoEstimado || 0;
-            if (p.razonPerdida.tipo) {
-                razones[p.razonPerdida.tipo] = (razones[p.razonPerdida.tipo] || { cantidad: 0, montoTotal: 0 });
-                razones[p.razonPerdida.tipo].cantidad++;
-                razones[p.razonPerdida.tipo].montoTotal += p.montoEstimado || 0;
+            // Doble validación para asegurar que el objeto y la propiedad existen
+            if (p.razonPerdida && p.razonPerdida.tipo) {
+                const tipo = p.razonPerdida.tipo;
+                razones[tipo] = (razones[tipo] || { cantidad: 0, montoTotal: 0 });
+                razones[tipo].cantidad++;
+                razones[tipo].montoTotal += p.montoEstimado || 0;
             }
         });
         
@@ -51,22 +52,25 @@ exports.getPerdidas = async (req, res) => {
              montoTotal: razones[_id].montoTotal
         }));
 
+        // Ordenar para encontrar la razón principal de forma segura
+        const razonPrincipal = [...razonesAnalisis].sort((a,b) => b.cantidad - a.cantidad)[0] || null;
+
         res.json({
             razonesAnalisis,
             perdidasPorEtapa: [], // Placeholder
             resumen: {
                 totalPerdidas: perdidas.length,
                 montoTotalPerdido,
-                razonPrincipal: razonesAnalisis.sort((a,b) => b.cantidad - a.cantidad)[0] || null
+                razonPrincipal
             }
         });
     } catch (error) {
-        logger.error('Error en getPerdidas', { error: error.message });
+        logger.error('Error en getPerdidas', { error: error.message, stack: error.stack });
         res.status(500).json({ message: 'Error obteniendo datos de pérdidas' });
     }
 };
 
-// Lógica para /recuperables
+// Lógica para /recuperables (CORREGIDA)
 exports.getRecuperables = async (req, res) => {
     try {
         const prospectos = await Prospecto.find({ 
@@ -78,9 +82,10 @@ exports.getRecuperables = async (req, res) => {
         const porPrioridad = { alta: {cantidad: 0}, media: {cantidad: 0}, baja: {cantidad: 0} };
 
         prospectos.forEach(p => {
-             montoTotalRecuperable += p.montoEstimado || 0;
-            if (p.scoreRecuperacion >= 70) porPrioridad.alta.cantidad++;
-            else if (p.scoreRecuperacion >= 50) porPrioridad.media.cantidad++;
+            montoTotalRecuperable += p.montoEstimado || 0;
+            const score = p.scoreRecuperacion || 0; // Usar 0 como fallback
+            if (score >= 70) porPrioridad.alta.cantidad++;
+            else if (score >= 50) porPrioridad.media.cantidad++;
             else porPrioridad.baja.cantidad++;
         });
 
@@ -93,7 +98,7 @@ exports.getRecuperables = async (req, res) => {
             porPrioridad
         });
     } catch (error) {
-        logger.error('Error en getRecuperables', { error: error.message });
+        logger.error('Error en getRecuperables', { error: error.message, stack: error.stack });
         res.status(500).json({ message: 'Error obteniendo datos de recuperables' });
     }
 };
