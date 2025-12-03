@@ -6,12 +6,13 @@ const mongoose = require('mongoose');
 const fs = require('fs').promises;
 const path = require('path');
 
-const MONGODB_URI = 'mongodb://localhost:27017/sundeck';
 const BACKUP_DIR = path.join(__dirname, '../../backup_pre_migracion');
+// Conexión directa a la base de datos de desarrollo. No más dependencia de archivos temporales.
+const MONGODB_URI = 'mongodb://localhost:27017/sundeck-crm';
 
 async function crearBackup() {
   try {
-    console.log('🔄 Conectando a MongoDB (sundeck)...');
+    console.log(`🔄 Conectando a MongoDB en ${MONGODB_URI}...`);
     await mongoose.connect(MONGODB_URI);
     
     console.log('📁 Creando directorio de backup...');
@@ -45,7 +46,7 @@ async function crearBackup() {
     // Guardar metadata
     const metadata = {
       fecha: new Date().toISOString(),
-      database: 'sundeck',
+      database: 'sundeck-crm',
       colecciones: collections.length,
       documentos: totalDocs,
       tamanoBytes: backupSize,
@@ -67,6 +68,10 @@ async function crearBackup() {
     
   } catch (error) {
     console.error('❌ Error creando backup:', error.message);
+    if (error.name === 'MongoNetworkError') {
+      console.error('   👉 Causa: No se pudo conectar a la base de datos.');
+      console.error(`   👉 Verifica que MongoDB esté corriendo y accesible en ${MONGODB_URI}`);
+    }
     console.error(error.stack);
     process.exit(1);
   }
