@@ -1,8 +1,20 @@
 # 🚀 ROADMAP MAESTRO V2 - SUNDECK CRM
 
-**Versión:** 2.0  
+**Versión:** 2.1  
 **Fecha de Creación:** 24 Nov 2025  
+**Última Actualización:** 3 Dic 2025  
 **Objetivo:** Transformar la aplicación de un sistema de gestión a una plataforma de inteligencia de negocio, optimizando cada etapa del ciclo de vida del cliente.
+
+---
+
+## 📊 ESTADO ACTUAL DEL PROYECTO
+
+| Área | Estado | Notas |
+|------|--------|-------|
+| Entorno | ✅ Estable | MongoDB, Backend (5001), Frontend (3000) funcionando |
+| KPIs | ⚠️ Inconsistente | 3 fuentes de datos diferentes, requiere unificación |
+| PDF Lista Pedido | 🔴 Pendiente | Generación ilegible, diagnóstico pendiente |
+| Migración Legacy | ⏳ Pendiente | Fase 4 de consolidación |
 
 ---
 
@@ -18,6 +30,21 @@ El Roadmap V2 se enfoca en 5 pilares estratégicos, distribuidos en 5 fases:
 
 ---
 
+## 🔥 PRIORIDAD INMEDIATA (3 Dic 2025)
+
+### 🔴 Unificar Fuentes de Datos KPIs
+**Problema detectado:** El sistema tiene 3 endpoints diferentes calculando KPIs con modelos distintos:
+- `/proyectos/kpis/comerciales` → Modelo `Proyecto`
+- `/kpis/dashboard` → Modelos `Pedido` + `Prospecto`
+- `/kpis/conversion` → `kpiController`
+
+**Acción requerida:**
+1. Definir modelo canónico (¿`Proyecto` o `Pedido`+`Prospecto`?)
+2. Unificar cálculos en un solo servicio
+3. Deprecar endpoints redundantes
+
+---
+
 ## 🗺️ FASES DEL PROYECTO
 
 ### ⚡ FASE 1: OPTIMIZACIÓN Y UX TOTAL (Duración: 1 Semana)
@@ -30,8 +57,9 @@ El Roadmap V2 se enfoca en 5 pilares estratégicos, distribuidos en 5 fases:
   - ✅ **Entregable:** PDF con sugerencias claras para minimizar desperdicio de material.
 
 - **1.2: Consolidar Servicios PDF:**
-  - ✅ **Tarea:** Crear `pdfListaPedidoFinalService.js` unificando los 3 servicios actuales.
-  - ✅ **Entregable:** Un único servicio robusto para generar la lista de pedido, eliminando código duplicado.
+  - 🔴 **Tarea:** Crear `pdfListaPedidoFinalService.js` unificando los 3 servicios actuales.
+  - 🔴 **Entregable:** Un único servicio robusto para generar la lista de pedido, eliminando código duplicado.
+  - ⚠️ **Bloqueador:** PDF genera contenido ilegible, requiere diagnóstico.
 
 - **1.3: Calculadora de Materiales v1.2:**
   - ✅ **Tarea:** Implementar la UI para gestionar las reglas de la calculadora sin tocar la base de datos.
@@ -40,8 +68,13 @@ El Roadmap V2 se enfoca en 5 pilares estratégicos, distribuidos en 5 fases:
 
 - **1.4: Integración con Almacén:**
   - ✅ **Tarea:** Conectar el `pdfListaPedidoV3Service.js` con el stock real del almacén.
-  - ✅ **Tarea:** Actualizar el stock automáticamente cuando se genera una orden.
-  - ✅ **Entregable:** Descuento automático de inventario y alertas de stock bajo.
+  - ⏳ **Tarea:** Actualizar el stock automáticamente cuando se genera una orden.
+  - ⏳ **Entregable:** Descuento automático de inventario y alertas de stock bajo.
+
+- **1.5: Unificación de KPIs (NUEVO):**
+  - 🔴 **Tarea:** Auditar y unificar las 3 fuentes de datos de KPIs.
+  - 🔴 **Tarea:** Crear un único servicio `kpiUnificadoService.js`.
+  - 🔴 **Entregable:** Dashboards consistentes con fuente única de verdad.
 
 ### 🧠 FASE 2: INTELIGENCIA DE PRODUCCIÓN (Duración: 2 Semanas)
 

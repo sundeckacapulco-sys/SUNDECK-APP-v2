@@ -1,66 +1,74 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
-**Fecha de última sesión:** 5 Nov 2025
-**Estado del proyecto:** ✅ **MÓDULO ANÁLISIS HISTÓRICO** | 🔴 **DESPLIEGUE PENDIENTE** | 🔴 **PDF LISTA PEDIDO (CRÍTICO)**
+**Fecha de última sesión:** 3 Dic 2025
+**Estado del proyecto:** ✅ **ENTORNO ESTABLE** | ✅ **CORRECCIONES APLICADAS** | 🔴 **UNIFICACIÓN KPIs PENDIENTE**
 
 ---
 
-## 🎯 SESIÓN 5 NOV 2025 - DESVÍO ESTRATÉGICO: MÓDULO DE ANÁLISIS HISTÓRICO
+## 🎯 SESIÓN 3 DIC 2025 - CORRECCIONES Y DIAGNÓSTICO
 
-**Estado:** 💻 FUNCIONALIDAD CONSTRUIDA | 📚 DOCUMENTACIÓN CREADA | ❌ BUILD FALLIDO
+**Estado:** ✅ ENTORNO FUNCIONANDO | ✅ ERRORES CORREGIDOS | ✅ CONEXIONES VERIFICADAS
 
-### ✅ LOGROS (Desvío Productivo)
+### ✅ COMPLETADO
 
-Aunque el plan inicial era corregir el PDF de la Lista de Pedido, se tomó la decisión estratégica de capitalizar la infraestructura de datos históricos (Fases 0-3 completadas) para construir una nueva funcionalidad de alto valor.
+**1. Corrección Error `MetricCard is not defined`:**
+- ✅ Error en `DashboardKPIs.jsx`: `SafeMetricCard` usaba `MetricCard` que estaba definido dentro del componente (fuera de scope)
+- ✅ Solución: Movido `MetricCard` fuera del componente `DashboardKPIs` al nivel del módulo
+- ✅ Eliminada definición duplicada de `MetricCard` dentro del componente
+- ✅ Cambiadas referencias de `SafeMetricCard` a `MetricCard`
 
-**1. Módulo de Análisis Histórico (Fases 2 y 3 Implementadas):**
-   - ✅ **Backend:** Creado endpoint `GET /api/kpis/historico` que sirve datos procesados (resúmenes, series de tiempo, tablas).
-   - ✅ **Frontend:** Creada nueva página `AnalisisHistorico.jsx` con:
-     - Selector de rango de fechas y filtros rápidos.
-     - Gráficos interactivos (`recharts`) para KPIs comerciales y de producción.
-     - Tarjetas de resumen y tabla de datos detallada.
-   - ✅ **Integración:** Página añadida al menú de navegación principal.
-   - ✅ **Documentación:** Creado `docs/funcionalidades/analisis_historico.md` detallando la arquitectura y funcionamiento.
+**2. Análisis de Fuentes de Datos KPIs:**
+- ⚠️ **PROBLEMA IDENTIFICADO:** No hay fuente única de verdad para KPIs
+- 📊 **3 fuentes diferentes detectadas:**
+  | Dashboard | Endpoint | Modelo |
+  |-----------|----------|--------|
+  | Dashboard Comercial | `/proyectos/kpis/comerciales` | `Proyecto` |
+  | Dashboard Principal | `/kpis/dashboard` | `Pedido` + `Prospecto` |
+  | Dashboard KPIs | `/kpis/conversion`, `/kpis/perdidas` | `kpiController` |
+- ⚠️ Inconsistencias en cálculos de: Tasa de Conversión, Valor Total, Prospectos Activos, Ticket Promedio
 
-**2. Intento de Despliegue y Diagnóstico:**
-   - ❌ El proceso de `npm run build` falló debido a un error de sintaxis (caracteres de escape) en el código generado.
-   - ✅ El error fue diagnosticado y el archivo `AnalisisHistorico.jsx` fue corregido.
+**3. Verificación de Conexiones:**
+- ✅ MongoDB: Puerto 27017, servicio corriendo, 10 conexiones activas
+- ✅ Backend: Puerto 5001, funcionando
+- ✅ Frontend: Puerto 3000, proxy configurado a 5001
+- ✅ Configuración `client/package.json`: `"proxy": "http://localhost:5001"` ✓
 
 ---
 
 ## 🔴 PLAN DE ACCIÓN - PRÓXIMA SESIÓN
 
-Hemos construido una herramienta poderosa, pero aún no está en producción. Nuestra prioridad es finalizarla y luego retomar las tareas pendientes.
+### 1. PRIORIDAD ALTA: Unificar Fuentes de Datos KPIs
 
-### 1. PRIORIDAD MÁXIMA: Desplegar "Análisis Histórico"
+El sistema tiene 3 fuentes de datos diferentes para KPIs, causando inconsistencias. Necesita:
 
-1.  🔴 **Reintentar el build:** Ejecutar `cd client && npm run build` de nuevo para confirmar que la corrección fue exitosa.
-2.  🔴 **Desplegar:** Una vez el build sea exitoso, proceder con el despliegue a producción.
-3.  🔴 **Validar en Producción:** Verificar que la nueva página funciona correctamente en el entorno real.
+1. 🔴 **Definir modelo canónico:** ¿`Proyecto` es la fuente principal o son `Pedido` + `Prospecto`?
+2. 🔴 **Unificar cálculos** en un solo servicio/controlador
+3. 🔴 **Deprecar endpoints redundantes**
 
-### 2. SEGUNDA PRIORIDAD: Retomar Tarea Crítica Original
+### 2. TAREAS PENDIENTES (Contexto General)
 
-1.  🔴 **Diagnosticar PDF Lista Pedido:** Volver a la tarea original. Investigar por qué el PDF generado es ilegible.
-2.  🔴 **Corregir y Validar:** Implementar la solución y confirmar que el PDF se genera correctamente.
+- ⏳ **PDF Lista Pedido:** Diagnosticar y corregir generación ilegible
+- ⏳ **Fase 4: Migración Legacy:** Ejecutar consolidación de modelos
+- ⏳ **Flujo de Almacén:** Implementar reserva de materiales
 
-### 3. TAREAS PENDIENTES (Contexto General)
+---
 
-- ⏳ **Fase 4: Ejecución de Migración Legacy:** Esta sigue siendo una tarea importante que se retomará una vez que las prioridades anteriores estén resueltas.
-- ⏳ **Flujo de Almacén:** Continuar con la implementación de la reserva de materiales y la interfaz de usuario en el taller.
+## (ARCHIVADO) 🎯 SESIÓN 5 NOV 2025 - MÓDULO ANÁLISIS HISTÓRICO
 
-**El objetivo es claro: asegurar el despliegue de lo que acabamos de construir y luego, inmediatamente, resolver el bloqueo crítico del PDF.**
+**Estado:** ✅ FUNCIONALIDAD CONSTRUIDA | ✅ DOCUMENTACIÓN CREADA
+
+- ✅ Backend: Endpoint `GET /api/kpis/historico`
+- ✅ Frontend: Página `AnalisisHistorico.jsx` con gráficos interactivos
+- ✅ Integración al menú de navegación
+- ✅ Documentación: `docs/funcionalidades/analisis_historico.md`
 
 ---
 
 ## (ARCHIVADO) 🎯 SESIÓN 1 DIC 2025 - MANTENIMIENTO + LISTA PEDIDO
 
-**Estado:** ✅ ENTORNO LEVANTADO | ✅ BD LIMPIA | 🔴 PDF LISTA PEDIDO ILEGIBLE
+**Estado:** ✅ ENTORNO LEVANTADO | ✅ BD LIMPIA
 
-### ✅ COMPLETADO
-
-**1. Mantenimiento de Base de Datos:**
-- ✅ MongoDB verificado y funcionando (servicio Windows activo)
+- ✅ MongoDB verificado y funcionando
 - ✅ Conexión validada con `127.0.0.1:27017`
-- ✅ Base de datos `sundeck` (vacía) eliminada
-- ✅ Base de datos de producción: `sundeck-crm` (16.6 MB) intacta
+- ✅ Base de datos de producción: `sundeck-crm` intacta
 

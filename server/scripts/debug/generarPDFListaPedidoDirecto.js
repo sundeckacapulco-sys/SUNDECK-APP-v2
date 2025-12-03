@@ -6,9 +6,9 @@
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
-const OrdenProduccionService = require('../services/ordenProduccionService');
-const PDFOrdenFabricacionService = require('../services/pdfOrdenFabricacionService');
-const logger = require('../config/logger');
+const OrdenProduccionService = require('../../services/ordenProduccionService');
+const PDFOrdenFabricacionService = require('../../services/pdfOrdenFabricacionService');
+const logger = require('../../config/logger');
 
 async function generarPDFListaPedidoDirecto() {
   try {
