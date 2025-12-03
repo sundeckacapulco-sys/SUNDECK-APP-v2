@@ -76,13 +76,24 @@ const RAZONES_PERDIDA = {
   'otro': 'Otro'
 };
 
+const SafeMetricCard = ({ title, value, subtitle, icon, color, trend, alert }) => (
+    <MetricCard 
+        title={title}
+        value={value || 'N/A'}
+        subtitle={subtitle}
+        icon={icon}
+        color={color}
+        trend={trend}
+        alert={alert}
+    />
+);
+
 const DashboardKPIs = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tabActual, setTabActual] = useState(0);
   
-  // Estados de datos
   const [dashboardData, setDashboardData] = useState(null);
   const [conversionData, setConversionData] = useState(null);
   const [perdidasData, setPerdidasData] = useState(null);
@@ -95,6 +106,7 @@ const DashboardKPIs = () => {
   const cargarDashboard = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [dashboard, conversion, perdidas, recuperables] = await Promise.all([
         axiosConfig.get('/kpis/dashboard'),
         axiosConfig.get('/kpis/conversion'),
@@ -108,7 +120,7 @@ const DashboardKPIs = () => {
       setRecuperablesData(recuperables.data);
     } catch (error) {
       console.error('Error cargando dashboard KPIs:', error);
-      setError('Error cargando métricas de ventas');
+      setError('Error cargando métricas. Por favor, recarga la página.');
     } finally {
       setLoading(false);
     }
@@ -162,12 +174,13 @@ const DashboardKPIs = () => {
   );
 
   const EmbudoConversion = ({ data }) => {
+    if (!data || !data.embudo) return <Alert severity="info">No hay datos de conversión disponibles.</Alert>;
     const embudoData = [
-      { name: 'Prospectos', value: data.embudo.prospectos, fill: '#8884d8' },
-      { name: 'Levantamientos', value: data.embudo.levantamientos, fill: '#82ca9d' },
-      { name: 'Cotizaciones', value: data.embudo.cotizaciones, fill: '#ffc658' },
-      { name: 'Ventas', value: data.embudo.ventas, fill: '#ff7300' },
-      { name: 'Completados', value: data.embudo.completados, fill: '#00C49F' }
+      { name: 'Prospectos', value: data.embudo.prospectos || 0, fill: '#8884d8' },
+      { name: 'Levantamientos', value: data.embudo.levantamientos || 0, fill: '#82ca9d' },
+      { name: 'Cotizaciones', value: data.embudo.cotizaciones || 0, fill: '#ffc658' },
+      { name: 'Ventas', value: data.embudo.ventas || 0, fill: '#ff7300' },
+      { name: 'Completados', value: data.embudo.completados || 0, fill: '#00C49F' }
     ];
 
     return (
@@ -177,16 +190,15 @@ const DashboardKPIs = () => {
             Embudo de Conversión
           </Typography>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={embudoData} layout="horizontal">
+            <BarChart data={embudoData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" />
               <YAxis dataKey="name" type="category" width={100} />
               <RechartsTooltip />
-              <Bar dataKey="value" />
+              <Bar dataKey="value" barSize={20} />
             </BarChart>
           </ResponsiveContainer>
           
-          {/* Tasas de conversión */}
           <Box sx={{ mt: 2 }}>
             <Typography variant="subtitle2" gutterBottom>
               Tasas de Conversión:
@@ -194,12 +206,12 @@ const DashboardKPIs = () => {
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <Typography variant="body2">
-                  Levantamiento → Cotización: <strong>{data.tasasEmbudo.levantamientoACotizacion.toFixed(1)}%</strong>
+                  Levantamiento → Cotización: <strong>{(data.tasasEmbudo?.levantamientoACotizacion || 0).toFixed(1)}%</strong>
                 </Typography>
               </Grid>
               <Grid item xs={6}>
                 <Typography variant="body2">
-                  Cotización → Venta: <strong>{data.tasasEmbudo.cotizacionAVenta.toFixed(1)}%</strong>
+                  Cotización → Venta: <strong>{(data.tasasEmbudo?.cotizacionAVenta || 0).toFixed(1)}%</strong>
                 </Typography>
               </Grid>
             </Grid>
@@ -209,24 +221,28 @@ const DashboardKPIs = () => {
     );
   };
 
-  const ProspectosRecuperables = ({ data }) => (
+  const ProspectosRecuperables = ({ data }) => {
+    if (!data || !data.prospectosRecuperables || data.prospectosRecuperables.length === 0) {
+        return <Alert severity="info">No hay prospectos recuperables en este momento.</Alert>;
+    }
+
+    return (
     <Card>
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6">
-            Prospectos Recuperables ({data.resumen.totalRecuperables})
+            Prospectos Recuperables ({data.resumen?.totalRecuperables || 0})
           </Typography>
           <Typography variant="h6" color="primary">
-            ${data.resumen.montoTotalRecuperable.toLocaleString()}
+            ${(data.resumen?.montoTotalRecuperable || 0).toLocaleString()}
           </Typography>
         </Box>
 
-        {/* Prioridades */}
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid item xs={4}>
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="h4" color="error.main">
-                {data.porPrioridad.alta.cantidad}
+                {data.porPrioridad?.alta?.cantidad || 0}
               </Typography>
               <Typography variant="body2">Alta Prioridad</Typography>
             </Box>
@@ -234,7 +250,7 @@ const DashboardKPIs = () => {
           <Grid item xs={4}>
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="h4" color="warning.main">
-                {data.porPrioridad.media.cantidad}
+                {data.porPrioridad?.media?.cantidad || 0}
               </Typography>
               <Typography variant="body2">Media Prioridad</Typography>
             </Box>
@@ -242,40 +258,36 @@ const DashboardKPIs = () => {
           <Grid item xs={4}>
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="h4" color="info.main">
-                {data.porPrioridad.baja.cantidad}
+                {data.porPrioridad?.baja?.cantidad || 0}
               </Typography>
               <Typography variant="body2">Baja Prioridad</Typography>
             </Box>
           </Grid>
         </Grid>
 
-        {/* Lista de prospectos top */}
         <List dense>
-          {data.prospectosRecuperables.slice(0, 5).map((prospecto) => (
+          {data.prospectosRecuperables.filter(p => p.cliente).slice(0, 5).map((prospecto) => {
+            const score = prospecto.scoreRecuperacion || 0;
+            const color = score >= 70 ? 'error' : score >= 50 ? 'warning' : 'info';
+            return (
             <ListItem key={prospecto._id}>
               <ListItemIcon>
-                <PersonOff color={
-                  prospecto.scoreRecuperacion >= 70 ? 'error' :
-                  prospecto.scoreRecuperacion >= 50 ? 'warning' : 'info'
-                } />
+                <PersonOff color={color} />
               </ListItemIcon>
               <ListItemText
                 primary={prospecto.cliente.nombre}
                 secondary={
                   <Box>
                     <Typography variant="body2">
-                      Score: {prospecto.scoreRecuperacion}/100 • 
-                      ${prospecto.montoEstimado.toLocaleString()} • 
-                      {RAZONES_PERDIDA[prospecto.razonPerdida.tipo]}
+                      Score: {score}/100 • 
+                      ${(prospecto.montoEstimado || 0).toLocaleString()} • 
+                      {RAZONES_PERDIDA[prospecto.razonPerdida?.tipo] || 'N/A'}
                     </Typography>
                     <LinearProgress 
                       variant="determinate" 
-                      value={prospecto.scoreRecuperacion} 
+                      value={score} 
                       sx={{ mt: 1 }}
-                      color={
-                        prospecto.scoreRecuperacion >= 70 ? 'error' :
-                        prospecto.scoreRecuperacion >= 50 ? 'warning' : 'info'
-                      }
+                      color={color}
                     />
                   </Box>
                 }
@@ -289,7 +301,7 @@ const DashboardKPIs = () => {
                 <Tooltip title="WhatsApp">
                   <IconButton 
                     size="small" 
-                    href={`https://wa.me/52${prospecto.cliente.telefono.replace(/\D/g, '')}`}
+                    href={`https://wa.me/52${(prospecto.cliente.telefono || '').replace(/\D/g, '')}`}
                     target="_blank"
                   >
                     <WhatsApp />
@@ -297,13 +309,17 @@ const DashboardKPIs = () => {
                 </Tooltip>
               </Box>
             </ListItem>
-          ))}
+          )})}
         </List>
       </CardContent>
     </Card>
-  );
+    )
+  };
 
   const AnalisisPerdidas = ({ data }) => {
+    if (!data || !data.razonesAnalisis || data.razonesAnalisis.length === 0) {
+        return <Alert severity="info">No hay datos de pérdidas para analizar.</Alert>;
+    }
     const razonesChart = data.razonesAnalisis.map(razon => ({
       name: RAZONES_PERDIDA[razon._id] || razon._id,
       value: razon.cantidad,
@@ -318,7 +334,6 @@ const DashboardKPIs = () => {
           </Typography>
           
           <Grid container spacing={3}>
-            {/* Gráfico de razones */}
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle2" gutterBottom>
                 Razones de Pérdida
@@ -343,13 +358,12 @@ const DashboardKPIs = () => {
               </ResponsiveContainer>
             </Grid>
 
-            {/* Pérdidas por etapa */}
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle2" gutterBottom>
                 Pérdidas por Etapa
               </Typography>
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={data.perdidasPorEtapa}>
+                <BarChart data={data.perdidasPorEtapa || []}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="_id" />
                   <YAxis />
@@ -360,27 +374,26 @@ const DashboardKPIs = () => {
             </Grid>
           </Grid>
 
-          {/* Resumen */}
           <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
             <Grid container spacing={2}>
               <Grid item xs={3}>
                 <Typography variant="body2" color="text.secondary">Total Perdidas</Typography>
-                <Typography variant="h6">{data.resumen.totalPerdidas}</Typography>
+                <Typography variant="h6">{data.resumen?.totalPerdidas || 0}</Typography>
               </Grid>
               <Grid item xs={3}>
                 <Typography variant="body2" color="text.secondary">Monto Perdido</Typography>
-                <Typography variant="h6">${data.resumen.montoTotalPerdido.toLocaleString()}</Typography>
+                <Typography variant="h6">${(data.resumen?.montoTotalPerdido || 0).toLocaleString()}</Typography>
               </Grid>
               <Grid item xs={3}>
                 <Typography variant="body2" color="text.secondary">Razón Principal</Typography>
                 <Typography variant="h6">
-                  {RAZONES_PERDIDA[data.resumen.razonPrincipal?._id] || 'N/A'}
+                  {RAZONES_PERDIDA[data.resumen?.razonPrincipal?._id] || 'N/A'}
                 </Typography>
               </Grid>
               <Grid item xs={3}>
                 <Typography variant="body2" color="text.secondary">Etapa Crítica</Typography>
                 <Typography variant="h6">
-                  {data.resumen.etapaCritica?._id || 'N/A'}
+                  {data.resumen?.etapaCritica?._id || 'N/A'}
                 </Typography>
               </Grid>
             </Grid>
@@ -408,7 +421,6 @@ const DashboardKPIs = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
@@ -427,12 +439,11 @@ const DashboardKPIs = () => {
         </Button>
       </Box>
 
-      {/* Alertas */}
       {dashboardData?.alertas && (
         <Box sx={{ mb: 3 }}>
           {dashboardData.alertas.conversionBaja && (
             <Alert severity="warning" sx={{ mb: 1 }}>
-              ⚠️ Conversión general baja ({dashboardData.kpiActual.conversiones.conversionGeneral.toFixed(1)}%). 
+              ⚠️ Conversión general baja ({(dashboardData.kpiActual?.conversiones?.conversionGeneral || 0).toFixed(1)}%). 
               Revisar proceso de ventas.
             </Alert>
           )}
@@ -444,48 +455,46 @@ const DashboardKPIs = () => {
         </Box>
       )}
 
-      {/* Métricas principales */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <MetricCard
+          <SafeMetricCard
             title="Conversión General"
-            value={`${dashboardData?.kpiActual.conversiones.conversionGeneral.toFixed(1)}%`}
+            value={`${(dashboardData?.kpiActual?.conversiones?.conversionGeneral || 0).toFixed(1)}%`}
             subtitle="Prospectos → Ventas cerradas"
             icon={<TrendingUp />}
             color="primary"
-            alert={dashboardData?.alertas.conversionBaja}
+            alert={dashboardData?.alertas?.conversionBaja}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <MetricCard
+          <SafeMetricCard
             title="Ticket Promedio"
-            value={`$${dashboardData?.kpiActual.metricas.ticketPromedio.toLocaleString()}`}
+            value={`$${(dashboardData?.kpiActual?.metricas?.ticketPromedio || 0).toLocaleString()}`}
             subtitle="Valor promedio por venta"
             icon={<MonetizationOn />}
             color="success"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <MetricCard
+          <SafeMetricCard
             title="Prospectos Perdidos"
-            value={dashboardData?.kpiActual.metricas.prospectosPerdidos}
+            value={dashboardData?.kpiActual?.metricas?.prospectosPerdidos || 0}
             subtitle="Este período"
             icon={<Cancel />}
             color="error"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <MetricCard
+          <SafeMetricCard
             title="Recuperables"
-            value={dashboardData?.resumen.prospectosEnRiesgo}
-            subtitle={`$${recuperablesData?.resumen.montoTotalRecuperable.toLocaleString()}`}
+            value={recuperablesData?.resumen?.totalRecuperables || 0}
+            subtitle={`$${(recuperablesData?.resumen?.montoTotalRecuperable || 0).toLocaleString()}`}
             icon={<PersonOff />}
             color="warning"
           />
         </Grid>
       </Grid>
 
-      {/* Tabs de análisis */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tabActual} onChange={(e, newValue) => setTabActual(newValue)}>
           <Tab label="Embudo de Conversión" />
@@ -494,30 +503,9 @@ const DashboardKPIs = () => {
         </Tabs>
       </Box>
 
-      {/* Contenido de tabs */}
-      {tabActual === 0 && conversionData && (
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <EmbudoConversion data={conversionData} />
-          </Grid>
-        </Grid>
-      )}
-
-      {tabActual === 1 && recuperablesData && (
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <ProspectosRecuperables data={recuperablesData} />
-          </Grid>
-        </Grid>
-      )}
-
-      {tabActual === 2 && perdidasData && (
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <AnalisisPerdidas data={perdidasData} />
-          </Grid>
-        </Grid>
-      )}
+      {tabActual === 0 && <EmbudoConversion data={conversionData} />}
+      {tabActual === 1 && <ProspectosRecuperables data={recuperablesData} />}
+      {tabActual === 2 && <AnalisisPerdidas data={perdidasData} />}
     </Box>
   );
 };
