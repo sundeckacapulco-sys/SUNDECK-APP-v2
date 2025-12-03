@@ -56,7 +56,7 @@ exports.obtenerOrdenesCompra = async (req, res) => {
     const { page = 1, limit = 10, estado, proveedor } = req.query;
     const filtros = {};
     if (estado) filtros.estado = estado;
-    if (proveedor) 'proveedor.nombre': { $regex: proveedor, $options: 'i' } });
+    if (proveedor) filtros['proveedor.nombre'] = { $regex: proveedor, $options: 'i' };
 
     const opciones = { 
       page: parseInt(page), 
