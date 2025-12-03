@@ -77,10 +77,12 @@ export const formatearAreaConMinimo = (ancho, alto) => {
   return `${areaReal.toFixed(2)} m²`;
 };
 
-export default {
+const calculoAreaMinimaUtils = {
   aplicarMinimoDimension,
   calcularAreaCobrable,
   calcularAreaCobrableSimple,
   formatearAreaConMinimo,
   MINIMO_DIMENSION_METROS
 };
+
+export default calculoAreaMinimaUtils;

@@ -267,4 +267,5 @@ class ProyectosAPI {
   }
 }
 
-export default new ProyectosAPI();
+const proyectosApi = new ProyectosAPI();
+export default proyectosApi;

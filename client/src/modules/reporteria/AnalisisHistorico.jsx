@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DateRangePicker } from 'react-date-range';
-import { addDays, sub, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { sub, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
 import es from 'date-fns/locale/es';
 
 import 'react-date-range/dist/styles.css';
