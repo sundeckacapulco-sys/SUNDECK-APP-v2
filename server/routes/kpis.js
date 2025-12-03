@@ -5,6 +5,13 @@ const Prospecto = require('../models/Prospecto');
 const MetricaHistorica = require('../models/MetricaHistorica');
 const router = express.Router();
 const logger = require('../config/logger');
+const kpiController = require('../controllers/kpiController');
+
+// Rutas para el nuevo Dashboard de KPIs
+router.get('/conversion', auth, verificarPermiso('reportes', 'leer'), kpiController.getConversion);
+router.get('/perdidas', auth, verificarPermiso('reportes', 'leer'), kpiController.getPerdidas);
+router.get('/recuperables', auth, verificarPermiso('reportes', 'leer'), kpiController.getRecuperables);
+
 
 // GET /api/kpis/historico?fechaInicio=YYYY-MM-DD&fechaFin=YYYY-MM-DD
 router.get('/historico', auth, verificarPermiso('reportes', 'leer'), async (req, res) => {
