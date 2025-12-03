@@ -76,16 +76,52 @@ const RAZONES_PERDIDA = {
   'otro': 'Otro'
 };
 
-const SafeMetricCard = ({ title, value, subtitle, icon, color, trend, alert }) => (
-    <MetricCard 
-        title={title}
-        value={value || 'N/A'}
-        subtitle={subtitle}
-        icon={icon}
-        color={color}
-        trend={trend}
-        alert={alert}
-    />
+// MetricCard movido fuera del componente para que SafeMetricCard pueda usarlo
+const MetricCard = ({ title, value, subtitle, icon, color, trend, alert }) => (
+  <Card sx={{ height: '100%', position: 'relative' }}>
+    {alert && (
+      <Chip
+        label="ALERTA"
+        color="error"
+        size="small"
+        sx={{ position: 'absolute', top: 8, right: 8 }}
+      />
+    )}
+    <CardContent>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            {title}
+          </Typography>
+          <Typography variant="h4" component="div" color={color} sx={{ mb: 1 }}>
+            {value || 'N/A'}
+          </Typography>
+          {subtitle && (
+            <Typography variant="body2" color="text.secondary">
+              {subtitle}
+            </Typography>
+          )}
+          {trend && (
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+              {trend > 0 ? (
+                <TrendingUp color="success" sx={{ mr: 1 }} />
+              ) : (
+                <TrendingDown color="error" sx={{ mr: 1 }} />
+              )}
+              <Typography variant="body2" color={trend > 0 ? 'success.main' : 'error.main'}>
+                {Math.abs(trend)}% vs mes anterior
+              </Typography>
+            </Box>
+          )}
+        </Box>
+        <Box sx={{ ml: 2 }}>
+          {icon && React.cloneElement(icon, { 
+            sx: { fontSize: 48, color: `${color}.main`, opacity: 0.7 } 
+          })}
+        </Box>
+      </Box>
+    </CardContent>
+  </Card>
 );
 
 const DashboardKPIs = () => {
@@ -125,53 +161,6 @@ const DashboardKPIs = () => {
       setLoading(false);
     }
   };
-
-  const MetricCard = ({ title, value, subtitle, icon, color, trend, alert }) => (
-    <Card sx={{ height: '100%', position: 'relative' }}>
-      {alert && (
-        <Chip
-          label="ALERTA"
-          color="error"
-          size="small"
-          sx={{ position: 'absolute', top: 8, right: 8 }}
-        />
-      )}
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              {title}
-            </Typography>
-            <Typography variant="h4" component="div" color={color} sx={{ mb: 1 }}>
-              {value}
-            </Typography>
-            {subtitle && (
-              <Typography variant="body2" color="text.secondary">
-                {subtitle}
-              </Typography>
-            )}
-            {trend && (
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                {trend > 0 ? (
-                  <TrendingUp color="success" sx={{ mr: 1 }} />
-                ) : (
-                  <TrendingDown color="error" sx={{ mr: 1 }} />
-                )}
-                <Typography variant="body2" color={trend > 0 ? 'success.main' : 'error.main'}>
-                  {Math.abs(trend)}% vs mes anterior
-                </Typography>
-              </Box>
-            )}
-          </Box>
-          <Box sx={{ ml: 2 }}>
-            {React.cloneElement(icon, { 
-              sx: { fontSize: 48, color: `${color}.main`, opacity: 0.7 } 
-            })}
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
 
   const EmbudoConversion = ({ data }) => {
     if (!data || !data.embudo) return <Alert severity="info">No hay datos de conversión disponibles.</Alert>;
@@ -457,7 +446,7 @@ const DashboardKPIs = () => {
 
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <SafeMetricCard
+          <MetricCard
             title="Conversión General"
             value={`${(dashboardData?.kpiActual?.conversiones?.conversionGeneral || 0).toFixed(1)}%`}
             subtitle="Prospectos → Ventas cerradas"
@@ -467,7 +456,7 @@ const DashboardKPIs = () => {
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <SafeMetricCard
+          <MetricCard
             title="Ticket Promedio"
             value={`$${(dashboardData?.kpiActual?.metricas?.ticketPromedio || 0).toLocaleString()}`}
             subtitle="Valor promedio por venta"
@@ -476,7 +465,7 @@ const DashboardKPIs = () => {
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <SafeMetricCard
+          <MetricCard
             title="Prospectos Perdidos"
             value={dashboardData?.kpiActual?.metricas?.prospectosPerdidos || 0}
             subtitle="Este período"
@@ -485,7 +474,7 @@ const DashboardKPIs = () => {
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <SafeMetricCard
+          <MetricCard
             title="Recuperables"
             value={recuperablesData?.resumen?.totalRecuperables || 0}
             subtitle={`$${(recuperablesData?.resumen?.montoTotalRecuperable || 0).toLocaleString()}`}
