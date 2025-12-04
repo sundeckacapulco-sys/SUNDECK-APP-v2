@@ -6,6 +6,217 @@ const logger = require('../config/logger');
 const eventBus = require('../services/eventBusService');
 const { construirProductosDesdePartidas, normalizarProductoParaPedido } = require('../utils/cotizacionMapper');
 
+/**
+ * Generar pedido directamente desde un proyecto
+ * POST /api/proyectos/:id/generar-pedido
+ */
+exports.generarPedidoDesdeProyecto = async (req, res) => {
+  try {
+    const { id: proyectoId } = req.params;
+    const { 
+      fechaCompromiso, 
+      prioridad = 'media',
+      observaciones 
+    } = req.body;
+
+    // Validar fecha de compromiso
+    if (!fechaCompromiso) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'La fecha de compromiso es requerida' 
+      });
+    }
+
+    // Buscar proyecto con cotización
+    const proyecto = await Proyecto.findById(proyectoId)
+      .populate('cliente')
+      .populate('cotizacionActual.cotizacion');
+
+    if (!proyecto) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Proyecto no encontrado' 
+      });
+    }
+
+    // Verificar que tenga cotización aprobada
+    const cotizacion = proyecto.cotizacionActual?.cotizacion;
+    if (!cotizacion) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'El proyecto no tiene cotización asociada' 
+      });
+    }
+
+    // Verificar que no exista pedido previo
+    const pedidoExistente = await Pedido.findOne({ proyecto: proyectoId });
+    if (pedidoExistente) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Ya existe un pedido para este proyecto',
+        pedido: pedidoExistente
+      });
+    }
+
+    // Calcular fechas
+    const fechaInicio = new Date();
+    const tiempoFabricacion = 15; // días por defecto
+    const fechaFinFabricacion = new Date(fechaInicio);
+    fechaFinFabricacion.setDate(fechaFinFabricacion.getDate() + tiempoFabricacion);
+
+    // Construir productos desde levantamiento
+    let productosPedido = [];
+    if (proyecto.levantamiento?.partidas?.length > 0) {
+      productosPedido = construirProductosDesdePartidas(proyecto.levantamiento.partidas, cotizacion);
+    } else if (cotizacion.productos?.length > 0) {
+      productosPedido = cotizacion.productos.map(p => normalizarProductoParaPedido(p));
+    }
+
+    // Crear pedido
+    const nuevoPedido = new Pedido({
+      // Referencias
+      proyecto: proyectoId,
+      cotizacion: cotizacion._id,
+      prospecto: proyecto.cliente?._id,
+      
+      // Campos críticos
+      fechaCompromiso: new Date(fechaCompromiso),
+      prioridad,
+      origen: 'cotizacion_aprobada',
+      
+      // Montos
+      montoTotal: cotizacion.total || proyecto.cotizacionActual?.total || 0,
+      anticipo: {
+        monto: (cotizacion.total || 0) * 0.6,
+        porcentaje: 60,
+        pagado: false
+      },
+      saldo: {
+        monto: (cotizacion.total || 0) * 0.4,
+        porcentaje: 40,
+        pagado: false
+      },
+      
+      // Productos
+      productos: productosPedido,
+      
+      // Dirección
+      direccionEntrega: {
+        calle: proyecto.cliente?.direccion?.calle || '',
+        colonia: proyecto.cliente?.direccion?.colonia || '',
+        ciudad: proyecto.cliente?.direccion?.ciudad || '',
+        codigoPostal: proyecto.cliente?.direccion?.codigoPostal || ''
+      },
+      contactoEntrega: {
+        nombre: proyecto.cliente?.nombre || '',
+        telefono: proyecto.cliente?.telefono || ''
+      },
+      
+      // Fechas
+      fechaInicioFabricacion: fechaInicio,
+      fechaFinFabricacion: fechaFinFabricacion,
+      fechaInstalacion: new Date(fechaCompromiso),
+      fechaEntrega: new Date(fechaCompromiso),
+      
+      // Estado
+      estado: 'confirmado',
+      vendedor: proyecto.asesor,
+      
+      // Notas
+      notas: [{
+        usuario: req.usuario?._id,
+        contenido: `📋 Pedido generado desde proyecto. Prioridad: ${prioridad}. Fecha compromiso: ${new Date(fechaCompromiso).toLocaleDateString('es-MX')}.${observaciones ? ` Obs: ${observaciones}` : ''}`,
+        tipo: 'info',
+        etapa: 'general'
+      }]
+    });
+
+    const pedidoGuardado = await nuevoPedido.save();
+
+    // Actualizar proyecto
+    await Proyecto.findByIdAndUpdate(proyectoId, {
+      $push: { pedidos: pedidoGuardado._id },
+      estado: 'fabricacion',
+      estadoComercial: 'en_fabricacion',
+      'cronograma.fechaPedido': new Date()
+    });
+
+    // Emitir evento
+    await eventBus.emit('pedido.creado', {
+      pedidoId: pedidoGuardado._id,
+      proyectoId,
+      numero: pedidoGuardado.numero,
+      prioridad,
+      fechaCompromiso
+    }, 'PedidoController', req.usuario?._id);
+
+    logger.info('Pedido generado desde proyecto', {
+      controlador: 'PedidoController',
+      accion: 'generarPedidoDesdeProyecto',
+      pedidoId: pedidoGuardado._id,
+      proyectoId,
+      numero: pedidoGuardado.numero,
+      prioridad
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Pedido generado exitosamente',
+      pedido: pedidoGuardado
+    });
+
+  } catch (error) {
+    logger.error('Error generando pedido desde proyecto', {
+      controlador: 'PedidoController',
+      accion: 'generarPedidoDesdeProyecto',
+      proyectoId: req.params?.id,
+      error: error.message,
+      stack: error.stack
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: 'Error generando pedido',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Obtener pedidos de un proyecto
+ * GET /api/proyectos/:id/pedidos
+ */
+exports.obtenerPedidosProyecto = async (req, res) => {
+  try {
+    const { id: proyectoId } = req.params;
+
+    const pedidos = await Pedido.find({ proyecto: proyectoId })
+      .sort({ createdAt: -1 })
+      .populate('vendedor', 'nombre apellido')
+      .lean();
+
+    return res.json({
+      success: true,
+      data: pedidos,
+      total: pedidos.length
+    });
+
+  } catch (error) {
+    logger.error('Error obteniendo pedidos del proyecto', {
+      controlador: 'PedidoController',
+      accion: 'obtenerPedidosProyecto',
+      proyectoId: req.params?.id,
+      error: error.message
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: 'Error obteniendo pedidos',
+      error: error.message
+    });
+  }
+};
+
 exports.aplicarAnticipo = async (req, res) => {
   try {
     const { cotizacionId } = req.params;
@@ -86,9 +297,36 @@ exports.aplicarAnticipo = async (req, res) => {
       });
     }
 
+    // Buscar proyecto asociado
+    let proyectoId = null;
+    const proyecto = await Proyecto.findOne({ 
+      $or: [
+        { 'cotizacionActual.cotizacion': cotizacionId },
+        { cotizaciones: cotizacionId }
+      ]
+    });
+    if (proyecto) {
+      proyectoId = proyecto._id;
+    }
+
+    // Calcular prioridad basada en monto y tiempo
+    let prioridad = 'media';
+    if (cotizacion.total > 100000) prioridad = 'alta';
+    if (cotizacion.total > 200000) prioridad = 'urgente';
+    if (req.body.prioridad) prioridad = req.body.prioridad;
+
     const nuevoPedido = new Pedido({
+      // ===== REFERENCIAS PRINCIPALES =====
+      proyecto: proyectoId,
       cotizacion: cotizacionId,
       prospecto: cotizacion.prospecto?._id,
+      
+      // ===== CAMPOS CRÍTICOS NUEVOS =====
+      fechaCompromiso: req.body.fechaCompromiso || fechaInstalacion,
+      prioridad: prioridad,
+      origen: 'cotizacion_aprobada',
+      
+      // ===== MONTOS =====
       montoTotal: cotizacion.total,
       anticipo: {
         monto: anticipoConfigurado.monto || (cotizacion.total * 0.6),
@@ -120,7 +358,7 @@ exports.aplicarAnticipo = async (req, res) => {
       estado: 'confirmado',
       notas: [{
         usuario: req.usuario?._id,
-        contenido: `🎉 Pedido creado automáticamente al recibir anticipo de $${(anticipoConfigurado.monto || (cotizacion.total * 0.6)).toLocaleString()}. Método: ${metodoPago || 'transferencia'}.${observaciones ? ` Obs: ${observaciones}` : ''}`,
+        contenido: `🎉 Pedido creado automáticamente al recibir anticipo de $${(anticipoConfigurado.monto || (cotizacion.total * 0.6)).toLocaleString()}. Método: ${metodoPago || 'transferencia'}. Prioridad: ${prioridad}.${observaciones ? ` Obs: ${observaciones}` : ''}`,
         tipo: 'pago'
       }]
     });

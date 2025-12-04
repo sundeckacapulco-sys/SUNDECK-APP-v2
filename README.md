@@ -1,8 +1,35 @@
 # 🏢 Sundeck CRM - Sistema Completo
 
-**Versión**: 3.1 | **Fecha**: 31 Oct 2025 | **Estado**: ⚙️ 70% FUNCIONAL (Base sólida con brechas críticas)
+**Versión**: 3.2 | **Fecha**: 3 Dic 2025 | **Estado**: ⚙️ 80% FUNCIONAL
 
 **Alineado con**: `ROADMAP_MASTER.md` v1.1 | **Auditoría**: `docs/auditoria_tecnica.md`
+
+---
+
+## 🔄 FLUJO DE NEGOCIO PRINCIPAL
+
+```
+┌──────────┐    ┌──────────┐    ┌──────────────┐    ┌───────────┐    ┌────────┐
+│ PROSPECTO│ → │ PROYECTO │ → │ LEVANTAMIENTO│ → │ COTIZACIÓN│ → │ PEDIDO │
+└──────────┘    └──────────┘    └──────────────┘    └───────────┘    └────────┘
+                                                                          │
+     ┌────────────────────────────────────────────────────────────────────┘
+     │
+     ▼
+┌─────────────┐    ┌─────────────┐    ┌───────┐    ┌──────────────┐
+│ FABRICACIÓN │ → │ INSTALACIÓN │ → │ COBRO │ → │ SATISFACCIÓN │
+└─────────────┘    └─────────────┘    └───────┘    └──────────────┘
+```
+
+### Estados por Etapa
+
+| Etapa | Estados Posibles |
+|-------|------------------|
+| **Prospecto** | nuevo, contactado, en_seguimiento, cita_agendada, cotizado |
+| **Proyecto** | activo, aprobado, en_fabricacion, instalacion, completado |
+| **Fabricación** | recepcion_material, pendiente, en_proceso, situacion_critica, terminado |
+| **Instalación** | pendiente, programada, en_proceso, completada |
+| **Cobro** | anticipo_pendiente, anticipo_pagado, saldo_pendiente, liquidado |
 
 ---
 

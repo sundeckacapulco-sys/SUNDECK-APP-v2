@@ -3,7 +3,13 @@ const mongoosePaginate = require('mongoose-paginate-v2');
 const logger = require('../config/logger');
 
 const pedidoSchema = new mongoose.Schema({
-  // Referencia a cotización y prospecto
+  // ===== REFERENCIAS PRINCIPALES =====
+  proyecto: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Proyecto',
+    required: true,
+    index: true
+  },
   cotizacion: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Cotizacion',
@@ -11,11 +17,10 @@ const pedidoSchema = new mongoose.Schema({
   },
   prospecto: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Prospecto',
-    required: true
+    ref: 'Prospecto'
   },
   
-  // Información del pedido
+  // ===== IDENTIFICACIÓN DEL PEDIDO =====
   numero: {
     type: String,
     unique: true,
@@ -24,6 +29,22 @@ const pedidoSchema = new mongoose.Schema({
   fechaPedido: {
     type: Date,
     default: Date.now
+  },
+  
+  // ===== CAMPOS NUEVOS CRÍTICOS =====
+  fechaCompromiso: {
+    type: Date,
+    required: true  // Fecha prometida al cliente
+  },
+  prioridad: {
+    type: String,
+    enum: ['urgente', 'alta', 'media', 'baja'],
+    default: 'media'
+  },
+  origen: {
+    type: String,
+    enum: ['cotizacion_aprobada', 'directo', 'renovacion'],
+    default: 'cotizacion_aprobada'
   },
   
   // Montos y pagos
@@ -417,9 +438,12 @@ pedidoSchema.methods.calcularProgreso = function() {
 
 // Índices
 pedidoSchema.index({ numero: 1 });
+pedidoSchema.index({ proyecto: 1 });
 pedidoSchema.index({ prospecto: 1 });
 pedidoSchema.index({ cotizacion: 1 });
 pedidoSchema.index({ estado: 1 });
+pedidoSchema.index({ fechaCompromiso: 1 });
+pedidoSchema.index({ prioridad: 1 });
 pedidoSchema.index({ fechaEntrega: 1 });
 pedidoSchema.index({ vendedor: 1 });
 

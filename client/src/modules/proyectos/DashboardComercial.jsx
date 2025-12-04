@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -6,7 +6,8 @@ import {
   Button,
   CircularProgress,
   Alert,
-  Stack
+  Stack,
+  Chip
 } from '@mui/material';
 import { Add as AddIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +16,55 @@ import FiltrosComerciales from './components/FiltrosComerciales';
 import KPIsComerciales from './components/KPIsComerciales';
 import TablaComercial from './components/TablaComercial';
 import PanelAlertasUnificado from './components/PanelAlertasUnificado';
+
+// Frases motivacionales según el rendimiento
+const FRASES_MOTIVACIONALES = {
+  excelente: [
+    "🔥 ¡Imparable! Tu equipo está en racha ganadora.",
+    "🚀 ¡Excelente trabajo! Los números hablan por sí solos.",
+    "⭐ ¡Brillante! Sigue así y romperás récords.",
+    "💪 ¡Eres un crack! El éxito es tu costumbre."
+  ],
+  bueno: [
+    "📈 ¡Vas por buen camino! Cada prospecto cuenta.",
+    "✨ ¡Buen ritmo! Un paso más y llegas a la meta.",
+    "🎯 ¡Enfocado! Los resultados se están notando.",
+    "💼 ¡Profesional! Tu dedicación da frutos."
+  ],
+  regular: [
+    "🌱 Cada día es una nueva oportunidad de crecer.",
+    "💡 Un buen seguimiento convierte prospectos en clientes.",
+    "📞 Una llamada puede cambiar todo. ¡Hazla!",
+    "🎯 Enfócate en lo importante: el cliente."
+  ],
+  inicio: [
+    "🌅 ¡Nuevo día, nuevas oportunidades!",
+    "🚀 El primer paso es el más importante. ¡Comienza!",
+    "💪 Construye tu éxito un prospecto a la vez.",
+    "✨ Hoy es el día perfecto para cerrar una venta."
+  ]
+};
+
+const obtenerFraseMotivacional = (kpis) => {
+  const tasaConversion = kpis?.resumen?.tasaConversion || 0;
+  const totalRegistros = kpis?.resumen?.total || 0;
+  
+  let categoria = 'inicio';
+  if (totalRegistros === 0) {
+    categoria = 'inicio';
+  } else if (tasaConversion >= 50) {
+    categoria = 'excelente';
+  } else if (tasaConversion >= 30) {
+    categoria = 'bueno';
+  } else {
+    categoria = 'regular';
+  }
+  
+  const frases = FRASES_MOTIVACIONALES[categoria];
+  // Seleccionar frase basada en el día para que cambie diariamente
+  const indice = new Date().getDate() % frases.length;
+  return frases[indice];
+};
 
 const createDefaultKpiState = () => ({
   resumen: {
@@ -210,14 +260,19 @@ const DashboardComercial = () => {
               📊 Dashboard Comercial
             </Typography>
             <Typography
-              variant="caption"
+              variant="body2"
               sx={{
-                color: '#64748B',
+                color: '#0EA5E9',
                 fontFamily: 'Inter, sans-serif',
-                fontSize: '0.75rem'
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                fontStyle: 'italic',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5
               }}
             >
-              Rendimiento comercial, evolución de prospectos y seguimiento humano en un solo lugar.
+              {obtenerFraseMotivacional(kpis)}
             </Typography>
           </Box>
 

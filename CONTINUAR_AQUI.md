@@ -1,13 +1,40 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
-**Fecha de última sesión:** 3 Dic 2025
-**Estado del proyecto:** ✅ **ENTORNO ESTABLE** | ✅ **MÓDULO FABRICACIÓN** | ✅ **PANEL ALERTAS**
+**Fecha de última sesión:** 3 Dic 2025 (Noche)
+**Estado del proyecto:** ✅ **PASO 1 COMPLETADO** | ✅ **PEDIDO UNIFICADO** | ✅ **BD LIMPIA**
 
 ---
 
-## 🎯 SESIÓN 3 DIC 2025 (TARDE) - MÓDULO FABRICACIÓN Y ALERTAS
+## 🎯 SESIÓN 3 DIC 2025 (NOCHE) - PASO 1 COMPLETADO
 
-### ✅ COMPLETADO HOY
+### ✅ COMPLETADO ESTA SESIÓN
+
+**1. PASO 1: Unificar Pedido - 100% COMPLETADO:**
+- ✅ Modelo `Pedido.js` actualizado con campos nuevos:
+  - `proyecto` (referencia a Proyecto)
+  - `fechaCompromiso` (fecha prometida al cliente)
+  - `prioridad` (urgente, alta, media, baja)
+  - `origen` (cotizacion_aprobada, directo, renovacion)
+- ✅ Endpoint `POST /api/proyectos/:id/generar-pedido`
+- ✅ Endpoint `GET /api/proyectos/:id/pedidos`
+- ✅ Colección `proyectopedidos` vaciada (datos de prueba eliminados)
+- ✅ Ruta `/proyecto-pedido` bloqueada (410 Gone)
+
+**2. Base de Datos Limpia:**
+- ✅ Solo 3 registros válidos:
+  - Arq. Hector Huerta (Proyecto - Instalación)
+  - Luis Bello (Proyecto - Activo)
+  - Sergio Cond Aquarelle (Prospecto - En Seguimiento)
+
+**3. Dashboard Comercial Mejorado:**
+- ✅ Frase motivacional dinámica (cambia diario según rendimiento)
+- ✅ Panel de alertas con 4 bloques
+
+---
+
+## 📋 SESIÓN ANTERIOR (3 DIC TARDE) - MÓDULO FABRICACIÓN Y ALERTAS
+
+### ✅ COMPLETADO
 
 **1. Módulo de Fabricación - Flujo Operativo:**
 - ✅ Estados de fabricación: `recepcion_material` → `pendiente` → `en_proceso` → `situacion_critica` → `terminado`

@@ -1,51 +1,182 @@
 # 🚀 ROADMAP MAESTRO V2 - SUNDECK CRM
 
-**Versión:** 2.1  
+**Versión:** 2.2  
 **Fecha de Creación:** 24 Nov 2025  
 **Última Actualización:** 3 Dic 2025  
-**Objetivo:** Transformar la aplicación de un sistema de gestión a una plataforma de inteligencia de negocio, optimizando cada etapa del ciclo de vida del cliente.
+**Objetivo:** Aterrizar el CRM con flujo completo funcional antes de activar inteligencia avanzada.
 
 ---
 
-## 📊 ESTADO ACTUAL DEL PROYECTO
+## 🔄 ECUACIÓN DE FLUJO PRINCIPAL
+
+```
+PROSPECTO → PROYECTO → LEVANTAMIENTO → COTIZACIÓN → PEDIDO → FABRICACIÓN → INSTALACIÓN → COBRO → SATISFACCIÓN
+```
+
+```
+┌──────────┐    ┌──────────┐    ┌──────────────┐    ┌───────────┐    ┌────────┐
+│ PROSPECTO│ → │ PROYECTO │ → │ LEVANTAMIENTO│ → │ COTIZACIÓN│ → │ PEDIDO │
+└──────────┘    └──────────┘    └──────────────┘    └───────────┘    └────────┘
+     │               │                │                  │               │
+   Fotos          Notas          13 campos           Precios        pedidoId
+   Notas          Fotos          técnicos            en vivo        fecha compromiso
+   Duplicados     Validación     por pieza           PDF/Excel      prioridad
+                                                     Acordeones     estado
+                                                                          │
+     ┌────────────────────────────────────────────────────────────────────┘
+     ▼
+┌─────────────┐    ┌─────────────┐    ┌───────┐    ┌──────────────┐
+│ FABRICACIÓN │ → │ INSTALACIÓN │ → │ COBRO │ → │ SATISFACCIÓN │
+└─────────────┘    └─────────────┘    └───────┘    └──────────────┘
+      │                  │                │               │
+   5 etapas           Fecha           Saldo          Encuesta
+   Fotos/etapa        Oficial         Recordatorio   Seguimiento
+   Comentarios        Complejidad     Factura        Postventa
+   Códigos            Tiempo est.
+                      Evidencias
+                      Firma cliente
+```
+
+---
+
+## 📊 ESTADO ACTUAL POR MÓDULO (3 Dic 2025)
+
+| # | Transición | Estado | % | Faltante Crítico |
+|---|------------|--------|---|------------------|
+| 1 | Prospecto → Proyecto | ✅ | 90% | Detección duplicados |
+| 2 | Proyecto → Levantamiento | ✅ | 95% | Validación automática |
+| 3 | Levantamiento → Cotización | ✅ | 90% | Totales unificados, sin duplicidades |
+| 4 | **Cotización → Pedido** | ✅ | **100%** | ~~Modelo unificado~~ COMPLETADO |
+| 5 | Pedido → Fabricación | ⚠️ | 60% | 5 etapas, fotos, códigos |
+| 6 | Fabricación → Instalación | ⚠️ | 50% | Fecha, oficial, firma cliente |
+| 7 | Instalación → Cobro → Postventa | ⚠️ | 40% | Saldo, recordatorio, satisfacción |
+
+---
+
+## 🎯 PLAN DE EJECUCIÓN (6 PASOS)
+
+### ✅ PASO 1: UNIFICAR PEDIDO (COMPLETADO 3 Dic 2025)
+**Sin esto, nada se mueve.**
+
+**Problema:** Duplicidad `Pedido` vs `ProyectoPedido` vs campos en `Proyecto`
+
+**Solución:**
+- [x] Definir modelo único `Pedido` con campos:
+  - `numero` (autogenerado: PED-2025-0001)
+  - `proyecto` (referencia a Proyecto) ✅ NUEVO
+  - `fechaCompromiso` ✅ NUEVO
+  - `prioridad` (urgente, alta, media, baja) ✅ NUEVO
+  - `origen` (cotizacion_aprobada, directo, renovacion) ✅ NUEVO
+  - `estado` (confirmado, en_fabricacion, fabricado, en_instalacion, instalado, entregado)
+- [x] Endpoint `POST /api/proyectos/:id/generar-pedido`
+- [x] Endpoint `GET /api/proyectos/:id/pedidos`
+- [x] Migrar datos existentes → Colección `proyectopedidos` vaciada (3 registros de prueba eliminados)
+- [x] Deprecar `ProyectoPedido` → Ruta bloqueada (410 Gone), modelo comentado en KPI.js
+
+**Entregable:** ✅ PASO 1 COMPLETADO AL 100%
+
+---
+
+### 🟠 PASO 2: RECONSTRUIR FABRICACIÓN
+**Con las fases y fotos aprobadas.**
+
+**5 Etapas de Fabricación:**
+1. **Corte** - Fotos de piezas cortadas
+2. **Armado** - Fotos del ensamble
+3. **Ensamble** - Fotos del producto armado
+4. **Revisión** - Control de calidad
+5. **Empaque** - Fotos del empaque final
+
+**Por cada etapa:**
+- [ ] Foto obligatoria
+- [ ] Comentarios del armador
+- [ ] Código interno de pieza
+- [ ] Timestamp automático
+- [ ] Usuario que registró
+
+**Entregable:** Módulo de fabricación con trazabilidad completa
+
+---
+
+### 🟡 PASO 3: INSTALAR LOGGER + AUDITORÍA
+**Para evitar errores ocultos.**
+
+- [ ] Logger estructurado en todos los endpoints críticos
+- [ ] Auditoría de cambios de estado
+- [ ] Registro de quién hizo qué y cuándo
+- [ ] Alertas de errores en tiempo real
+
+**Entregable:** Sistema observable y trazable
+
+---
+
+### 🟢 PASO 4: NORMALIZAR PROYECTO Y COTIZACIÓN
+**Todo limpio, bonito, sin duplicidades.**
+
+- [ ] Totales unificados (un solo cálculo)
+- [ ] Sin campos duplicados
+- [ ] Resumen final siempre correcto
+- [ ] PDF/Excel consistentes
+
+**Entregable:** Cotización perfecta al 100%
+
+---
+
+### 🔵 PASO 5: INTEGRAR INSTALACIONES
+**Con fotos + firma del cliente.**
+
+- [ ] Fecha programada
+- [ ] Oficial asignado
+- [ ] Complejidad calculada
+- [ ] Tiempo estimado
+- [ ] Evidencias fotográficas (antes/después)
+- [ ] Firma digital del cliente
+- [ ] Checklist de entrega
+
+**Entregable:** Instalación documentada completamente
+
+---
+
+### 🟣 PASO 6: CONSOLIDAR COBRO Y POSTVENTA
+
+- [ ] Registrar saldo pendiente
+- [ ] Generar recordatorio automático
+- [ ] Registrar satisfacción del cliente
+- [ ] Trigger de seguimiento postventa
+- [ ] Encuesta de calidad
+
+**Entregable:** Ciclo completo cerrado
+
+---
+
+## 🧩 DESPUÉS DE LOS 6 PASOS → MODO DIOS
+
+**Cuando el CRM esté aterrizado, entonces se activa:**
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| **Eventos Automáticos** | Fabricación terminada → Alerta agendar instalación |
+| **KPIs Reales** | Métricas basadas en datos limpios |
+| **Indexación** | Búsqueda rápida en todo el sistema |
+| **Motor de Reglas** | Automatización de flujos |
+| **Planner IA** | Sugerencias inteligentes |
+| **Agentes Especializados** | Asistentes por área |
+
+---
+
+## 📊 ESTADO LEGACY (Referencia)
 
 | Área | Estado | Notas |
 |------|--------|-------|
-| Entorno | ✅ Estable | MongoDB, Backend (5001), Frontend (3000) funcionando |
-| KPIs | ⚠️ Inconsistente | 3 fuentes de datos diferentes, requiere unificación |
-| PDF Lista Pedido | 🔴 Pendiente | Generación ilegible, diagnóstico pendiente |
-| Migración Legacy | ⏳ Pendiente | Fase 4 de consolidación |
+| Entorno | ✅ Estable | MongoDB, Backend (5001), Frontend (3000) |
+| KPIs | ✅ Unificados | Modelo `Proyecto` como fuente única |
+| Panel Alertas | ✅ Nuevo | 4 bloques con pendientes del día |
+| Fabricación | ⚠️ Parcial | Estados y botones funcionando |
+| PDF Lista Pedido | 🔴 Pendiente | Diagnóstico pendiente |
 
 ---
 
-## 🎯 VISIÓN GENERAL
-
-El Roadmap V2 se enfoca en 5 pilares estratégicos, distribuidos en 5 fases:
-
-1.  **⚡ Fase 1: Optimización y UX Total:** Finalizar lo pendiente y refinar la interfaz para una eficiencia máxima.
-2.  **🧠 Fase 2: Inteligencia de Producción:** Automatizar y optimizar el taller para reducir costos y tiempos.
-3.  **📈 Fase 3: Inteligencia Comercial y de Clientes:** Predecir ventas y entender el comportamiento del cliente.
-4.  **🔗 Fase 4: Ecosistema Conectado:** Integrar la app con proveedores y clientes para una comunicación fluida.
-5.  **🛠️ Fase 5: Auto-Servicio y Personalización:** Empoderar al usuario para que configure el sistema a su medida.
-
----
-
-## 🔥 PRIORIDAD INMEDIATA (3 Dic 2025)
-
-### 🔴 Unificar Fuentes de Datos KPIs
-**Problema detectado:** El sistema tiene 3 endpoints diferentes calculando KPIs con modelos distintos:
-- `/proyectos/kpis/comerciales` → Modelo `Proyecto`
-- `/kpis/dashboard` → Modelos `Pedido` + `Prospecto`
-- `/kpis/conversion` → `kpiController`
-
-**Acción requerida:**
-1. Definir modelo canónico (¿`Proyecto` o `Pedido`+`Prospecto`?)
-2. Unificar cálculos en un solo servicio
-3. Deprecar endpoints redundantes
-
----
-
-## 🗺️ FASES DEL PROYECTO
+## 🗺️ FASES ESTRATÉGICAS (POST-ATERRIZAJE)
 
 ### ⚡ FASE 1: OPTIMIZACIÓN Y UX TOTAL (Duración: 1 Semana)
 

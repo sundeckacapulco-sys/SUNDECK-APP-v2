@@ -30,6 +30,11 @@ const {
   generarListaPedidoV2
 } = require('../controllers/proyectoController');
 
+const {
+  generarPedidoDesdeProyecto,
+  obtenerPedidosProyecto
+} = require('../controllers/pedidoController');
+
 const router = express.Router();
 
 // Rutas públicas (requieren autenticación básica)
@@ -85,6 +90,22 @@ router.post('/:id/convertir',
   auth,
   verificarPermiso('proyectos', 'editar'),
   convertirProspectoAProyecto
+);
+
+// ===== RUTAS DE PEDIDO =====
+
+// POST /api/proyectos/:id/generar-pedido - Generar pedido desde proyecto
+router.post('/:id/generar-pedido',
+  auth,
+  verificarPermiso('proyectos', 'editar'),
+  generarPedidoDesdeProyecto
+);
+
+// GET /api/proyectos/:id/pedidos - Obtener pedidos del proyecto
+router.get('/:id/pedidos',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
+  obtenerPedidosProyecto
 );
 
 // PUT /api/proyectos/:id - Actualizar proyecto existente
