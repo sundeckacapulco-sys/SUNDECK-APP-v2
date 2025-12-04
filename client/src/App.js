@@ -31,6 +31,8 @@ import CotizacionForm from './components/Cotizaciones/CotizacionForm';
 import CotizacionViewer from './components/Cotizaciones/CotizacionViewer';
 // Reportería Histórica
 import AnalisisHistorico from './modules/reporteria/AnalisisHistorico';
+// Módulo de Caja
+import CajaPanel from './modules/caja/CajaPanel';
 
 function App() {
   const { user, loading } = useAuth();
@@ -74,10 +76,11 @@ function App() {
           {/* Módulos auxiliares y Reportería */}
           <Route path="/productos" element={<CatalogoProductos />} />
           <Route path="/almacen" element={<PanelAlmacen />} />
+          <Route path="/caja" element={<CajaPanel />} />
           <Route path="/kpis" element={<DashboardKPIs />} />
           <Route path="/fabricacion" element={<DashboardFabricacion />} />
           <Route path="/calculadora" element={<CalculadoraMateriales />} />
-          <Route path="/reporteria/historico" element={<AnalisisHistorico />} /> {/* <-- RUTA AÑADIDA */}
+          <Route path="/reporteria/historico" element={<AnalisisHistorico />} />
           <Route path="/admin/plantillas-whatsapp" element={<PlantillasWhatsAppAdmin />} />
           
           {/* Redirecciones del sistema anterior */}

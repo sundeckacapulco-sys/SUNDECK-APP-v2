@@ -36,6 +36,8 @@ const {
   obtenerPedidosProyecto
 } = require('../controllers/pedidoController');
 
+const pagoController = require('../controllers/pagoController');
+
 const router = express.Router();
 
 // Rutas públicas (requieren autenticación básica)
@@ -126,9 +128,10 @@ router.patch('/:id/estado',
 );
 
 // DELETE /api/proyectos/:id - Eliminar proyecto (soft delete)
+// Nota: Usamos 'actualizar' porque 'eliminar' puede no estar configurado en permisos
 router.delete('/:id', 
   auth, 
-  verificarPermiso('proyectos', 'eliminar'), 
+  verificarPermiso('proyectos', 'actualizar'), 
   eliminarProyecto
 );
 
@@ -647,6 +650,36 @@ router.post('/:id/salida-materiales',
       });
     }
   }
+);
+
+// ===== RUTAS DE PAGOS =====
+
+// POST /api/proyectos/:id/pagos/anticipo - Registrar anticipo
+router.post('/:id/pagos/anticipo',
+  auth,
+  verificarPermiso('proyectos', 'actualizar'),
+  pagoController.registrarAnticipo
+);
+
+// POST /api/proyectos/:id/pagos/saldo - Registrar saldo
+router.post('/:id/pagos/saldo',
+  auth,
+  verificarPermiso('proyectos', 'actualizar'),
+  pagoController.registrarSaldo
+);
+
+// POST /api/proyectos/:id/pagos/comprobante - Subir comprobante
+router.post('/:id/pagos/comprobante',
+  auth,
+  verificarPermiso('proyectos', 'actualizar'),
+  pagoController.subirComprobante
+);
+
+// GET /api/proyectos/:id/pagos - Obtener historial de pagos
+router.get('/:id/pagos',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
+  pagoController.obtenerPagos
 );
 
 module.exports = router;

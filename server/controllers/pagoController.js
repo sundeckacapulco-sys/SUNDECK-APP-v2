@@ -4,10 +4,73 @@
  */
 
 const Proyecto = require('../models/Proyecto');
+const Caja = require('../models/Caja');
 const logger = require('../config/logger');
 const mongoose = require('mongoose');
 const { getUploadPath, getRelativePath, ensureUploadDirectory } = require('../utils/pathHelper');
 const fs = require('fs').promises;
+
+/**
+ * Helper: Registrar movimiento en caja automáticamente
+ * Solo registra si hay caja abierta y el método de pago es efectivo
+ */
+const registrarEnCaja = async (datos, usuarioId) => {
+  try {
+    const caja = await Caja.obtenerCajaAbierta();
+    
+    if (!caja) {
+      logger.info('No hay caja abierta, movimiento no registrado en caja', {
+        proyectoId: datos.proyectoId,
+        monto: datos.monto
+      });
+      return { registrado: false, motivo: 'No hay caja abierta' };
+    }
+
+    // Crear movimiento
+    const movimiento = {
+      tipo: 'ingreso',
+      categoria: datos.tipoPago === 'anticipo' ? 'anticipo_proyecto' : 'saldo_proyecto',
+      concepto: `${datos.tipoPago === 'anticipo' ? 'Anticipo' : 'Saldo'} - Proyecto ${datos.proyectoNumero || datos.proyectoId}`,
+      monto: parseFloat(datos.monto),
+      metodoPago: datos.metodoPago || 'efectivo',
+      referencia: datos.referencia || '',
+      proyecto: datos.proyectoId,
+      tipoPago: datos.tipoPago,
+      comprobante: datos.comprobante || '',
+      cliente: {
+        nombre: datos.clienteNombre || '',
+        telefono: datos.clienteTelefono || ''
+      },
+      hora: new Date(),
+      usuario: usuarioId,
+      notas: datos.notas || '',
+      estado: 'activo'
+    };
+
+    await caja.agregarMovimiento(movimiento);
+
+    logger.info('💰 Pago registrado automáticamente en caja', {
+      cajaNumero: caja.numero,
+      proyectoId: datos.proyectoId,
+      tipoPago: datos.tipoPago,
+      monto: datos.monto,
+      metodoPago: datos.metodoPago
+    });
+
+    return { 
+      registrado: true, 
+      cajaNumero: caja.numero,
+      movimientoId: caja.movimientos[caja.movimientos.length - 1]._id
+    };
+
+  } catch (error) {
+    logger.error('Error registrando en caja', {
+      error: error.message,
+      proyectoId: datos.proyectoId
+    });
+    return { registrado: false, motivo: error.message };
+  }
+};
 
 /**
  * Registrar pago de anticipo
@@ -68,11 +131,49 @@ const registrarAnticipo = async (req, res) => {
     };
 
     // Actualizar saldo pendiente
-    const totalProyecto = proyecto.pagos.montoTotal || 0;
+    // Buscar el monto total del proyecto desde múltiples fuentes
+    let totalProyecto = proyecto.pagos?.montoTotal || 0;
+    
+    // Si no hay montoTotal en pagos, buscar en cotización o calcular desde anticipo
+    if (!totalProyecto || totalProyecto === 0) {
+      // Intentar obtener de la cotización activa
+      if (proyecto.cotizaciones && proyecto.cotizaciones.length > 0) {
+        const cotizacionActiva = proyecto.cotizaciones.find(c => c.estado === 'aprobada') 
+          || proyecto.cotizaciones[proyecto.cotizaciones.length - 1];
+        totalProyecto = cotizacionActiva?.total || cotizacionActiva?.totales?.total || 0;
+      }
+      
+      // Si aún no hay total, calcular desde el anticipo (asumiendo 60%)
+      if (!totalProyecto || totalProyecto === 0) {
+        const porcentajeAnticipo = porcentaje || 60;
+        totalProyecto = parseFloat(monto) / (porcentajeAnticipo / 100);
+        
+        logger.warn('Monto total calculado desde anticipo', {
+          proyectoId: id,
+          anticipo: monto,
+          porcentaje: porcentajeAnticipo,
+          totalCalculado: totalProyecto
+        });
+      }
+      
+      // Guardar el monto total calculado
+      proyecto.pagos.montoTotal = totalProyecto;
+    }
+    
     if (!proyecto.pagos.saldo) {
       proyecto.pagos.saldo = {};
     }
-    proyecto.pagos.saldo.monto = totalProyecto - parseFloat(monto);
+    
+    // Calcular saldo correctamente: Total - Anticipo
+    const saldoPendiente = totalProyecto - parseFloat(monto);
+    proyecto.pagos.saldo.monto = saldoPendiente > 0 ? saldoPendiente : 0;
+    
+    logger.info('Saldo calculado', {
+      proyectoId: id,
+      totalProyecto: totalProyecto,
+      anticipo: monto,
+      saldoPendiente: proyecto.pagos.saldo.monto
+    });
 
     // Actualizar información de facturación si se proporciona
     if (req.body.requiereFactura !== undefined) {
@@ -193,6 +294,28 @@ const registrarAnticipo = async (req, res) => {
       usuario: req.usuario?.nombre
     });
 
+    // 💰 REGISTRAR EN CAJA (si hay caja abierta)
+    let resultadoCaja = { registrado: false };
+    try {
+      resultadoCaja = await registrarEnCaja({
+        proyectoId: id,
+        proyectoNumero: proyecto.numero,
+        monto: monto,
+        metodoPago: metodoPago,
+        tipoPago: 'anticipo',
+        referencia: referencia,
+        comprobante: comprobante,
+        clienteNombre: proyecto.cliente?.nombre,
+        clienteTelefono: proyecto.cliente?.telefono,
+        notas: `Anticipo ${porcentaje || 60}% del proyecto`
+      }, req.usuario._id);
+    } catch (cajaError) {
+      logger.warn('No se pudo registrar en caja (no crítico)', {
+        proyectoId: id,
+        error: cajaError.message
+      });
+    }
+
     // 🚨 ALERTA: Anticipo recibido → Listo para fabricación
     try {
       const Notificacion = require('../models/Notificacion');
@@ -285,7 +408,8 @@ const registrarAnticipo = async (req, res) => {
         anticipo: proyecto.pagos.anticipo,
         saldo: proyecto.pagos.saldo,
         estadoProyecto: proyecto.estado,
-        alertaCreada: true
+        alertaCreada: true,
+        caja: resultadoCaja
       }
     });
 
@@ -370,11 +494,46 @@ const registrarSaldo = async (req, res) => {
       usuario: req.usuario?.nombre
     });
 
+    // 💰 REGISTRAR EN CAJA (si hay caja abierta)
+    let resultadoCaja = { registrado: false };
+    try {
+      resultadoCaja = await registrarEnCaja({
+        proyectoId: id,
+        proyectoNumero: proyecto.numero,
+        monto: monto,
+        metodoPago: metodoPago,
+        tipoPago: 'saldo',
+        referencia: referencia,
+        comprobante: comprobante,
+        clienteNombre: proyecto.cliente?.nombre,
+        clienteTelefono: proyecto.cliente?.telefono,
+        notas: 'Saldo final del proyecto'
+      }, req.usuario._id);
+    } catch (cajaError) {
+      logger.warn('No se pudo registrar saldo en caja (no crítico)', {
+        proyectoId: id,
+        error: cajaError.message
+      });
+    }
+
+    // Verificar si el proyecto está completamente pagado
+    const completamentePagado = proyecto.pagos?.anticipo?.pagado && proyecto.pagos?.saldo?.pagado;
+    
+    if (completamentePagado) {
+      logger.info('✅ Proyecto completamente pagado', {
+        proyectoId: id,
+        numero: proyecto.numero,
+        montoTotal: (proyecto.pagos?.anticipo?.monto || 0) + (proyecto.pagos?.saldo?.monto || 0)
+      });
+    }
+
     res.json({
       success: true,
       message: 'Saldo registrado exitosamente',
       data: {
-        saldo: proyecto.pagos.saldo
+        saldo: proyecto.pagos.saldo,
+        completamentePagado: completamentePagado,
+        caja: resultadoCaja
       }
     });
 

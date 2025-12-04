@@ -43,7 +43,8 @@ import {
   LocationOn as LocationIcon,
   CalendarToday as CalendarIcon,
   TrendingUp as TrendingUpIcon,
-  Assessment as AssessmentIcon
+  Assessment as AssessmentIcon,
+  AddShoppingCart as NuevoPedidoIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import proyectosApi from './services/proyectosApi';
@@ -339,7 +340,46 @@ const ProyectoDetail = () => {
             Proyecto: {proyecto.numero || `#${proyecto._id.slice(-8).toUpperCase()}`}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {/* Botón Nuevo Pedido - visible cuando el proyecto está completado o tiene saldo pagado */}
+          {(proyecto.estado === 'completado' || proyecto.pagos?.saldo?.pagado) && (
+            <Button
+              variant="contained"
+              startIcon={<NuevoPedidoIcon />}
+              onClick={async () => {
+                try {
+                  // Crear nuevo proyecto con los mismos datos del cliente
+                  const nuevoProyecto = await axiosConfig.post('/proyectos', {
+                    cliente: {
+                      nombre: proyecto.cliente.nombre,
+                      telefono: proyecto.cliente.telefono,
+                      correo: proyecto.cliente.correo || '',
+                      direccion: proyecto.cliente.direccion || {}
+                    },
+                    origen: 'cliente_recurrente',
+                    proyectoAnterior: proyecto._id,
+                    estado: 'levantamiento',
+                    estadoComercial: 'nuevo'
+                  });
+                  
+                  if (nuevoProyecto.data.success || nuevoProyecto.data._id) {
+                    const nuevoId = nuevoProyecto.data._id || nuevoProyecto.data.data?._id;
+                    navigate(`/proyectos/${nuevoId}`);
+                  }
+                } catch (error) {
+                  console.error('Error creando nuevo pedido:', error);
+                  alert('Error al crear nuevo pedido: ' + (error.response?.data?.message || error.message));
+                }
+              }}
+              sx={{ 
+                bgcolor: '#4CAF50', 
+                '&:hover': { bgcolor: '#45a049' },
+                fontWeight: 'bold'
+              }}
+            >
+              Nuevo Pedido
+            </Button>
+          )}
           <Chip
             label={estadoConfig.label || proyecto.estado}
             sx={{

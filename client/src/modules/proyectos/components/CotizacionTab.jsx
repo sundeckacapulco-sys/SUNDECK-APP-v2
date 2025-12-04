@@ -226,8 +226,8 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
         <Grid item xs={12} md={4}>
           <Card sx={{ 
             p: 2,
-            bgcolor: '#FFFFFF',
-            border: '1px solid #E2E8F0',
+            bgcolor: proyecto.pagos?.saldo?.pagado ? '#E8F5E9' : '#FFFFFF',
+            border: proyecto.pagos?.saldo?.pagado ? '2px solid #4CAF50' : '1px solid #E2E8F0',
             borderRadius: 2,
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
             textAlign: 'center'
@@ -236,11 +236,13 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
               variant="h5" 
               sx={{ 
                 fontWeight: 700, 
-                color: '#F59E0B',
+                color: proyecto.pagos?.saldo?.pagado ? '#4CAF50' : '#F59E0B',
                 mb: 0.5
               }}
             >
-              {formatearMoneda(datosFinancieros.saldo_pendiente)}
+              {proyecto.pagos?.saldo?.pagado 
+                ? '✅ PAGADO' 
+                : formatearMoneda(datosFinancieros.saldo_pendiente)}
             </Typography>
             <Typography 
               variant="body2" 
@@ -252,7 +254,7 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                 fontSize: '0.85rem'
               }}
             >
-              Saldo Pendiente
+              {proyecto.pagos?.saldo?.pagado ? 'Saldo Liquidado' : 'Saldo Pendiente'}
             </Typography>
           </Card>
         </Grid>
@@ -493,6 +495,13 @@ const CotizacionTab = ({ proyecto, estadisticas, onActualizar }) => {
                   <Box sx={{ mt: 1, p: 1, bgcolor: '#e8f5e9', borderRadius: 1 }}>
                     <Typography variant="body2" color="success.main">
                       ✅ <strong>Anticipo recibido:</strong> {formatearMoneda(datosFinancieros.anticipo)}
+                    </Typography>
+                  </Box>
+                )}
+                {proyecto.pagos?.saldo?.pagado && (
+                  <Box sx={{ mt: 1, p: 1, bgcolor: '#e8f5e9', borderRadius: 1 }}>
+                    <Typography variant="body2" color="success.main">
+                      ✅ <strong>Saldo pagado:</strong> {formatearMoneda(proyecto.pagos?.saldo?.monto)}
                     </Typography>
                   </Box>
                 )}

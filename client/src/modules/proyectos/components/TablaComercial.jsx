@@ -38,7 +38,9 @@ import {
   Email as EmailIcon,
   PersonAdd as AssignIcon,
   Cancel as CancelIcon,
-  ChangeCircle as ChangeStateIcon
+  ChangeCircle as ChangeStateIcon,
+  Archive as ArchiveIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../../config/axios';
@@ -212,6 +214,50 @@ const TablaComercial = ({
     } catch (error) {
       console.error('❌ Error al marcar como perdido:', error);
       showSnackbar(error.response?.data?.message || 'Error al marcar como perdido', 'error');
+    }
+  };
+
+  const handleArchivar = async (id) => {
+    if (!window.confirm('¿Estás seguro de archivar este registro? Quedará oculto de la lista principal.')) {
+      return;
+    }
+    
+    try {
+      await axiosConfig.put(`/proyectos/${id}`, {
+        estado: 'archivado',
+        estadoComercial: 'archivado',
+        fechaArchivado: new Date()
+      });
+      
+      showSnackbar('Registro archivado exitosamente', 'info');
+      handleMenuClose();
+      onRecargar();
+    } catch (error) {
+      console.error('❌ Error al archivar:', error);
+      showSnackbar(error.response?.data?.message || 'Error al archivar', 'error');
+    }
+  };
+
+  const handleEliminar = async (id) => {
+    if (!window.confirm('⚠️ ¿Estás seguro de ELIMINAR este registro? Esta acción NO se puede deshacer.')) {
+      return;
+    }
+    
+    // Segunda confirmación para eliminar
+    if (!window.confirm('🚨 ÚLTIMA CONFIRMACIÓN: ¿Realmente deseas eliminar permanentemente este registro?')) {
+      return;
+    }
+    
+    try {
+      // Agregar ?permanente=true para eliminación permanente
+      await axiosConfig.delete(`/proyectos/${id}?permanente=true`);
+      
+      showSnackbar('Registro eliminado permanentemente', 'success');
+      handleMenuClose();
+      onRecargar();
+    } catch (error) {
+      console.error('❌ Error al eliminar:', error);
+      showSnackbar(error.response?.data?.message || 'Error al eliminar', 'error');
     }
   };
 
@@ -471,6 +517,20 @@ const TablaComercial = ({
             <CancelIcon fontSize="small" color="error" />
           </ListItemIcon>
           <ListItemText>Marcar como Perdido</ListItemText>
+        </MenuItem>
+
+        <MenuItem onClick={() => handleArchivar(selectedRegistro?._id)}>
+          <ListItemIcon>
+            <ArchiveIcon fontSize="small" color="action" />
+          </ListItemIcon>
+          <ListItemText>Archivar</ListItemText>
+        </MenuItem>
+
+        <MenuItem onClick={() => handleEliminar(selectedRegistro?._id)} sx={{ color: 'error.main' }}>
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText>Eliminar</ListItemText>
         </MenuItem>
       </Menu>
 

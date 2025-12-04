@@ -1,7 +1,7 @@
 # 🤖 INSTRUCCIONES PARA AGENTES
 
-**Fecha:** 5 Nov 2025
-**Estado:** Fase 0 ✅ | Fase 1 ✅ | Fase 2 ✅ | Fase 3 ✅ | **Fase 4 ✅ COMPLETADA**
+**Fecha:** 4 Dic 2025
+**Estado:** Fase 0 ✅ | Fase 1 ✅ | Fase 2 ✅ | Fase 3 ✅ | Fase 4 ✅ | **Fase 5 ✅ CAJA**
 
 ---
 
@@ -274,6 +274,51 @@ Estas reglas aplican a cualquier nueva funcionalidad del repositorio.
 - Script de migración listo
 
 **Consultar:** `docs/fase3_consolidacion.md` para detalles completos
+
+---
+
+## 🎉 FASE 5: MÓDULO DE CAJA (100%)
+
+### ✅ COMPLETADO (4 Dic 2025)
+
+**Backend:**
+- ✅ Modelo `Caja.js` con movimientos, apertura/cierre, totales
+- ✅ Controller `cajaController.js` con CRUD completo
+- ✅ Rutas `/api/caja/*` (abrir, cerrar, movimiento, historial, pendientes)
+- ✅ Integración automática pagos → caja en `pagoController.js`
+- ✅ Rutas de pagos en `proyectos.js` (`/api/proyectos/:id/pagos/saldo`)
+
+**Frontend:**
+- ✅ Componente `CajaPanel.jsx` (1,200+ líneas)
+- ✅ Modal apertura de caja con fondo inicial
+- ✅ Modal cierre de caja con cuadre y diferencias
+- ✅ Modal registro de movimientos (ingresos/egresos)
+- ✅ Modal pago de saldo con upload de comprobante
+- ✅ Vista de pendientes de cobro
+- ✅ Historial de cajas cerradas
+- ✅ Navegación en menú lateral (Comercial → Caja)
+
+**Gestión de Proyectos:**
+- ✅ Vista "Saldo Pagado" en `CotizacionTab.jsx`
+- ✅ Botón "Nuevo Pedido" para clientes recurrentes
+- ✅ Opción "Archivar" proyecto
+- ✅ Opción "Eliminar" proyecto (con doble confirmación)
+
+**Fixes:**
+- ✅ Corregido cálculo de saldo negativo
+- ✅ Corregido registro duplicado en caja
+- ✅ Cards muestran total (no solo efectivo)
+
+**Archivos Creados/Modificados:**
+- `server/models/Caja.js` (nuevo)
+- `server/controllers/cajaController.js` (nuevo)
+- `server/routes/caja.js` (nuevo)
+- `server/controllers/pagoController.js` (modificado)
+- `server/routes/proyectos.js` (modificado)
+- `client/src/modules/caja/CajaPanel.jsx` (nuevo)
+- `client/src/modules/proyectos/components/CotizacionTab.jsx` (modificado)
+- `client/src/modules/proyectos/components/TablaComercial.jsx` (modificado)
+- `client/src/modules/proyectos/ProyectoDetail.jsx` (modificado)
 
 ---
 

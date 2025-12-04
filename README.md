@@ -1,6 +1,6 @@
 # 🏢 Sundeck CRM - Sistema Completo
 
-**Versión**: 3.2 | **Fecha**: 3 Dic 2025 | **Estado**: ⚙️ 80% FUNCIONAL
+**Versión**: 3.3 | **Fecha**: 4 Dic 2025 | **Estado**: ⚙️ 85% FUNCIONAL
 
 **Alineado con**: `ROADMAP_MASTER.md` v1.1 | **Auditoría**: `docs/auditoria_tecnica.md`
 
@@ -19,6 +19,11 @@
 ┌─────────────┐    ┌─────────────┐    ┌───────┐    ┌──────────────┐
 │ FABRICACIÓN │ → │ INSTALACIÓN │ → │ COBRO │ → │ SATISFACCIÓN │
 └─────────────┘    └─────────────┘    └───────┘    └──────────────┘
+                                          │
+                                          ▼
+                                    ┌──────────┐
+                                    │   CAJA   │ ← Control de efectivo
+                                    └──────────┘
 ```
 
 ### Estados por Etapa
@@ -30,6 +35,7 @@
 | **Fabricación** | recepcion_material, pendiente, en_proceso, situacion_critica, terminado |
 | **Instalación** | pendiente, programada, en_proceso, completada |
 | **Cobro** | anticipo_pendiente, anticipo_pagado, saldo_pendiente, liquidado |
+| **Caja** | abierta, cerrada, en_revision |
 
 ---
 
@@ -56,12 +62,14 @@ npm run dev
 | **Instalaciones** | ✅ | 85% | API completa, módulo UI independiente |
 | **KPIs** | ✅ | 80% | Dashboard, conversión, pérdidas |
 | **PDF/Excel** | ✅ | 90% | Exportación unificada |
+| **Caja** | ✅ | 95% | **NUEVO**: Control de efectivo, cortes, movimientos |
+| **Pagos** | ✅ | 90% | Anticipo/Saldo integrado con Caja |
 | **Pedidos** | ⚠️ | 50% | **CRÍTICO**: Duplicidad `Pedido` vs `ProyectoPedido` |
 | **Fabricación** | ⚠️ | 30% | **BLOQUEANTE**: Sin imports, no funcional |
 | **IA/Automatización** | ⚠️ | 10% | **CRÍTICO**: Endpoints simulados, sin modelos reales |
 | **Observabilidad** | ❌ | 0% | **CRÍTICO**: Sin logger estructurado ni métricas reales |
 
-**Resumen**: 7 módulos funcionales ✅ | 3 módulos parciales ⚠️ | 1 elemento crítico pendiente ❌
+**Resumen**: 9 módulos funcionales ✅ | 3 módulos parciales ⚠️ | 1 elemento crítico pendiente ❌
 
 ---
 
@@ -131,6 +139,48 @@ Productos: Área × Precio × Cantidad
 
 ---
 
+## 💰 MÓDULO DE CAJA
+
+### Funcionalidades
+
+- **Apertura de Caja**: Fondo inicial configurable
+- **Movimientos**: Ingresos y egresos con categorías
+- **Cierre de Caja**: Desglose de billetes/monedas, diferencias
+- **Integración Automática**: Pagos de proyectos se registran automáticamente
+- **Pendientes de Cobro**: Vista de saldos pendientes
+
+### Flujo de Pagos con Caja
+
+```
+ANTICIPO/SALDO → pagoController → registrarEnCaja() → Caja.agregarMovimiento()
+                                         ↓
+                              Si hay caja abierta → Movimiento registrado
+                              Si no hay caja → Solo log (no crítico)
+```
+
+### Categorías de Movimientos
+
+**Ingresos:**
+- `anticipo_proyecto` - Anticipo de proyecto
+- `saldo_proyecto` - Saldo de proyecto
+- `pago_adicional` - Pagos adicionales
+- `otro_ingreso` - Otros ingresos
+
+**Egresos:**
+- `compra_materiales` - Compra de materiales
+- `gasolina` - Gasolina
+- `viaticos` - Viáticos
+- `nomina` - Nómina
+- `servicios` - Servicios
+- `otro_egreso` - Otros egresos
+
+### Acceso
+
+- **Menú**: Comercial → Caja
+- **URL**: `/caja`
+
+---
+
 ## 🔧 INSTALACIONES CON IA
 
 ### Sugerencias Automáticas
@@ -165,10 +215,16 @@ SUNDECK-APP-v2/
 │   ├── models/
 │   │   ├── Proyecto.js                         ← NÚCLEO CENTRAL
 │   │   ├── Cotizacion.js
-│   │   └── Instalacion.js
+│   │   ├── Instalacion.js
+│   │   └── Caja.js                             ← CONTROL DE EFECTIVO
 │   ├── controllers/
 │   │   ├── proyectoController.js
-│   │   └── instalacionController.js
+│   │   ├── instalacionController.js
+│   │   ├── pagoController.js                   ← ANTICIPO/SALDO + CAJA
+│   │   └── cajaController.js                   ← APERTURA/CIERRE/MOVIMIENTOS
+│   ├── routes/
+│   │   ├── caja.js                             ← ENDPOINTS DE CAJA
+│   │   └── pagos.js                            ← ENDPOINTS DE PAGOS
 │   └── services/
 │       ├── exportNormalizer.js                 ← UNIFICADOR PDF/EXCEL
 │       ├── instalacionesInteligentesService.js ← IA
@@ -252,6 +308,20 @@ PATCH  /api/proyectos/:id/levantamiento     # Guardar levantamiento
 POST   /api/proyectos/:id/cotizaciones      # Guardar cotización
 GET    /api/proyectos/:id/generar-pdf       # Generar PDF
 
+# Pagos
+POST   /api/proyectos/:id/pagos/anticipo    # Registrar anticipo
+POST   /api/proyectos/:id/pagos/saldo       # Registrar saldo
+GET    /api/proyectos/:id/pagos             # Historial de pagos
+
+# Caja
+POST   /api/caja/abrir                      # Abrir caja del día
+POST   /api/caja/cerrar                     # Cerrar caja
+POST   /api/caja/movimiento                 # Registrar ingreso/egreso
+GET    /api/caja/actual                     # Caja actual (abierta)
+GET    /api/caja/historial                  # Historial de cajas
+GET    /api/caja/pendientes                 # Saldos pendientes de cobro
+PUT    /api/caja/movimiento/:id/anular      # Anular movimiento
+
 # Instalaciones
 POST   /api/instalaciones/sugerencias       # Sugerencias IA
 GET    /api/kpis/instalaciones              # KPIs
@@ -290,6 +360,15 @@ GET    /api/kpis/instalaciones              # KPIs
 3. IA genera sugerencias automáticas
 4. "Aplicar Sugerencias" o ajustar manual
 5. Guardar instalación
+```
+
+### Gestión de Caja
+```
+1. Comercial → Caja
+2. "Abrir Caja" → Ingresar fondo inicial
+3. Registrar pagos de proyectos (automático) o movimientos manuales
+4. Ver pendientes de cobro en tab "Pendientes"
+5. Al final del día: "Cerrar Caja" → Contar efectivo → Cuadrar
 ```
 
 ---
@@ -361,4 +440,25 @@ GET    /api/kpis/instalaciones              # KPIs
 **Desarrollado por**: Equipo Sundeck + Cascade AI  
 **Responsable funcional**: David Rojas - Dirección General Sundeck  
 **Responsable técnico**: Equipo Desarrollo CRM Sundeck  
-**Última actualización**: 31 de Octubre, 2025
+**Última actualización**: 4 de Diciembre, 2025
+
+---
+
+## 📝 CHANGELOG RECIENTE
+
+### v3.3 (4 Dic 2025)
+- ✅ **Módulo de Caja**: Control de efectivo, apertura/cierre, movimientos
+- ✅ **Integración Pagos-Caja**: Anticipos y saldos se registran automáticamente
+- ✅ **Pendientes de Cobro**: Vista de saldos pendientes con días vencidos
+- ✅ **Historial de Cajas**: Registro histórico con diferencias
+- ✅ **Registro de Saldo desde Caja**: Modal con upload de comprobante
+- ✅ **Vista Saldo Pagado**: Card verde "✅ PAGADO" en proyecto
+- ✅ **Botón Nuevo Pedido**: Crear proyecto para cliente recurrente
+- ✅ **Archivar Proyecto**: Ocultar de lista principal
+- ✅ **Eliminar Proyecto**: Eliminación permanente con doble confirmación
+- ✅ **Fix cálculo de saldo**: Corregido bug de saldo negativo
+
+### v3.2 (3 Dic 2025)
+- ✅ Sistema de instalaciones con IA
+- ✅ KPIs de instalaciones
+- ✅ Exportación unificada PDF/Excel

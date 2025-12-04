@@ -44,7 +44,8 @@ import {
   ExpandMore,
   Storefront,
   PrecisionManufacturing,
-  Handyman
+  Handyman,
+  AccountBalanceWallet
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -77,6 +78,7 @@ const menuSections = [
     items: [
       { text: 'Proyectos', icon: <Assignment />, path: '/proyectos', badge: 'PRINCIPAL' },
       { text: 'Cotización Directa', icon: <Calculate />, path: '/cotizacion-directa' },
+      { text: 'Caja', icon: <AccountBalanceWallet />, path: '/caja', badge: 'NUEVO' },
       { text: 'KPIs y Ventas', icon: <Assessment />, path: '/kpis' },
     ]
   },
