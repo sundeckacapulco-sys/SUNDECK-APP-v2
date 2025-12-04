@@ -223,16 +223,43 @@ const registrarAnticipo = async (req, res) => {
         tipo: 'anticipo_recibido'
       });
 
-      // Cambiar estado del proyecto a "fabricacion" si está en "aprobado"
-      if (proyecto.estado === 'aprobado') {
+      // 🔄 CAMBIAR ESTADO A FABRICACIÓN cuando se recibe anticipo
+      // Estados válidos para pasar a fabricación (cualquier estado previo excepto completado/cancelado)
+      const estadosValidosParaFabricacion = [
+        'aprobado', 'cotizacion', 'levantamiento', 'activo', 'pausado',
+        'nuevo', 'contactado', 'en_seguimiento', 'cita_agendada', 'cotizado'
+      ];
+      
+      const estadoActual = proyecto.estado || proyecto.estadoComercial;
+      
+      if (estadosValidosParaFabricacion.includes(estadoActual) || 
+          estadosValidosParaFabricacion.includes(proyecto.estadoComercial)) {
+        
+        const estadoAnterior = proyecto.estado;
+        const estadoComercialAnterior = proyecto.estadoComercial;
+        
+        // Actualizar ambos campos de estado
         proyecto.estado = 'fabricacion';
         proyecto.estadoComercial = 'en_fabricacion';
+        proyecto.tipo = 'proyecto'; // Asegurar que es proyecto (no prospecto)
+        
         await proyecto.save();
         
-        logger.info('📊 Estado del proyecto actualizado a fabricación', {
+        logger.info('🏭 FLUJO AUTOMÁTICO: Anticipo recibido → Estado actualizado a FABRICACIÓN', {
           proyectoId: id,
-          estadoAnterior: 'aprobado',
-          estadoNuevo: 'fabricacion'
+          estadoAnterior: estadoAnterior,
+          estadoComercialAnterior: estadoComercialAnterior,
+          estadoNuevo: 'fabricacion',
+          estadoComercialNuevo: 'en_fabricacion',
+          montoAnticipo: monto,
+          flujo: 'Anticipo → Fabricación → Instalación → Completado'
+        });
+      } else {
+        logger.warn('⚠️ Estado no válido para transición a fabricación', {
+          proyectoId: id,
+          estadoActual: estadoActual,
+          estadoComercial: proyecto.estadoComercial,
+          estadosPermitidos: estadosValidosParaFabricacion
         });
       }
     } catch (notifError) {

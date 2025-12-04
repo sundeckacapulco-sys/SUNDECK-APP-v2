@@ -14,8 +14,7 @@ import axiosConfig from '../../config/axios';
 import FiltrosComerciales from './components/FiltrosComerciales';
 import KPIsComerciales from './components/KPIsComerciales';
 import TablaComercial from './components/TablaComercial';
-import PanelAlertas from './components/PanelAlertas';
-import PanelAlertasFabricacion from '../fabricacion/components/PanelAlertasFabricacion';
+import PanelAlertasUnificado from './components/PanelAlertasUnificado';
 
 const createDefaultKpiState = () => ({
   resumen: {
@@ -274,16 +273,14 @@ const DashboardComercial = () => {
           </Stack>
         </Box>
 
-        <Stack spacing={2}>
-          <PanelAlertas
+        {/* Panel de Alertas Unificado con Acordeones */}
+        <Box sx={{ position: 'relative', mt: 3, mb: 2 }}>
+          <PanelAlertasUnificado
             refreshToken={alertasRefreshToken}
             onVerAlertas={() => navigate('/alertas')}
-          />
-          <PanelAlertasFabricacion
-            refreshToken={alertasRefreshToken}
             onVerFabricacion={handleVerFabricacion}
           />
-        </Stack>
+        </Box>
 
         <KPIsComerciales kpis={kpis} loading={kpiLoading} />
 

@@ -243,8 +243,12 @@ class FabricacionService {
   static async obtenerColaFabricacion(filtros = {}) {
     try {
       let query = {
-        // Proyectos listos o en proceso de fabricación bajo el nuevo flujo
-        estado: { $in: ['aprobado', 'fabricacion'] }
+        // Proyectos listos o en proceso de fabricación
+        // Buscar por estado O estadoComercial para compatibilidad
+        $or: [
+          { estado: { $in: ['aprobado', 'fabricacion'] } },
+          { estadoComercial: { $in: ['aprobado', 'en_fabricacion'] } }
+        ]
       };
 
       // Aplicar filtros
@@ -306,64 +310,92 @@ class FabricacionService {
    */
   static async obtenerMetricas(fechaInicio, fechaFin) {
     try {
-      logger.info('Calculando métricas de fabricación en rango de fechas', {
+      logger.info('Calculando métricas de fabricación', {
         servicio: 'fabricacionService',
         accion: 'obtenerMetricas',
         fechaInicio,
         fechaFin
       });
       
-      // Buscar todos los proyectos primero para debug
-      const todosLosProyectos = await Proyecto.find({});
-      logger.debug('Total de proyectos disponibles para métricas de fabricación', {
-        servicio: 'fabricacionService',
-        accion: 'obtenerMetricas',
-        totalProyectos: todosLosProyectos.length
-      });
-      
+      // Buscar proyectos en fabricación (por estado o estadoComercial)
       const proyectos = await Proyecto.find({
-        'cronograma.fechaInicioFabricacion': {
-          $gte: fechaInicio,
-          $lte: fechaFin
-        }
+        $or: [
+          { estado: { $in: ['aprobado', 'fabricacion'] } },
+          { estadoComercial: { $in: ['aprobado', 'en_fabricacion'] } },
+          { 'fabricacion.estado': { $exists: true } }
+        ]
       });
       
-      logger.info('Proyectos con fabricación en el rango solicitado', {
+      logger.info('Proyectos encontrados para métricas', {
         servicio: 'fabricacionService',
         accion: 'obtenerMetricas',
-        proyectosEnRango: proyectos.length
+        totalProyectos: proyectos.length
       });
+
+      // Calcular métricas basadas en los nuevos estados
+      const enProceso = proyectos.filter(p => 
+        p.fabricacion?.estado === 'en_proceso' || 
+        p.fabricacion?.estado === 'recepcion_material' ||
+        p.fabricacion?.estado === 'pendiente'
+      ).length;
+      
+      const terminados = proyectos.filter(p => 
+        p.fabricacion?.estado === 'terminado' || 
+        p.fabricacion?.estado === 'empacado'
+      ).length;
+      
+      const criticos = proyectos.filter(p => 
+        p.fabricacion?.estado === 'situacion_critica'
+      ).length;
+
+      // Calcular tiempo promedio de fabricación
+      const proyectosConTiempo = proyectos.filter(p => 
+        p.fabricacion?.fechaFinFabricacion && p.cronograma?.fechaInicioFabricacion
+      );
+      
+      let tiempoPromedio = 0;
+      if (proyectosConTiempo.length > 0) {
+        const totalDias = proyectosConTiempo.reduce((sum, p) => {
+          const inicio = new Date(p.cronograma.fechaInicioFabricacion);
+          const fin = new Date(p.fabricacion.fechaFinFabricacion);
+          return sum + Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24));
+        }, 0);
+        tiempoPromedio = Math.round(totalDias / proyectosConTiempo.length);
+      }
 
       const metricas = {
         totalProyectos: proyectos.length,
-        enProceso: proyectos.filter(p => p.fabricacion?.estado === 'en_proceso').length,
-        terminados: proyectos.filter(p => p.fabricacion?.estado === 'terminado').length,
-        empacados: proyectos.filter(p => p.fabricacion?.estado === 'empacado').length,
+        enProceso: enProceso,
+        terminados: terminados,
+        criticos: criticos,
+        
+        // Por estado específico
+        porEstado: {
+          recepcion_material: proyectos.filter(p => p.fabricacion?.estado === 'recepcion_material').length,
+          pendiente: proyectos.filter(p => p.fabricacion?.estado === 'pendiente' || !p.fabricacion?.estado).length,
+          en_proceso: proyectos.filter(p => p.fabricacion?.estado === 'en_proceso').length,
+          situacion_critica: proyectos.filter(p => p.fabricacion?.estado === 'situacion_critica').length,
+          terminado: proyectos.filter(p => p.fabricacion?.estado === 'terminado').length
+        },
         
         // Tiempos promedio
-        tiempoPromedioFabricacion: this.calcularTiempoPromedio(proyectos),
+        tiempoPromedioFabricacion: tiempoPromedio,
         
-        // Eficiencia
+        // Eficiencia (proyectos terminados a tiempo)
         proyectosATiempo: proyectos.filter(p => 
-          p.cronograma.fechaFinFabricacionReal && 
-          p.cronograma.fechaFinFabricacionReal <= p.cronograma.fechaFinFabricacionEstimada
+          p.fabricacion?.fechaFinFabricacion && 
+          p.cronograma?.fechaFinFabricacionEstimada &&
+          new Date(p.fabricacion.fechaFinFabricacion) <= new Date(p.cronograma.fechaFinFabricacionEstimada)
         ).length,
         
-        // Costos
-        costoTotalMateriales: proyectos.reduce((sum, p) => sum + (p.fabricacion?.costos?.materiales || 0), 0),
-        costoTotalManoObra: proyectos.reduce((sum, p) => sum + (p.fabricacion?.costos?.manoObra || 0), 0)
+        eficiencia: terminados > 0 ? Math.round((terminados / proyectos.length) * 100) : 0
       };
-
-      metricas.eficiencia = metricas.totalProyectos > 0 ? 
-        (metricas.proyectosATiempo / metricas.totalProyectos) * 100 : 0;
 
       return metricas;
     } catch (error) {
       logger.error('Error obteniendo métricas de fabricación', {
         servicio: 'fabricacionService',
         accion: 'obtenerMetricas',
-        fechaInicio,
-        fechaFin,
         error: error.message,
         stack: error.stack
       });

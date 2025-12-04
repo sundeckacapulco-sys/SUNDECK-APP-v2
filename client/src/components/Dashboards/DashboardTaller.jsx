@@ -58,17 +58,17 @@ const DashboardTaller = () => {
   const cargarProyectosFabricacion = async () => {
     try {
       setLoading(true);
-      // Solo proyectos en fabricación asignados al usuario actual
-      const response = await axiosConfig.get('/proyecto-pedido', {
+      // UNIFICADO: Usar modelo Proyecto con estadoComercial = 'en_fabricacion'
+      const response = await axiosConfig.get('/proyectos', {
         params: {
-          estado: 'en_fabricacion',
-          fabricante: 'current_user', // El backend filtrará por usuario actual
+          tipo: 'proyecto',
+          estadoComercial: 'en_fabricacion',
           limit: 50
         }
       });
 
       if (response.data.success) {
-        setProyectos(response.data.data.docs || []);
+        setProyectos(response.data.data?.docs || response.data.data || []);
       }
     } catch (error) {
       console.error('Error cargando proyectos:', error);
@@ -80,15 +80,20 @@ const DashboardTaller = () => {
 
   const cargarEstadisticas = async () => {
     try {
-      const response = await axiosConfig.get('/proyecto-pedido/estadisticas');
-      if (response.data.success) {
-        // Filtrar estadísticas solo para fabricación
-        const stats = response.data.data.porEstado.find(s => s._id === 'en_fabricacion') || {};
+      // UNIFICADO: Usar endpoint de KPIs comerciales
+      const response = await axiosConfig.get('/proyectos/kpis/comerciales');
+      if (response.data) {
+        // Buscar estadísticas de fabricación
+        const porEstado = response.data.porEstado || [];
+        const fabStats = porEstado.find(s => 
+          s._id === 'en_fabricacion' || s._id === 'en fabricacion'
+        ) || {};
+        
         setEstadisticas({
-          enProceso: stats.count || 0,
-          terminados: 0, // Se calculará desde proyectos completados hoy
-          retrasados: response.data.data.retrasados || 0,
-          totalArea: 0 // Se calculará desde proyectos actuales
+          enProceso: fabStats.count || 0,
+          terminados: 0,
+          retrasados: 0,
+          totalArea: fabStats.totalArea || 0
         });
       }
     } catch (error) {
@@ -98,13 +103,14 @@ const DashboardTaller = () => {
 
   const marcarProductoTerminado = async (proyectoId, productoIndex) => {
     try {
-      await axiosConfig.patch(`/proyecto-pedido/${proyectoId}/productos/${productoIndex}`, {
+      // UNIFICADO: Usar endpoint de proyectos
+      await axiosConfig.patch(`/proyectos/${proyectoId}/fabricacion/producto/${productoIndex}`, {
         estadoFabricacion: 'terminado',
         fechaFinFabricacion: new Date()
       });
 
       // Agregar nota automática
-      await axiosConfig.post(`/proyecto-pedido/${proyectoId}/notas`, {
+      await axiosConfig.post(`/proyectos/${proyectoId}/notas`, {
         contenido: `Producto ${productoIndex + 1} marcado como terminado`,
         etapa: 'fabricacion',
         tipo: 'info'
@@ -119,9 +125,10 @@ const DashboardTaller = () => {
 
   const marcarProyectoFabricado = async (proyectoId) => {
     try {
-      await axiosConfig.patch(`/proyecto-pedido/${proyectoId}/estado`, {
-        nuevoEstado: 'fabricado',
-        nota: notas || 'Fabricación completada'
+      // UNIFICADO: Usar endpoint de proyectos para cambiar estado
+      await axiosConfig.patch(`/proyectos/${proyectoId}/estado-comercial`, {
+        estadoComercial: 'en_instalacion',
+        nota: notas || 'Fabricación completada, listo para instalación'
       });
 
       setDialogOpen(false);

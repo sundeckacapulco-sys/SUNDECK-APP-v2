@@ -459,9 +459,30 @@ const proyectoSchema = new mongoose.Schema({
     // Estado general de fabricación
     estado: {
       type: String,
-      enum: ['pendiente', 'materiales_pedidos', 'en_proceso', 'control_calidad', 'terminado', 'empacado'],
+      enum: ['recepcion_material', 'pendiente', 'materiales_pedidos', 'en_proceso', 'situacion_critica', 'control_calidad', 'terminado', 'empacado'],
       default: 'pendiente'
     },
+    
+    // Campos adicionales para el flujo operativo
+    fechaUltimaActualizacion: Date,
+    fechaFinFabricacion: Date,
+    alertaCritica: { type: Boolean, default: false },
+    fechaAlertaCritica: Date,
+    materialesRecibidos: { type: Boolean, default: false },
+    fechaRecepcionMateriales: Date,
+    salidaMateriales: [{
+      fecha: Date,
+      materiales: [{
+        tipo: String,
+        descripcion: String,
+        ubicacion: String,
+        cantidad: Number,
+        unidad: String,
+        partida: Number
+      }],
+      usuario: String,
+      tipo: String
+    }],
     
     // Asignación y responsables
     asignadoA: {

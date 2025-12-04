@@ -1,7 +1,6 @@
 const express = require('express');
 const { auth, verificarPermiso } = require('../middleware/auth');
-const Pedido = require('../models/Pedido');
-const Prospecto = require('../models/Prospecto');
+const Proyecto = require('../models/Proyecto'); // UNIFICADO: Fuente única de verdad
 const MetricaHistorica = require('../models/MetricaHistorica');
 const router = express.Router();
 const logger = require('../config/logger');
@@ -82,7 +81,7 @@ router.get('/historico', auth, verificarPermiso('reportes', 'leer'), async (req,
   }
 });
 
-// --- Demás rutas sin cambios ---
+// --- DASHBOARD UNIFICADO: Usa modelo Proyecto como fuente única ---
 router.get('/dashboard', auth, verificarPermiso('reportes', 'leer'), async (req, res) => {
   try {
     const fechaFin = new Date();
@@ -90,37 +89,73 @@ router.get('/dashboard', auth, verificarPermiso('reportes', 'leer'), async (req,
 
     const [
       prospectosActivos, nuevosProspectosMes, ventasConcretadasMes,
-      pedidosEnFabricacion, valorEnProduccion, pedidosParaInstalar,
+      proyectosEnFabricacion, valorEnProduccion, proyectosParaInstalar,
       montoVentasMes, anticiposRecibidosMes, saldoTotalPorCobrar
     ] = await Promise.all([
-      Prospecto.countDocuments({ activo: true, archivado: { $ne: true }, etapa: { $nin: ['venta_cerrada', 'pedido', 'perdido'] } }),
-      Prospecto.countDocuments({ createdAt: { $gte: fechaInicio, $lte: fechaFin } }),
-      Pedido.countDocuments({ createdAt: { $gte: fechaInicio, $lte: fechaFin } }),
-      Pedido.countDocuments({ estado: { $in: ['confirmado', 'en_proceso'] } }),
-      Pedido.aggregate([ { $match: { estado: { $in: ['confirmado', 'en_proceso'] } } }, { $group: { _id: null, total: { $sum: '$montoTotal' } } }]),
-      Pedido.countDocuments({ estado: 'terminado' }),
-      Pedido.aggregate([ { $match: { createdAt: { $gte: fechaInicio, $lte: fechaFin } } }, { $group: { _id: null, total: { $sum: '$montoTotal' } } }]),
-      Pedido.aggregate([ { $match: { 'anticipo.fechaPago': { $gte: fechaInicio, $lte: fechaFin } } }, { $group: { _id: null, total: { $sum: '$anticipo.monto' } } }]),
-      Pedido.aggregate([ { $match: { 'saldo.pagado': { $ne: true } } }, { $group: { _id: null, total: { $sum: '$saldo.monto' } } }])
+      // COMERCIAL: Prospectos activos (tipo='prospecto', no perdidos ni convertidos)
+      Proyecto.countDocuments({ 
+        tipo: 'prospecto', 
+        estadoComercial: { $nin: ['perdido', 'convertido', 'completado'] } 
+      }),
+      // Nuevos prospectos este mes
+      Proyecto.countDocuments({ 
+        tipo: 'prospecto', 
+        createdAt: { $gte: fechaInicio, $lte: fechaFin } 
+      }),
+      // Ventas concretadas (proyectos creados este mes)
+      Proyecto.countDocuments({ 
+        tipo: 'proyecto', 
+        createdAt: { $gte: fechaInicio, $lte: fechaFin } 
+      }),
+      // OPERACIONES: Proyectos en fabricación
+      Proyecto.countDocuments({ 
+        tipo: 'proyecto', 
+        estadoComercial: { $in: ['en_fabricacion', 'en fabricacion', 'activo'] } 
+      }),
+      // Valor en producción
+      Proyecto.aggregate([
+        { $match: { tipo: 'proyecto', estadoComercial: { $in: ['en_fabricacion', 'en fabricacion', 'activo'] } } },
+        { $group: { _id: null, total: { $sum: '$total' } } }
+      ]),
+      // Proyectos listos para instalar
+      Proyecto.countDocuments({ 
+        tipo: 'proyecto', 
+        estadoComercial: { $in: ['en_instalacion', 'en instalacion'] } 
+      }),
+      // FINANCIERO: Monto ventas del mes
+      Proyecto.aggregate([
+        { $match: { tipo: 'proyecto', createdAt: { $gte: fechaInicio, $lte: fechaFin } } },
+        { $group: { _id: null, total: { $sum: '$total' } } }
+      ]),
+      // Anticipos recibidos
+      Proyecto.aggregate([
+        { $match: { tipo: 'proyecto', createdAt: { $gte: fechaInicio, $lte: fechaFin }, anticipo: { $gt: 0 } } },
+        { $group: { _id: null, total: { $sum: '$anticipo' } } }
+      ]),
+      // Saldo por cobrar
+      Proyecto.aggregate([
+        { $match: { tipo: 'proyecto', saldo_pendiente: { $gt: 0 } } },
+        { $group: { _id: null, total: { $sum: '$saldo_pendiente' } } }
+      ])
     ]);
 
     const tasaConversion = nuevosProspectosMes > 0 ? (ventasConcretadasMes / nuevosProspectosMes) * 100 : 0;
     const ticketPromedio = ventasConcretadasMes > 0 ? (montoVentasMes[0]?.total || 0) / ventasConcretadasMes : 0;
 
     res.json({
-      meta: { fechaInicio, fechaFin, actualizado: new Date(), fuente: 'Real-time' },
+      meta: { fechaInicio, fechaFin, actualizado: new Date(), fuente: 'Proyecto (Unificado)' },
       comercial: {
         titulo: 'Pipeline Comercial',
         prospectosActivos: { valor: prospectosActivos, etiqueta: 'Prospectos Activos' },
         nuevosProspectosMes: { valor: nuevosProspectosMes, etiqueta: 'Nuevos Prospectos (Mes)' },
-        ventasConcretadasMes: { valor: ventasConcretadasMes, etiqueta: 'Ventas Concretadas (Mes)' },
+        ventasConcretadasMes: { valor: ventasConcretadasMes, etiqueta: 'Ventas Cerradas (Mes)' },
         tasaConversion: { valor: parseFloat(tasaConversion.toFixed(1)), etiqueta: 'Tasa de Conversión', unidad: '%' }
       },
       operaciones: {
         titulo: 'Taller e Instalaciones',
-        pedidosEnFabricacion: { valor: pedidosEnFabricacion, etiqueta: 'Pedidos en Taller' },
+        pedidosEnFabricacion: { valor: proyectosEnFabricacion, etiqueta: 'Proyectos en Taller' },
         valorEnProduccion: { valor: valorEnProduccion[0]?.total || 0, etiqueta: 'Valor en Producción', unidad: 'currency' },
-        pedidosParaInstalar: { valor: pedidosParaInstalar, etiqueta: 'Listos para Instalar' },
+        pedidosParaInstalar: { valor: proyectosParaInstalar, etiqueta: 'Listos para Instalar' },
       },
       financiero: {
         titulo: 'Salud Financiera',
@@ -131,11 +166,12 @@ router.get('/dashboard', auth, verificarPermiso('reportes', 'leer'), async (req,
       }
     });
   } catch (error) {
-    logger.error('Error en /dashboard', { error: error.message });
+    logger.error('Error en /dashboard', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Error obteniendo métricas' });
   }
 });
 
+// --- OPERACIONALES DIARIOS: Usa modelo Proyecto como fuente única ---
 router.get('/operacionales-diarios', auth, verificarPermiso('reportes', 'leer'), async (req, res) => {
   try {
     const now = new Date();
@@ -146,22 +182,47 @@ router.get('/operacionales-diarios', auth, verificarPermiso('reportes', 'leer'),
       nuevosProspectosHoy, ordenesIniciadasHoy, ordenesFinalizadasHoy,
       instalacionesProgramadasHoy, instalacionesCompletadasHoy, instalacionesEnCurso
     ] = await Promise.all([
-      Prospecto.countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } }),
-      Pedido.countDocuments({ fechaInicioFabricacion: { $gte: todayStart, $lte: todayEnd } }),
-      Pedido.countDocuments({ fechaFinFabricacion: { $gte: todayStart, $lte: todayEnd } }),
-      Pedido.countDocuments({ fechaInstalacion: { $gte: todayStart, $lte: todayEnd } }),
-      Pedido.countDocuments({ estado: 'entregado', fechaEntrega: { $gte: todayStart, $lte: todayEnd } }),
-      Pedido.countDocuments({ estado: 'en_instalacion' })
+      // Nuevos prospectos hoy
+      Proyecto.countDocuments({ 
+        tipo: 'prospecto', 
+        createdAt: { $gte: todayStart, $lte: todayEnd } 
+      }),
+      // Órdenes iniciadas hoy (usando cronograma.fechaInicioFabricacion)
+      Proyecto.countDocuments({ 
+        tipo: 'proyecto', 
+        'cronograma.fechaInicioFabricacion': { $gte: todayStart, $lte: todayEnd } 
+      }),
+      // Órdenes finalizadas hoy
+      Proyecto.countDocuments({ 
+        tipo: 'proyecto', 
+        'cronograma.fechaFinFabricacionReal': { $gte: todayStart, $lte: todayEnd } 
+      }),
+      // Instalaciones programadas hoy
+      Proyecto.countDocuments({ 
+        tipo: 'proyecto', 
+        'cronograma.fechaInstalacionProgramada': { $gte: todayStart, $lte: todayEnd } 
+      }),
+      // Instalaciones completadas hoy
+      Proyecto.countDocuments({ 
+        tipo: 'proyecto', 
+        estadoComercial: 'completado',
+        'cronograma.fechaInstalacionReal': { $gte: todayStart, $lte: todayEnd } 
+      }),
+      // Instalaciones en curso
+      Proyecto.countDocuments({ 
+        tipo: 'proyecto', 
+        estadoComercial: { $in: ['en_instalacion', 'en instalacion'] } 
+      })
     ]);
 
     res.json({
-      meta: { fecha: todayStart, actualizado: new Date(), fuente: 'Real-time' },
+      meta: { fecha: todayStart, actualizado: new Date(), fuente: 'Proyecto (Unificado)' },
       comercial: { titulo: 'Actividad Comercial', nuevosProspectosHoy: { valor: nuevosProspectosHoy, etiqueta: 'Nuevos Prospectos Hoy' } },
       fabricacion: { titulo: 'Fabricación en Taller', ordenesIniciadasHoy: { valor: ordenesIniciadasHoy, etiqueta: 'Órdenes Iniciadas Hoy' }, ordenesFinalizadasHoy: { valor: ordenesFinalizadasHoy, etiqueta: 'Órdenes Finalizadas Hoy' } },
       instalaciones: { titulo: 'Instalaciones en Ruta', instalacionesProgramadasHoy: { valor: instalacionesProgramadasHoy, etiqueta: 'Instalaciones Programadas' }, instalacionesEnCurso: { valor: instalacionesEnCurso, etiqueta: 'Instalaciones en Curso' }, instalacionesCompletadasHoy: { valor: instalacionesCompletadasHoy, etiqueta: 'Instalaciones Completadas' } }
     });
   } catch (error) {
-    logger.error('Error en /operacionales-diarios', { error: error.message });
+    logger.error('Error en /operacionales-diarios', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Error obteniendo métricas' });
   }
 });

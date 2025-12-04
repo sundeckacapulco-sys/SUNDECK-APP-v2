@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Container,
   Divider,
+  Grid,
   Link,
   Stack,
   Tabs,
@@ -19,9 +20,14 @@ import {
 } from '@mui/material';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import PhoneIcon from '@mui/icons-material/Phone';
+import EventIcon from '@mui/icons-material/Event';
+import BuildIcon from '@mui/icons-material/Build';
+import ScheduleIcon from '@mui/icons-material/Schedule';
 import useAlertasInteligentes from './hooks/useAlertasInteligentes';
+import axiosConfig from '../../config/axios';
 
-const TabsPanel = ({ value, onChange, totalComercial, totalFabricacion }) => (
+const TabsPanel = ({ value, onChange, totalComercial, totalFabricacion, totalPendientes }) => (
   <Tabs
     value={value}
     onChange={onChange}
@@ -29,11 +35,184 @@ const TabsPanel = ({ value, onChange, totalComercial, totalFabricacion }) => (
     scrollButtons="auto"
     sx={{ borderBottom: '1px solid #E2E8F0' }}
   >
+    <Tab label={`📅 Pendientes Hoy (${totalPendientes})`} value="pendientes" />
     <Tab label={`Comercial (${totalComercial})`} value="comercial" />
     <Tab label={`Fabricación (${totalFabricacion})`} value="fabricacion" />
     <Tab label={`Todas (${totalComercial + totalFabricacion})`} value="todas" />
   </Tabs>
 );
+
+// Componente para mostrar pendientes del día
+const PendientesHoy = ({ pendientes, onVerProyecto }) => {
+  const { llamadas = [], citas = [], instalaciones = [], seguimientos = [] } = pendientes;
+  const total = llamadas.length + citas.length + instalaciones.length + seguimientos.length;
+
+  if (total === 0) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 6 }}>
+        <Typography variant="h6" sx={{ color: '#22C55E', mb: 1 }}>✅ Sin pendientes para hoy</Typography>
+        <Typography variant="body2" sx={{ color: '#64748B' }}>
+          No hay llamadas, citas, instalaciones o seguimientos programados para hoy.
+        </Typography>
+      </Box>
+    );
+  }
+
+  const PendienteCard = ({ item, tipo, icon, color, bgColor }) => (
+    <Card 
+      variant="outlined" 
+      sx={{ 
+        borderRadius: 2, 
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        '&:hover': { borderColor: color, bgcolor: bgColor }
+      }}
+      onClick={() => onVerProyecto(item)}
+    >
+      <CardContent sx={{ p: 2 }}>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Box sx={{ 
+            width: 40, 
+            height: 40, 
+            borderRadius: '50%', 
+            bgcolor: color, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center' 
+          }}>
+            {icon}
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#0F172A' }}>
+              {item.cliente}
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#64748B' }}>
+              {item.numero} • {item.hora}
+              {item.telefono && ` • 📞 ${item.telefono}`}
+              {item.direccion && ` • 📍 ${item.direccion}`}
+              {item.accion && ` • → ${item.accion}`}
+            </Typography>
+          </Box>
+          <Stack direction="row" spacing={1}>
+            {item.prioridad && (
+              <Chip 
+                label={item.prioridad} 
+                size="small"
+                sx={{ 
+                  bgcolor: item.prioridad === 'urgente' ? '#FEE2E2' : 
+                           item.prioridad === 'alta' ? '#FEF3C7' : '#F1F5F9',
+                  color: item.prioridad === 'urgente' ? '#991B1B' : 
+                         item.prioridad === 'alta' ? '#92400E' : '#475569'
+                }}
+              />
+            )}
+            <Chip label={tipo} size="small" sx={{ bgcolor: bgColor, color }} />
+          </Stack>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <Stack spacing={3}>
+      {/* Llamadas */}
+      {llamadas.length > 0 && (
+        <Box>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+            <PhoneIcon sx={{ color: '#3B82F6' }} />
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Llamadas Programadas ({llamadas.length})
+            </Typography>
+          </Stack>
+          <Stack spacing={1.5}>
+            {llamadas.map((item, idx) => (
+              <PendienteCard 
+                key={idx} 
+                item={item} 
+                tipo="Llamada"
+                icon={<PhoneIcon sx={{ color: 'white', fontSize: 20 }} />}
+                color="#3B82F6"
+                bgColor="#EFF6FF"
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
+
+      {/* Instalaciones */}
+      {instalaciones.length > 0 && (
+        <Box>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+            <BuildIcon sx={{ color: '#F97316' }} />
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Instalaciones del Día ({instalaciones.length})
+            </Typography>
+          </Stack>
+          <Stack spacing={1.5}>
+            {instalaciones.map((item, idx) => (
+              <PendienteCard 
+                key={idx} 
+                item={item} 
+                tipo="Instalación"
+                icon={<BuildIcon sx={{ color: 'white', fontSize: 20 }} />}
+                color="#F97316"
+                bgColor="#FFF7ED"
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
+
+      {/* Citas */}
+      {citas.length > 0 && (
+        <Box>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+            <EventIcon sx={{ color: '#8B5CF6' }} />
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Citas Programadas ({citas.length})
+            </Typography>
+          </Stack>
+          <Stack spacing={1.5}>
+            {citas.map((item, idx) => (
+              <PendienteCard 
+                key={idx} 
+                item={item} 
+                tipo="Cita"
+                icon={<EventIcon sx={{ color: 'white', fontSize: 20 }} />}
+                color="#8B5CF6"
+                bgColor="#F5F3FF"
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
+
+      {/* Seguimientos */}
+      {seguimientos.length > 0 && (
+        <Box>
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+            <ScheduleIcon sx={{ color: '#6366F1' }} />
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Seguimientos Pendientes ({seguimientos.length})
+            </Typography>
+          </Stack>
+          <Stack spacing={1.5}>
+            {seguimientos.map((item, idx) => (
+              <PendienteCard 
+                key={idx} 
+                item={item} 
+                tipo="Seguimiento"
+                icon={<ScheduleIcon sx={{ color: 'white', fontSize: 20 }} />}
+                color="#6366F1"
+                bgColor="#EEF2FF"
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
+    </Stack>
+  );
+};
 
 const ListaAlertas = ({ categoria, onVerProyecto }) => {
   const items = categoria.items || [];
@@ -209,7 +388,16 @@ const AlertasView = () => {
     error: errorFabricacion,
     cargarAlertas: cargarAlertasFabricacion
   } = useAlertasInteligentes({ endpoint: '/alertas/inteligentes/fabricacion', limite: 50 });
-  const [tab, setTab] = useState('todas');
+  const [tab, setTab] = useState('pendientes');
+  
+  // Estado para pendientes del día
+  const [pendientes, setPendientes] = useState({
+    llamadas: [],
+    citas: [],
+    instalaciones: [],
+    seguimientos: [],
+    loading: true
+  });
 
   const categoriasComercial = useMemo(() => dataComercial?.categorias || [], [dataComercial]);
   const categoriasFabricacion = useMemo(() => dataFabricacion?.categorias || [], [dataFabricacion]);
@@ -221,25 +409,56 @@ const AlertasView = () => {
     if (tab === 'fabricacion') {
       return categoriasFabricacion;
     }
+    if (tab === 'pendientes') {
+      return [];
+    }
     return [...categoriasComercial, ...categoriasFabricacion];
   }, [tab, categoriasComercial, categoriasFabricacion]);
+
+  // Cargar pendientes del día
+  const cargarPendientes = useCallback(async () => {
+    try {
+      setPendientes(prev => ({ ...prev, loading: true }));
+      const response = await axiosConfig.get('/pendientes/hoy');
+      
+      if (response.data?.success) {
+        const data = response.data.data;
+        setPendientes({
+          llamadas: data.llamadas || [],
+          citas: data.citas || [],
+          instalaciones: data.instalaciones || [],
+          seguimientos: data.seguimientos || [],
+          loading: false
+        });
+      } else {
+        setPendientes(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error) {
+      console.error('Error cargando pendientes:', error);
+      setPendientes(prev => ({ ...prev, loading: false }));
+    }
+  }, []);
 
   useEffect(() => {
     cargarAlertasComercial().catch(() => {});
     cargarAlertasFabricacion().catch(() => {});
-  }, [cargarAlertasComercial, cargarAlertasFabricacion]);
+    cargarPendientes();
+  }, [cargarAlertasComercial, cargarAlertasFabricacion, cargarPendientes]);
 
   const handleVolver = () => navigate(-1);
   const handleTabChange = (_, value) => setTab(value);
 
   const refrescarActual = () => {
+    if (tab === 'pendientes') {
+      return cargarPendientes();
+    }
     if (tab === 'comercial') {
       return cargarAlertasComercial();
     }
     if (tab === 'fabricacion') {
       return cargarAlertasFabricacion();
     }
-    return Promise.all([cargarAlertasComercial(), cargarAlertasFabricacion()]);
+    return Promise.all([cargarAlertasComercial(), cargarAlertasFabricacion(), cargarPendientes()]);
   };
 
   const resumenComercial = dataComercial?.resumen || {
@@ -253,13 +472,18 @@ const AlertasView = () => {
     materialesFaltantes: 0,
     controlCalidadPendiente: 0
   };
+  
+  const totalPendientes = pendientes.llamadas.length + pendientes.citas.length + 
+                          pendientes.instalaciones.length + pendientes.seguimientos.length;
 
   const loadingActual =
-    tab === 'todas'
-      ? loadingComercial || loadingFabricacion
-      : tab === 'comercial'
-        ? loadingComercial
-        : loadingFabricacion;
+    tab === 'pendientes'
+      ? pendientes.loading
+      : tab === 'todas'
+        ? loadingComercial || loadingFabricacion
+        : tab === 'comercial'
+          ? loadingComercial
+          : loadingFabricacion;
 
   const errorActual =
     tab === 'todas'
@@ -334,6 +558,7 @@ const AlertasView = () => {
               onChange={handleTabChange}
               totalComercial={resumenComercial.total}
               totalFabricacion={resumenFabricacion.total}
+              totalPendientes={totalPendientes}
             />
           </Box>
 
@@ -351,7 +576,20 @@ const AlertasView = () => {
             </Alert>
           )}
 
-          {!loadingActual && !errorActual && categoriasVisibles.length === 0 && (
+          {/* Tab de Pendientes del Día */}
+          {tab === 'pendientes' && !loadingActual && (
+            <PendientesHoy 
+              pendientes={pendientes} 
+              onVerProyecto={(item) => {
+                if (item?.id) {
+                  navigate(`/proyectos/${item.id}`);
+                }
+              }} 
+            />
+          )}
+
+          {/* Tabs de Alertas */}
+          {tab !== 'pendientes' && !loadingActual && !errorActual && categoriasVisibles.length === 0 && (
             <Box sx={{ textAlign: 'center', py: 6 }}>
               <Typography variant="h6" sx={{ fontFamily: 'Playfair Display, serif', color: '#0F172A' }}>
                 No hay alertas activas
@@ -362,7 +600,7 @@ const AlertasView = () => {
             </Box>
           )}
 
-          {!loadingActual && !errorActual && categoriasVisibles.length > 0 && (
+          {tab !== 'pendientes' && !loadingActual && !errorActual && categoriasVisibles.length > 0 && (
             <Stack spacing={4}>
               {categoriasVisibles.map((categoria) => (
                 <Box key={categoria.tipo}>

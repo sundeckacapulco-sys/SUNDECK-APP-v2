@@ -322,4 +322,265 @@ router.get('/:id/lista-pedido-v2',
   generarListaPedidoV2
 );
 
+// ============================================
+// RUTAS DE FABRICACIÓN - CONTROL DE ESTADO
+// ============================================
+
+// PATCH /api/proyectos/:id/fabricacion/estado - Cambiar estado de fabricación
+router.patch('/:id/fabricacion/estado',
+  auth,
+  verificarPermiso('proyectos', 'editar'),
+  async (req, res) => {
+    try {
+      const { estado } = req.body;
+      const Proyecto = require('../models/Proyecto');
+      const logger = require('../config/logger');
+      
+      const estadosValidos = ['recepcion_material', 'pendiente', 'en_proceso', 'situacion_critica', 'terminado'];
+      
+      if (!estadosValidos.includes(estado)) {
+        return res.status(400).json({
+          success: false,
+          message: `Estado inválido. Estados válidos: ${estadosValidos.join(', ')}`
+        });
+      }
+      
+      const proyecto = await Proyecto.findById(req.params.id);
+      
+      if (!proyecto) {
+        return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+      }
+      
+      const estadoAnterior = proyecto.fabricacion?.estado || 'pendiente';
+      
+      // Actualizar estado de fabricación
+      if (!proyecto.fabricacion) {
+        proyecto.fabricacion = {};
+      }
+      
+      proyecto.fabricacion.estado = estado;
+      proyecto.fabricacion.fechaUltimaActualizacion = new Date();
+      
+      // Si es terminado, actualizar también el estado comercial
+      if (estado === 'terminado') {
+        proyecto.estadoComercial = 'en_instalacion';
+        proyecto.fabricacion.fechaFinFabricacion = new Date();
+      }
+      
+      // Si es situación crítica, registrar
+      if (estado === 'situacion_critica') {
+        proyecto.fabricacion.alertaCritica = true;
+        proyecto.fabricacion.fechaAlertaCritica = new Date();
+      }
+      
+      await proyecto.save();
+      
+      logger.info('🏭 Estado de fabricación actualizado', {
+        proyectoId: req.params.id,
+        numero: proyecto.numero,
+        estadoAnterior,
+        estadoNuevo: estado,
+        usuario: req.usuario?.nombre
+      });
+      
+      res.json({
+        success: true,
+        message: `Estado actualizado a: ${estado}`,
+        data: {
+          estadoAnterior,
+          estadoNuevo: estado,
+          fabricacion: proyecto.fabricacion
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error cambiando estado de fabricación:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al cambiar estado de fabricación',
+        error: error.message
+      });
+    }
+  }
+);
+
+// GET /api/proyectos/:id/materiales-calculados - Obtener materiales calculados para el proyecto
+router.get('/:id/materiales-calculados',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
+  async (req, res) => {
+    try {
+      const Proyecto = require('../models/Proyecto');
+      const proyecto = await Proyecto.findById(req.params.id);
+      
+      if (!proyecto) {
+        return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+      }
+      
+      // Calcular materiales basados en el levantamiento
+      const materiales = [];
+      const partidas = proyecto.levantamiento?.partidas || [];
+      
+      partidas.forEach((partida, index) => {
+        // Calcular área total de la partida
+        let areaTotal = 0;
+        if (partida.medidas && partida.medidas.length > 0) {
+          areaTotal = partida.medidas.reduce((sum, m) => sum + (m.area || (m.ancho * m.alto) || 0), 0);
+        }
+        
+        // Agregar material principal (tela)
+        materiales.push({
+          tipo: 'tela',
+          descripcion: `${partida.producto || 'Producto'} - ${partida.color || 'Sin color'}`,
+          ubicacion: partida.ubicacion,
+          cantidad: areaTotal,
+          unidad: 'm²',
+          partida: index + 1
+        });
+        
+        // Agregar componentes según el tipo de producto
+        if (partida.producto?.toLowerCase().includes('persiana')) {
+          materiales.push({
+            tipo: 'componente',
+            descripcion: 'Tubo de aluminio',
+            ubicacion: partida.ubicacion,
+            cantidad: partida.medidas?.length || 1,
+            unidad: 'pza',
+            partida: index + 1
+          });
+          
+          materiales.push({
+            tipo: 'componente',
+            descripcion: 'Mecanismo de control',
+            ubicacion: partida.ubicacion,
+            cantidad: partida.medidas?.length || 1,
+            unidad: 'pza',
+            partida: index + 1
+          });
+        }
+        
+        // Si es motorizado
+        if (partida.motorizado) {
+          materiales.push({
+            tipo: 'motor',
+            descripcion: `Motor ${partida.motorModelo || 'estándar'}`,
+            ubicacion: partida.ubicacion,
+            cantidad: partida.numMotores || 1,
+            unidad: 'pza',
+            partida: index + 1
+          });
+        }
+      });
+      
+      res.json({
+        success: true,
+        materiales,
+        resumen: {
+          totalPartidas: partidas.length,
+          totalMateriales: materiales.length
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error obteniendo materiales:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener materiales calculados',
+        error: error.message
+      });
+    }
+  }
+);
+
+// POST /api/proyectos/:id/salida-materiales - Registrar salida de materiales del almacén
+router.post('/:id/salida-materiales',
+  auth,
+  verificarPermiso('proyectos', 'editar'),
+  async (req, res) => {
+    try {
+      const { materiales, fecha, tipo } = req.body;
+      const Proyecto = require('../models/Proyecto');
+      const Almacen = require('../models/Almacen');
+      const logger = require('../config/logger');
+      
+      const proyecto = await Proyecto.findById(req.params.id);
+      
+      if (!proyecto) {
+        return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+      }
+      
+      // Registrar la salida en el proyecto
+      if (!proyecto.fabricacion) {
+        proyecto.fabricacion = {};
+      }
+      
+      if (!proyecto.fabricacion.salidaMateriales) {
+        proyecto.fabricacion.salidaMateriales = [];
+      }
+      
+      const salidaRegistro = {
+        fecha: fecha || new Date(),
+        materiales: materiales,
+        usuario: req.usuario?.nombre || 'Sistema',
+        tipo: tipo || 'salida_fabricacion'
+      };
+      
+      proyecto.fabricacion.salidaMateriales.push(salidaRegistro);
+      proyecto.fabricacion.materialesRecibidos = true;
+      proyecto.fabricacion.fechaRecepcionMateriales = new Date();
+      
+      await proyecto.save();
+      
+      // Intentar descontar del almacén (si existe el modelo)
+      try {
+        for (const material of materiales) {
+          if (material.tipo === 'componente' || material.tipo === 'motor') {
+            // Buscar en almacén y descontar
+            const itemAlmacen = await Almacen.findOne({
+              $or: [
+                { nombre: { $regex: material.descripcion, $options: 'i' } },
+                { codigo: { $regex: material.descripcion, $options: 'i' } }
+              ]
+            });
+            
+            if (itemAlmacen && itemAlmacen.cantidad >= material.cantidad) {
+              itemAlmacen.cantidad -= material.cantidad;
+              await itemAlmacen.save();
+            }
+          }
+        }
+      } catch (almacenError) {
+        logger.warn('No se pudo descontar del almacén', { error: almacenError.message });
+      }
+      
+      logger.info('📦 Salida de materiales registrada', {
+        proyectoId: req.params.id,
+        numero: proyecto.numero,
+        totalMateriales: materiales.length,
+        usuario: req.usuario?.nombre
+      });
+      
+      res.json({
+        success: true,
+        message: 'Salida de materiales registrada exitosamente',
+        data: {
+          salida: salidaRegistro,
+          proyecto: {
+            numero: proyecto.numero,
+            fabricacion: proyecto.fabricacion
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error registrando salida de materiales:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al registrar salida de materiales',
+        error: error.message
+      });
+    }
+  }
+);
+
 module.exports = router;

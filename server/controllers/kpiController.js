@@ -1,16 +1,28 @@
-const Pedido = require('../models/Pedido');
-const Prospecto = require('../models/Prospecto');
+const Proyecto = require('../models/Proyecto'); // UNIFICADO: Fuente única de verdad
 const logger = require('../config/logger');
 
-// Lógica para /conversion (sin cambios, ya es seguro)
+// Lógica para /conversion - UNIFICADO con modelo Proyecto
 exports.getConversion = async (req, res) => {
     try {
         const [prospectos, levantamientos, cotizaciones, ventas, completados] = await Promise.all([
-            Prospecto.countDocuments(),
-            Prospecto.countDocuments({ etapa: { $ne: 'inicial' } }),
-            Prospecto.countDocuments({ etapa: { $in: ['cotizacion_enviada', 'venta_cerrada', 'pedido', 'terminado', 'entregado'] } }),
-            Pedido.countDocuments(),
-            Pedido.countDocuments({ estado: 'entregado' })
+            // Total prospectos
+            Proyecto.countDocuments({ tipo: 'prospecto' }),
+            // Levantamientos (prospectos que avanzaron de 'nuevo')
+            Proyecto.countDocuments({ 
+                tipo: 'prospecto', 
+                estadoComercial: { $nin: ['nuevo'] } 
+            }),
+            // Cotizaciones (prospectos cotizados o convertidos)
+            Proyecto.countDocuments({ 
+                $or: [
+                    { tipo: 'prospecto', estadoComercial: 'cotizado' },
+                    { tipo: 'proyecto' }
+                ]
+            }),
+            // Ventas (proyectos)
+            Proyecto.countDocuments({ tipo: 'proyecto' }),
+            // Completados
+            Proyecto.countDocuments({ tipo: 'proyecto', estadoComercial: 'completado' })
         ]);
 
         const levantamientoACotizacion = levantamientos > 0 ? (cotizaciones / levantamientos) * 100 : 0;
@@ -26,38 +38,45 @@ exports.getConversion = async (req, res) => {
     }
 };
 
-// Lógica para /perdidas (CORREGIDA)
+// Lógica para /perdidas - UNIFICADO con modelo Proyecto
 exports.getPerdidas = async (req, res) => {
     try {
-        // Aseguramos que solo traemos prospectos que tienen el campo razonPerdida
-        const perdidas = await Prospecto.find({ etapa: 'perdido', razonPerdida: { $exists: true, $ne: null } }).select('razonPerdida montoEstimado');
+        // Prospectos perdidos del modelo Proyecto
+        const perdidas = await Proyecto.find({ 
+            tipo: 'prospecto', 
+            estadoComercial: 'perdido' 
+        }).select('monto_estimado total seguimiento');
 
         let montoTotalPerdido = 0;
         const razones = {};
         
         perdidas.forEach(p => {
-            montoTotalPerdido += p.montoEstimado || 0;
-            // Doble validación para asegurar que el objeto y la propiedad existen
-            if (p.razonPerdida && p.razonPerdida.tipo) {
-                const tipo = p.razonPerdida.tipo;
-                razones[tipo] = (razones[tipo] || { cantidad: 0, montoTotal: 0 });
-                razones[tipo].cantidad++;
-                razones[tipo].montoTotal += p.montoEstimado || 0;
-            }
+            const monto = p.total || p.monto_estimado || 0;
+            montoTotalPerdido += monto;
+            
+            // Buscar razón en la última nota de seguimiento
+            const ultimaNota = p.seguimiento?.slice(-1)[0]?.mensaje || '';
+            const tipo = ultimaNota.toLowerCase().includes('precio') ? 'precio' :
+                        ultimaNota.toLowerCase().includes('tiempo') ? 'tiempo' :
+                        ultimaNota.toLowerCase().includes('competencia') ? 'competencia' :
+                        'sin_especificar';
+            
+            razones[tipo] = razones[tipo] || { cantidad: 0, montoTotal: 0 };
+            razones[tipo].cantidad++;
+            razones[tipo].montoTotal += monto;
         });
         
         const razonesAnalisis = Object.keys(razones).map(_id => ({
              _id,
              cantidad: razones[_id].cantidad,
              montoTotal: razones[_id].montoTotal
-        }));
+        })).sort((a, b) => b.cantidad - a.cantidad);
 
-        // Ordenar para encontrar la razón principal de forma segura
-        const razonPrincipal = [...razonesAnalisis].sort((a,b) => b.cantidad - a.cantidad)[0] || null;
+        const razonPrincipal = razonesAnalisis[0] || null;
 
         res.json({
             razonesAnalisis,
-            perdidasPorEtapa: [], // Placeholder
+            perdidasPorEtapa: [],
             resumen: {
                 totalPerdidas: perdidas.length,
                 montoTotalPerdido,
@@ -70,22 +89,31 @@ exports.getPerdidas = async (req, res) => {
     }
 };
 
-// Lógica para /recuperables (CORREGIDA)
+// Lógica para /recuperables - UNIFICADO con modelo Proyecto
 exports.getRecuperables = async (req, res) => {
     try {
-        const prospectos = await Prospecto.find({ 
-            etapa: 'perdido',
-            'razonPerdida.recuperable': true
-        }).populate('cliente').limit(20);
+        // Prospectos perdidos en los últimos 90 días (potencialmente recuperables)
+        const hace90Dias = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+        
+        const prospectos = await Proyecto.find({ 
+            tipo: 'prospecto',
+            estadoComercial: 'perdido',
+            updatedAt: { $gte: hace90Dias }
+        })
+        .select('cliente monto_estimado total probabilidadCierre updatedAt')
+        .sort({ updatedAt: -1 })
+        .limit(20);
 
         let montoTotalRecuperable = 0;
-        const porPrioridad = { alta: {cantidad: 0}, media: {cantidad: 0}, baja: {cantidad: 0} };
+        const porPrioridad = { alta: { cantidad: 0 }, media: { cantidad: 0 }, baja: { cantidad: 0 } };
 
         prospectos.forEach(p => {
-            montoTotalRecuperable += p.montoEstimado || 0;
-            const score = p.scoreRecuperacion || 0; // Usar 0 como fallback
-            if (score >= 70) porPrioridad.alta.cantidad++;
-            else if (score >= 50) porPrioridad.media.cantidad++;
+            const monto = p.total || p.monto_estimado || 0;
+            montoTotalRecuperable += monto;
+            
+            // Priorizar por monto
+            if (monto >= 50000) porPrioridad.alta.cantidad++;
+            else if (monto >= 20000) porPrioridad.media.cantidad++;
             else porPrioridad.baja.cantidad++;
         });
 
