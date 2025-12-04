@@ -1,11 +1,77 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
-**Fecha de última sesión:** 3 Dic 2025 (Noche)
-**Estado del proyecto:** ✅ **PASO 1 COMPLETADO** | ✅ **PEDIDO UNIFICADO** | ✅ **BD LIMPIA**
+**Fecha de última sesión:** 4 Dic 2025 (Tarde)
+**Estado del proyecto:** ✅ **PDF ORDEN COMPRA CREADO** | ⏳ **DESPIECE ENROLLABLE PENDIENTE**
 
 ---
 
-## 🎯 SESIÓN 3 DIC 2025 (NOCHE) - PASO 1 COMPLETADO
+## 🎯 SESIÓN 4 DIC 2025 (TARDE) - PDF ORDEN DE COMPRA PROVEEDOR
+
+### ✅ COMPLETADO ESTA SESIÓN
+
+**1. PDF Orden de Compra para Proveedor:**
+- ✅ Servicio creado: `server/services/pdfOrdenCompraProveedorService.js`
+- ✅ Endpoint: `GET /api/proyectos/:id/orden-compra-proveedor`
+- ✅ Formato profesional con:
+  - Título "ORDEN DE COMPRA" con número
+  - Datos del proveedor (campos para llenar)
+  - Tabla de materiales con precio
+  - Resumen financiero
+  - Términos y condiciones
+  - Sección de firmas
+- ✅ Usa datos de `listaPedido` de `ordenProduccionService`
+- ✅ Script de prueba: `server/scripts/debug/probarOrdenCompra.js`
+
+**2. Archivos Creados/Modificados:**
+- `server/services/pdfOrdenCompraProveedorService.js` (nuevo)
+- `server/routes/proyectos.js` (ruta agregada)
+- `server/controllers/proyectoController.js` (función agregada)
+- `server/scripts/debug/probarOrdenCompra.js` (nuevo)
+
+### ⏳ PENDIENTE PARA PRÓXIMA SESIÓN
+
+**1. DESPIECE DE ENROLLABLE - PRIORIDAD ALTA:**
+- 🔍 **Buscar documento** que describe los componentes de una enrollable
+- 📋 **Entender el despiece completo:**
+  - Tubo (según ancho, corte = ancho - 3cm)
+  - Tela (según ancho/alto, rollo 2.50m o 3.00m)
+  - Contrapeso (según tipo: ovalado, plano, forrado)
+  - Mecanismo/Motor (según ancho y motorizado)
+  - Soportes (2, 3 o 4 según ancho)
+  - Galería/Cenefa (opcional)
+  - Accesorios (cinta, herrajes, etc.)
+- 🔧 **Ajustar cálculos** en el PDF según reglas específicas
+
+**2. Corregir Encimado en PDF:**
+- Algunas filas con texto largo se enciman
+- Calcular altura dinámica basada en contenido real
+
+**3. Archivos de Referencia:**
+- `server/services/calculadoraMaterialesService.js` - Reglas de cálculo
+- `server/services/optimizadorCortesService.js` - Optimización de cortes
+- `server/services/ordenProduccionService.js` - Genera `listaPedido`
+- `server/services/pdfOrdenFabricacionService.js` - PDF que funciona bien
+
+### 📝 NOTAS TÉCNICAS
+
+**Constantes de Cálculo (de calculadoraMaterialesService.js):**
+```javascript
+LONGITUD_BARRA = 5.80;        // metros - Tubos y contrapesos
+MARGEN_CORTE = 0.03;          // metros - Corte = ancho - 3cm
+ROLLO_BASE = 2.50;            // metros - Ancho rollo estándar
+ROLLO_GRANDE = 3.00;          // metros - Ancho rollo grande
+EXTRA_SIN_GALERIA = 0.25;     // metros - Extra tela sin galería
+EXTRA_CON_GALERIA = 0.50;     // metros - Extra tela con galería
+```
+
+**Proyecto de Prueba:**
+- ID: `690e69251346d61cfcd5178d`
+- Cliente: Arq. Hector Huerta
+- 6 piezas, 3 tubos, 4 telas
+
+---
+
+## 📋 SESIÓN 3 DIC 2025 (NOCHE) - PASO 1 COMPLETADO
 
 ### ✅ COMPLETADO ESTA SESIÓN
 
