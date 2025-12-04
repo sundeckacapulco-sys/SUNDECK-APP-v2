@@ -235,6 +235,101 @@ cotizacionSchema.pre('save', async function(next) {
   next();
 });
 
+// ===== MÉTODO UNIFICADO PARA CALCULAR TOTALES =====
+cotizacionSchema.methods.calcularTotales = function() {
+  // 1. Calcular subtotal de productos
+  let subtotalProductos = 0;
+  
+  if (this.productos && this.productos.length > 0) {
+    subtotalProductos = this.productos.reduce((sum, producto) => {
+      const subtotalProducto = producto.subtotal || 
+        (producto.precioUnitario || 0) * (producto.cantidad || 1);
+      return sum + subtotalProducto;
+    }, 0);
+  }
+  
+  // 2. Agregar costo de instalación
+  const costoInstalacion = this.instalacion?.incluye ? (this.instalacion.costo || 0) : 0;
+  
+  // 3. Calcular subtotal antes de descuento
+  let subtotalAntesDescuento = subtotalProductos + costoInstalacion;
+  
+  // 4. Aplicar descuento
+  let montoDescuento = 0;
+  if (this.descuento?.aplica && this.descuento.valor) {
+    if (this.descuento.tipo === 'porcentaje') {
+      montoDescuento = subtotalAntesDescuento * (this.descuento.valor / 100);
+    } else {
+      montoDescuento = this.descuento.valor;
+    }
+  }
+  
+  // 5. Subtotal después de descuento
+  const subtotal = subtotalAntesDescuento - montoDescuento;
+  
+  // 6. Calcular IVA
+  const iva = this.facturacion?.requiere ? subtotal * 0.16 : 0;
+  
+  // 7. Total final
+  const total = subtotal + iva;
+  
+  // Actualizar campos
+  this.subtotal = Math.round(subtotal * 100) / 100;
+  this.iva = Math.round(iva * 100) / 100;
+  this.total = Math.round(total * 100) / 100;
+  if (this.descuento) {
+    this.descuento.monto = Math.round(montoDescuento * 100) / 100;
+  }
+  
+  logger.debug('Totales calculados', {
+    modelo: 'Cotizacion',
+    cotizacionId: this._id,
+    subtotalProductos,
+    costoInstalacion,
+    montoDescuento,
+    subtotal: this.subtotal,
+    iva: this.iva,
+    total: this.total
+  });
+  
+  return {
+    subtotalProductos,
+    costoInstalacion,
+    montoDescuento,
+    subtotal: this.subtotal,
+    iva: this.iva,
+    total: this.total
+  };
+};
+
+// Método para obtener resumen limpio (para PDF/Excel)
+cotizacionSchema.methods.obtenerResumen = function() {
+  const totales = this.calcularTotales();
+  
+  return {
+    numero: this.numero,
+    fecha: this.fecha,
+    validoHasta: this.validoHasta,
+    estado: this.estado,
+    cliente: this.prospecto?.nombre || 'Sin cliente',
+    productos: this.productos?.length || 0,
+    ...totales,
+    tiempoFabricacion: this.tiempoFabricacion || 15,
+    tiempoInstalacion: this.tiempoInstalacion || 1,
+    incluyeInstalacion: this.instalacion?.incluye || false,
+    requiereFactura: this.facturacion?.requiere || false
+  };
+};
+
+// Hook pre-save para recalcular totales automáticamente
+cotizacionSchema.pre('save', function(next) {
+  if (this.isModified('productos') || this.isModified('instalacion') || 
+      this.isModified('descuento') || this.isModified('facturacion')) {
+    this.calcularTotales();
+  }
+  next();
+});
+
 cotizacionSchema.index({ numero: 1 });
 cotizacionSchema.index({ prospecto: 1 });
 cotizacionSchema.index({ estado: 1 });

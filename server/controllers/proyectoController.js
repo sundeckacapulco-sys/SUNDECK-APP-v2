@@ -25,6 +25,7 @@ const qrCodeGenerator = require('../utils/qrcodeGenerator');
 const notificacionService = require('../services/notificacionService');
 const OrdenProduccionService = require('../services/ordenProduccionService');
 const PDFListaPedidoV3Service = require('../services/pdfListaPedidoV3Service');
+const PDFOrdenCompraProveedorService = require('../services/pdfOrdenCompraProveedorService');
 
 const toNumber = (value, defaultValue = 0) => {
   if (value === null || value === undefined || value === '') {
@@ -2403,6 +2404,52 @@ const generarListaPedidoV2 = async (req, res) => {
   }
 };
 
+/**
+ * Generar Orden de Compra para Proveedor (formato profesional)
+ */
+const generarOrdenCompraProveedor = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    logger.info('Generando Orden de Compra para Proveedor', {
+      controller: 'proyectoController',
+      proyectoId: id
+    });
+
+    // Obtener datos de la orden
+    const datosOrden = await OrdenProduccionService.obtenerDatosOrdenProduccion(id);
+
+    // Generar PDF con formato profesional
+    const pdfBuffer = await PDFOrdenCompraProveedorService.generarPDF(datosOrden);
+
+    // Enviar PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename=Orden-Compra-${datosOrden.proyecto.numero}.pdf`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    res.write(pdfBuffer);
+    res.end();
+
+    logger.info('Orden de Compra para Proveedor generada', {
+      controller: 'proyectoController',
+      proyectoId: id,
+      proyecto: datosOrden.proyecto.numero
+    });
+
+  } catch (error) {
+    logger.error('Error generando Orden de Compra', {
+      controller: 'proyectoController',
+      proyectoId: req.params.id,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ 
+      message: 'Error generando Orden de Compra',
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   crearProyecto,
   obtenerProyectos,
@@ -2424,5 +2471,6 @@ module.exports = {
   subirFotosLevantamiento,
   convertirProspectoAProyecto,
   obtenerKPIsComerciales,
-  generarListaPedidoV2
+  generarListaPedidoV2,
+  generarOrdenCompraProveedor
 };

@@ -468,6 +468,163 @@ router.get('/:id/orden-tecnica', auth, verificarPermiso('instalaciones', 'leer')
   }
 });
 
+// ===== ENDPOINTS DE EVIDENCIAS Y FIRMA =====
+
+// Subir foto de evidencia (antes/durante/después)
+router.post('/:id/evidencias', auth, verificarPermiso('instalaciones', 'actualizar'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tipo, url, descripcion } = req.body;
+    
+    if (!['antes', 'durante', 'despues'].includes(tipo)) {
+      return res.status(400).json({ message: 'Tipo debe ser: antes, durante o despues' });
+    }
+    
+    if (!url) {
+      return res.status(400).json({ message: 'URL de foto requerida' });
+    }
+    
+    const instalacion = await Instalacion.findById(id);
+    if (!instalacion) {
+      return res.status(404).json({ message: 'Instalación no encontrada' });
+    }
+    
+    // Inicializar estructura si no existe
+    if (!instalacion.evidencias) instalacion.evidencias = {};
+    
+    const campo = tipo === 'antes' ? 'fotosAntes' : 
+                  tipo === 'durante' ? 'fotosDurante' : 'fotosDespues';
+    
+    if (!instalacion.evidencias[campo]) instalacion.evidencias[campo] = [];
+    instalacion.evidencias[campo].push(url);
+    
+    await instalacion.save();
+    
+    logger.info('Evidencia subida a instalación', {
+      ruta: 'instalacionesRoutes',
+      accion: 'subirEvidencia',
+      instalacionId: id,
+      tipo,
+      totalFotos: instalacion.evidencias[campo].length
+    });
+    
+    res.json({
+      success: true,
+      message: `Foto ${tipo} agregada`,
+      totalFotos: instalacion.evidencias[campo].length
+    });
+    
+  } catch (error) {
+    logger.error('Error subiendo evidencia', {
+      ruta: 'instalacionesRoutes',
+      accion: 'subirEvidencia',
+      instalacionId: req.params.id,
+      error: error.message
+    });
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Registrar firma del cliente
+router.post('/:id/firma', auth, verificarPermiso('instalaciones', 'actualizar'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firmaBase64, nombreQuienRecibe, comentarios } = req.body;
+    
+    if (!firmaBase64) {
+      return res.status(400).json({ message: 'Firma requerida (base64)' });
+    }
+    
+    if (!nombreQuienRecibe) {
+      return res.status(400).json({ message: 'Nombre de quien recibe es requerido' });
+    }
+    
+    const instalacion = await Instalacion.findById(id);
+    if (!instalacion) {
+      return res.status(404).json({ message: 'Instalación no encontrada' });
+    }
+    
+    // Guardar firma y datos
+    if (!instalacion.evidencias) instalacion.evidencias = {};
+    instalacion.evidencias.firmaCliente = firmaBase64;
+    instalacion.evidencias.nombreQuienRecibe = nombreQuienRecibe;
+    instalacion.evidencias.comentariosCliente = comentarios || '';
+    instalacion.evidencias.fechaFirma = new Date();
+    
+    // Marcar como completada
+    instalacion.estado = 'completada';
+    instalacion.fechaCompletada = new Date();
+    
+    await instalacion.save();
+    
+    logger.info('Firma de cliente registrada', {
+      ruta: 'instalacionesRoutes',
+      accion: 'registrarFirma',
+      instalacionId: id,
+      nombreQuienRecibe
+    });
+    
+    res.json({
+      success: true,
+      message: 'Instalación completada con firma del cliente',
+      instalacion: {
+        numero: instalacion.numero,
+        estado: instalacion.estado,
+        nombreQuienRecibe,
+        fechaCompletada: instalacion.fechaCompletada
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error registrando firma', {
+      ruta: 'instalacionesRoutes',
+      accion: 'registrarFirma',
+      instalacionId: req.params.id,
+      error: error.message
+    });
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Obtener evidencias de una instalación
+router.get('/:id/evidencias', auth, verificarPermiso('instalaciones', 'leer'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const instalacion = await Instalacion.findById(id)
+      .select('numero estado evidencias')
+      .lean();
+    
+    if (!instalacion) {
+      return res.status(404).json({ message: 'Instalación no encontrada' });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        numero: instalacion.numero,
+        estado: instalacion.estado,
+        evidencias: instalacion.evidencias || {
+          fotosAntes: [],
+          fotosDurante: [],
+          fotosDespues: [],
+          firmaCliente: null,
+          nombreQuienRecibe: null
+        }
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error obteniendo evidencias', {
+      ruta: 'instalacionesRoutes',
+      accion: 'obtenerEvidencias',
+      instalacionId: req.params.id,
+      error: error.message
+    });
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Funciones auxiliares
 function generarChecklistInstalacion(productos) {
   const checklist = [];

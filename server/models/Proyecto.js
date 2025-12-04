@@ -577,6 +577,96 @@ const proyectoSchema = new mongoose.Schema({
     // Observaciones generales de fabricación
     observaciones: String,
     
+    // ===== 5 ETAPAS DE FABRICACIÓN CON FOTOS =====
+    etapas: {
+      // ETAPA 1: CORTE
+      corte: {
+        estado: { type: String, enum: ['pendiente', 'en_proceso', 'completado'], default: 'pendiente' },
+        fechaInicio: Date,
+        fechaFin: Date,
+        responsable: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+        fotos: [{
+          url: String,
+          descripcion: String,
+          fechaSubida: { type: Date, default: Date.now },
+          subidaPor: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' }
+        }],
+        comentarios: String,
+        codigoPieza: String
+      },
+      
+      // ETAPA 2: ARMADO
+      armado: {
+        estado: { type: String, enum: ['pendiente', 'en_proceso', 'completado'], default: 'pendiente' },
+        fechaInicio: Date,
+        fechaFin: Date,
+        responsable: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+        fotos: [{
+          url: String,
+          descripcion: String,
+          fechaSubida: { type: Date, default: Date.now },
+          subidaPor: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' }
+        }],
+        comentarios: String,
+        codigoPieza: String
+      },
+      
+      // ETAPA 3: ENSAMBLE
+      ensamble: {
+        estado: { type: String, enum: ['pendiente', 'en_proceso', 'completado'], default: 'pendiente' },
+        fechaInicio: Date,
+        fechaFin: Date,
+        responsable: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+        fotos: [{
+          url: String,
+          descripcion: String,
+          fechaSubida: { type: Date, default: Date.now },
+          subidaPor: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' }
+        }],
+        comentarios: String,
+        codigoPieza: String
+      },
+      
+      // ETAPA 4: REVISIÓN (Control de Calidad)
+      revision: {
+        estado: { type: String, enum: ['pendiente', 'en_proceso', 'aprobado', 'rechazado'], default: 'pendiente' },
+        fechaInicio: Date,
+        fechaFin: Date,
+        responsable: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+        fotos: [{
+          url: String,
+          descripcion: String,
+          fechaSubida: { type: Date, default: Date.now },
+          subidaPor: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' }
+        }],
+        comentarios: String,
+        codigoPieza: String,
+        defectos: [{
+          descripcion: String,
+          gravedad: { type: String, enum: ['menor', 'mayor', 'critico'] },
+          corregido: { type: Boolean, default: false }
+        }]
+      },
+      
+      // ETAPA 5: EMPAQUE
+      empaque: {
+        estado: { type: String, enum: ['pendiente', 'en_proceso', 'completado'], default: 'pendiente' },
+        fechaInicio: Date,
+        fechaFin: Date,
+        responsable: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
+        fotos: [{
+          url: String,
+          descripcion: String,
+          fechaSubida: { type: Date, default: Date.now },
+          subidaPor: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' }
+        }],
+        comentarios: String,
+        codigoPieza: String,
+        tipoEmpaque: String,
+        etiquetaGenerada: { type: Boolean, default: false }
+      }
+    },
+    
     // Progreso general (calculado automáticamente)
     progreso: {
       type: Number,

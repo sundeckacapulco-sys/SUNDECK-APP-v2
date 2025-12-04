@@ -27,7 +27,8 @@ const {
   subirFotosLevantamiento,
   convertirProspectoAProyecto,
   obtenerKPIsComerciales,
-  generarListaPedidoV2
+  generarListaPedidoV2,
+  generarOrdenCompraProveedor
 } = require('../controllers/proyectoController');
 
 const {
@@ -343,6 +344,13 @@ router.get('/:id/lista-pedido-v2',
   generarListaPedidoV2
 );
 
+// GET /api/proyectos/:id/orden-compra-proveedor - Generar Orden de Compra para Proveedor (formato profesional)
+router.get('/:id/orden-compra-proveedor',
+  auth,
+  verificarPermiso('proyectos', 'leer'),
+  generarOrdenCompraProveedor
+);
+
 // ============================================
 // RUTAS DE FABRICACIÓN - CONTROL DE ESTADO
 // ============================================
@@ -382,10 +390,47 @@ router.patch('/:id/fabricacion/estado',
       proyecto.fabricacion.estado = estado;
       proyecto.fabricacion.fechaUltimaActualizacion = new Date();
       
+      // Si entra a "en_proceso" por primera vez, inicializar las 5 etapas
+      if (estado === 'en_proceso' && !proyecto.fabricacion.etapas) {
+        proyecto.fabricacion.etapas = {
+          corte: { estado: 'pendiente', fotos: [], comentarios: '', codigoPieza: '' },
+          armado: { estado: 'pendiente', fotos: [], comentarios: '', codigoPieza: '' },
+          ensamble: { estado: 'pendiente', fotos: [], comentarios: '', codigoPieza: '' },
+          revision: { estado: 'pendiente', fotos: [], comentarios: '', codigoPieza: '', defectos: [] },
+          empaque: { estado: 'pendiente', fotos: [], comentarios: '', codigoPieza: '' }
+        };
+        
+        // También crear procesos para la vista de "Procesos Pendientes"
+        proyecto.fabricacion.procesos = [
+          { nombre: 'Corte', descripcion: 'Corte de materiales', orden: 1, estado: 'pendiente', tiempoEstimado: 2 },
+          { nombre: 'Armado', descripcion: 'Armado de estructura', orden: 2, estado: 'pendiente', tiempoEstimado: 3 },
+          { nombre: 'Ensamble', descripcion: 'Ensamble de componentes', orden: 3, estado: 'pendiente', tiempoEstimado: 2 },
+          { nombre: 'Revisión', descripcion: 'Control de calidad', orden: 4, estado: 'pendiente', tiempoEstimado: 1 },
+          { nombre: 'Empaque', descripcion: 'Empaque final', orden: 5, estado: 'pendiente', tiempoEstimado: 1 }
+        ];
+        
+        logger.info('🏭 Etapas de fabricación inicializadas', {
+          proyectoId: req.params.id,
+          numero: proyecto.numero
+        });
+      }
+      
       // Si es terminado, actualizar también el estado comercial
       if (estado === 'terminado') {
         proyecto.estadoComercial = 'en_instalacion';
         proyecto.fabricacion.fechaFinFabricacion = new Date();
+        
+        // Marcar todas las etapas como completadas
+        if (proyecto.fabricacion.etapas) {
+          ['corte', 'armado', 'ensamble', 'revision', 'empaque'].forEach(etapa => {
+            if (proyecto.fabricacion.etapas[etapa]) {
+              proyecto.fabricacion.etapas[etapa].estado = 'completado';
+            }
+          });
+        }
+        if (proyecto.fabricacion.procesos) {
+          proyecto.fabricacion.procesos.forEach(p => p.estado = 'completado');
+        }
       }
       
       // Si es situación crítica, registrar

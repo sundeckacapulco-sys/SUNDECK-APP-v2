@@ -324,7 +324,7 @@ const CalculadoraMateriales = () => {
 
       {/* Lista de Configuraciones por Sistema */}
       {sistemasDisponibles.map(sistema => (
-        <Accordion key={sistema} defaultExpanded={true} sx={{ mb: 2 }}>
+        <Accordion key={sistema} defaultExpanded={false} sx={{ mb: 2 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>{sistema}</Typography>
             <Chip label={sistemasAgrupados[sistema].length} size="small" sx={{ ml: 2 }} />

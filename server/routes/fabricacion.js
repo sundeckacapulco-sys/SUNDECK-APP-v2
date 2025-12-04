@@ -7,7 +7,12 @@ const {
   actualizarEstadoOrden,
   generarOrdenProduccionConAlmacen,
   descargarPDFListaPedido,
-  descargarPDFOrdenTaller
+  descargarPDFOrdenTaller,
+  // Nuevos endpoints de etapas
+  obtenerEtapasFabricacion,
+  actualizarEtapaFabricacion,
+  subirFotoEtapa,
+  obtenerFotosEtapa
 } = require('../controllers/fabricacionController');
 
 const router = express.Router();
@@ -53,6 +58,36 @@ router.get('/lista-pedido/:proyectoId/pdf',
 router.get('/orden-taller/:proyectoId/pdf',
   auth,
   descargarPDFOrdenTaller
+);
+
+// ===== RUTAS DE 5 ETAPAS DE FABRICACIÓN =====
+
+// Obtener estado de todas las etapas de un proyecto
+router.get('/etapas/:id',
+  auth,
+  verificarPermiso('fabricacion', 'leer'),
+  obtenerEtapasFabricacion
+);
+
+// Actualizar estado de una etapa específica
+router.patch('/etapas/:id/:etapa',
+  auth,
+  verificarPermiso('fabricacion', 'actualizar'),
+  actualizarEtapaFabricacion
+);
+
+// Subir foto a una etapa
+router.post('/etapas/:id/:etapa/fotos',
+  auth,
+  verificarPermiso('fabricacion', 'actualizar'),
+  subirFotoEtapa
+);
+
+// Obtener fotos de una etapa
+router.get('/etapas/:id/:etapa/fotos',
+  auth,
+  verificarPermiso('fabricacion', 'leer'),
+  obtenerFotosEtapa
 );
 
 module.exports = router;

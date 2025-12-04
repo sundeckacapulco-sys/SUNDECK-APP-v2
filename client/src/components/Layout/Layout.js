@@ -17,7 +17,8 @@ import {
   MenuItem,
   Badge,
   Fab,
-  Chip
+  Chip,
+  Collapse
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -38,7 +39,12 @@ import {
   Security,
   Home,
   Calculate,
-  Science
+  Science,
+  ExpandLess,
+  ExpandMore,
+  Storefront,
+  PrecisionManufacturing,
+  Handyman
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -52,30 +58,53 @@ import ModuloSoporte from '../Common/ModuloSoporte';
 
 const drawerWidth = 240;
 
-const menuItems = [
-  { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
-  { text: 'Proyectos', icon: <Assignment />, path: '/proyectos', badge: 'PRINCIPAL' },
-  { text: 'Alertas', icon: <Notifications />, path: '/alertas', badge: 'NUEVO' },
-  { text: 'Cotización Directa', icon: <Calculate />, path: '/cotizacion-directa', badge: 'RÁPIDO' },
-  { text: 'Fabricación', icon: <Construction />, path: '/fabricacion' },
-  { text: 'Calculadora Materiales', icon: <Calculate />, path: '/calculadora', badge: 'NUEVO' },
-  { 
-    text: 'Instalaciones', 
-    icon: <Home />, 
-    path: '/instalaciones', 
-    badge: 'SEPARADO',
-    submenu: [
-      { text: 'Lista de Instalaciones', path: '/instalaciones' },
-      { text: 'Programar Instalación', path: '/instalaciones/programar' },
-      { text: 'Calendario', path: '/instalaciones/calendario' },
-      { text: 'KPIs Instalaciones', path: '/instalaciones/kpis' }
+// Menú estructurado por secciones colapsables
+const menuSections = [
+  // Items principales (siempre visibles)
+  {
+    type: 'items',
+    items: [
+      { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
+      { text: 'Alertas', icon: <Notifications />, path: '/alertas' },
     ]
   },
-  { text: 'KPIs y Ventas', icon: <Assessment />, path: '/kpis' },
-  { text: 'Análisis Histórico', icon: <Assessment />, path: '/reporteria/historico', badge: 'NUEVO' },
-  { text: 'Almacén', icon: <Inventory />, path: '/almacen', badge: 'NUEVO' },
-  { text: 'Catálogo Productos', icon: <Inventory />, path: '/productos' },
-  { text: 'Plantillas WhatsApp', icon: <WhatsApp />, path: '/admin/plantillas-whatsapp' }
+  // Sección Comercial
+  {
+    type: 'section',
+    id: 'comercial',
+    label: 'Comercial',
+    icon: <Storefront />,
+    items: [
+      { text: 'Proyectos', icon: <Assignment />, path: '/proyectos', badge: 'PRINCIPAL' },
+      { text: 'Cotización Directa', icon: <Calculate />, path: '/cotizacion-directa' },
+      { text: 'KPIs y Ventas', icon: <Assessment />, path: '/kpis' },
+    ]
+  },
+  // Sección Producción
+  {
+    type: 'section',
+    id: 'produccion',
+    label: 'Producción',
+    icon: <PrecisionManufacturing />,
+    items: [
+      { text: 'Fabricación', icon: <Construction />, path: '/fabricacion' },
+      { text: 'Almacén', icon: <Inventory />, path: '/almacen' },
+      { text: 'Calculadora', icon: <Calculate />, path: '/calculadora' },
+      { text: 'Instalaciones', icon: <Home />, path: '/instalaciones' },
+    ]
+  },
+  // Sección Herramientas
+  {
+    type: 'section',
+    id: 'herramientas',
+    label: 'Herramientas',
+    icon: <Handyman />,
+    items: [
+      { text: 'Análisis Histórico', icon: <Assessment />, path: '/reporteria/historico' },
+      { text: 'Catálogo Productos', icon: <Inventory />, path: '/productos' },
+      { text: 'WhatsApp', icon: <WhatsApp />, path: '/admin/plantillas-whatsapp' },
+    ]
+  }
 ];
 
 const Layout = ({ children }) => {
@@ -86,6 +115,20 @@ const Layout = ({ children }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [soporteModalOpen, setSoporteModalOpen] = useState(false);
   const [alertasResumen, setAlertasResumen] = useState({ total: 0, prospectos: 0, proyectos: 0 });
+  
+  // Estado para secciones colapsables (por defecto todas abiertas)
+  const [openSections, setOpenSections] = useState({
+    comercial: true,
+    produccion: true,
+    herramientas: false
+  });
+  
+  const toggleSection = (sectionId) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }));
+  };
   const [alertasLoading, setAlertasLoading] = useState(false);
 
   const handleDrawerToggle = () => {
@@ -166,56 +209,144 @@ const Layout = ({ children }) => {
         </Typography>
       </Toolbar>
       <Divider sx={{ backgroundColor: '#333333' }} />
-      <List sx={{ backgroundColor: '#000000', height: '100%' }}>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => navigate(item.path)}
-              sx={{
-                color: '#ffffff',
-                '&:hover': {
-                  backgroundColor: '#1E40AF',
-                },
-                '&.Mui-selected': {
-                  backgroundColor: '#1E40AF',
-                  '&:hover': {
-                    backgroundColor: '#1E3A8A',
-                  },
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: '#ffffff' }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText 
-                primary={
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span>{item.text}</span>
-                    {item.badge && (
-                      <Chip 
-                        label={item.badge} 
-                        size="small" 
-                        sx={{ 
-                          bgcolor: '#D4AF37', 
-                          color: '#000', 
-                          fontSize: '0.6rem',
-                          height: '16px',
-                          fontWeight: 'bold'
-                        }} 
-                      />
-                    )}
-                  </Box>
-                }
-                sx={{ 
-                  '& .MuiListItemText-primary': { 
-                    fontSize: '0.875rem',
-                    fontWeight: 500
-                  } 
-                }} 
-              />
-            </ListItemButton>
-          </ListItem>
+      <List sx={{ backgroundColor: '#000000', height: '100%', pt: 0 }}>
+        {menuSections.map((section, sectionIndex) => (
+          <React.Fragment key={sectionIndex}>
+            {/* Items sueltos (Dashboard, Alertas) */}
+            {section.type === 'items' && section.items.map((item) => (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton
+                  selected={location.pathname === item.path}
+                  onClick={() => navigate(item.path)}
+                  sx={{
+                    color: '#ffffff',
+                    py: 1.2,
+                    '&:hover': { backgroundColor: 'rgba(30, 64, 175, 0.6)' },
+                    '&.Mui-selected': {
+                      backgroundColor: 'rgba(30, 64, 175, 0.8)',
+                      '&:hover': { backgroundColor: 'rgba(30, 58, 138, 0.9)' },
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ color: '#ffffff', minWidth: 42 }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={item.text} 
+                    sx={{ 
+                      '& .MuiListItemText-primary': { 
+                        fontSize: '0.9rem', 
+                        fontWeight: 400,
+                        fontFamily: '"Inter", "Roboto", sans-serif',
+                        letterSpacing: '0.3px'
+                      } 
+                    }} 
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+            
+            {/* Secciones colapsables */}
+            {section.type === 'section' && (
+              <>
+                {/* Header de sección (clickeable) */}
+                <ListItemButton
+                  onClick={() => toggleSection(section.id)}
+                  sx={{
+                    color: '#D4AF37',
+                    py: 1,
+                    mt: 0.5,
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                    '&:hover': { backgroundColor: 'rgba(212, 175, 55, 0.08)' },
+                  }}
+                >
+                  <ListItemIcon sx={{ color: '#D4AF37', minWidth: 42 }}>
+                    {section.icon}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={section.label} 
+                    sx={{ 
+                      '& .MuiListItemText-primary': { 
+                        fontSize: '0.75rem', 
+                        fontWeight: 600, 
+                        textTransform: 'uppercase', 
+                        letterSpacing: '1.5px',
+                        fontFamily: '"Inter", "Roboto", sans-serif'
+                      } 
+                    }} 
+                  />
+                  {openSections[section.id] ? 
+                    <ExpandLess sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 20 }} /> : 
+                    <ExpandMore sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 20 }} />
+                  }
+                </ListItemButton>
+                
+                {/* Items de la sección (colapsables) */}
+                <Collapse in={openSections[section.id]} timeout={200} unmountOnExit>
+                  <List component="div" disablePadding sx={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                    {section.items.map((item) => (
+                      <ListItem key={item.text} disablePadding>
+                        <ListItemButton
+                          selected={location.pathname === item.path}
+                          onClick={() => navigate(item.path)}
+                          sx={{
+                            color: 'rgba(255,255,255,0.85)',
+                            py: 0.9,
+                            pl: 4.5,
+                            transition: 'all 0.15s ease',
+                            '&:hover': { 
+                              backgroundColor: 'rgba(30, 64, 175, 0.5)',
+                              color: '#ffffff',
+                              pl: 5,
+                            },
+                            '&.Mui-selected': {
+                              backgroundColor: 'rgba(30, 64, 175, 0.7)',
+                              borderLeft: '3px solid #D4AF37',
+                              color: '#ffffff',
+                              '&:hover': { backgroundColor: 'rgba(30, 58, 138, 0.8)' },
+                            },
+                          }}
+                        >
+                          <ListItemIcon sx={{ color: 'inherit', minWidth: 36, opacity: 0.9 }}>
+                            {item.icon}
+                          </ListItemIcon>
+                          <ListItemText 
+                            primary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <span>{item.text}</span>
+                                {item.badge && (
+                                  <Chip 
+                                    label={item.badge} 
+                                    size="small" 
+                                    sx={{ 
+                                      bgcolor: '#D4AF37', 
+                                      color: '#000', 
+                                      fontSize: '0.6rem', 
+                                      height: '16px', 
+                                      fontWeight: 700,
+                                      fontFamily: '"Inter", sans-serif'
+                                    }} 
+                                  />
+                                )}
+                              </Box>
+                            }
+                            sx={{ 
+                              '& .MuiListItemText-primary': { 
+                                fontSize: '0.85rem', 
+                                fontWeight: 400,
+                                fontFamily: '"Inter", "Roboto", sans-serif',
+                                letterSpacing: '0.2px'
+                              } 
+                            }} 
+                          />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Collapse>
+              </>
+            )}
+          </React.Fragment>
         ))}
       </List>
     </div>
@@ -254,7 +385,7 @@ const Layout = ({ children }) => {
               />
             </Box>
             <Typography variant="h6" noWrap component="div">
-              {menuItems.find(item => item.path === location.pathname)?.text || 'Sundeck CRM'}
+              {menuSections.flatMap(s => s.items || []).find(item => item.path === location.pathname)?.text || 'Sundeck CRM'}
             </Typography>
           </Box>
 

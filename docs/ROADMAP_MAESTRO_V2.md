@@ -39,17 +39,17 @@ PROSPECTO → PROYECTO → LEVANTAMIENTO → COTIZACIÓN → PEDIDO → FABRICAC
 
 ---
 
-## 📊 ESTADO ACTUAL POR MÓDULO (3 Dic 2025)
+## 📊 ESTADO ACTUAL POR MÓDULO (4 Dic 2025) - ✅ FLUJO COMPLETO
 
-| # | Transición | Estado | % | Faltante Crítico |
-|---|------------|--------|---|------------------|
-| 1 | Prospecto → Proyecto | ✅ | 90% | Detección duplicados |
+| # | Transición | Estado | % | Notas |
+|---|------------|--------|---|-------|
+| 1 | Prospecto → Proyecto | ✅ | 90% | Detección duplicados pendiente |
 | 2 | Proyecto → Levantamiento | ✅ | 95% | Validación automática |
-| 3 | Levantamiento → Cotización | ✅ | 90% | Totales unificados, sin duplicidades |
-| 4 | **Cotización → Pedido** | ✅ | **100%** | ~~Modelo unificado~~ COMPLETADO |
-| 5 | Pedido → Fabricación | ⚠️ | 60% | 5 etapas, fotos, códigos |
-| 6 | Fabricación → Instalación | ⚠️ | 50% | Fecha, oficial, firma cliente |
-| 7 | Instalación → Cobro → Postventa | ⚠️ | 40% | Saldo, recordatorio, satisfacción |
+| 3 | Levantamiento → Cotización | ✅ | 100% | `calcularTotales()` unificado |
+| 4 | **Cotización → Pedido** | ✅ | **100%** | PASO 1 COMPLETADO |
+| 5 | **Pedido → Fabricación** | ✅ | **100%** | PASO 2 COMPLETADO - 5 etapas |
+| 6 | **Fabricación → Instalación** | ✅ | **100%** | PASO 5 COMPLETADO - Firma cliente |
+| 7 | **Instalación → Cobro → Postventa** | ✅ | **100%** | PASO 6 COMPLETADO
 
 ---
 
@@ -77,73 +77,92 @@ PROSPECTO → PROYECTO → LEVANTAMIENTO → COTIZACIÓN → PEDIDO → FABRICAC
 
 ---
 
-### 🟠 PASO 2: RECONSTRUIR FABRICACIÓN
+### ✅ PASO 2: RECONSTRUIR FABRICACIÓN (COMPLETADO 4 Dic 2025)
 **Con las fases y fotos aprobadas.**
 
 **5 Etapas de Fabricación:**
-1. **Corte** - Fotos de piezas cortadas
-2. **Armado** - Fotos del ensamble
-3. **Ensamble** - Fotos del producto armado
-4. **Revisión** - Control de calidad
-5. **Empaque** - Fotos del empaque final
+1. ✅ **Corte** - Fotos de piezas cortadas
+2. ✅ **Armado** - Fotos del ensamble
+3. ✅ **Ensamble** - Fotos del producto armado
+4. ✅ **Revisión** - Control de calidad (con defectos)
+5. ✅ **Empaque** - Fotos del empaque final
 
 **Por cada etapa:**
-- [ ] Foto obligatoria
-- [ ] Comentarios del armador
-- [ ] Código interno de pieza
-- [ ] Timestamp automático
-- [ ] Usuario que registró
+- [x] Foto obligatoria (array con URL, descripción, fecha, usuario)
+- [x] Comentarios del armador
+- [x] Código interno de pieza
+- [x] Timestamp automático (fechaInicio, fechaFin)
+- [x] Usuario que registró (responsable)
 
-**Entregable:** Módulo de fabricación con trazabilidad completa
+**Endpoints implementados:**
+- `GET /api/fabricacion/etapas/:id` - Obtener estado de etapas
+- `PATCH /api/fabricacion/etapas/:id/:etapa` - Actualizar etapa
+- `POST /api/fabricacion/etapas/:id/:etapa/fotos` - Subir foto
+- `GET /api/fabricacion/etapas/:id/:etapa/fotos` - Obtener fotos
+
+**Entregable:** ✅ Módulo de fabricación con trazabilidad completa
 
 ---
 
-### 🟡 PASO 3: INSTALAR LOGGER + AUDITORÍA
+### ✅ PASO 3: INSTALAR LOGGER + AUDITORÍA (YA COMPLETADO - Fase 0)
 **Para evitar errores ocultos.**
 
-- [ ] Logger estructurado en todos los endpoints críticos
-- [ ] Auditoría de cambios de estado
-- [ ] Registro de quién hizo qué y cuándo
-- [ ] Alertas de errores en tiempo real
+- [x] Logger estructurado en todos los endpoints críticos (419 console.log migrados)
+- [x] Auditoría de cambios de estado (eventBus implementado)
+- [x] Registro de quién hizo qué y cuándo (timestamps + usuarioId en logs)
+- [x] Alertas de errores en tiempo real (logger.error con stack traces)
 
-**Entregable:** Sistema observable y trazable
+**Entregable:** ✅ Sistema observable y trazable (completado en Fase 0)
 
 ---
 
-### 🟢 PASO 4: NORMALIZAR PROYECTO Y COTIZACIÓN
+### ✅ PASO 4: NORMALIZAR PROYECTO Y COTIZACIÓN (COMPLETADO 4 Dic 2025)
 **Todo limpio, bonito, sin duplicidades.**
 
-- [ ] Totales unificados (un solo cálculo)
-- [ ] Sin campos duplicados
-- [ ] Resumen final siempre correcto
-- [ ] PDF/Excel consistentes
+- [x] Totales unificados → `cotizacion.calcularTotales()` método único
+- [x] Sin campos duplicados → Estructura limpia en Cotizacion.js
+- [x] Resumen final siempre correcto → `cotizacion.obtenerResumen()`
+- [x] PDF/Excel consistentes → Usan el mismo método de cálculo
+- [x] Hook pre-save recalcula automáticamente al modificar productos/descuentos
 
-**Entregable:** Cotización perfecta al 100%
+**Entregable:** ✅ Cotización con cálculos unificados y consistentes
 
 ---
 
-### 🔵 PASO 5: INTEGRAR INSTALACIONES
+### ✅ PASO 5: INTEGRAR INSTALACIONES (COMPLETADO 4 Dic 2025)
 **Con fotos + firma del cliente.**
 
-- [ ] Fecha programada
-- [ ] Oficial asignado
-- [ ] Complejidad calculada
-- [ ] Tiempo estimado
-- [ ] Evidencias fotográficas (antes/después)
-- [ ] Firma digital del cliente
-- [ ] Checklist de entrega
+- [x] Fecha programada → `instalacion.programacion.fechaProgramada`
+- [x] Oficial asignado → `instalacion.programacion.cuadrilla[]`
+- [x] Complejidad calculada → `InstalacionesInteligentesService`
+- [x] Tiempo estimado → `instalacion.programacion.tiempoEstimado`
+- [x] Evidencias fotográficas → `POST /api/instalaciones/:id/evidencias`
+- [x] Firma digital del cliente → `POST /api/instalaciones/:id/firma`
+- [x] Checklist de entrega → `generarChecklistInstalacion()`
 
-**Entregable:** Instalación documentada completamente
+**Endpoints implementados:**
+- `POST /api/instalaciones/:id/evidencias` - Subir fotos antes/durante/después
+- `POST /api/instalaciones/:id/firma` - Registrar firma del cliente
+- `GET /api/instalaciones/:id/evidencias` - Obtener evidencias
+
+**Entregable:** ✅ Instalación documentada completamente
 
 ---
 
-### 🟣 PASO 6: CONSOLIDAR COBRO Y POSTVENTA
+### ✅ PASO 6: CONSOLIDAR COBRO Y POSTVENTA (COMPLETADO 4 Dic 2025)
 
-- [ ] Registrar saldo pendiente
-- [ ] Generar recordatorio automático
-- [ ] Registrar satisfacción del cliente
-- [ ] Trigger de seguimiento postventa
-- [ ] Encuesta de calidad
+- [x] Registrar saldo pendiente → `POST /api/postventa/cobro/:pedidoId`
+- [x] Obtener saldos pendientes → `GET /api/postventa/cobro/pendientes`
+- [x] Generar recordatorio automático → `POST /api/postventa/recordatorio`
+- [x] Registrar satisfacción del cliente → `POST /api/postventa/satisfaccion/:id`
+- [x] Trigger de seguimiento postventa → `eventBus.emit('pago.saldo_recibido')`
+- [x] Encuesta de calidad → Modelo Postventa con calificaciones 1-5
+
+**Endpoints implementados:**
+- `POST /api/postventa/cobro/:pedidoId` - Registrar pago de saldo
+- `GET /api/postventa/cobro/pendientes` - Listar saldos pendientes
+- `POST /api/postventa/satisfaccion/:id` - Registrar encuesta
+- `POST /api/postventa/recordatorio` - Crear recordatorio
 
 **Entregable:** Ciclo completo cerrado
 

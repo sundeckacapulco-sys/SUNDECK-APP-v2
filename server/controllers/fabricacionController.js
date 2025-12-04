@@ -1,4 +1,5 @@
 const Pedido = require('../models/Pedido');
+const Proyecto = require('../models/Proyecto');
 const OrdenFabricacion = require('../models/OrdenFabricacion');
 const FabricacionService = require('../services/fabricacionService');
 const CotizacionMappingService = require('../services/cotizacionMappingService');
@@ -9,6 +10,11 @@ const PDFOrdenFabricacionService = require('../services/pdfOrdenFabricacionServi
 const PDFListaPedidoV3Service = require('../services/pdfListaPedidoV3Service');
 const logger = require('../config/logger');
 const eventBus = require('../services/eventBusService');
+
+// Etapas válidas de fabricación
+const ETAPAS_FABRICACION = ['corte', 'armado', 'ensamble', 'revision', 'empaque'];
+const ESTADOS_ETAPA = ['pendiente', 'en_proceso', 'completado'];
+const ESTADOS_REVISION = ['pendiente', 'en_proceso', 'aprobado', 'rechazado'];
 
 const ESTADOS_VALIDOS_ORDEN = ['pendiente', 'en_proceso', 'terminado', 'entregado_instalacion', 'cancelado'];
 
@@ -539,12 +545,14 @@ async function descargarPDFOrdenTaller(req, res) {
       datosOrden.listaPedido
     );
     
-    // Configurar headers para descarga
+    // Configurar headers para visualización inline (no descarga automática)
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Orden-Taller-${datosOrden.proyecto.numero}.pdf"`);
+    res.setHeader('Content-Disposition', `inline; filename="Orden-Taller-${datosOrden.proyecto.numero}.pdf"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     
-    res.send(pdfBuffer);
+    // Usar write + end para asegurar que el buffer se envíe completo
+    res.write(pdfBuffer);
+    res.end();
     
     logger.info('PDF de orden de taller generado exitosamente', {
       controlador: 'fabricacionController',
@@ -569,6 +577,291 @@ async function descargarPDFOrdenTaller(req, res) {
   }
 }
 
+// ===== ENDPOINTS PARA 5 ETAPAS DE FABRICACIÓN =====
+
+/**
+ * Obtener estado de etapas de un proyecto
+ * GET /api/proyectos/:id/fabricacion/etapas
+ */
+async function obtenerEtapasFabricacion(req, res) {
+  try {
+    const { id } = req.params;
+    
+    const proyecto = await Proyecto.findById(id)
+      .select('fabricacion.etapas fabricacion.estado fabricacion.progreso cliente.nombre numero')
+      .lean();
+    
+    if (!proyecto) {
+      return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    }
+    
+    // Calcular progreso por etapa
+    const etapas = proyecto.fabricacion?.etapas || {};
+    const resumenEtapas = ETAPAS_FABRICACION.map(nombre => {
+      const etapa = etapas[nombre] || {};
+      return {
+        nombre,
+        estado: etapa.estado || 'pendiente',
+        fechaInicio: etapa.fechaInicio,
+        fechaFin: etapa.fechaFin,
+        fotos: etapa.fotos?.length || 0,
+        comentarios: etapa.comentarios || '',
+        codigoPieza: etapa.codigoPieza || ''
+      };
+    });
+    
+    // Calcular progreso general
+    const completadas = resumenEtapas.filter(e => 
+      e.estado === 'completado' || e.estado === 'aprobado'
+    ).length;
+    const progreso = Math.round((completadas / ETAPAS_FABRICACION.length) * 100);
+    
+    return res.json({
+      success: true,
+      data: {
+        proyectoId: id,
+        cliente: proyecto.cliente?.nombre,
+        numero: proyecto.numero,
+        estadoGeneral: proyecto.fabricacion?.estado || 'pendiente',
+        progreso,
+        etapas: resumenEtapas
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error obteniendo etapas de fabricación', {
+      controlador: 'fabricacionController',
+      accion: 'obtenerEtapasFabricacion',
+      proyectoId: req.params?.id,
+      error: error.message
+    });
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * Actualizar estado de una etapa
+ * PATCH /api/proyectos/:id/fabricacion/etapas/:etapa
+ */
+async function actualizarEtapaFabricacion(req, res) {
+  try {
+    const { id, etapa } = req.params;
+    const { estado, comentarios, codigoPieza } = req.body;
+    
+    // Validar etapa
+    if (!ETAPAS_FABRICACION.includes(etapa)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Etapa inválida. Válidas: ${ETAPAS_FABRICACION.join(', ')}` 
+      });
+    }
+    
+    // Validar estado
+    const estadosValidos = etapa === 'revision' ? ESTADOS_REVISION : ESTADOS_ETAPA;
+    if (estado && !estadosValidos.includes(estado)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Estado inválido. Válidos: ${estadosValidos.join(', ')}` 
+      });
+    }
+    
+    const proyecto = await Proyecto.findById(id);
+    if (!proyecto) {
+      return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    }
+    
+    // Inicializar estructura si no existe
+    if (!proyecto.fabricacion) proyecto.fabricacion = {};
+    if (!proyecto.fabricacion.etapas) proyecto.fabricacion.etapas = {};
+    if (!proyecto.fabricacion.etapas[etapa]) proyecto.fabricacion.etapas[etapa] = {};
+    
+    const etapaActual = proyecto.fabricacion.etapas[etapa];
+    const estadoAnterior = etapaActual.estado;
+    
+    // Actualizar campos
+    if (estado) {
+      etapaActual.estado = estado;
+      
+      // Registrar fechas automáticamente
+      if (estado === 'en_proceso' && !etapaActual.fechaInicio) {
+        etapaActual.fechaInicio = new Date();
+      }
+      if (['completado', 'aprobado'].includes(estado)) {
+        etapaActual.fechaFin = new Date();
+      }
+    }
+    
+    if (comentarios !== undefined) etapaActual.comentarios = comentarios;
+    if (codigoPieza !== undefined) etapaActual.codigoPieza = codigoPieza;
+    if (req.usuario?._id) etapaActual.responsable = req.usuario._id;
+    
+    // Recalcular progreso general
+    const etapas = proyecto.fabricacion.etapas;
+    const completadas = ETAPAS_FABRICACION.filter(e => {
+      const est = etapas[e]?.estado;
+      return est === 'completado' || est === 'aprobado';
+    }).length;
+    proyecto.fabricacion.progreso = Math.round((completadas / ETAPAS_FABRICACION.length) * 100);
+    
+    // Actualizar estado general si todas completadas
+    if (completadas === ETAPAS_FABRICACION.length) {
+      proyecto.fabricacion.estado = 'terminado';
+      proyecto.fabricacion.fechaFinFabricacion = new Date();
+      
+      // Emitir evento de fabricación completada
+      await eventBus.emit('fabricacion.completada', {
+        proyectoId: id,
+        numero: proyecto.numero,
+        cliente: proyecto.cliente?.nombre
+      }, 'fabricacionController', req.usuario?._id);
+    }
+    
+    proyecto.fabricacion.fechaUltimaActualizacion = new Date();
+    await proyecto.save();
+    
+    logger.info('Etapa de fabricación actualizada', {
+      controlador: 'fabricacionController',
+      accion: 'actualizarEtapaFabricacion',
+      proyectoId: id,
+      etapa,
+      estadoAnterior,
+      nuevoEstado: estado,
+      progreso: proyecto.fabricacion.progreso
+    });
+    
+    return res.json({
+      success: true,
+      message: `Etapa ${etapa} actualizada`,
+      data: {
+        etapa,
+        estado: etapaActual.estado,
+        progreso: proyecto.fabricacion.progreso
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error actualizando etapa de fabricación', {
+      controlador: 'fabricacionController',
+      accion: 'actualizarEtapaFabricacion',
+      proyectoId: req.params?.id,
+      etapa: req.params?.etapa,
+      error: error.message
+    });
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * Subir foto a una etapa
+ * POST /api/proyectos/:id/fabricacion/etapas/:etapa/fotos
+ */
+async function subirFotoEtapa(req, res) {
+  try {
+    const { id, etapa } = req.params;
+    const { url, descripcion } = req.body;
+    
+    if (!ETAPAS_FABRICACION.includes(etapa)) {
+      return res.status(400).json({ success: false, message: 'Etapa inválida' });
+    }
+    
+    if (!url) {
+      return res.status(400).json({ success: false, message: 'URL de foto requerida' });
+    }
+    
+    const proyecto = await Proyecto.findById(id);
+    if (!proyecto) {
+      return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    }
+    
+    // Inicializar estructura
+    if (!proyecto.fabricacion) proyecto.fabricacion = {};
+    if (!proyecto.fabricacion.etapas) proyecto.fabricacion.etapas = {};
+    if (!proyecto.fabricacion.etapas[etapa]) proyecto.fabricacion.etapas[etapa] = {};
+    if (!proyecto.fabricacion.etapas[etapa].fotos) proyecto.fabricacion.etapas[etapa].fotos = [];
+    
+    // Agregar foto
+    proyecto.fabricacion.etapas[etapa].fotos.push({
+      url,
+      descripcion: descripcion || '',
+      fechaSubida: new Date(),
+      subidaPor: req.usuario?._id
+    });
+    
+    proyecto.fabricacion.fechaUltimaActualizacion = new Date();
+    await proyecto.save();
+    
+    logger.info('Foto subida a etapa de fabricación', {
+      controlador: 'fabricacionController',
+      accion: 'subirFotoEtapa',
+      proyectoId: id,
+      etapa,
+      totalFotos: proyecto.fabricacion.etapas[etapa].fotos.length
+    });
+    
+    return res.json({
+      success: true,
+      message: 'Foto agregada exitosamente',
+      data: {
+        etapa,
+        totalFotos: proyecto.fabricacion.etapas[etapa].fotos.length
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error subiendo foto a etapa', {
+      controlador: 'fabricacionController',
+      accion: 'subirFotoEtapa',
+      proyectoId: req.params?.id,
+      etapa: req.params?.etapa,
+      error: error.message
+    });
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+/**
+ * Obtener fotos de una etapa
+ * GET /api/proyectos/:id/fabricacion/etapas/:etapa/fotos
+ */
+async function obtenerFotosEtapa(req, res) {
+  try {
+    const { id, etapa } = req.params;
+    
+    if (!ETAPAS_FABRICACION.includes(etapa)) {
+      return res.status(400).json({ success: false, message: 'Etapa inválida' });
+    }
+    
+    const proyecto = await Proyecto.findById(id)
+      .select(`fabricacion.etapas.${etapa}.fotos`)
+      .populate(`fabricacion.etapas.${etapa}.fotos.subidaPor`, 'nombre apellido')
+      .lean();
+    
+    if (!proyecto) {
+      return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    }
+    
+    const fotos = proyecto.fabricacion?.etapas?.[etapa]?.fotos || [];
+    
+    return res.json({
+      success: true,
+      data: {
+        etapa,
+        fotos
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error obteniendo fotos de etapa', {
+      controlador: 'fabricacionController',
+      accion: 'obtenerFotosEtapa',
+      proyectoId: req.params?.id,
+      etapa: req.params?.etapa,
+      error: error.message
+    });
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
 module.exports = {
   obtenerColaFabricacion,
   obtenerMetricasFabricacion,
@@ -577,11 +870,17 @@ module.exports = {
   generarOrdenProduccionConAlmacen,
   descargarPDFListaPedido,
   descargarPDFOrdenTaller,
+  // Nuevos endpoints de etapas
+  obtenerEtapasFabricacion,
+  actualizarEtapaFabricacion,
+  subirFotoEtapa,
+  obtenerFotosEtapa,
   // Exportar helpers para facilitar pruebas si es necesario
   __test__: {
     normalizarProductoParaOrden,
     calcularTiemposFabricacion,
     calcularTiempoProducto,
-    calcularFechaFinEstimada
+    calcularFechaFinEstimada,
+    ETAPAS_FABRICACION
   }
 };

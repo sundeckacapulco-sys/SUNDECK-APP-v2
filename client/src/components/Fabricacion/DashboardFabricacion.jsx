@@ -66,10 +66,14 @@ import {
   LocationOn as LocationIcon,
   Engineering as EngineeringIcon,
   Inventory as InventoryIcon,
-  Description as DescriptionIcon
+  Description as DescriptionIcon,
+  CameraAlt as CameraIcon,
+  Print as PrintIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axiosConfig from '../../config/axios';
+import VisorPDF from '../Common/VisorPDF';
 
 // Estados de fabricación según flujo operativo
 const ESTADOS_FABRICACION = {
@@ -145,48 +149,74 @@ const DashboardFabricacion = () => {
     return diferencia > 0 ? diferencia : 0;
   };
 
-  // Función para descargar Orden de Fabricación PDF
-  const descargarOrdenFabricacion = async (proyectoId, numeroProyecto) => {
+  // Función para abrir visor de Orden de Taller
+  const abrirVisorOrdenTaller = async (proyecto) => {
     try {
-      setError(null);
+      setVisorPDF({ open: true, url: null, proyecto, loading: true });
       
-      // Intentar primero con el endpoint de fabricación
-      let response;
-      try {
-        response = await axiosConfig.get(
-          `/fabricacion/orden-taller/${proyectoId}/pdf`,
-          { responseType: 'blob' }
-        );
-      } catch (fabError) {
-        // Si falla, intentar con el endpoint de proyectos (lista-pedido-v2)
-        console.log('Intentando endpoint alternativo...');
-        response = await axiosConfig.get(
-          `/proyectos/${proyectoId}/lista-pedido-v2`,
-          { responseType: 'blob' }
-        );
-      }
+      const response = await axiosConfig.get(
+        `/fabricacion/orden-taller/${proyecto._id}/pdf`,
+        { responseType: 'blob' }
+      );
 
-      // Verificar que la respuesta sea un PDF válido
+      // Verificar que la respuesta sea un PDF válido (no un error JSON)
       if (response.data.type === 'application/json') {
-        // Es un error JSON, no un PDF
         const text = await response.data.text();
         const errorData = JSON.parse(text);
         throw new Error(errorData.message || 'Error generando PDF');
       }
 
-      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      // response.data ya es un Blob, crear URL directamente
+      const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(pdfBlob);
+      
+      console.log('PDF cargado:', { size: pdfBlob.size, type: pdfBlob.type, url });
+      setVisorPDF({ open: true, url, proyecto, loading: false });
+      
+    } catch (error) {
+      console.error('Error cargando orden:', error);
+      
+      // Mensaje amigable si no hay levantamiento
+      const mensaje = error.response?.data?.message || error.message;
+      if (mensaje.includes('piezas') || mensaje.includes('levantamiento')) {
+        setError(`⚠️ Este proyecto no tiene levantamiento registrado. Primero debe completarse el levantamiento para generar la orden de taller.`);
+      } else {
+        setError(`Error al cargar la orden: ${mensaje}`);
+      }
+      setVisorPDF({ open: false, url: null, proyecto: null, loading: false });
+    }
+  };
+  
+  // Cerrar visor de PDF
+  const cerrarVisorPDF = () => {
+    if (visorPDF.url) {
+      window.URL.revokeObjectURL(visorPDF.url);
+    }
+    setVisorPDF({ open: false, url: null, proyecto: null, loading: false });
+  };
+  
+  // Imprimir PDF desde el visor
+  const imprimirPDF = () => {
+    if (visorPDF.url) {
+      // Abrir en nueva ventana para imprimir
+      const printWindow = window.open(visorPDF.url, '_blank');
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+      }
+    }
+  };
+  
+  // Descargar PDF desde el visor
+  const descargarPDFDesdeVisor = () => {
+    if (visorPDF.url && visorPDF.proyecto) {
       const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Orden-Taller-${numeroProyecto || 'proyecto'}.pdf`);
+      link.href = visorPDF.url;
+      link.setAttribute('download', `Orden-Taller-${visorPDF.proyecto.numero}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.URL.revokeObjectURL(url);
-      
-      setSuccess('✅ Orden de Taller descargada correctamente');
-    } catch (error) {
-      console.error('Error descargando orden:', error);
-      setError(`Error al descargar la orden: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -222,6 +252,49 @@ const DashboardFabricacion = () => {
   
   // Estado para mensajes de éxito
   const [success, setSuccess] = useState(null);
+  
+  // Estado para visor de PDF
+  const [visorPDF, setVisorPDF] = useState({
+    open: false,
+    url: null,
+    proyecto: null,
+    loading: false
+  });
+  
+  // Estado para subir foto de empaque
+  const [subiendoFoto, setSubiendoFoto] = useState(null); // ID del proyecto que está subiendo
+
+  // Función para subir foto de empaque y marcar como terminado
+  const subirFotoEmpaque = async (proyectoId, archivo) => {
+    if (!archivo) return;
+    
+    try {
+      setSubiendoFoto(proyectoId);
+      
+      // Crear FormData para subir la imagen
+      const formData = new FormData();
+      formData.append('foto', archivo);
+      formData.append('etapa', 'empaque');
+      formData.append('descripcion', 'Foto de empaque - Producto terminado');
+      
+      // Subir foto
+      await axiosConfig.post(`/fabricacion/etapas/${proyectoId}/empaque/fotos`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      // Cambiar estado a terminado automáticamente
+      await cambiarEstadoFabricacion(proyectoId, 'terminado');
+      
+      setSuccess('📷 Foto de empaque subida. Proyecto marcado como TERMINADO ✅');
+      cargarDatos();
+      
+    } catch (error) {
+      console.error('Error subiendo foto de empaque:', error);
+      setError('Error al subir la foto de empaque');
+    } finally {
+      setSubiendoFoto(null);
+    }
+  };
 
   // Función para cambiar estado de fabricación
   const cambiarEstadoFabricacion = async (proyectoId, nuevoEstado) => {
@@ -504,15 +577,15 @@ const DashboardFabricacion = () => {
                           <Button
                             variant="contained"
                             fullWidth
-                            startIcon={<DownloadIcon />}
-                            onClick={() => descargarOrdenFabricacion(proyecto._id, proyecto.numero)}
+                            startIcon={<DescriptionIcon />}
+                            onClick={() => abrirVisorOrdenTaller(proyecto)}
                             sx={{ 
                               mb: 1.5,
-                              bgcolor: '#1E40AF',
-                              '&:hover': { bgcolor: '#1E3A8A' }
+                              bgcolor: '#D4AF37',
+                              '&:hover': { bgcolor: '#B8941F' }
                             }}
                           >
-                            📥 Descargar Orden de Taller
+                            🛠️ Ver Orden de Taller
                           </Button>
                           
                           {/* Botón: Ver Levantamiento (abre modal) */}
@@ -632,6 +705,33 @@ const DashboardFabricacion = () => {
                               startIcon={<WarningIcon />}
                             >
                               ⚠️ Situación Crítica
+                            </Button>
+                            
+                            {/* Foto de Empaque - Botón grande y visible */}
+                            <Button
+                              component="label"
+                              variant="contained"
+                              size="small"
+                              disabled={subiendoFoto === proyecto._id}
+                              startIcon={subiendoFoto === proyecto._id ? <CircularProgress size={16} /> : <CameraIcon />}
+                              sx={{ 
+                                bgcolor: '#8B5CF6', 
+                                '&:hover': { bgcolor: '#7C3AED' },
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              {subiendoFoto === proyecto._id ? 'Subiendo...' : '📷 Foto Empaque'}
+                              <input
+                                type="file"
+                                hidden
+                                accept="image/*"
+                                capture="environment"
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) {
+                                    subirFotoEmpaque(proyecto._id, e.target.files[0]);
+                                  }
+                                }}
+                              />
                             </Button>
                             
                             {/* Terminado */}
@@ -1236,7 +1336,13 @@ const DashboardFabricacion = () => {
                 </Typography>
                 
                 {modalLevantamiento.proyecto.levantamiento?.partidas?.length > 0 ? (
-                  modalLevantamiento.proyecto.levantamiento.partidas.map((partida, index) => (
+                  modalLevantamiento.proyecto.levantamiento.partidas.map((partida, index) => {
+                    // Las medidas pueden estar en partida.piezas o partida.medidas
+                    const piezas = partida.piezas || partida.medidas || [];
+                    // Tomar especificaciones de la primera pieza si existen
+                    const primeraPieza = piezas[0] || {};
+                    
+                    return (
                     <Card key={index} variant="outlined" sx={{ mb: 2 }}>
                       <CardContent>
                         <Grid container spacing={2}>
@@ -1253,42 +1359,64 @@ const DashboardFabricacion = () => {
                             />
                             
                             <Box sx={{ mt: 2 }}>
-                              <Typography variant="caption" color="text.secondary">Medidas</Typography>
-                              {partida.medidas?.map((medida, mIdx) => (
-                                <Typography key={mIdx} variant="body2">
-                                  Pieza {mIdx + 1}: {medida.ancho}m × {medida.alto}m 
-                                  {medida.area && ` = ${medida.area.toFixed(2)}m²`}
+                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                                📏 Medidas ({piezas.length} {piezas.length === 1 ? 'pieza' : 'piezas'})
+                              </Typography>
+                              {piezas.map((pieza, mIdx) => (
+                                <Typography key={mIdx} variant="body2" sx={{ ml: 1 }}>
+                                  Pieza {mIdx + 1}: <strong>{pieza.ancho}m × {pieza.alto}m</strong>
+                                  {(pieza.area || pieza.m2) && ` = ${(pieza.area || pieza.m2).toFixed(2)}m²`}
                                 </Typography>
                               ))}
+                              {piezas.length > 0 && (
+                                <Typography variant="body2" sx={{ mt: 1, fontWeight: 600, color: 'primary.main' }}>
+                                  Área Total: {piezas.reduce((sum, p) => sum + (p.area || p.m2 || 0), 0).toFixed(2)} m²
+                                </Typography>
+                              )}
                             </Box>
                           </Grid>
                           
-                          {/* Especificaciones técnicas */}
+                          {/* Especificaciones técnicas - de la partida o primera pieza */}
                           <Grid item xs={12} md={6}>
-                            <Typography variant="caption" color="text.secondary">
-                              Especificaciones Técnicas
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              🔧 Especificaciones Técnicas
                             </Typography>
                             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                              {partida.color && (
-                                <Chip label={`Color: ${partida.color}`} size="small" variant="outlined" />
+                              {(partida.color || primeraPieza.color) && (
+                                <Chip label={`Color: ${partida.color || primeraPieza.color}`} size="small" variant="outlined" />
                               )}
-                              {partida.tipoControl && (
-                                <Chip label={`Control: ${partida.tipoControl}`} size="small" variant="outlined" />
+                              {(primeraPieza.sistema || partida.sistema) && (
+                                <Chip label={`Sistema: ${primeraPieza.sistema || partida.sistema}`} size="small" variant="outlined" />
                               )}
-                              {partida.galeria && (
-                                <Chip label={`Galería: ${partida.galeria}`} size="small" variant="outlined" />
+                              {(primeraPieza.tipoControl || primeraPieza.control || partida.tipoControl) && (
+                                <Chip label={`Control: ${primeraPieza.tipoControl || primeraPieza.control || partida.tipoControl}`} size="small" variant="outlined" />
                               )}
-                              {partida.tipoInstalacion && (
-                                <Chip label={`Instalación: ${partida.tipoInstalacion}`} size="small" variant="outlined" />
+                              {(primeraPieza.galeria || partida.galeria) && (
+                                <Chip label={`Galería: ${primeraPieza.galeria || partida.galeria}`} size="small" variant="outlined" />
                               )}
-                              {partida.motorizado && (
+                              {(primeraPieza.tipoInstalacion || primeraPieza.instalacion || partida.tipoInstalacion) && (
+                                <Chip label={`Instalación: ${primeraPieza.tipoInstalacion || primeraPieza.instalacion || partida.tipoInstalacion}`} size="small" variant="outlined" />
+                              )}
+                              {(primeraPieza.tipoFijacion || primeraPieza.fijacion || partida.tipoFijacion) && (
+                                <Chip label={`Fijación: ${primeraPieza.tipoFijacion || primeraPieza.fijacion || partida.tipoFijacion}`} size="small" variant="outlined" />
+                              )}
+                              {(primeraPieza.caida || partida.caida) && (
+                                <Chip label={`Caída: ${primeraPieza.caida || partida.caida}`} size="small" variant="outlined" />
+                              )}
+                              {(primeraPieza.telaMarca || partida.telaMarca) && (
+                                <Chip label={`Tela: ${primeraPieza.telaMarca || partida.telaMarca}`} size="small" variant="outlined" />
+                              )}
+                              {(primeraPieza.baseTabla || partida.baseTabla) && (
+                                <Chip label={`Base: ${primeraPieza.baseTabla || partida.baseTabla}"`} size="small" variant="outlined" />
+                              )}
+                              {(primeraPieza.modoOperacion === 'motorizado' || primeraPieza.operacion === 'motorizado' || partida.motorizado) && (
                                 <Chip label="⚡ Motorizado" size="small" color="warning" />
                               )}
                             </Box>
                             
-                            {partida.observaciones && (
+                            {(partida.observaciones || primeraPieza.observacionesTecnicas) && (
                               <Alert severity="info" sx={{ mt: 1 }} icon={<WarningIcon />}>
-                                <Typography variant="body2">{partida.observaciones}</Typography>
+                                <Typography variant="body2">{partida.observaciones || primeraPieza.observacionesTecnicas}</Typography>
                               </Alert>
                             )}
                           </Grid>
@@ -1324,7 +1452,7 @@ const DashboardFabricacion = () => {
                         </Grid>
                       </CardContent>
                     </Card>
-                  ))
+                  )})
                 ) : (
                   <Alert severity="info">
                     No hay partidas registradas en el levantamiento
@@ -1338,15 +1466,16 @@ const DashboardFabricacion = () => {
         <DialogActions sx={{ p: 2, bgcolor: 'grey.50' }}>
           <Button 
             variant="contained"
-            startIcon={<DownloadIcon />}
+            startIcon={<DescriptionIcon />}
             onClick={() => {
               if (modalLevantamiento.proyecto) {
-                descargarOrdenFabricacion(modalLevantamiento.proyecto._id, modalLevantamiento.proyecto.numero);
+                cerrarModalLevantamiento();
+                abrirVisorOrdenTaller(modalLevantamiento.proyecto);
               }
             }}
-            sx={{ bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' } }}
+            sx={{ bgcolor: '#D4AF37', '&:hover': { bgcolor: '#B8941F' } }}
           >
-            Descargar Orden de Taller
+            🛠️ Ver Orden de Taller
           </Button>
           <Button onClick={cerrarModalLevantamiento} variant="outlined">
             Cerrar
@@ -1494,6 +1623,81 @@ const DashboardFabricacion = () => {
           {success}
         </Alert>
       )}
+      
+      {/* Modal Visor de PDF - Orden de Taller */}
+      <Dialog
+        open={visorPDF.open}
+        onClose={cerrarVisorPDF}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: { 
+            height: '90vh',
+            borderRadius: 2
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          bgcolor: '#D4AF37', 
+          color: '#000',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          py: 1.5
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <DescriptionIcon />
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                🛠️ Orden de Taller - {visorPDF.proyecto?.numero}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                {visorPDF.proyecto?.cliente?.nombre}
+              </Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<PrintIcon />}
+              onClick={imprimirPDF}
+              disabled={visorPDF.loading || !visorPDF.url}
+              sx={{ bgcolor: '#1E40AF', '&:hover': { bgcolor: '#1E3A8A' } }}
+            >
+              Imprimir
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<DownloadIcon />}
+              onClick={descargarPDFDesdeVisor}
+              disabled={visorPDF.loading || !visorPDF.url}
+              sx={{ borderColor: '#000', color: '#000', '&:hover': { bgcolor: 'rgba(0,0,0,0.1)' } }}
+            >
+              Descargar
+            </Button>
+            <IconButton onClick={cerrarVisorPDF} sx={{ color: '#000' }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 0, bgcolor: '#525659', height: 'calc(90vh - 80px)' }}>
+          {visorPDF.loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+              <CircularProgress sx={{ color: '#D4AF37' }} />
+              <Typography sx={{ ml: 2, color: '#fff' }}>Cargando orden de taller...</Typography>
+            </Box>
+          ) : visorPDF.url ? (
+            <VisorPDF url={visorPDF.url} />
+          ) : (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+              <Typography sx={{ color: '#fff' }}>No se pudo cargar el PDF</Typography>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
