@@ -1,7 +1,7 @@
 # 🤖 INSTRUCCIONES PARA AGENTES
 
-**Fecha:** 4 Dic 2025
-**Estado:** Fase 0 ✅ | Fase 1 ✅ | Fase 2 ✅ | Fase 3 ✅ | Fase 4 ✅ | **Fase 5 ✅ CAJA**
+**Fecha:** 5 Dic 2025
+**Estado:** Fase 0 ✅ | Fase 1 ✅ | Fase 2 ✅ | Fase 3 ✅ | Fase 4 ✅ | Fase 5 ✅ CAJA | **Fase 6 ✅ AGENTE IA**
 
 ---
 
@@ -319,6 +319,63 @@ Estas reglas aplican a cualquier nueva funcionalidad del repositorio.
 - `client/src/modules/proyectos/components/CotizacionTab.jsx` (modificado)
 - `client/src/modules/proyectos/components/TablaComercial.jsx` (modificado)
 - `client/src/modules/proyectos/ProyectoDetail.jsx` (modificado)
+
+---
+
+## 🎉 FASE 6: AGENTE IA SUNDECK (100%)
+
+### ✅ COMPLETADO (5 Dic 2025)
+
+**Objetivo:** Asistente IA integrado con OpenAI GPT-4o-mini para consultas, análisis y sugerencias.
+
+**Backend:**
+- ✅ `server/services/asistenteService.js` (920+ líneas)
+- ✅ `server/controllers/asistenteController.js` (260 líneas)
+- ✅ `server/routes/asistente.js` (35 líneas)
+- ✅ Integración con OpenAI API (gpt-4o-mini)
+- ✅ Function Calling para consultas a BD
+
+**Frontend:**
+- ✅ `client/src/components/Asistente/ChatAsistente.jsx` (380 líneas)
+- ✅ Chat flotante en toda la aplicación
+- ✅ Sugerencias rápidas predefinidas
+- ✅ Historial de conversación en sesión
+
+**Funciones de Consulta:**
+- `consultarProyectos` - Buscar por estado/cliente
+- `consultarProspectos` - Buscar por etapa
+- `consultarPendientesHoy` - Tareas del día
+- `consultarKPIs` - Métricas del negocio
+- `consultarInstalaciones` - Instalaciones programadas
+
+**Análisis Inteligentes:**
+- `analizarLevantamiento` - Detecta errores, faltantes, sugiere motores
+- `validarCotizacion` - Revisa precios, márgenes, datos cliente
+
+**Endpoints:**
+```
+POST /api/asistente/chat                    → Chat principal
+POST /api/asistente/sugerencia              → Generar mensaje
+POST /api/asistente/analizar-levantamiento  → Análisis de medidas
+POST /api/asistente/validar-cotizacion      → Validar antes de enviar
+GET  /api/asistente/status                  → Estado del servicio
+GET  /api/asistente/pendientes              → Pendientes del día
+GET  /api/asistente/kpis                    → KPIs rápidos
+```
+
+**Base de Conocimiento:**
+- ✅ 15 PDFs extraídos a texto (~118,000 palabras)
+- ✅ `docs/Documentos Sundeck/CONOCIMIENTO_AGENTE.md` (285KB)
+- ✅ `docs/Documentos Sundeck/TXT/` - Textos individuales
+- ✅ `docs/Documentos Sundeck/INDICE_DOCUMENTOS.md` - Índice
+
+**Documentación:**
+- `docs/AGENTE_IA_SUNDECK.md` - Análisis técnico completo
+- `docs/AGENTE_IA_SUNDECK_IDENTIDAD.md` - Identidad y reglas del agente
+
+**Configuración:**
+- API Key en `.env`: `OPENAI_API_KEY=sk-proj-...`
+- Modelo: `gpt-4o-mini` (~$0.001 por consulta)
 
 ---
 

@@ -3,6 +3,7 @@ const router = express.Router();
 
 // Importar todas las rutas
 const alertasRoutes = require('./alertas');
+const asistenteRoutes = require('./asistente');
 const almacenRoutes = require('./almacen');
 const asistenciaRoutes = require('./asistencia');
 const authRoutes = require('./auth');
@@ -44,6 +45,7 @@ const usuariosRoutes = require('./usuarios');
 
 // Registrar rutas
 router.use('/alertas', alertasRoutes);
+router.use('/asistente', asistenteRoutes);
 router.use('/almacen', almacenRoutes);
 router.use('/asistencia', asistenciaRoutes);
 router.use('/auth', authRoutes);

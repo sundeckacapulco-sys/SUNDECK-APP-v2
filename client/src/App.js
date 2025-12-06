@@ -33,6 +33,8 @@ import CotizacionViewer from './components/Cotizaciones/CotizacionViewer';
 import AnalisisHistorico from './modules/reporteria/AnalisisHistorico';
 // Módulo de Caja
 import CajaPanel from './modules/caja/CajaPanel';
+// Asistente IA
+import { ChatAsistente } from './components/Asistente';
 
 function App() {
   const { user, loading } = useAuth();
@@ -95,6 +97,8 @@ function App() {
           <Route path="*" element={<Navigate to="/proyectos" replace />} />
         </Routes>
       </Box>
+      {/* Asistente IA Flotante */}
+      <ChatAsistente />
     </Layout>
   );
 }
