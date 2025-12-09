@@ -9,6 +9,7 @@ import CatalogoProductos from './components/Productos/CatalogoProductos';
 import PlantillasWhatsAppAdmin from './components/Admin/PlantillasWhatsAppAdmin';
 import DashboardKPIs from './components/KPIs/DashboardKPIs';
 import DashboardFabricacion from './components/Fabricacion/DashboardFabricacion.jsx';
+import TallerKanban from './modules/fabricacion/TallerKanban';
 import DashboardInstalaciones from './components/Dashboards/DashboardInstalaciones';
 import CalculadoraMateriales from './modules/calculadora/CalculadoraMateriales';
 import PanelAlmacen from './modules/almacen/PanelAlmacen';
@@ -81,6 +82,7 @@ function App() {
           <Route path="/caja" element={<CajaPanel />} />
           <Route path="/kpis" element={<DashboardKPIs />} />
           <Route path="/fabricacion" element={<DashboardFabricacion />} />
+          <Route path="/taller" element={<TallerKanban />} />
           <Route path="/calculadora" element={<CalculadoraMateriales />} />
           <Route path="/reporteria/historico" element={<AnalisisHistorico />} />
           <Route path="/admin/plantillas-whatsapp" element={<PlantillasWhatsAppAdmin />} />

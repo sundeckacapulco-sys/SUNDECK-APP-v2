@@ -89,6 +89,7 @@ const menuSections = [
     label: 'Producción',
     icon: <PrecisionManufacturing />,
     items: [
+      { text: '🏭 TALLER', icon: <Build />, path: '/taller', badge: 'SIMPLE' },
       { text: 'Fabricación', icon: <Construction />, path: '/fabricacion' },
       { text: 'Almacén', icon: <Inventory />, path: '/almacen' },
       { text: 'Calculadora', icon: <Calculate />, path: '/calculadora' },

@@ -149,29 +149,32 @@ const DashboardFabricacion = () => {
     return diferencia > 0 ? diferencia : 0;
   };
 
-  // Función para abrir visor de Orden de Taller
+  // Función para abrir visor de Orden de Taller - Usando POST con base64 (evita IDM)
   const abrirVisorOrdenTaller = async (proyecto) => {
     try {
       setVisorPDF({ open: true, url: null, proyecto, loading: true });
       
-      const response = await axiosConfig.get(
-        `/fabricacion/orden-taller/${proyecto._id}/pdf`,
-        { responseType: 'blob' }
+      // Usar POST que devuelve JSON con base64 - IDM NO intercepta esto
+      const response = await axiosConfig.post(
+        `/fabricacion/orden-taller/${proyecto._id}/base64`
       );
 
-      // Verificar que la respuesta sea un PDF válido (no un error JSON)
-      if (response.data.type === 'application/json') {
-        const text = await response.data.text();
-        const errorData = JSON.parse(text);
-        throw new Error(errorData.message || 'Error generando PDF');
+      if (response.data.success && response.data.pdf) {
+        // Convertir base64 a blob URL
+        const byteCharacters = atob(response.data.pdf);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(pdfBlob);
+        
+        console.log('PDF cargado:', { size: pdfBlob.size, type: pdfBlob.type, url });
+        setVisorPDF({ open: true, url, proyecto, loading: false });
+      } else {
+        throw new Error(response.data.message || 'Error generando PDF');
       }
-
-      // response.data ya es un Blob, crear URL directamente
-      const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(pdfBlob);
-      
-      console.log('PDF cargado:', { size: pdfBlob.size, type: pdfBlob.type, url });
-      setVisorPDF({ open: true, url, proyecto, loading: false });
       
     } catch (error) {
       console.error('Error cargando orden:', error);

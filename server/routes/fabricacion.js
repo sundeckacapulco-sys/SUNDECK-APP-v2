@@ -8,6 +8,7 @@ const {
   generarOrdenProduccionConAlmacen,
   descargarPDFListaPedido,
   descargarPDFOrdenTaller,
+  obtenerPDFOrdenTallerBase64,
   // Nuevos endpoints de etapas
   obtenerEtapasFabricacion,
   actualizarEtapaFabricacion,
@@ -58,6 +59,12 @@ router.get('/lista-pedido/:proyectoId/pdf',
 router.get('/orden-taller/:proyectoId/pdf',
   auth,
   descargarPDFOrdenTaller
+);
+
+// VER PDF de ORDEN DE TALLER como base64 (POST para evitar que IDM intercepte)
+router.post('/orden-taller/:proyectoId/base64',
+  auth,
+  obtenerPDFOrdenTallerBase64
 );
 
 // ===== RUTAS DE 5 ETAPAS DE FABRICACIÓN =====

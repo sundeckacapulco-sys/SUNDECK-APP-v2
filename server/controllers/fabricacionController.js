@@ -577,6 +577,64 @@ async function descargarPDFOrdenTaller(req, res) {
   }
 }
 
+/**
+ * Obtener PDF de ORDEN DE TALLER como base64 (evita que IDM intercepte)
+ * POST /api/fabricacion/orden-taller/:proyectoId/base64
+ */
+async function obtenerPDFOrdenTallerBase64(req, res) {
+  try {
+    const { proyectoId } = req.params;
+    
+    logger.info('Generando PDF de orden de taller (base64)', {
+      controlador: 'fabricacionController',
+      accion: 'obtenerPDFOrdenTallerBase64',
+      proyectoId
+    });
+    
+    // Obtener datos de la orden
+    const datosOrden = await OrdenProduccionService.obtenerDatosOrdenProduccion(proyectoId);
+    
+    // Generar PDF completo
+    const pdfBuffer = await PDFOrdenFabricacionService.generarPDF(
+      datosOrden,
+      datosOrden.listaPedido
+    );
+    
+    // Convertir a base64
+    const base64 = pdfBuffer.toString('base64');
+    
+    logger.info('PDF de orden de taller (base64) generado exitosamente', {
+      controlador: 'fabricacionController',
+      accion: 'obtenerPDFOrdenTallerBase64',
+      proyectoId,
+      tamano: pdfBuffer.length
+    });
+    
+    // Devolver como JSON (IDM no intercepta JSON)
+    res.json({
+      success: true,
+      pdf: base64,
+      filename: `Orden-Taller-${datosOrden.proyecto.numero}.pdf`,
+      size: pdfBuffer.length
+    });
+    
+  } catch (error) {
+    logger.error('Error generando PDF de orden de taller (base64)', {
+      controlador: 'fabricacionController',
+      accion: 'obtenerPDFOrdenTallerBase64',
+      proyectoId: req.params?.proyectoId,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Error generando PDF de orden de taller',
+      error: error.message
+    });
+  }
+}
+
 // ===== ENDPOINTS PARA 5 ETAPAS DE FABRICACIÓN =====
 
 /**
@@ -870,6 +928,7 @@ module.exports = {
   generarOrdenProduccionConAlmacen,
   descargarPDFListaPedido,
   descargarPDFOrdenTaller,
+  obtenerPDFOrdenTallerBase64,
   // Nuevos endpoints de etapas
   obtenerEtapasFabricacion,
   actualizarEtapaFabricacion,
