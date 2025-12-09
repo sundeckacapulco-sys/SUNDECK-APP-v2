@@ -38,9 +38,18 @@ class OrdenProduccionService {
       });
       
       // Generar lista de pedido para proveedor
+      // PRIORIDAD: 1) Reglas de BD (Calculadora), 2) Código por defecto
       const piezasConBOM = [];
       for (const pieza of piezas) {
-        const materiales = await OptimizadorCortesService.calcularMaterialesPieza(pieza);
+        let materiales;
+        try {
+          materiales = await OptimizadorCortesService.calcularMaterialesPieza(pieza);
+          if (!materiales || materiales.length === 0) {
+            throw new Error('Sin materiales de BD');
+          }
+        } catch (e) {
+          materiales = CalculadoraMaterialesService.calcularPorDefecto(pieza);
+        }
         piezasConBOM.push({ ...pieza, materiales });
       }
       const reporteOptimizacion = await OptimizadorCortesService.generarReporteOptimizacion(piezas);
@@ -103,11 +112,26 @@ class OrdenProduccionService {
         throw new Error('No hay piezas para generar la orden de producción. Asegúrate de que el proyecto tenga un levantamiento con medidas.');
       }
 
-      // Calcular BOM (Bill of Materials) por pieza usando optimizador inteligente
+      // Calcular BOM (Bill of Materials) por pieza
+      // PRIORIDAD: 1) Reglas de BD (Calculadora), 2) Código por defecto
       const piezasConBOM = [];
       for (const pieza of piezas) {
-        // Usar optimizador de cortes que incluye lógica de negocio + configuración BD
-        const materiales = await OptimizadorCortesService.calcularMaterialesPieza(pieza);
+        let materiales;
+        try {
+          // Intentar usar reglas de BD primero
+          materiales = await OptimizadorCortesService.calcularMaterialesPieza(pieza);
+          if (!materiales || materiales.length === 0) {
+            throw new Error('Sin materiales de BD');
+          }
+        } catch (e) {
+          // Fallback a cálculo por defecto si BD falla o no tiene reglas
+          logger.warn('Usando cálculo por defecto para pieza', {
+            servicio: 'ordenProduccionService',
+            razon: e.message,
+            pieza: pieza.ubicacion || pieza.numero
+          });
+          materiales = CalculadoraMaterialesService.calcularPorDefecto(pieza);
+        }
         piezasConBOM.push({
           ...pieza,
           materiales
@@ -539,15 +563,23 @@ class OrdenProduccionService {
    */
   static generarListaPedido(piezasConBOM, reporteOptimizacion) {
     const listaPedido = {
+      // Materiales por metro lineal (barras 5.80m)
       tubos: [],
+      contrapesos: [],      // Contrapeso Plano u Ovalado
+      cadenas: [],          // Cadena HD
+      galerias: [],         // Galerías
+      
+      // Materiales por pieza/rollo
       telas: [],
-      mecanismos: [],
-      contrapesos: [],
-      accesorios: [],
+      mecanismos: [],       // Mecanismo o Motor
+      soportes: [],         // Soportes + Tapas
+      accesorios: [],       // Conector cadena, Tope cadena, Herrajes, etc.
+      
       resumen: {
         totalItems: 0,
         totalBarras: 0,
-        totalRollos: 0
+        totalRollos: 0,
+        totalPiezas: piezasConBOM.length
       }
     };
 
@@ -656,18 +688,28 @@ class OrdenProduccionService {
           // Solo cambia el cálculo de metros lineales
           const anchoOriginal = p.ancho;
           const altoOriginal = p.alto;
+          const esRotada = p.rotada || false;
           
           // Buscar la cantidad de tela que ya calculó la calculadora para esta pieza
           const materialTela = p.materiales?.find(m => 
             (m.tipo === 'Tela' || m.tipo === 'Tela Sheer') &&
             m.descripcion === material.descripcion
           );
-          const metrosLineales = materialTela ? materialTela.cantidad : (altoOriginal + 0.05);
           
-          // Calcular sobrante de lienzo si el ancho es menor al ancho del rollo
+          // REGLA DE METROS LINEALES:
+          // - Normal: ML = Alto + extra (0.25m para enrolle)
+          // - Rotada: ML = Ancho (SIN extra, porque ya no enrolla en esa dirección)
+          const extraTela = 0.25; // Extra para enrolle (solo normal)
+          const mlFallback = esRotada ? anchoOriginal : (altoOriginal + extraTela);
+          const metrosLineales = materialTela ? materialTela.cantidad : mlFallback;
+          
+          // Calcular sobrante de lienzo
+          // - Normal: El ancho de la pieza ocupa parte del ancho del rollo
+          // - Rotada: El alto de la pieza ocupa parte del ancho del rollo
+          const anchoOcupaRollo = esRotada ? altoOriginal : anchoOriginal;
           let sobranteLienzo = null;
-          if (anchoOriginal < anchoRecomendado) {
-            const anchoSobrante = anchoRecomendado - anchoOriginal;
+          if (anchoOcupaRollo < anchoRecomendado) {
+            const anchoSobrante = anchoRecomendado - anchoOcupaRollo;
             sobranteLienzo = {
               ancho: anchoSobrante.toFixed(2),
               largo: metrosLineales.toFixed(2),
@@ -757,7 +799,7 @@ class OrdenProduccionService {
       
       // Procesar contrapesos (perfiles de 5.80m)
       else if (material.tipo === 'Contrapeso') {
-        const longitudEstandar = 5.80;
+        const longitudEstandar = material.metadata?.longitudBarra || 5.80;
         const barrasNecesarias = Math.ceil(material.cantidad / longitudEstandar);
         const desperdicio = (barrasNecesarias * longitudEstandar) - material.cantidad;
         
@@ -767,9 +809,42 @@ class OrdenProduccionService {
           metrosLineales: material.cantidad.toFixed(2),
           barrasNecesarias,
           longitudBarra: longitudEstandar,
-          desperdicio: ((desperdicio / material.cantidad) * 100).toFixed(1),
+          desperdicio: desperdicio.toFixed(2),
+          desperdicioPorc: ((desperdicio / (barrasNecesarias * longitudEstandar)) * 100).toFixed(1),
           enAlmacen: false,
-          observaciones: `${barrasNecesarias} barras de ${longitudEstandar}m (${desperdicio.toFixed(2)}ml desperdicio)`
+          observaciones: `${barrasNecesarias} barra(s) de ${longitudEstandar}m`
+        });
+        
+        listaPedido.resumen.totalBarras += barrasNecesarias;
+      }
+      
+      // Procesar Cadenas (metros lineales)
+      else if (material.tipo === 'Cadena') {
+        listaPedido.cadenas.push({
+          descripcion: material.descripcion,
+          codigo: material.codigo,
+          metrosLineales: material.cantidad.toFixed(2),
+          unidad: 'ml',
+          enAlmacen: false,
+          observaciones: material.observaciones || ''
+        });
+      }
+      
+      // Procesar Galerías (metros lineales, barras 5.80m)
+      else if (material.tipo === 'Galería') {
+        const longitudEstandar = 5.80;
+        const barrasNecesarias = Math.ceil(material.cantidad / longitudEstandar);
+        const desperdicio = (barrasNecesarias * longitudEstandar) - material.cantidad;
+        
+        listaPedido.galerias.push({
+          descripcion: material.descripcion,
+          codigo: material.codigo,
+          metrosLineales: material.cantidad.toFixed(2),
+          barrasNecesarias,
+          longitudBarra: longitudEstandar,
+          desperdicio: desperdicio.toFixed(2),
+          enAlmacen: false,
+          observaciones: `${barrasNecesarias} barra(s) de ${longitudEstandar}m`
         });
         
         listaPedido.resumen.totalBarras += barrasNecesarias;
@@ -782,12 +857,25 @@ class OrdenProduccionService {
           codigo: material.codigo,
           cantidad: Math.ceil(material.cantidad),
           unidad: material.unidad,
-          esMotor: material.metadata?.esMotor || false,
+          esMotor: material.tipo === 'Motor',
           incluye: material.metadata?.incluye || [],
-          observaciones: material.metadata?.obligatorio ? '⚠️ OBLIGATORIO' : ''
+          observaciones: material.observaciones || ''
         });
       }
       
+      // Procesar Soportes y Tapas
+      else if (material.tipo === 'Soportes' || material.tipo === 'Tapas') {
+        listaPedido.soportes.push({
+          tipo: material.tipo,
+          descripcion: material.descripcion,
+          codigo: material.codigo,
+          cantidad: Math.ceil(material.cantidad),
+          unidad: material.unidad,
+          observaciones: material.observaciones || ''
+        });
+      }
+      
+      // Accesorios (Conector Cadena, Tope Cadena, Herrajes, etc.)
       else {
         listaPedido.accesorios.push({
           tipo: material.tipo,
@@ -795,7 +883,7 @@ class OrdenProduccionService {
           codigo: material.codigo,
           cantidad: material.unidad === 'ml' ? material.cantidad.toFixed(2) : Math.ceil(material.cantidad),
           unidad: material.unidad,
-          observaciones: ''
+          observaciones: material.observaciones || ''
         });
       }
     });
@@ -806,6 +894,9 @@ class OrdenProduccionService {
       listaPedido.telas.length +
       listaPedido.mecanismos.length +
       listaPedido.contrapesos.length +
+      listaPedido.cadenas.length +
+      listaPedido.galerias.length +
+      listaPedido.soportes.length +
       listaPedido.accesorios.length;
 
     // Agregar información de optimización de tubos si está disponible

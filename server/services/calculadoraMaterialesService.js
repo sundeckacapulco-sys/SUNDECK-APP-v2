@@ -328,7 +328,10 @@ class CalculadoraMaterialesService {
   }
   
   /**
-   * Cálculo por defecto (fallback)
+   * Cálculo por defecto (fallback) - 10 COMPONENTES ENROLLABLE TECNOSHADES
+   * 1. Tapas para soporte | 2. Soporte | 3. Mecanismo | 4. Tubo
+   * 5. Conector cadena | 6. Tope cadena | 7. Cadena HD | 8. Tela
+   * 9. Base Pocket | 10. Contrapeso Base Pocket
    */
   static calcularPorDefecto(pieza = {}) {
     const materiales = [];
@@ -344,16 +347,248 @@ class CalculadoraMaterialesService {
     const { ancho, alto, area, motorizado, galeria, sistema } = piezaContexto;
     const esEnrollables = this.esSistemaEnrollables(sistema, piezaContexto.producto);
     
-    // Tela
+    // Corte estándar para tubo, base pocket y contrapeso
+    const largoCorteTubo = Math.max(ancho - 0.03, 0);
+    // Diámetro de tubo según ancho
+    const diametro = ancho <= 1.5 ? 38 : ancho <= 2.5 ? 43 : 50;
+    // Cantidad de soportes según ancho
+    const cantidadSoportes = ancho <= 1.5 ? 2 : ancho <= 3.0 ? 3 : 4;
+    
+    // ===== 10 COMPONENTES ENROLLABLE TECNOSHADES =====
+    
+    // 1. TAPAS PARA SOPORTE (2 pzas: izquierda y derecha)
+    materiales.push({
+      tipo: 'Tapas',
+      descripcion: 'Tapas para soporte',
+      cantidad: 2,
+      unidad: 'pza',
+      observaciones: 'Izquierda y derecha',
+      precioUnitario: 0
+    });
+    
+    // 2. SOPORTES (2 pzas mínimo, más si ancho > 1.5m)
+    materiales.push({
+      tipo: 'Soportes',
+      descripcion: `Soporte ${diametro}mm`,
+      cantidad: cantidadSoportes,
+      unidad: 'pza',
+      observaciones: cantidadSoportes > 2 ? 'Incluye soportes centrales' : 'Izquierdo y derecho',
+      precioUnitario: 0
+    });
+    
+    // 3. MECANISMO o MOTOR
+    let descripcionMecanismo = 'Mecanismo cadena';
+    let debeMotorizar = false;
+    let noFabricar = false;
+    let descripcionMotor = 'Motor tubular'; // Default
+
+    const esDuoline = ['Sheer', 'Zebra', 'Duo', 'Duoline'].some(t => piezaContexto.producto?.includes(t));
+
+    // Lógica de selección de mecanismo TecnoShades (Solo Manual)
+    if (!motorizado) {
+        if (ancho <= 1.2 && alto <= 1.5) {
+          descripcionMecanismo = 'Mecanismo SL-10';
+        } else if (ancho <= 2.0 && alto <= 3.0) {
+          descripcionMecanismo = 'Mecanismo SL-16';
+        } else if (ancho <= 2.5 && alto <= 3.5) {
+          if (ancho > 2.2 && alto > 3.0) debeMotorizar = true;
+          else descripcionMecanismo = 'Mecanismo SL-20';
+        } else if (ancho <= 2.9 && alto <= 5.0) {
+           if (ancho > 2.5 || alto > 4.0) debeMotorizar = true;
+           else descripcionMecanismo = 'Mecanismo R-24';
+        } else {
+          if (ancho > 4.5 || alto > 6.0) noFabricar = true;
+          else debeMotorizar = true;
+        }
+        
+        if ((ancho * alto) > 7.5) debeMotorizar = true;
+    }
+
+    // Lógica de Selección de MOTOR
+    if (motorizado || debeMotorizar) {
+        if (esDuoline) {
+            // --- TABLA MOTORES DUOLINE ---
+            // Verde Claro (Pequeño): 25MM BATTERY 1.1Nm
+            if (ancho <= 1.8 && alto <= 1.8) {
+                descripcionMotor = 'Motor RF 25MM BATTERY SYSTEM 1.1Nm';
+            }
+            // Verde Oscuro (Medio): 35MM SG 1L BATTERY 3Nm (Prioridad sobre amarillo en zonas bajas)
+            else if (ancho <= 2.5 && alto <= 2.8) {
+                descripcionMotor = 'Motor RF 35MM SG 1L BATTERY SYSTEM (3Nm)';
+            }
+            // Amarillo (Grande/Alto): 35MM 1L SG WIFI 6Nm
+            else if (ancho <= 3.8 && alto <= 3.5) {
+                descripcionMotor = 'Motor RF 35MM 1L SG WIFI (6Nm)';
+            }
+            // Blanco (Muy Grande): 35MM 1L T. ELECTRONICO 10Nm
+            else {
+                descripcionMotor = 'Motor RF 35MM 1L T. ELECTRONICO (10Nm)';
+            }
+        } else {
+            // --- TABLA MOTORES ENROLLABLES ---
+            // Verde Claro: 25MM BATTERY 1.1Nm
+            if (ancho <= 2.0 && alto <= 2.0) {
+                descripcionMotor = 'Motor RF 25MM BATTERY SYSTEM 1.1Nm';
+            }
+            // Naranja: 35MM SG 1L BATTERY 3Nm
+            else if (ancho <= 2.5 && alto <= 3.3) {
+                descripcionMotor = 'Motor RF 35MM SG 1L BATTERY SYSTEM (3Nm)';
+            }
+            // Amarillo: 35MM 1L SG WIFI 6Nm
+            else if (ancho <= 3.5 && alto <= 3.8) {
+                descripcionMotor = 'Motor RF 35MM 1L SG WIFI (6Nm)';
+            }
+            // Verde Oscuro: 35MM 1L T. ELECTRONICO 10Nm (Zona central)
+            else if (ancho <= 4.0 && alto <= 4.0) {
+                descripcionMotor = 'Motor RF 35MM 1L T. ELECTRONICO (10Nm)';
+            }
+            // Azul (Muy Grande): 45MM 1L SG SILENCIOSO / ALAMBRICO
+            else if (ancho <= 6.0 && alto <= 5.0) {
+                descripcionMotor = 'Motor RF 45MM 1L SG SILENCIOSO TE (10Nm)';
+            }
+            // Gris (Gigante): 45MM 50N
+            else {
+                 descripcionMotor = 'Motor 45MM 50N';
+            }
+        }
+    }
+
+    if (motorizado || debeMotorizar) {
+      materiales.push({
+        tipo: 'Motor',
+        descripcion: descripcionMotor,
+        cantidad: 1,
+        unidad: 'pza',
+        observaciones: debeMotorizar ? '⚠️ RECOMENDADO MOTORIZAR POR DIMENSIONES' : 'Incluye control remoto',
+        precioUnitario: 0,
+        metadata: { esDuoline }
+      });
+    } else if (noFabricar) {
+      materiales.push({
+        tipo: 'Mecanismo',
+        descripcion: 'NO FABRICAR',
+        cantidad: 1,
+        unidad: 'pza',
+        observaciones: '⛔ DIMENSIONES FUERA DE RANGO',
+        precioUnitario: 0
+      });
+    } else {
+      materiales.push({
+        tipo: 'Mecanismo',
+        descripcion: descripcionMecanismo,
+        cantidad: 1,
+        unidad: 'pza',
+        observaciones: 'Incluye clutch',
+        precioUnitario: 0
+      });
+      
+      // 5. CONECTOR CADENA (solo manual)
+      materiales.push({
+        tipo: 'Conector Cadena',
+        descripcion: 'Conector de cadena',
+        cantidad: 1,
+        unidad: 'pza',
+        observaciones: '',
+        precioUnitario: 0
+      });
+      
+      // 6. TOPE CADENA (solo manual)
+      materiales.push({
+        tipo: 'Tope Cadena',
+        descripcion: 'Tope de cadena',
+        cantidad: 1,
+        unidad: 'pza',
+        observaciones: '',
+        precioUnitario: 0
+      });
+      
+      // 7. CADENA HD
+      // Fórmula: (Alto - Alto/3) × 2
+      // Si es doble altura (especificado en levantamiento), se duplica
+      const esDobleAltura = piezaContexto.dobleAltura || piezaContexto.detalleTecnico?.includes('doble altura');
+      const altoEfectivoCadena = alto - (alto / 3); // Quitar 1/3 del alto
+      let largoCadena = altoEfectivoCadena * 2;
+      
+      if (esDobleAltura) {
+        largoCadena = largoCadena * 2; // Duplicar si es doble altura
+      }
+      
+      materiales.push({
+        tipo: 'Cadena',
+        descripcion: esDobleAltura ? 'Cadena HD (Doble Altura)' : 'Cadena HD',
+        cantidad: Number(largoCadena.toFixed(2)),
+        unidad: 'ml',
+        observaciones: `(${alto.toFixed(2)} - ${(alto/3).toFixed(2)}) × 2${esDobleAltura ? ' × 2 (doble altura)' : ''} = ${largoCadena.toFixed(2)}m`,
+        precioUnitario: 0
+      });
+    }
+    
+    // 4. TUBO (barra 5.80m, corte = ancho - 0.03m)
+    // Selección de Tubo según Tabla de Especificaciones TecnoLine
+    let descripcionTubo = 'Tubo 1 1/2" Delgado (38mm)';
+    let diametroTubo = 38;
+    let noFabricarTubo = false;
+
+    if (ancho <= 2.0 && alto <= 2.5) {
+      descripcionTubo = 'Tubo 1 1/2" Delgado (38mm)';
+      diametroTubo = 38;
+    } else if ((ancho <= 2.5 && alto <= 3.0) || (ancho <= 2.0 && alto <= 4.1)) {
+      descripcionTubo = 'Tubo 1 1/2" Reforzado (38mm)';
+      diametroTubo = 38;
+    } else if ((ancho <= 3.1 && alto <= 3.0) || (ancho <= 2.9 && alto <= 5.0) || (ancho <= 2.0 && alto <= 5.0)) {
+      descripcionTubo = 'Tubo 2" (50mm)';
+      diametroTubo = 50;
+    } else if (ancho <= 4.0 && alto <= 4.2) {
+      descripcionTubo = 'Tubo 2 1/2" (70mm)';
+      diametroTubo = 70;
+    } else if ((ancho <= 5.0 && alto <= 4.2) || (ancho <= 4.5 && alto <= 5.0)) { // Zona amarilla incluida
+      descripcionTubo = 'Tubo 3" (80mm)';
+      diametroTubo = 80;
+    } else {
+      descripcionTubo = 'NO FABRICAR (Tubo fuera de rango)';
+      noFabricarTubo = true;
+    }
+    
+    // Si la altura es mayor a 6m, requiere autorización (zona beige)
+    if (alto > 6.0 && !noFabricarTubo) {
+      descripcionTubo += ' ⚠️ REQUIERE AUTORIZACIÓN (Alto > 6m)';
+    }
+
+    if (!noFabricarTubo) {
+      materiales.push({
+        tipo: 'Tubo',
+        descripcion: `${descripcionTubo} (barra 5.80m)`,
+        cantidad: Number(largoCorteTubo.toFixed(2)),
+        unidad: 'ml',
+        observaciones: `Corte = ${largoCorteTubo.toFixed(2)}m (ancho - 0.03m)`,
+        precioUnitario: 0,
+        metadata: { diametro: diametroTubo, longitudBarra: 5.80 }
+      });
+    } else {
+      materiales.push({
+        tipo: 'Tubo',
+        descripcion: 'NO FABRICAR',
+        cantidad: 0,
+        unidad: 'ml',
+        observaciones: '⛔ DIMENSIONES DE TUBO FUERA DE RANGO',
+        precioUnitario: 0
+      });
+    }
+    
+    // 8. TELA
     if (esEnrollables) {
-      const mlTela = Number(piezaContexto.mlTela || 0);
+      const mlTela = Number(piezaContexto.mlTela || alto + 0.25);
       materiales.push({
         tipo: 'Tela',
         descripcion: `Tela enrollable (rollo ${piezaContexto.rolloSeleccionado || ROLLO_BASE_ENROLLABLE}m)`,
         cantidad: Number(mlTela.toFixed(2)),
         unidad: 'ml',
-        observaciones: `Alto efectivo ${Number(piezaContexto.altoEfectivo || 0).toFixed(2)}m. ${piezaContexto.requiereTermosello ? 'Requiere termosello.' : 'Sin termosello.'}`,
-        precioUnitario: 0
+        observaciones: `Alto efectivo ${Number(piezaContexto.altoEfectivo || alto).toFixed(2)}m. ${piezaContexto.requiereTermosello ? 'Requiere termosello.' : 'Sin termosello.'}`,
+        precioUnitario: 0,
+        metadata: { 
+          anchoRollo: piezaContexto.rolloSeleccionado || ROLLO_BASE_ENROLLABLE,
+          rotada: piezaContexto.rotada || false
+        }
       });
     } else {
       const areaTela = area * 1.1; // 10% merma
@@ -367,79 +602,47 @@ class CalculadoraMaterialesService {
       });
     }
     
-    // Tubo (barra 5.80m, corte = ancho - 0.03m)
-    const largoCorteTubo = Math.max(ancho - 0.03, 0);
-    const diametro = ancho <= 1.5 ? 38 : ancho <= 2.5 ? 43 : 50;
-    materiales.push({
-      tipo: 'Tubo',
-      descripcion: `Tubo ${diametro}mm (barra 5.80m)`,
-      cantidad: Number(largoCorteTubo.toFixed(2)),
-      unidad: 'ml',
-      observaciones: 'Corte = ancho - 0.03m (barra base 5.80m)',
-      precioUnitario: 0
-    });
-
-    // Contrapeso (mismo corte que el tubo)
+    // 9. CONTRAPESO (Plano o Ovalado según condiciones)
+    // - Rotada → Plano
+    // - Con galería → Plano
+    // - Cliente solicita → Plano (viene en pieza.tipoContrapeso)
+    // - Default → Ovalado
+    const usarContrapesoPlano = piezaContexto.rotada || 
+                                 (galeria && galeria !== 'sin_galeria' && galeria !== 'Sin galería') ||
+                                 piezaContexto.tipoContrapeso === 'plano';
+    const tipoContrapeso = usarContrapesoPlano ? 'Plano' : 'Ovalado';
+    
     materiales.push({
       tipo: 'Contrapeso',
-      descripcion: 'Contrapeso aluminio (barra 5.80m)',
+      descripcion: `Contrapeso ${tipoContrapeso} (barra 5.80m)`,
       cantidad: Number(largoCorteTubo.toFixed(2)),
       unidad: 'ml',
-      observaciones: 'Corte = ancho - 0.03m (barra base 5.80m)',
-      precioUnitario: 0
+      observaciones: `Corte = ${largoCorteTubo.toFixed(2)}m | ${usarContrapesoPlano ? (piezaContexto.rotada ? 'Rotada' : 'Con galería') : 'Estándar'}`,
+      precioUnitario: 0,
+      metadata: { longitudBarra: 5.80, tipoContrapeso }
     });
     
-    // Soportes
-    const cantidadSoportes = ancho <= 1.5 ? 2 : ancho <= 3.0 ? 3 : 4;
-    materiales.push({
-      tipo: 'Soportes',
-      descripcion: 'Soporte universal',
-      cantidad: cantidadSoportes,
-      unidad: 'pza',
-      observaciones: cantidadSoportes > 2 ? 'Incluye soportes centrales' : 'Izquierdo y derecho',
-      precioUnitario: 0
-    });
+    // ===== COMPONENTES ADICIONALES (OPCIONALES) =====
     
-    // Mecanismo o Motor
-    if (motorizado) {
-      materiales.push({
-        tipo: 'Motor',
-        descripcion: 'Motor tubular',
-        cantidad: 1,
-        unidad: 'pza',
-        observaciones: 'Incluye control remoto',
-        precioUnitario: 0
-      });
-    } else {
-      materiales.push({
-        tipo: 'Mecanismo',
-        descripcion: 'Mecanismo cadena',
-        cantidad: 1,
-        unidad: 'kit',
-        observaciones: 'Manual',
-        precioUnitario: 0
-      });
-    }
-    
-    // Galería
-    if (galeria && galeria !== 'sin_galeria') {
+    // GALERÍA (si aplica)
+    if (galeria && galeria !== 'sin_galeria' && galeria !== 'Sin galería') {
       materiales.push({
         tipo: 'Galería',
-        descripcion: galeria,
+        descripcion: `Galería ${galeria}`,
         cantidad: Number(ancho.toFixed(2)),
         unidad: 'ml',
-        observaciones: '',
+        observaciones: 'Corte = ancho',
         precioUnitario: 0
       });
     }
     
-    // Herrajes
+    // HERRAJES / KIT DE FIJACIÓN
     materiales.push({
       tipo: 'Herrajes',
-      descripcion: `Kit de fijación`,
+      descripcion: 'Kit de fijación',
       cantidad: cantidadSoportes,
       unidad: 'kit',
-      observaciones: 'Incluye taquetes y tornillos',
+      observaciones: 'Taquetes y tornillos por soporte',
       precioUnitario: 0
     });
     
@@ -603,7 +806,12 @@ class CalculadoraMaterialesService {
       });
     }
 
-    const altoEfectivo = (rotadaCalculada ? anchoTerminado : altoTerminado) + extraTela;
+    // REGLA DE METROS LINEALES:
+    // - Normal: ML = Alto + extraTela (0.25 sin galería, 0.50 con galería)
+    // - Rotada: ML = Ancho (SIN extra, porque ya no enrolla en esa dirección)
+    const altoEfectivo = rotadaCalculada 
+      ? anchoTerminado  // Rotada: solo el ancho, sin extra
+      : (altoTerminado + extraTela);  // Normal: alto + extra
     const mlTela = Math.max(altoEfectivo, 0);
     const fraccionRollo = rolloSeleccionado ? mlTela / LONGITUD_ROLLO_ESTANDAR : 0;
 

@@ -9,7 +9,8 @@
  * - Iconos grandes y reconocibles
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
 import {
   Box,
   Typography,
@@ -93,6 +94,7 @@ const ESTADOS = {
 const FLUJO_NORMAL = ['recepcion_material', 'pendiente', 'en_proceso', 'terminado'];
 
 const TallerKanban = () => {
+  const { user } = useContext(AuthContext);
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -339,19 +341,21 @@ const TallerKanban = () => {
             </Tooltip>
           )}
           
-          {/* Botón Ver Orden */}
-          <Tooltip title="Ver Orden">
-            <IconButton 
-              onClick={() => abrirOrden(proyecto)}
-              sx={{ 
-                bgcolor: '#D4AF37',
-                color: 'white',
-                '&:hover': { bgcolor: '#B8941F' }
-              }}
-            >
-              <OrdenIcon />
-            </IconButton>
-          </Tooltip>
+          {/* Botón Ver Orden (Solo Admin/Taller/Producción) */}
+          {!['vendedor', 'ventas', 'comercial'].includes(user?.role) && (
+            <Tooltip title="Ver Orden">
+              <IconButton 
+                onClick={() => abrirOrden(proyecto)}
+                sx={{ 
+                  bgcolor: '#D4AF37',
+                  color: 'white',
+                  '&:hover': { bgcolor: '#B8941F' }
+                }}
+              >
+                <OrdenIcon />
+              </IconButton>
+            </Tooltip>
+          )}
           
           {/* Botón Crítico (solo si no está terminado) */}
           {!esTerminado && !esCritico && (

@@ -27,13 +27,11 @@ class OptimizadorCortesService {
    * @returns {object} Información del tubo
    */
   static seleccionarTubo(configuracion, variables) {
-    // Buscar materiales de tipo "Tubo" con condiciones
-    const materialesTubo = (configuracion.materiales || []).filter(m => 
-      m.tipo === 'Tubo' && m.activo !== false
-    );
+    // Buscar reglas de tubos en reglasSeleccion.tubos (estructura correcta)
+    const reglasTubos = configuracion.reglasSeleccion?.tubos || [];
     
     // Buscar el primer tubo que cumpla la condición
-    for (const tubo of materialesTubo) {
+    for (const tubo of reglasTubos) {
       try {
         if (tubo.condicion) {
           const condicionFn = new Function(
@@ -43,14 +41,10 @@ class OptimizadorCortesService {
           const cumple = condicionFn(...Object.values(variables));
           
           if (cumple) {
-            // Extraer diámetro de la descripción (ej: "Tubo 38 mm" -> "38mm")
-            const matchDiametro = tubo.descripcion?.match(/(\d+)\s*mm/i);
-            const diametro = matchDiametro ? `${matchDiametro[1]}mm` : '50mm';
-            
             return {
-              diametro: diametro,
+              diametro: tubo.diametro || '50mm',
               descripcion: tubo.descripcion,
-              codigo: tubo.codigo || `T${matchDiametro ? matchDiametro[1] : '50'}`
+              codigo: tubo.codigo || 'T50'
             };
           }
         }
@@ -641,6 +635,9 @@ class OptimizadorCortesService {
         return [];
       }
       
+      // Determinar tipo de contrapeso
+      const tipoContrapeso = rotada || (galeria && galeria !== 'sin_galeria') ? 'plano' : 'ovalado';
+      
       const variables = {
         ancho,
         alto,
@@ -653,6 +650,7 @@ class OptimizadorCortesService {
         modeloControl,
         tipoMando, // Monocanal, Multicanal...
         ladoControl, // Izquierda, Derecha...
+        tipoContrapeso, // plano u ovalado
         sistema,
         Math,
         Number
@@ -667,7 +665,7 @@ class OptimizadorCortesService {
       
       const evalWithContext = (expression) => {
         // Contexto seguro para evaluación
-        return Function('"use strict"; const {ancho, alto, area, motorizado, esManual, rotada, galeria, sistema, color, modeloControl, tipoMando, ladoControl, Math, Number} = this; return (' + expression + ')').call(variables);
+        return Function('"use strict"; const {ancho, alto, area, motorizado, esManual, rotada, galeria, sistema, color, modeloControl, tipoMando, ladoControl, tipoContrapeso, Math, Number} = this; return (' + expression + ')').call(variables);
       };
 
       if (configuracion.materiales && Array.isArray(configuracion.materiales)) {

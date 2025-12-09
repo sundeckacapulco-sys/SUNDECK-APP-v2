@@ -1,7 +1,70 @@
 # 🚀 CONTINUAR AQUÍ - PRÓXIMA SESIÓN
 
-**Fecha de última sesión:** 5 Dic 2025
-**Estado del proyecto:** ✅ **AGENTE IA IMPLEMENTADO** | ⏳ **DESPIECE ENROLLABLE PENDIENTE**
+**Fecha de última sesión:** 9 Dic 2025
+**Estado del proyecto:** ✅ **CONFIGURACIÓN MATERIALES TECNOLINE** | ⏳ **SHEER ELEGANCE PENDIENTE**
+
+---
+
+## 🎯 SESIÓN 9 DIC 2025 - CONFIGURACIÓN MATERIALES Y PDF LISTA PEDIDO
+
+### ✅ COMPLETADO ESTA SESIÓN
+
+**1. Configuración Tecnoline 2025 para Roller Shade:**
+- ✅ Script: `scripts/configurar_materiales_tecnoline.js`
+- ✅ 9 reglas de tubos (manual y motorizado) con códigos Tecnoline
+- ✅ 11 reglas de mecanismos (SL-16, SL-20, R-24 + 8 motores)
+- ✅ 14 materiales con condiciones inteligentes
+- ✅ **EXCLUIDOS:** SL-10 y Motor 25mm BATTERY 1.1Nm (no se usan)
+
+**2. Tubos Configurados:**
+- Manual: TUB38ENR (38mm), TUB-2M-REF (38mm ref), TUBA-70-5.8 (70mm), TUBA-79-5.8 (79mm)
+- Motorizado: TUB-2M-REF, TUBSG-35-5.8, TUBSG-45-5.8, TUBA-70-5.8, TUBA-79-5.8
+
+**3. Materiales con Lógica Condicional:**
+- Contrapeso Plano + Inserto (ML) → si rotada o con galería
+- Contrapeso Ovalado + Cinta doble cara + Piola #5 (ML) → si NO rotada y sin galería
+- Cinta doble cara (para Tubo) → siempre
+- Cadena HD → solo manual
+- Soportes, Tapas, Kit fijación, Conector/Tope cadena
+
+**4. PDF Lista de Pedido Mejorado:**
+- ✅ Sección "MOTORES Y CONTROLES" con campos para llenar manualmente
+- ✅ Muestra cantidad de piezas motorizadas
+- ✅ Campos: Tipo de control, Cantidad, Observaciones
+- ✅ Truncado de descripciones largas (evita encimado)
+
+**5. Fix Crítico Aplicado:**
+- ✅ `seleccionarTubo()` en `optimizadorCortesService.js` ahora lee de `reglasSeleccion.tubos`
+- Antes leía de `materiales` incorrectamente → siempre caía a "50mm por defecto"
+
+**6. Motor y Control NO se calculan:**
+- Vienen de la cotización/levantamiento, no de la calculadora
+- PDF muestra recordatorio para especificar manualmente
+
+### ⏳ PENDIENTE PARA PRÓXIMA SESIÓN
+
+**1. SHEER ELEGANCE - Configuración Específica:**
+- NO lleva contrapeso plano ni ovalado
+- Definir materiales específicos cuando se trabaje
+
+**2. Integrar Motores desde Productos:**
+- Cuando se trabaje módulo Productos, jalar motores de ahí
+
+**3. Probar con más proyectos reales**
+
+### 📝 NOTAS TÉCNICAS
+
+**BD Correcta:** `mongodb://localhost:27017/sundeck-crm` (NO sundeck)
+
+**Archivos Clave:**
+- `scripts/configurar_materiales_tecnoline.js` - Poblar BD con reglas
+- `server/services/pdfListaPedidoV3Service.js` - Genera PDF
+- `server/services/optimizadorCortesService.js` - Calcula materiales desde BD
+
+**Proyecto de Prueba:**
+- ID: `690e69251346d61cfcd5178d`
+- Cliente: Arq. Hector Huerta
+- 6 piezas motorizadas/manuales
 
 ---
 

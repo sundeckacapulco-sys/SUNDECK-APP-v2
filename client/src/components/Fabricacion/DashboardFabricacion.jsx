@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
 import {
   Box,
   Grid,
@@ -96,6 +97,7 @@ const PRIORIDADES = {
 };
 
 const DashboardFabricacion = () => {
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -576,20 +578,22 @@ const DashboardFabricacion = () => {
                           </Typography>
                           <Divider sx={{ mb: 2 }} />
                           
-                          {/* Botón principal: Descargar Orden */}
-                          <Button
-                            variant="contained"
-                            fullWidth
-                            startIcon={<DescriptionIcon />}
-                            onClick={() => abrirVisorOrdenTaller(proyecto)}
-                            sx={{ 
-                              mb: 1.5,
-                              bgcolor: '#D4AF37',
-                              '&:hover': { bgcolor: '#B8941F' }
-                            }}
-                          >
-                            🛠️ Ver Orden de Taller
-                          </Button>
+                          {/* Botón principal: Descargar Orden (Solo Admin/Taller/Producción) */}
+                          {!['vendedor', 'ventas', 'comercial'].includes(user?.role) && (
+                            <Button
+                              variant="contained"
+                              fullWidth
+                              startIcon={<DescriptionIcon />}
+                              onClick={() => abrirVisorOrdenTaller(proyecto)}
+                              sx={{ 
+                                mb: 1.5,
+                                bgcolor: '#D4AF37',
+                                '&:hover': { bgcolor: '#B8941F' }
+                              }}
+                            >
+                              🛠️ Ver Orden de Taller
+                            </Button>
+                          )}
                           
                           {/* Botón: Ver Levantamiento (abre modal) */}
                           <Button
